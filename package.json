@@ -1,0 +1,28 @@
+{
+  "name": "inspect",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-Powered Browser Testing Platform",
+  "author": "Lakshman Patel",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "clean": "turbo clean && rm -rf node_modules",
+    "inspect": "node apps/cli/dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.1"
+  }
+}
