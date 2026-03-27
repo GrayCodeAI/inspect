@@ -8,7 +8,7 @@ import { executeStep } from "./tester.js";
 import { validateStep, createNetworkMonitor, createConsoleMonitor, trackUrlChanges } from "./validator.js";
 import { checkAccessibility } from "./accessibility.js";
 import { generateReport } from "./reporter.js";
-import { withCache } from "./cache.js";
+import { withCache, withRetry } from "./cache.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 
@@ -77,8 +77,9 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   let formResults: FormTestResult[] | undefined;
   let tokenUsage = 0;
 
-  // Wrap LLM with optional cache
-  const baseLlm = options.cache !== false ? withCache(llm) : llm;
+  // Wrap LLM with retry + optional cache
+  const retriedLlm = withRetry(llm, { maxRetries: 3, baseDelay: 1000 });
+  const baseLlm = options.cache !== false ? withCache(retriedLlm) : retriedLlm;
 
   const tokenBudget = options.tokenBudget ?? 0;
 
@@ -316,33 +317,50 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     onProgress("info", "");
     onProgress("info", "═══ TIER 3: QUALITY ═════════════════════════");
 
-    const qualityPromises: Array<Promise<void>> = [];
+    // Run accessibility + security + SEO in parallel (they read-only the current page)
+    const parallelQuality: Array<Promise<void>> = [];
 
-    // Accessibility
     if (tiers.accessibility) {
-      qualityPromises.push((async () => {
-        onProgress("info", "Running accessibility audit...");
-        const a11yReport = await checkAccessibility(page, page.url(), onProgress);
-        a11yReports.push(a11yReport);
+      parallelQuality.push((async () => {
+        try {
+          onProgress("info", "Running accessibility audit...");
+          const a11yReport = await checkAccessibility(page, page.url(), onProgress);
+          a11yReports.push(a11yReport);
+        } catch (err: any) {
+          onProgress("warn", `Accessibility audit skipped: ${err.message}`);
+        }
       })());
     }
 
-    // Wait for a11y before running other quality checks (they navigate/resize)
-    await Promise.all(qualityPromises);
-
-    // Security (runs on current page)
     if (tiers.security) {
-      try {
-        const { runSecurityAudit } = await import("./security-agent.js");
-        onProgress("info", "Running security audit...");
-        securityReport = await runSecurityAudit(page, url, onProgress);
-        onProgress("pass", `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`);
-      } catch (err: any) {
-        onProgress("warn", `Security audit skipped: ${err.message}`);
-      }
+      parallelQuality.push((async () => {
+        try {
+          const { runSecurityAudit } = await import("./security-agent.js");
+          onProgress("info", "Running security audit...");
+          securityReport = await runSecurityAudit(page, url, onProgress);
+          onProgress("pass", `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`);
+        } catch (err: any) {
+          onProgress("warn", `Security audit skipped: ${err.message}`);
+        }
+      })());
     }
 
-    // Performance (re-navigate to get fresh timing)
+    if (tiers.seo) {
+      parallelQuality.push((async () => {
+        try {
+          const { runSEOAudit } = await import("./seo.js");
+          onProgress("info", "Running SEO audit...");
+          seoReport = await runSEOAudit(page, url, onProgress);
+          onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
+        } catch (err: any) {
+          onProgress("warn", `SEO audit skipped: ${err.message}`);
+        }
+      })());
+    }
+
+    await Promise.all(parallelQuality);
+
+    // Performance needs a fresh navigation for accurate timing — run after parallel checks
     if (tiers.performance) {
       try {
         const { runPerformanceAudit } = await import("./performance-agent.js");
@@ -355,19 +373,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       }
     }
 
-    // SEO
-    if (tiers.seo) {
-      try {
-        const { runSEOAudit } = await import("./seo.js");
-        onProgress("info", "Running SEO audit...");
-        seoReport = await runSEOAudit(page, url, onProgress);
-        onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
-      } catch (err: any) {
-        onProgress("warn", `SEO audit skipped: ${err.message}`);
-      }
-    }
-
-    // Responsive (runs last because it changes viewport)
+    // Responsive runs last — it changes viewport size
     if (tiers.responsive) {
       try {
         const { runResponsiveAudit } = await import("./responsive.js");

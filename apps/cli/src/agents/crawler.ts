@@ -12,6 +12,7 @@ import type {
   PageType,
   ProgressCallback,
 } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Main entry point
@@ -46,17 +47,29 @@ export async function crawlSite(
 
   let robotsTxt: string | undefined;
   const sitemapUrls: string[] = [];
+  const disallowedPaths: string[] = [];
 
   try {
     robotsTxt = (await fetchTextViaPage(page, `${baseOrigin}/robots.txt`, timeout)) ?? undefined;
     if (robotsTxt) {
       onProgress("info", "Found robots.txt");
-      const sitemapLines = robotsTxt
-        .split("\n")
-        .filter((l) => l.toLowerCase().startsWith("sitemap:"))
-        .map((l) => l.split(":", 2).slice(1).join(":").trim());
-      for (const sUrl of sitemapLines) {
-        if (sUrl) sitemapUrls.push(sUrl);
+      // Parse Disallow rules (for * user-agent or unspecified)
+      let inWildcardBlock = false;
+      for (const line of robotsTxt.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.toLowerCase().startsWith("user-agent:")) {
+          const agent = trimmed.slice("user-agent:".length).trim();
+          inWildcardBlock = agent === "*";
+        } else if (trimmed.toLowerCase().startsWith("disallow:") && inWildcardBlock) {
+          const path = trimmed.slice("disallow:".length).trim();
+          if (path && path !== "/") disallowedPaths.push(path);
+        } else if (trimmed.toLowerCase().startsWith("sitemap:")) {
+          const sUrl = trimmed.slice("sitemap:".length).trim();
+          if (sUrl) sitemapUrls.push(sUrl);
+        }
+      }
+      if (disallowedPaths.length > 0) {
+        onProgress("info", `robots.txt: ${disallowedPaths.length} disallowed path(s)`);
       }
     }
   } catch {
@@ -106,6 +119,15 @@ export async function crawlSite(
       externalLinks.add(normalized);
       continue;
     }
+
+    // Respect robots.txt Disallow rules
+    try {
+      const urlPath = new URL(normalized).pathname;
+      if (disallowedPaths.some(d => urlPath.startsWith(d))) {
+        onProgress("info", `  Skipped (robots.txt): ${normalized}`);
+        continue;
+      }
+    } catch {}
 
     visited.add(normalized);
 
@@ -233,7 +255,7 @@ async function visitPage(
   const loadTime = Date.now() - loadStart;
 
   // Extract page data in a single evaluate call for performance
-  const extracted = await page.evaluate(`(() => {
+  const extracted = await safeEvaluate<any>(page, `(() => {
     // Links
     const anchors = Array.from(document.querySelectorAll("a[href]"));
     const links = anchors.map((a) => a.href).filter(Boolean);
@@ -416,14 +438,14 @@ async function visitPage(
     const bodyText = document.body?.innerText?.slice(0, 2000) ?? "";
 
     return { links, headings, meta, forms, interactive, bodyText };
-  })()`).catch(() => ({
+  })()`, {
     links: [],
     headings: [],
     meta: {},
     forms: [],
     interactive: [],
     bodyText: "",
-  })) as any;
+  });
 
   // Map extracted forms to FormInfo
   type ExtractedField = {

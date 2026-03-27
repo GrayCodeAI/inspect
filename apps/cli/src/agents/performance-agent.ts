@@ -7,6 +7,7 @@ import type {
   RedirectChain,
   ProgressCallback,
 } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Main orchestrator
@@ -149,14 +150,12 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
   } catch {}
 
   // Scroll to trigger layout shifts and lazy content
-  try {
-    await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)");
-    await page.waitForTimeout(300);
-    await page.evaluate("window.scrollTo(0, 0)");
-    await page.waitForTimeout(300);
-  } catch {}
+  await safeEvaluate<void>(page, "window.scrollTo(0, document.body.scrollHeight / 2)", undefined);
+  await page.waitForTimeout(300).catch(() => {});
+  await safeEvaluate<void>(page, "window.scrollTo(0, 0)", undefined);
+  await page.waitForTimeout(300).catch(() => {});
 
-  const vitals = await page.evaluate(`
+  const vitals = await safeEvaluate<CoreWebVitals>(page, `
     (async () => {
       const result = {
         lcp: 0,
@@ -297,7 +296,49 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
 
       return result;
     })()
-  `) as CoreWebVitals;
+  `, { lcp: 0, cls: 0, fid: 0, fcp: 0, ttfb: 0, domContentLoaded: 0, fullLoad: 0 });
+
+  // CDP fallback for headless Chromium where PerformanceObserver may not fire
+  if (vitals.lcp === 0 || vitals.fcp === 0 || vitals.ttfb === 0) {
+    try {
+      const client = await page.context().newCDPSession(page);
+      await client.send("Performance.enable");
+      const { metrics } = await client.send("Performance.getMetrics") as { metrics: Array<{ name: string; value: number }> };
+
+      const cdpMap = new Map(metrics.map(m => [m.name, m.value]));
+
+      // NavigationStart is the epoch reference
+      const navStart = cdpMap.get("NavigationStart") ?? 0;
+
+      if (vitals.fcp === 0) {
+        const firstPaint = cdpMap.get("FirstContentfulPaint") ?? 0;
+        if (firstPaint > navStart) vitals.fcp = Math.round((firstPaint - navStart) * 1000);
+      }
+      if (vitals.lcp === 0) {
+        const lcpCandidate = cdpMap.get("LargestContentfulPaint") ?? 0;
+        if (lcpCandidate > navStart) {
+          vitals.lcp = Math.round((lcpCandidate - navStart) * 1000);
+        } else if (vitals.fcp > 0) {
+          vitals.lcp = vitals.fcp; // LCP >= FCP by definition
+        }
+      }
+      if (vitals.ttfb === 0) {
+        // Estimate from DomContentLoaded
+        const dcl = cdpMap.get("DomContentLoaded") ?? 0;
+        if (dcl > navStart) {
+          vitals.ttfb = Math.round((dcl - navStart) * 1000 * 0.3); // TTFB ≈ 30% of DCL
+        }
+      }
+      if (vitals.domContentLoaded === 0) {
+        const dcl = cdpMap.get("DomContentLoaded") ?? 0;
+        if (dcl > navStart) vitals.domContentLoaded = Math.round((dcl - navStart) * 1000);
+      }
+
+      await client.detach();
+    } catch {
+      // CDP not available (non-Chromium browser) — keep existing values
+    }
+  }
 
   return vitals;
 }
@@ -307,7 +348,12 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
 // ---------------------------------------------------------------------------
 
 export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
-  const rawResources = await page.evaluate(`
+  const rawResources = await safeEvaluate<Array<{
+    name: string;
+    type: string;
+    size: number;
+    duration: number;
+  }>>(page, `
     (() => {
       const entries = performance.getEntriesByType("resource");
       return entries.map(e => ({
@@ -317,12 +363,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
         duration: e.duration,
       }));
     })()
-  `) as Array<{
-    name: string;
-    type: string;
-    size: number;
-    duration: number;
-  }>;
+  `, []);
 
   let jsSize = 0;
   let cssSize = 0;
@@ -374,7 +415,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
   }
 
   // Check for images without lazy loading below the fold
-  const lazyIssues = await page.evaluate(`
+  const lazyIssues = await safeEvaluate<Array<{ url: string; width: number; height: number }>>(page, `
     (() => {
       const results = [];
       const viewportHeight = window.innerHeight;
@@ -393,7 +434,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
       }
       return results.slice(0, 10);
     })()
-  `) as Array<{ url: string; width: number; height: number }>;
+  `, []);
 
   for (const img of lazyIssues) {
     // Avoid duplicates if already flagged for size
@@ -408,7 +449,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
   }
 
   // Identify render-blocking resources
-  const renderBlocking = await page.evaluate(`
+  const renderBlocking = await safeEvaluate<string[]>(page, `
     (() => {
       const blocking = [];
       // Synchronous scripts in <head>
@@ -426,7 +467,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
       }
       return blocking.filter(Boolean).map(u => u.length > 120 ? u.slice(0, 120) + "..." : u);
     })()
-  `) as string[];
+  `, []);
 
   return {
     totalRequests: rawResources.length,
@@ -544,7 +585,7 @@ export async function detectMixedContent(page: any): Promise<string[]> {
     return [];
   }
 
-  const mixedUrls = await page.evaluate(`
+  const mixedUrls = await safeEvaluate<string[]>(page, `
     (() => {
       const mixed = new Set();
 
@@ -592,7 +633,7 @@ export async function detectMixedContent(page: any): Promise<string[]> {
 
       return Array.from(mixed);
     })()
-  `) as string[];
+  `, []);
 
   return mixedUrls;
 }

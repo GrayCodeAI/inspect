@@ -1,4 +1,5 @@
 import type { TestStep, ValidationResult, ValidationEvidence, NetworkFailure, LLMCall, ProgressCallback } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Network monitoring setup
@@ -114,7 +115,7 @@ export function trackUrlChanges(page: any): { getHistory: () => string[] } {
 // ---------------------------------------------------------------------------
 
 async function detectErrorMessages(page: any): Promise<string[]> {
-  return page.evaluate(`
+  return safeEvaluate<string[]>(page, `
     (() => {
       const errors = [];
 
@@ -162,7 +163,7 @@ async function detectErrorMessages(page: any): Promise<string[]> {
 
       return [...new Set(errors)].slice(0, 10);
     })()
-  `) as string[];
+  `, []);
 }
 
 // ---------------------------------------------------------------------------

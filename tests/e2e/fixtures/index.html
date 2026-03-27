@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Inspect test fixture site for E2E testing">
+  <meta property="og:title" content="Test Fixture">
+  <meta property="og:image" content="/og-image.png">
+  <title>Inspect Test Fixture</title>
+  <link rel="canonical" href="http://localhost:9876/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Inspect Test Fixture",
+    "url": "http://localhost:9876/"
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+    nav { background: #333; padding: 10px; margin-bottom: 20px; }
+    nav a { color: white; margin-right: 15px; text-decoration: none; }
+    nav a:focus { outline: 2px solid yellow; }
+    h1 { margin-bottom: 10px; }
+    .card { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 4px; }
+    form { margin: 20px 0; }
+    label { display: block; margin: 5px 0; }
+    input, textarea, select { padding: 8px; margin-bottom: 10px; width: 100%; max-width: 400px; display: block; }
+    button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    button:focus { outline: 2px solid orange; }
+    .error { color: red; display: none; }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; }
+    footer a { margin-right: 10px; }
+    /* A11y issue: low contrast text */
+    .low-contrast { color: #ccc; background: #eee; padding: 5px; }
+    /* Responsive: no overflow */
+    img { max-width: 100%; height: auto; }
+    /* Touch targets: some too small */
+    .tiny-link { font-size: 10px; padding: 2px; }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link" style="position:absolute;left:-9999px;top:0;background:#000;color:#fff;padding:5px;">Skip to content</a>
+
+  <nav aria-label="Main navigation">
+    <a href="/">Home</a>
+    <a href="/about.html">About</a>
+    <a href="/login.html">Login</a>
+    <a href="/search.html">Search</a>
+    <a href="/broken-link">Broken Link</a>
+  </nav>
+
+  <main id="main">
+    <h1>Inspect Test Fixture</h1>
+    <p>This is a test fixture site for integration testing.</p>
+
+    <!-- Image with alt text -->
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect width='200' height='100' fill='%23ddd'/%3E%3C/svg%3E" alt="Placeholder image">
+
+    <!-- Image WITHOUT alt text (a11y issue) -->
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect width='200' height='100' fill='%23aaa'/%3E%3C/svg%3E">
+
+    <!-- Low contrast text (a11y issue) -->
+    <p class="low-contrast">This text has low contrast</p>
+
+    <div class="card">
+      <h2>Contact Form</h2>
+      <form action="/submit" method="POST">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Your name" required>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" placeholder="Your message" rows="3" required></textarea>
+
+        <label for="topic">Topic</label>
+        <select id="topic" name="topic">
+          <option value="">Select a topic</option>
+          <option value="support">Support</option>
+          <option value="sales">Sales</option>
+          <option value="other">Other</option>
+        </select>
+
+        <label>
+          <input type="checkbox" name="agree" required> I agree to the terms
+        </label>
+
+        <button type="submit">Send Message</button>
+      </form>
+      <p class="error" id="form-error">Please fill in all required fields.</p>
+    </div>
+
+    <div class="card">
+      <h2>Features</h2>
+      <ul>
+        <li>Automated testing</li>
+        <li>AI-powered analysis</li>
+        <li>Accessibility auditing</li>
+      </ul>
+      <button onclick="document.getElementById('modal').style.display='block'">Open Modal</button>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" role="dialog" aria-label="Example modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border:2px solid #333;padding:30px;z-index:100;">
+      <h3>Modal Dialog</h3>
+      <p>This is a modal for testing.</p>
+      <button onclick="this.parentElement.style.display='none'">Close</button>
+    </div>
+
+    <!-- Heading hierarchy issue: H2 -> H4 (skips H3) -->
+    <h2>Section Two</h2>
+    <h4>Subsection (heading skip)</h4>
+    <p>This section has a heading hierarchy issue.</p>
+
+    <!-- Tiny touch target (responsive issue) -->
+    <a href="#" class="tiny-link">tiny link</a>
+
+    <!-- Input without label (a11y issue) -->
+    <input type="text" name="unlabeled" placeholder="No label input">
+  </main>
+
+  <footer>
+    <a href="/">Home</a>
+    <a href="/about.html">About</a>
+    <a href="https://example.com" target="_blank" rel="noopener">External Link</a>
+    <p>&copy; 2024 Inspect Test Fixture</p>
+  </footer>
+
+  <script>
+    // Form validation
+    document.querySelector("form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      if (!name || !email) {
+        document.getElementById("form-error").style.display = "block";
+      } else {
+        document.getElementById("form-error").style.display = "none";
+        alert("Form submitted!");
+      }
+    });
+  </script>
+</body>
+</html>

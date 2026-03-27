@@ -603,6 +603,7 @@ describe("security-agent", () => {
     const { scanExposedData } = await import("./security-agent.js");
     const page = mockPage({
       content: vi.fn().mockResolvedValue("<html><body>Clean page</body></html>"),
+      evaluate: vi.fn().mockResolvedValue([]),
     });
 
     const result = await scanExposedData(page);
@@ -614,6 +615,7 @@ describe("security-agent", () => {
     const { scanExposedData } = await import("./security-agent.js");
     const page = mockPage({
       content: vi.fn().mockResolvedValue('<html><body><script>const key = "AKIAIOSFODNN7EXAMPLE";</script></body></html>'),
+      evaluate: vi.fn().mockResolvedValue([]),
     });
 
     const result = await scanExposedData(page);

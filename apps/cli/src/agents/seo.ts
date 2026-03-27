@@ -2,6 +2,7 @@ import type {
   SEOReport, SEOIssue, MetaTagAudit, RobotsTxtAudit, SitemapAudit,
   StructuredDataAudit, CanonicalAudit, ProgressCallback
 } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Main entry point
@@ -89,7 +90,7 @@ export async function runSEOAudit(
 // ---------------------------------------------------------------------------
 
 export async function auditMetaTags(page: any): Promise<MetaTagAudit> {
-  const data = await page.evaluate(`
+  const data = await safeEvaluate<MetaTagAudit>(page, `
     (() => {
       const getMeta = (name) => {
         const el = document.querySelector('meta[name="' + name + '"]')
@@ -118,7 +119,16 @@ export async function auditMetaTags(page: any): Promise<MetaTagAudit> {
         charset,
       };
     })()
-  `) as MetaTagAudit;
+  `, {
+    title: null,
+    description: null,
+    ogTitle: null,
+    ogDescription: null,
+    ogImage: null,
+    twitterCard: null,
+    viewport: null,
+    charset: null,
+  });
 
   return data;
 }
@@ -242,7 +252,7 @@ export async function auditRobotsTxt(page: any, baseUrl: string): Promise<Robots
 
     result.exists = true;
 
-    const body: string = await page.evaluate(`document.body?.innerText ?? ""`) as string;
+    const body: string = await safeEvaluate<string>(page, `document.body?.innerText ?? ""`, "");
 
     if (!body || body.trim().length === 0) {
       return result;
@@ -329,11 +339,11 @@ export async function auditSitemap(page: any, baseUrl: string): Promise<SitemapA
     result.exists = true;
 
     // Grab the raw page content (may be XML rendered as text)
-    const content: string = await page.evaluate(`
+    const content: string = await safeEvaluate<string>(page, `
       document.querySelector("pre")?.textContent
         ?? document.body?.innerText
         ?? ""
-    `) as string;
+    `, "");
 
     if (!content || content.trim().length === 0) {
       return result;
@@ -424,7 +434,7 @@ export async function auditStructuredData(page: any): Promise<StructuredDataAudi
   // Navigate back is not needed — we'll re-evaluate on the current page.
   // The caller is responsible for ensuring the page is on the target URL.
 
-  const data = await page.evaluate(`
+  const data = await safeEvaluate<{ jsonLdTypes: string[]; jsonLdErrors: string[]; microdataTypes: string[] }>(page, `
     (() => {
       const result = {
         jsonLdTypes: [],
@@ -472,7 +482,7 @@ export async function auditStructuredData(page: any): Promise<StructuredDataAudi
 
       return result;
     })()
-  `) as { jsonLdTypes: string[]; jsonLdErrors: string[]; microdataTypes: string[] };
+  `, { jsonLdTypes: [], jsonLdErrors: [], microdataTypes: [] });
 
   const allTypes = [...new Set([...data.jsonLdTypes, ...data.microdataTypes])];
 
@@ -515,12 +525,12 @@ function structuredDataIssues(audit: StructuredDataAudit, url: string): SEOIssue
 // ---------------------------------------------------------------------------
 
 export async function auditCanonicals(page: any, url: string): Promise<CanonicalAudit> {
-  const canonicalData = await page.evaluate(`
+  const canonicalData = await safeEvaluate<string | null>(page, `
     (() => {
       const link = document.querySelector('link[rel="canonical"]');
       return link ? link.getAttribute("href") : null;
     })()
-  `) as string | null;
+  `, null);
 
   const pages: CanonicalAudit["pages"] = [];
 

@@ -1,5 +1,6 @@
 import type { FormInfo, FormField, FormTestResult, TestDataSet, LLMCall, ProgressCallback } from "./types.js";
 import { randomUUID } from "node:crypto";
+import { safeEvaluate } from "./evaluate.js";
 
 // ============================================================================
 // Agent 6 — Form Filler
@@ -81,7 +82,7 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
       autocomplete: string | null;
     }>;
     hasSubmitButton: boolean;
-  }> = await page.evaluate(`
+  }> = await safeEvaluate(page, `
     (() => {
       const forms = Array.from(document.querySelectorAll("form"));
       return forms.map((form) => {
@@ -123,7 +124,7 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
         };
       });
     })()
-  `);
+  `, [] as any);
 
   const currentUrl: string = page.url();
 
@@ -149,6 +150,88 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
       fields,
       hasSubmitButton: raw.hasSubmitButton,
       formType,
+    };
+  });
+
+  const nativeForms = rawForms.length > 0 ? rawForms.map((raw) => {
+    const fields: FormField[] = raw.fields.map((f) => ({
+      name: f.name, type: f.type, label: f.label ?? undefined,
+      placeholder: f.placeholder ?? undefined, required: f.required,
+      pattern: f.pattern ?? undefined, minLength: f.minLength ?? undefined,
+      maxLength: f.maxLength ?? undefined,
+      options: f.options.length > 0 ? f.options : undefined,
+      autocomplete: f.autocomplete ?? undefined,
+    }));
+    return {
+      action: raw.action ?? undefined, method: raw.method, fields,
+      hasSubmitButton: raw.hasSubmitButton,
+      formType: classifyForm(fields, raw.action, raw.hasSubmitButton, currentUrl),
+    };
+  }) : [];
+
+  // SPA form detection: find input groups NOT inside native <form> elements
+  if (nativeForms.length === 0) {
+    const spaForms = await safeEvaluate<Array<{
+      fields: Array<{ name: string; type: string; label: string | null; placeholder: string | null; required: boolean; options: string[]; autocomplete: string | null }>;
+      hasSubmitButton: boolean;
+    }>>(page, `
+      (() => {
+        const orphanInputs = Array.from(document.querySelectorAll("input, textarea, select")).filter(el => !el.closest("form"));
+        if (orphanInputs.length === 0) return [];
+        const containers = new Map();
+        for (const input of orphanInputs) {
+          const container = input.closest("section, div[class], main, article, [role='form']") || document.body;
+          if (!containers.has(container)) containers.set(container, []);
+          containers.get(container).push(input);
+        }
+        const results = [];
+        for (const [container, inputs] of containers) {
+          if (inputs.length < 1) continue;
+          const fields = inputs.map(el => {
+            let labelText = null;
+            if (el.id) { const lbl = document.querySelector('label[for="' + el.id + '"]'); if (lbl) labelText = (lbl.textContent || "").trim(); }
+            if (!labelText) { const p = el.closest("label"); if (p) labelText = (p.textContent || "").trim(); }
+            const options = [];
+            if (el.tagName === "SELECT") { for (const opt of el.options) { if (opt.value) options.push(opt.value); } }
+            return { name: el.getAttribute("name") || el.id || "", type: el.getAttribute("type") || el.tagName.toLowerCase(), label: labelText, placeholder: el.getAttribute("placeholder"), required: el.hasAttribute("required"), options, autocomplete: el.getAttribute("autocomplete") };
+          });
+          const hasButton = container.querySelector("button, [role='button'], input[type='submit']") !== null;
+          results.push({ fields, hasSubmitButton: hasButton });
+        }
+        return results;
+      })()
+    `, []);
+
+    for (const spa of spaForms) {
+      const fields: FormField[] = spa.fields.map(f => ({
+        name: f.name, type: f.type, label: f.label ?? undefined,
+        placeholder: f.placeholder ?? undefined, required: f.required,
+        options: f.options.length > 0 ? f.options : undefined,
+        autocomplete: f.autocomplete ?? undefined,
+      }));
+      nativeForms.push({
+        action: undefined, method: "POST", fields, hasSubmitButton: spa.hasSubmitButton,
+        formType: classifyForm(fields, null, spa.hasSubmitButton, currentUrl),
+      });
+    }
+
+    return nativeForms;
+  }
+
+  // Return forms from the first mapping (with proper types)
+  return rawForms.map((raw) => {
+    const fields: FormField[] = raw.fields.map((f) => ({
+      name: f.name, type: f.type, label: f.label ?? undefined,
+      placeholder: f.placeholder ?? undefined, required: f.required,
+      pattern: f.pattern ?? undefined, minLength: f.minLength ?? undefined,
+      maxLength: f.maxLength ?? undefined,
+      options: f.options.length > 0 ? f.options : undefined,
+      autocomplete: f.autocomplete ?? undefined,
+    }));
+    return {
+      action: raw.action ?? undefined, method: raw.method, fields,
+      hasSubmitButton: raw.hasSubmitButton,
+      formType: classifyForm(fields, raw.action, raw.hasSubmitButton, currentUrl),
     };
   });
 }
@@ -308,30 +391,31 @@ export async function fillForm(
   }
 
   // Check for validation errors on the page
-  const validationErrors: string[] = await page.evaluate(() => {
-    const errorSelectors = [
-      ".error", ".error-message", ".field-error", ".validation-error",
-      ".invalid-feedback", ".form-error", '[role="alert"]',
-      ".alert-danger", ".alert-error", ".text-danger", ".text-error",
-    ];
-    const found: string[] = [];
-    for (const sel of errorSelectors) {
-      const elements = Array.from(document.querySelectorAll(sel));
-      for (const el of elements) {
-        const text = (el.textContent ?? "").trim();
-        if (text && text.length < 200) found.push(text);
+  const validationErrors: string[] = await safeEvaluate<string[]>(page, `
+    (() => {
+      const errorSelectors = [
+        ".error", ".error-message", ".field-error", ".validation-error",
+        ".invalid-feedback", ".form-error", '[role="alert"]',
+        ".alert-danger", ".alert-error", ".text-danger", ".text-error",
+      ];
+      const found = [];
+      for (const sel of errorSelectors) {
+        const elements = Array.from(document.querySelectorAll(sel));
+        for (const el of elements) {
+          const text = (el.textContent ?? "").trim();
+          if (text && text.length < 200) found.push(text);
+        }
       }
-    }
-    // Also check HTML5 validity
-    const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
-    for (const input of inputs) {
-      const el = input as HTMLInputElement;
-      if (!el.checkValidity() && el.validationMessage) {
-        found.push(`${el.name || el.id || el.type}: ${el.validationMessage}`);
+      const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
+      for (const input of inputs) {
+        const el = input;
+        if (!el.checkValidity() && el.validationMessage) {
+          found.push((el.name || el.id || el.type) + ": " + el.validationMessage);
+        }
       }
-    }
-    return found;
-  }).catch(() => [] as string[]);
+      return found;
+    })()
+  `, []);
 
   errors.push(...validationErrors);
 
@@ -409,7 +493,7 @@ export async function testFormValidation(
       onProgress("pass", "  Invalid data correctly rejected");
     } else {
       // Use LLM to check if the page shows any non-standard error indicators
-      const pageText = await page.evaluate(() => document.body.innerText.slice(0, 2000)).catch(() => "");
+      const pageText = await safeEvaluate<string>(page, `document.body.innerText.slice(0, 2000)`, "");
       const llmResult = await llm([{
         role: "user",
         content: `I submitted a form with invalid data (bad email "not-an-email", password "x", etc.).
@@ -466,7 +550,7 @@ Does the page show any validation error messages or rejection? Answer JSON: {"ha
 
     // Boundary test passes if the form handles edge cases gracefully (errors or accepts)
     // It fails only if the page crashes or shows unexpected behavior
-    const pageOk = await page.evaluate(() => !document.querySelector(".error-500, .fatal-error")).catch(() => false);
+    const pageOk = await safeEvaluate<boolean>(page, `!document.querySelector(".error-500, .fatal-error")`, false);
     boundaryResult.passed = pageOk as boolean;
     if (boundaryResult.passed) {
       onProgress("pass", "  Boundary data handled gracefully");
@@ -691,29 +775,31 @@ async function submitAndCollectErrors(
     // ignore
   }
 
-  const validationErrors: string[] = await page.evaluate(() => {
-    const errorSelectors = [
-      ".error", ".error-message", ".field-error", ".validation-error",
-      ".invalid-feedback", ".form-error", '[role="alert"]',
-      ".alert-danger", ".alert-error", ".text-danger", ".text-error",
-    ];
-    const found: string[] = [];
-    for (const sel of errorSelectors) {
-      const elements = Array.from(document.querySelectorAll(sel));
-      for (const el of elements) {
-        const text = (el.textContent ?? "").trim();
-        if (text && text.length < 200) found.push(text);
+  const validationErrors: string[] = await safeEvaluate<string[]>(page, `
+    (() => {
+      const errorSelectors = [
+        ".error", ".error-message", ".field-error", ".validation-error",
+        ".invalid-feedback", ".form-error", '[role="alert"]',
+        ".alert-danger", ".alert-error", ".text-danger", ".text-error",
+      ];
+      const found = [];
+      for (const sel of errorSelectors) {
+        const elements = Array.from(document.querySelectorAll(sel));
+        for (const el of elements) {
+          const text = (el.textContent ?? "").trim();
+          if (text && text.length < 200) found.push(text);
+        }
       }
-    }
-    const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
-    for (const input of inputs) {
-      const el = input as HTMLInputElement;
-      if (!el.checkValidity() && el.validationMessage) {
-        found.push(`${el.name || el.id || el.type}: ${el.validationMessage}`);
+      const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
+      for (const input of inputs) {
+        const el = input;
+        if (!el.checkValidity() && el.validationMessage) {
+          found.push((el.name || el.id || el.type) + ": " + el.validationMessage);
+        }
       }
-    }
-    return found;
-  }).catch(() => [] as string[]);
+      return found;
+    })()
+  `, []);
 
   return {
     formUrl: url,
@@ -816,29 +902,31 @@ async function fillAndSubmit(
     // ignore
   }
 
-  const validationErrors: string[] = await page.evaluate(() => {
-    const errorSelectors = [
-      ".error", ".error-message", ".field-error", ".validation-error",
-      ".invalid-feedback", ".form-error", '[role="alert"]',
-      ".alert-danger", ".alert-error", ".text-danger", ".text-error",
-    ];
-    const found: string[] = [];
-    for (const sel of errorSelectors) {
-      const elements = Array.from(document.querySelectorAll(sel));
-      for (const el of elements) {
-        const text = (el.textContent ?? "").trim();
-        if (text && text.length < 200) found.push(text);
+  const validationErrors: string[] = await safeEvaluate<string[]>(page, `
+    (() => {
+      const errorSelectors = [
+        ".error", ".error-message", ".field-error", ".validation-error",
+        ".invalid-feedback", ".form-error", '[role="alert"]',
+        ".alert-danger", ".alert-error", ".text-danger", ".text-error",
+      ];
+      const found = [];
+      for (const sel of errorSelectors) {
+        const elements = Array.from(document.querySelectorAll(sel));
+        for (const el of elements) {
+          const text = (el.textContent ?? "").trim();
+          if (text && text.length < 200) found.push(text);
+        }
       }
-    }
-    const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
-    for (const input of inputs) {
-      const el = input as HTMLInputElement;
-      if (!el.checkValidity() && el.validationMessage) {
-        found.push(`${el.name || el.id || el.type}: ${el.validationMessage}`);
+      const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
+      for (const input of inputs) {
+        const el = input;
+        if (!el.checkValidity() && el.validationMessage) {
+          found.push((el.name || el.id || el.type) + ": " + el.validationMessage);
+        }
       }
-    }
-    return found;
-  }).catch(() => [] as string[]);
+      return found;
+    })()
+  `, []);
 
   return {
     formUrl: url,

@@ -14,6 +14,7 @@ import type {
   ProgressCallback,
 } from "./types.js";
 import { AriaSnapshotBuilder } from "@inspect/browser";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Main entry point
@@ -138,8 +139,7 @@ interface PageFeatures {
 }
 
 async function detectPageFeatures(page: any): Promise<PageFeatures> {
-  try {
-    return await page.evaluate(`
+  return await safeEvaluate<PageFeatures>(page, `
       (() => {
         const q = (s) => document.querySelector(s) !== null;
         const qAll = (s) => Array.from(document.querySelectorAll(s));
@@ -192,9 +192,7 @@ async function detectPageFeatures(page: any): Promise<PageFeatures> {
 
         return { hasAuth, hasSearch, hasPagination, hasModals, hasTabs, hasCarousel, hasInfiniteScroll, hasFileUpload, hasCookieConsent, hasCaptcha, oauthProviders, hasPayment };
       })()
-    `) as PageFeatures;
-  } catch {
-    return {
+    `, {
       hasAuth: false,
       hasSearch: false,
       hasPagination: false,
@@ -207,8 +205,7 @@ async function detectPageFeatures(page: any): Promise<PageFeatures> {
       hasCaptcha: false,
       oauthProviders: [],
       hasPayment: false,
-    };
-  }
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -216,8 +213,7 @@ async function detectPageFeatures(page: any): Promise<PageFeatures> {
 // ---------------------------------------------------------------------------
 
 async function detectTechStack(page: any): Promise<string[]> {
-  try {
-    return await page.evaluate(`
+  return await safeEvaluate<string[]>(page, `
       (() => {
         const detected = [];
         const w = window;
@@ -262,10 +258,7 @@ async function detectTechStack(page: any): Promise<string[]> {
 
         return detected;
       })()
-    `) as string[];
-  } catch {
-    return [];
-  }
+    `, []);
 }
 
 // ---------------------------------------------------------------------------

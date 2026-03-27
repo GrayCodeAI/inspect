@@ -13,6 +13,7 @@ import type {
   ExposedData,
   ProgressCallback,
 } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Main orchestrator
@@ -241,32 +242,28 @@ export async function checkHttps(
   // Scan for mixed content (HTTP resources on an HTTPS page)
   let mixedContent: string[] = [];
   if (isHttps) {
-    try {
-      mixedContent = (await page.evaluate(`
-        (() => {
-          const mixed = [];
-          const elements = document.querySelectorAll("[src], [href]");
-          for (const el of Array.from(elements)) {
-            const src = el.getAttribute("src") || "";
-            const href = el.getAttribute("href") || "";
-            const tag = el.tagName.toLowerCase();
-            // Only flag resource-loading attributes, not anchor links
-            if (src.startsWith("http://")) {
-              mixed.push(tag + "[src]: " + src.slice(0, 100));
-            }
-            if (
-              href.startsWith("http://") &&
-              (tag === "link" || tag === "script")
-            ) {
-              mixed.push(tag + "[href]: " + href.slice(0, 100));
-            }
+    mixedContent = await safeEvaluate<string[]>(page, `
+      (() => {
+        const mixed = [];
+        const elements = document.querySelectorAll("[src], [href]");
+        for (const el of Array.from(elements)) {
+          const src = el.getAttribute("src") || "";
+          const href = el.getAttribute("href") || "";
+          const tag = el.tagName.toLowerCase();
+          // Only flag resource-loading attributes, not anchor links
+          if (src.startsWith("http://")) {
+            mixed.push(tag + "[src]: " + src.slice(0, 100));
           }
-          return mixed.slice(0, 20);
-        })()
-      `)) as string[];
-    } catch {
-      // page.evaluate can fail if page navigated away
-    }
+          if (
+            href.startsWith("http://") &&
+            (tag === "link" || tag === "script")
+          ) {
+            mixed.push(tag + "[href]: " + href.slice(0, 100));
+          }
+        }
+        return mixed.slice(0, 20);
+      })()
+    `, []);
   }
 
   return {
@@ -428,28 +425,23 @@ export async function testXss(
   const results: XssTestResult[] = [];
 
   // Find text input fields
-  let inputFields: Array<{ selector: string; name: string; formAction: string | null }> = [];
-  try {
-    inputFields = (await page.evaluate(`
-      (() => {
-        const inputs = Array.from(document.querySelectorAll(
-          'input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), textarea'
-        ));
-        return inputs.slice(0, 5).map((el, i) => {
-          const name = el.name || el.id || el.placeholder || ("input-" + i);
-          const form = el.closest("form");
-          const formAction = form ? (form.action || null) : null;
-          let selector;
-          if (el.id) selector = "#" + el.id;
-          else if (el.name) selector = el.tagName.toLowerCase() + "[name='" + el.name + "']";
-          else selector = el.tagName.toLowerCase() + ":nth-of-type(" + (i + 1) + ")";
-          return { selector, name, formAction };
-        });
-      })()
-    `)) as Array<{ selector: string; name: string; formAction: string | null }>;
-  } catch {
-    return results;
-  }
+  const inputFields = await safeEvaluate<Array<{ selector: string; name: string; formAction: string | null }>>(page, `
+    (() => {
+      const inputs = Array.from(document.querySelectorAll(
+        'input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), textarea'
+      ));
+      return inputs.slice(0, 5).map((el, i) => {
+        const name = el.name || el.id || el.placeholder || ("input-" + i);
+        const form = el.closest("form");
+        const formAction = form ? (form.action || null) : null;
+        let selector;
+        if (el.id) selector = "#" + el.id;
+        else if (el.name) selector = el.tagName.toLowerCase() + "[name='" + el.name + "']";
+        else selector = el.tagName.toLowerCase() + ":nth-of-type(" + (i + 1) + ")";
+        return { selector, name, formAction };
+      });
+    })()
+  `, []);
 
   for (const field of inputFields) {
     for (const xss of XSS_PAYLOADS) {
@@ -484,12 +476,12 @@ export async function testXss(
 
         // Check reflected XSS — payload appears unescaped in DOM
         const checkStr = xss.check.replace(/'/g, "\\'");
-        const reflected = (await page.evaluate(`
+        const reflected = await safeEvaluate<boolean>(page, `
           (() => {
             const html = document.body.innerHTML;
             return html.includes('${checkStr}');
           })()
-        `)) as boolean;
+        `, false);
 
         result.reflected = reflected;
 
@@ -498,13 +490,13 @@ export async function testXss(
           try {
             await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 });
             await page.waitForTimeout(500);
-            const storedReflected = (await page.evaluate(`
-              (() => document.body.innerHTML.includes('${checkStr}'))()
-            `)) as boolean;
-            if (storedReflected) {
-              result.executed = true; // stored XSS is more severe
-            }
           } catch {}
+          const storedReflected = await safeEvaluate<boolean>(page, `
+            (() => document.body.innerHTML.includes('${checkStr}'))()
+          `, false);
+          if (storedReflected) {
+            result.executed = true; // stored XSS is more severe
+          }
         }
       } catch {
         // Skip on error
@@ -525,12 +517,12 @@ export async function testXss(
     await page.goto(testUrl.toString(), { waitUntil: "domcontentloaded", timeout: 10_000 });
     await page.waitForTimeout(500);
 
-    const domXss = (await page.evaluate(`
+    const domXss = await safeEvaluate<boolean>(page, `
       (() => {
         const html = document.body.innerHTML;
         return html.includes('<img src=x onerror=alert(1)>');
       })()
-    `)) as boolean;
+    `, false);
 
     if (domXss) {
       results.push({
@@ -656,35 +648,28 @@ export async function scanExposedData(page: any): Promise<ExposedData[]> {
   }
 
   // Also check console messages for leaked data
-  try {
-    const consoleLogs: string[] = [];
+  // We use page.evaluate to check for common debug patterns in scripts
+  const debugPatterns = await safeEvaluate<string[]>(page, `
+    (() => {
+      const scripts = Array.from(document.querySelectorAll("script:not([src])"));
+      const inlineCode = scripts.map(s => s.textContent || "").join("\\n");
+      const findings = [];
+      if (/console\\.log\\(.*(?:password|secret|token|apiKey|api_key)/i.test(inlineCode)) {
+        findings.push("Console logging of sensitive data detected in inline scripts");
+      }
+      if (/console\\.log\\(.*(?:localStorage|sessionStorage)/i.test(inlineCode)) {
+        findings.push("Console logging of storage data detected in inline scripts");
+      }
+      return findings;
+    })()
+  `, []);
 
-    // Collect console messages that were emitted during page load
-    // We use page.evaluate to check for common debug patterns in scripts
-    const debugPatterns = (await page.evaluate(`
-      (() => {
-        const scripts = Array.from(document.querySelectorAll("script:not([src])"));
-        const inlineCode = scripts.map(s => s.textContent || "").join("\\n");
-        const findings = [];
-        if (/console\\.log\\(.*(?:password|secret|token|apiKey|api_key)/i.test(inlineCode)) {
-          findings.push("Console logging of sensitive data detected in inline scripts");
-        }
-        if (/console\\.log\\(.*(?:localStorage|sessionStorage)/i.test(inlineCode)) {
-          findings.push("Console logging of storage data detected in inline scripts");
-        }
-        return findings;
-      })()
-    `)) as string[];
-
-    for (const msg of debugPatterns) {
-      findings.push({
-        type: "debug-info",
-        value: msg,
-        location: "Inline script analysis",
-      });
-    }
-  } catch {
-    // Best effort
+  for (const msg of debugPatterns) {
+    findings.push({
+      type: "debug-info",
+      value: msg,
+      location: "Inline script analysis",
+    });
   }
 
   return findings;

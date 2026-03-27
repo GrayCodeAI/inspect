@@ -1,4 +1,5 @@
 import type { ResponsiveReport, ViewportResult, ResponsiveIssue, ProgressCallback } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 
@@ -170,7 +171,18 @@ export async function testViewport(
 export async function checkHorizontalOverflow(page: any): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
-  const overflowData = await page.evaluate(`
+  const overflowData = await safeEvaluate<{
+    hasOverflow: boolean;
+    scrollWidth: number;
+    docWidth: number;
+    overflowingElements: Array<{
+      tag: string;
+      id: string | null;
+      className: string | null;
+      right: number;
+      docWidth: number;
+    }>;
+  }>(page, `
     (() => {
       const docWidth = document.documentElement.clientWidth;
       const scrollWidth = document.documentElement.scrollWidth;
@@ -197,18 +209,7 @@ export async function checkHorizontalOverflow(page: any): Promise<ResponsiveIssu
 
       return { hasOverflow, scrollWidth, docWidth, overflowingElements };
     })()
-  `) as {
-    hasOverflow: boolean;
-    scrollWidth: number;
-    docWidth: number;
-    overflowingElements: Array<{
-      tag: string;
-      id: string | null;
-      className: string | null;
-      right: number;
-      docWidth: number;
-    }>;
-  };
+  `, { hasOverflow: false, scrollWidth: 0, docWidth: 0, overflowingElements: [] });
 
   if (overflowData.hasOverflow) {
     if (overflowData.overflowingElements.length === 0) {
@@ -244,7 +245,13 @@ export async function checkTouchTargets(page: any, isMobile: boolean): Promise<R
 
   const issues: ResponsiveIssue[] = [];
 
-  const smallTargets = await page.evaluate(`
+  const smallTargets = await safeEvaluate<Array<{
+    tag: string;
+    text: string;
+    width: number;
+    height: number;
+    selector: string;
+  }>>(page, `
     (() => {
       const clickable = Array.from(document.querySelectorAll(
         'a, button, input, [role="button"], [onclick]'
@@ -270,13 +277,7 @@ export async function checkTouchTargets(page: any, isMobile: boolean): Promise<R
       }
       return small;
     })()
-  `) as Array<{
-    tag: string;
-    text: string;
-    width: number;
-    height: number;
-    selector: string;
-  }>;
+  `, []);
 
   for (const target of smallTargets) {
     issues.push({
@@ -298,7 +299,12 @@ export async function checkFontReadability(page: any, isMobile: boolean): Promis
   const issues: ResponsiveIssue[] = [];
   const minFontSize = 16;
 
-  const smallFonts = await page.evaluate(`
+  const smallFonts = await safeEvaluate<Array<{
+    tag: string;
+    text: string;
+    fontSize: number;
+    selector: string;
+  }>>(page, `
     (() => {
       const textElements = Array.from(document.querySelectorAll("p, span, a, li, td, label"));
       const small = [];
@@ -323,12 +329,7 @@ export async function checkFontReadability(page: any, isMobile: boolean): Promis
       }
       return small;
     })()
-  `) as Array<{
-    tag: string;
-    text: string;
-    fontSize: number;
-    selector: string;
-  }>;
+  `, []);
 
   for (const font of smallFonts) {
     issues.push({
@@ -345,7 +346,16 @@ export async function checkFontReadability(page: any, isMobile: boolean): Promis
 export async function checkImageScaling(page: any): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
-  const imageData = await page.evaluate(`
+  const imageData = await safeEvaluate<Array<{
+    src: string;
+    displayWidth: number;
+    displayHeight: number;
+    naturalWidth: number;
+    naturalHeight: number;
+    oversized: boolean;
+    overflows: boolean;
+    distorted: boolean;
+  }>>(page, `
     (() => {
       const images = Array.from(document.querySelectorAll("img"));
       const problems = [];
@@ -383,16 +393,7 @@ export async function checkImageScaling(page: any): Promise<ResponsiveIssue[]> {
       }
       return problems;
     })()
-  `) as Array<{
-    src: string;
-    displayWidth: number;
-    displayHeight: number;
-    naturalWidth: number;
-    naturalHeight: number;
-    oversized: boolean;
-    overflows: boolean;
-    distorted: boolean;
-  }>;
+  `, []);
 
   for (const img of imageData) {
     if (img.oversized) {
@@ -432,7 +433,16 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
   const issues: ResponsiveIssue[] = [];
 
   // Find sticky/fixed elements before scrolling
-  const stickyElements = await page.evaluate(`
+  const stickyElements = await safeEvaluate<Array<{
+    tag: string;
+    id: string | null;
+    className: string | null;
+    position: string;
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  }>>(page, `
     (() => {
       const all = Array.from(document.querySelectorAll("*"));
       const sticky = [];
@@ -455,16 +465,7 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
       }
       return sticky;
     })()
-  `) as Array<{
-    tag: string;
-    id: string | null;
-    className: string | null;
-    position: string;
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  }>;
+  `, []);
 
   if (stickyElements.length === 0) {
     return issues;
@@ -476,7 +477,14 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
   await page.waitForTimeout(300);
 
   // Check sticky elements after scrolling
-  const afterScroll = await page.evaluate(`
+  const afterScroll = await safeEvaluate<Array<{
+    tag: string;
+    id: string | null;
+    className: string | null;
+    position: string;
+    visible: boolean;
+    overlapRatio: number;
+  }>>(page, `
     (() => {
       const all = Array.from(document.querySelectorAll("*"));
       const viewportWidth = document.documentElement.clientWidth;
@@ -509,14 +517,7 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
       }
       return sticky;
     })()
-  `) as Array<{
-    tag: string;
-    id: string | null;
-    className: string | null;
-    position: string;
-    visible: boolean;
-    overlapRatio: number;
-  }>;
+  `, []);
 
   // Scroll back to top
   await page.evaluate(`window.scrollTo(0, 0)`);
@@ -554,7 +555,7 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
 
 export async function testMobileMenu(page: any): Promise<boolean | undefined> {
   // Look for common hamburger menu selectors
-  const menuButton = await page.evaluate(`
+  const menuButton = await safeEvaluate<{ found: boolean; selector: string | null }>(page, `
     (() => {
       const selectors = [
         '[aria-label*="menu" i]',
@@ -587,7 +588,7 @@ export async function testMobileMenu(page: any): Promise<boolean | undefined> {
 
       return { found: false, selector: null };
     })()
-  `) as { found: boolean; selector: string | null };
+  `, { found: false, selector: null });
 
   if (!menuButton.found || !menuButton.selector) {
     return undefined;
@@ -597,7 +598,7 @@ export async function testMobileMenu(page: any): Promise<boolean | undefined> {
     // Click the menu button
     if (menuButton.selector === "button:hamburger") {
       // Use evaluate to find and click the hamburger button
-      await page.evaluate(`
+      await safeEvaluate<boolean>(page, `
         (() => {
           const buttons = Array.from(document.querySelectorAll("button"));
           for (const btn of buttons) {
@@ -610,7 +611,7 @@ export async function testMobileMenu(page: any): Promise<boolean | undefined> {
           }
           return false;
         })()
-      `);
+      `, false);
     } else {
       await page.click(menuButton.selector, { timeout: 3000 });
     }
@@ -619,7 +620,7 @@ export async function testMobileMenu(page: any): Promise<boolean | undefined> {
     await page.waitForTimeout(500);
 
     // Check if a navigation menu appeared
-    const menuVisible = await page.evaluate(`
+    const menuVisible = await safeEvaluate<{ visible: boolean; linkCount: number }>(page, `
       (() => {
         const navSelectors = [
           "nav",
@@ -653,14 +654,14 @@ export async function testMobileMenu(page: any): Promise<boolean | undefined> {
 
         return { visible: false, linkCount: 0 };
       })()
-    `) as { visible: boolean; linkCount: number };
+    `, { visible: false, linkCount: 0 });
 
     if (!menuVisible.visible) {
       return false;
     }
 
     // Try clicking a menu item
-    const clickedItem = await page.evaluate(`
+    const clickedItem = await safeEvaluate<boolean>(page, `
       (() => {
         const navSelectors = [
           "nav a",
@@ -685,7 +686,7 @@ export async function testMobileMenu(page: any): Promise<boolean | undefined> {
         }
         return false;
       })()
-    `) as boolean;
+    `, false);
 
     return clickedItem;
   } catch {

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import type { NavigationResult, ProgressCallback } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Common selectors for popups, modals, and cookie consent

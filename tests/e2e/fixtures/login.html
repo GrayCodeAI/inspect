@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — Inspect Test Fixture</title>
+  <style>
+    body { font-family: sans-serif; padding: 40px; max-width: 400px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; }
+    label { display: block; margin: 5px 0; }
+    input { padding: 8px; width: 100%; margin-bottom: 10px; }
+    button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+    .error { color: red; display: none; margin: 10px 0; }
+    .oauth { margin: 20px 0; }
+    .oauth button { background: #333; display: block; width: 100%; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>Login</h1>
+  <form action="/auth/login" method="POST">
+    <label for="username">Email</label>
+    <input type="email" id="username" name="email" placeholder="you@example.com" required>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="Password" required minlength="8">
+
+    <button type="submit">Log In</button>
+    <p class="error" id="login-error">Invalid email or password.</p>
+  </form>
+
+  <div class="oauth">
+    <button type="button">Continue with Google</button>
+    <button type="button">Continue with GitHub</button>
+  </div>
+
+  <p><a href="/forgot-password.html">Forgot Password?</a></p>
+  <p>Don't have an account? <a href="/signup.html">Sign Up</a></p>
+
+  <script>
+    document.querySelector("form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      document.getElementById("login-error").style.display = "block";
+    });
+  </script>
+</body>
+</html>

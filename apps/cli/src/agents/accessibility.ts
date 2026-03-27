@@ -1,4 +1,5 @@
 import type { A11yReport, A11yIssue, KeyboardNavResult, ProgressCallback } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // axe-core injection and execution
@@ -125,7 +126,7 @@ function extractWcag(tags: string[]): string | undefined {
 // ---------------------------------------------------------------------------
 
 async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
-  const results = await page.evaluate(`
+  const results = await safeEvaluate<Array<{ src: string; html: string }>>(page, `
     (() => {
       const imgs = Array.from(document.querySelectorAll("img"));
       return imgs
@@ -136,7 +137,7 @@ async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
         })
         .map(i => ({ src: i.src?.slice(0, 80) ?? "unknown", html: i.outerHTML.slice(0, 120) }));
     })()
-  `) as Array<{ src: string; html: string }>;
+  `, []);
 
   return results.map(img => ({
     severity: "serious" as const,
@@ -150,7 +151,7 @@ async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
 }
 
 async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
-  const results = await page.evaluate(`
+  const results = await safeEvaluate<Array<{ tag: string; type: string; name: string; id: string; html: string }>>(page, `
     (() => {
       const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
       return inputs.filter(el => {
@@ -170,7 +171,7 @@ async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
         html: el.outerHTML.slice(0, 120),
       }));
     })()
-  `) as Array<{ tag: string; type: string; name: string; id: string; html: string }>;
+  `, []);
 
   return results.map(input => ({
     severity: "serious" as const,
@@ -186,7 +187,7 @@ async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
 async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
-  const headings = await page.evaluate(`
+  const headings = await safeEvaluate<Array<{ level: number; text: string; html: string }>>(page, `
     (() => {
       const hs = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"));
       return hs.map(h => ({
@@ -195,7 +196,7 @@ async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[
         html: h.outerHTML.slice(0, 120),
       }));
     })()
-  `) as Array<{ level: number; text: string; html: string }>;
+  `, []);
 
   const h1s = headings.filter(h => h.level === 1);
   if (h1s.length === 0) {
@@ -238,7 +239,7 @@ async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[
 }
 
 async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> {
-  const results = await page.evaluate(`
+  const results = await safeEvaluate<Array<{ text: string; ratio: string; required: string; color: string; bgColor: string; html: string }>>(page, `
     (() => {
       const issues = [];
 
@@ -297,7 +298,7 @@ async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> 
       }
       return issues;
     })()
-  `) as Array<{ text: string; ratio: string; required: string; color: string; bgColor: string; html: string }>;
+  `, []);
 
   return results.map(r => ({
     severity: "serious" as const,
@@ -311,7 +312,7 @@ async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> 
 }
 
 async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> {
-  const hasLang = await page.evaluate(`!!document.documentElement.getAttribute("lang")`) as boolean;
+  const hasLang = await safeEvaluate<boolean>(page, `!!document.documentElement.getAttribute("lang")`, false);
   if (!hasLang) {
     return [{
       severity: "serious",
@@ -323,7 +324,7 @@ async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> 
     }];
   }
 
-  const lang = await page.evaluate(`document.documentElement.getAttribute("lang")`) as string;
+  const lang = await safeEvaluate<string>(page, `document.documentElement.getAttribute("lang")`, "");
   if (lang && !/^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
     return [{
       severity: "moderate",
@@ -339,12 +340,12 @@ async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> 
 }
 
 async function checkViewportMeta(page: any, url: string): Promise<A11yIssue[]> {
-  const viewport = await page.evaluate(`
+  const viewport = await safeEvaluate<string | null>(page, `
     (() => {
       const meta = document.querySelector('meta[name="viewport"]');
       return meta ? meta.getAttribute("content") : null;
     })()
-  `) as string | null;
+  `, null);
 
   if (!viewport) {
     return [{
@@ -390,9 +391,9 @@ async function checkViewportMeta(page: any, url: string): Promise<A11yIssue[]> {
 
 async function testKeyboardNavigation(page: any, url: string): Promise<KeyboardNavResult> {
   // Count total focusable elements
-  const focusableCount = await page.evaluate(`
+  const focusableCount = await safeEvaluate<number>(page, `
     document.querySelectorAll('a[href], button, input:not([type="hidden"]), textarea, select, [tabindex]:not([tabindex="-1"])').length
-  `) as number;
+  `, 0);
 
   // Tab through elements and track focus
   const focusOrder: string[] = [];
@@ -407,7 +408,7 @@ async function testKeyboardNavigation(page: any, url: string): Promise<KeyboardN
     await page.keyboard.press("Tab");
     await page.waitForTimeout(50);
 
-    const focused = await page.evaluate(`
+    const focused = await safeEvaluate<{ tag: string; text: string; role: string; hasFocusIndicator: boolean; selector: string } | null>(page, `
       (() => {
         const el = document.activeElement;
         if (!el || el === document.body) return null;
@@ -423,7 +424,7 @@ async function testKeyboardNavigation(page: any, url: string): Promise<KeyboardN
 
         return { tag, text, role, hasFocusIndicator, selector: tag + (el.id ? "#" + el.id : "") + (el.className ? "." + el.className.split(" ")[0] : "") };
       })()
-    `) as { tag: string; text: string; role: string; hasFocusIndicator: boolean; selector: string } | null;
+    `, null);
 
     if (!focused) continue;
 
@@ -461,7 +462,7 @@ async function testKeyboardNavigation(page: any, url: string): Promise<KeyboardN
 // ---------------------------------------------------------------------------
 
 async function checkSkipNavigation(page: any): Promise<boolean> {
-  return page.evaluate(`
+  return safeEvaluate<boolean>(page, `
     (() => {
       // Check for skip-to-content links
       const links = Array.from(document.querySelectorAll("a"));
@@ -472,7 +473,7 @@ async function checkSkipNavigation(page: any): Promise<boolean> {
                (href.startsWith("#") && (href.includes("content") || href.includes("main")));
       });
     })()
-  `) as boolean;
+  `, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -480,7 +481,7 @@ async function checkSkipNavigation(page: any): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 async function checkFocusIndicators(page: any): Promise<boolean> {
-  return page.evaluate(`
+  return safeEvaluate<boolean>(page, `
     (() => {
       // Check a sample of interactive elements for focus styles
       const elements = Array.from(document.querySelectorAll("a[href], button, input, textarea, select")).slice(0, 10);
@@ -499,7 +500,7 @@ async function checkFocusIndicators(page: any): Promise<boolean> {
       // If >70% have focus indicators, consider it good
       return elements.length === 0 || (withIndicator / elements.length) > 0.7;
     })()
-  `) as boolean;
+  `, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -507,7 +508,7 @@ async function checkFocusIndicators(page: any): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 async function checkAriaUsage(page: any, url: string): Promise<A11yIssue[]> {
-  return page.evaluate(`
+  return safeEvaluate<A11yIssue[]>(page, `
     (() => {
       const issues = [];
 
@@ -574,7 +575,7 @@ async function checkAriaUsage(page: any, url: string): Promise<A11yIssue[]> {
 
       return issues.slice(0, 20);
     })()
-  `) as A11yIssue[];
+  `, []);
 }
 
 // ---------------------------------------------------------------------------

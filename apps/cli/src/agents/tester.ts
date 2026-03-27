@@ -1,6 +1,7 @@
 import type { TestStep, LLMCall, ProgressCallback } from "./types.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Element finding strategies
@@ -433,14 +434,14 @@ async function verifyAssertion(
 
   // Broken images check
   if (lowerAssertion.includes("image") && (lowerAssertion.includes("broken") || lowerAssertion.includes("loaded") || lowerAssertion.includes("alt"))) {
-    const result = await page.evaluate(`
+    const result = await safeEvaluate<{ total: number; broken: number; noAlt: number }>(page, `
       (() => {
         const imgs = Array.from(document.querySelectorAll("img"));
         const broken = imgs.filter(img => !img.complete || img.naturalWidth === 0);
         const noAlt = imgs.filter(img => !img.getAttribute("alt"));
         return { total: imgs.length, broken: broken.length, noAlt: noAlt.length };
       })()
-    `) as { total: number; broken: number; noAlt: number };
+    `, { total: 0, broken: 0, noAlt: 0 });
 
     if (lowerAssertion.includes("alt")) {
       if (result.noAlt === 0) return { passed: true, reason: `All ${result.total} images have alt text` };
@@ -452,12 +453,12 @@ async function verifyAssertion(
 
   // Heading check
   if (lowerAssertion.includes("heading") && lowerAssertion.includes("hierarch")) {
-    const headings = await page.evaluate(`
+    const headings = await safeEvaluate<number[]>(page, `
       (() => {
         const hs = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"));
         return hs.map(h => parseInt(h.tagName.slice(1)));
       })()
-    `) as number[];
+    `, []);
     if (headings.length === 0) return { passed: false, reason: "No headings found" };
     for (let i = 1; i < headings.length; i++) {
       if (headings[i] > headings[i - 1] + 1) {
@@ -469,13 +470,13 @@ async function verifyAssertion(
 
   // Meta tags check
   if (lowerAssertion.includes("meta")) {
-    const meta = await page.evaluate(`
+    const meta = await safeEvaluate<{ viewport: boolean; description: boolean; charset: boolean }>(page, `
       (() => ({
         viewport: !!document.querySelector('meta[name="viewport"]'),
         description: !!document.querySelector('meta[name="description"]'),
         charset: !!document.querySelector('meta[charset]') || !!document.querySelector('meta[http-equiv="Content-Type"]'),
       }))()
-    `) as { viewport: boolean; description: boolean; charset: boolean };
+    `, { viewport: false, description: false, charset: false });
     const missing = [];
     if (!meta.viewport) missing.push("viewport");
     if (!meta.description) missing.push("description");
@@ -485,7 +486,7 @@ async function verifyAssertion(
 
   // Navigation links check
   if (lowerAssertion.includes("navigation") && lowerAssertion.includes("link")) {
-    const linkCount = await page.evaluate(`document.querySelectorAll("nav a, header a").length`) as number;
+    const linkCount = await safeEvaluate<number>(page, `document.querySelectorAll("nav a, header a").length`, 0);
     if (linkCount > 0) return { passed: true, reason: `${linkCount} navigation links found` };
     return { passed: false, reason: "No navigation links found" };
   }

@@ -1,9 +1,9 @@
 // ============================================================================
-// LLM Response Cache — avoids duplicate LLM calls across agents
+// LLM Response Cache + Retry — avoids duplicate calls, handles transient failures
 // ============================================================================
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMCall } from "./types.js";
 
@@ -21,6 +21,68 @@ function hashPrompt(messages: Array<{ role: string; content: string }>): string 
 function getCachePath(hash: string): string {
   return join(CACHE_DIR, `llm-${hash}.json`);
 }
+
+// ---------------------------------------------------------------------------
+// Retry wrapper
+// ---------------------------------------------------------------------------
+
+/** HTTP status codes that warrant a retry */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 529]);
+
+function isRetryableError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  // Rate limit or server error patterns
+  if (msg.includes("rate limit") || msg.includes("too many requests")) return true;
+  if (msg.includes("internal server error") || msg.includes("bad gateway")) return true;
+  if (msg.includes("service unavailable") || msg.includes("overloaded")) return true;
+  if (msg.includes("timeout") || msg.includes("econnreset") || msg.includes("econnrefused")) return true;
+  // Check for status code in message
+  for (const status of RETRYABLE_STATUS) {
+    if (msg.includes(String(status))) return true;
+  }
+  return false;
+}
+
+/**
+ * Wrap an LLMCall with exponential backoff retry.
+ * Retries on 429, 500, 502, 503, timeouts, and connection errors.
+ */
+export function withRetry(
+  llm: LLMCall,
+  options?: { maxRetries?: number; baseDelay?: number },
+): LLMCall {
+  const maxRetries = options?.maxRetries ?? 3;
+  const baseDelay = options?.baseDelay ?? 1000;
+
+  return async (messages) => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await llm(messages);
+      } catch (err: any) {
+        lastError = err;
+
+        if (attempt >= maxRetries || !isRetryableError(err)) {
+          throw err;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = baseDelay * Math.pow(2, attempt);
+        // Add jitter: ±25%
+        const jitter = delay * 0.25 * (Math.random() * 2 - 1);
+        await new Promise(r => setTimeout(r, delay + jitter));
+      }
+    }
+
+    throw lastError ?? new Error("LLM call failed after retries");
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Cache wrapper
+// ---------------------------------------------------------------------------
 
 /**
  * Wrap an LLMCall with a disk-based cache.
@@ -65,7 +127,6 @@ export function withCache(llm: LLMCall, options?: { enabled?: boolean; ttl?: num
 
 /** Clear all cached LLM responses */
 export function clearCache(): void {
-  const { readdirSync, unlinkSync } = require("node:fs") as typeof import("node:fs");
   if (!existsSync(CACHE_DIR)) return;
   for (const file of readdirSync(CACHE_DIR)) {
     if (file.startsWith("llm-")) {
