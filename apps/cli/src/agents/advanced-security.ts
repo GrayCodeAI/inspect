@@ -972,7 +972,104 @@ export async function scanDependencies(
 }
 
 // ---------------------------------------------------------------------------
-// 8. Main orchestrator — Run all advanced security tests
+// 8. WAF (Web Application Firewall) detection
+// ---------------------------------------------------------------------------
+
+export async function detectWAF(
+  page: any,
+  url: string,
+): Promise<{ detected: boolean; provider: string | null; recommendations: string[] }> {
+  const recommendations: string[] = [];
+  let provider: string | null = null;
+  let detected = false;
+
+  try {
+    // Send a mildly suspicious request to trigger WAF responses
+    const testUrl = new URL(url);
+    testUrl.searchParams.set("test", "<script>");
+    const response = await page.goto(testUrl.toString(), {
+      waitUntil: "domcontentloaded",
+      timeout: 15_000,
+    });
+
+    if (response) {
+      const status = response.status();
+      const allHeaders = await response.allHeaders();
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(allHeaders)) {
+        normalized[key.toLowerCase()] = value as string;
+      }
+
+      // Check response headers for WAF signatures
+      if (normalized["cf-ray"]) {
+        detected = true;
+        provider = "Cloudflare";
+      } else if (normalized["x-amz-cf-id"]) {
+        detected = true;
+        provider = "CloudFront";
+      } else if (normalized["x-sucuri-id"]) {
+        detected = true;
+        provider = "Sucuri";
+      } else if (normalized["x-akamai-transformed"]) {
+        detected = true;
+        provider = "Akamai";
+      } else if (
+        normalized["server"] &&
+        normalized["server"].toLowerCase().includes("akamaighost")
+      ) {
+        detected = true;
+        provider = "Akamai";
+      }
+
+      // Check for 403/406 status codes with challenge pages (common WAF behavior)
+      if (!detected && (status === 403 || status === 406)) {
+        const bodyText = await safeEvaluate<string>(
+          page,
+          `(() => { return (document.body.textContent || "").substring(0, 1000); })()`,
+          "",
+          3_000,
+        );
+
+        const challengeIndicators = [
+          /challenge/i, /captcha/i, /blocked/i, /firewall/i,
+          /security check/i, /ray id/i, /attention required/i,
+          /access denied/i, /automated/i, /bot detection/i,
+        ];
+
+        for (const pattern of challengeIndicators) {
+          if (pattern.test(bodyText)) {
+            detected = true;
+            provider = provider || "Unknown WAF";
+            break;
+          }
+        }
+      }
+    }
+  } catch {
+    // WAF detection probe failed — non-fatal
+  }
+
+  // Navigate back to the original URL
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15_000 });
+  } catch {
+    // Best effort
+  }
+
+  if (detected) {
+    recommendations.push(
+      `WAF detected (${provider}) — throttle security payloads to avoid IP bans`,
+    );
+    recommendations.push("Use --skip-security to bypass security tests if WAF blocks probes");
+    recommendations.push("Add 2-second delays between security test payloads");
+    recommendations.push("Consider allowlisting your IP in the WAF dashboard for authorized testing");
+  }
+
+  return { detected, provider, recommendations };
+}
+
+// ---------------------------------------------------------------------------
+// 9. Main orchestrator — Run all advanced security tests
 // ---------------------------------------------------------------------------
 
 export async function runAdvancedSecurityAudit(
@@ -984,9 +1081,45 @@ export async function runAdvancedSecurityAudit(
 
   onProgress("info", "Starting advanced security audit...");
 
+  // 0. WAF Detection — run before any security tests
+  onProgress("step", "  Detecting Web Application Firewall (WAF)...");
+  let wafDetected = false;
+  let wafProvider: string | null = null;
+  try {
+    const wafResult = await detectWAF(page, url);
+    wafDetected = wafResult.detected;
+    wafProvider = wafResult.provider;
+
+    if (wafDetected) {
+      onProgress("warn", `  WAF detected: ${wafProvider}. Adjusting security test strategy.`);
+      for (const rec of wafResult.recommendations) {
+        onProgress("warn", `    - ${rec}`);
+      }
+      allResults.push({
+        test: "WAF Detection",
+        passed: true,
+        severity: "info",
+        details: `Web Application Firewall detected: ${wafProvider}. ` +
+          "Security test payloads will be throttled. SQL injection testing skipped to avoid IP bans.",
+      });
+    } else {
+      onProgress("pass", "  No WAF detected — proceeding with full security tests.");
+    }
+  } catch {
+    onProgress("warn", "  WAF detection failed — proceeding with default security tests.");
+  }
+
+  // Helper: add delay between security payloads when WAF is detected
+  const wafDelay = async (): Promise<void> => {
+    if (wafDetected) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 2_000));
+    }
+  };
+
   // 1. CSRF
   onProgress("step", "  Testing CSRF protection...");
   try {
+    await wafDelay();
     const csrfResult = await testCSRF(page, url);
     allResults.push(csrfResult);
     onProgress(
@@ -1003,30 +1136,43 @@ export async function runAdvancedSecurityAudit(
     onProgress("fail", "  FAIL CSRF: Test threw an unexpected error.");
   }
 
-  // 2. SQL Injection
-  onProgress("step", "  Testing for SQL injection...");
-  try {
-    const sqlResults = await testSQLInjection(page, url);
-    allResults.push(...sqlResults);
-    const sqlFails = sqlResults.filter((r) => !r.passed);
-    if (sqlFails.length > 0) {
-      onProgress("fail", `  FAIL SQL Injection: ${sqlFails.length} vulnerability(ies) found.`);
-    } else {
-      onProgress("pass", "  PASS SQL Injection: No vulnerabilities detected.");
-    }
-  } catch {
+  // 2. SQL Injection — skip when WAF is detected (high risk of IP ban)
+  if (wafDetected) {
+    onProgress("warn", "  SKIP SQL Injection: Skipped due to WAF detection (high risk of IP ban).");
     allResults.push({
       test: "SQL Injection",
-      passed: false,
-      severity: "critical",
-      details: "SQL injection test threw an unexpected error.",
+      passed: true,
+      severity: "info",
+      details: `SQL injection testing skipped — WAF detected (${wafProvider}). ` +
+        "Running SQL injection probes against a WAF risks IP bans and false positives. " +
+        "Allowlist your testing IP in the WAF dashboard and re-run without WAF to get accurate results.",
     });
-    onProgress("fail", "  FAIL SQL Injection: Test threw an unexpected error.");
+  } else {
+    onProgress("step", "  Testing for SQL injection...");
+    try {
+      const sqlResults = await testSQLInjection(page, url);
+      allResults.push(...sqlResults);
+      const sqlFails = sqlResults.filter((r) => !r.passed);
+      if (sqlFails.length > 0) {
+        onProgress("fail", `  FAIL SQL Injection: ${sqlFails.length} vulnerability(ies) found.`);
+      } else {
+        onProgress("pass", "  PASS SQL Injection: No vulnerabilities detected.");
+      }
+    } catch {
+      allResults.push({
+        test: "SQL Injection",
+        passed: false,
+        severity: "critical",
+        details: "SQL injection test threw an unexpected error.",
+      });
+      onProgress("fail", "  FAIL SQL Injection: Test threw an unexpected error.");
+    }
   }
 
   // 3. Clickjacking
   onProgress("step", "  Testing clickjacking protection...");
   try {
+    await wafDelay();
     const clickjackResult = await testClickjacking(page, url);
     allResults.push(clickjackResult);
     onProgress(
@@ -1046,6 +1192,7 @@ export async function runAdvancedSecurityAudit(
   // 4. CORS
   onProgress("step", "  Checking CORS configuration...");
   try {
+    await wafDelay();
     const corsResult = await testCORSConfig(page, url);
     allResults.push(corsResult);
     onProgress(
@@ -1065,6 +1212,7 @@ export async function runAdvancedSecurityAudit(
   // 5. Path Traversal
   onProgress("step", "  Testing for path traversal...");
   try {
+    await wafDelay();
     const pathResults = await testPathTraversal(page, url);
     allResults.push(...pathResults);
     const pathFails = pathResults.filter((r) => !r.passed);
@@ -1086,6 +1234,7 @@ export async function runAdvancedSecurityAudit(
   // 6. Information Disclosure
   onProgress("step", "  Checking for information disclosure...");
   try {
+    await wafDelay();
     const infoResults = await testInfoDisclosure(page, url);
     allResults.push(...infoResults);
     const infoFails = infoResults.filter((r) => !r.passed);
@@ -1107,6 +1256,7 @@ export async function runAdvancedSecurityAudit(
   // 7. Dependency Scan
   onProgress("step", "  Scanning client-side dependencies...");
   try {
+    await wafDelay();
     // Navigate back to original URL for dependency scan
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15_000 });
     const depResults = await scanDependencies(page);

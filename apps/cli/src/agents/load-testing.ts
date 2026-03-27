@@ -2,6 +2,7 @@
 // Load & Stress Testing Agent — Measures performance under concurrent load
 // ============================================================================
 
+import { freemem, totalmem } from "node:os";
 import type { ProgressCallback } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 
@@ -72,7 +73,26 @@ export async function runLoadTest(
   concurrency: number,
   duration: number,
   onProgress: ProgressCallback,
+  maxBrowsers: number = 10,
 ): Promise<LoadTestResult> {
+  // Check available system memory and cap concurrency accordingly
+  const availableMemory = freemem();
+  const totalSystemMemory = totalmem();
+  const estimatedPerBrowser = 200_000_000; // ~200MB per browser instance
+  const memoryBasedMax = Math.floor(availableMemory / estimatedPerBrowser);
+  const effectiveConcurrency = Math.min(concurrency, memoryBasedMax, maxBrowsers);
+
+  if (effectiveConcurrency < concurrency) {
+    onProgress(
+      "warn",
+      `  Concurrency capped from ${concurrency} to ${effectiveConcurrency} ` +
+        `(available memory: ${Math.round(availableMemory / 1_000_000)}MB / ` +
+        `${Math.round(totalSystemMemory / 1_000_000)}MB total, ` +
+        `max browsers: ${maxBrowsers})`,
+    );
+  }
+  concurrency = effectiveConcurrency;
+
   onProgress("info", `Running load test: ${concurrency} concurrent users for ${Math.round(duration / 1000)}s...`);
 
   let playwright: any;
@@ -435,129 +455,161 @@ export async function stressTest(
     })()
   `, []);
 
-  // Perform rapid actions
+  // Perform rapid actions — wrapped in top-level try/catch so a single
+  // crash does not kill the entire stress test
   const reportInterval = Math.max(1, Math.floor(maxActions / 10));
+  const HEAP_ABORT_THRESHOLD = 500 * 1024 * 1024; // 500MB
 
-  for (let i = 0; i < maxActions; i++) {
-    if (crashed) break;
+  try {
+    for (let i = 0; i < maxActions; i++) {
+      if (crashed) break;
 
-    try {
-      const actionType = i % 7;
+      try {
+        const actionType = i % 7;
 
-      switch (actionType) {
-        case 0: {
-          // Random click
-          if (clickTargets.length > 0) {
-            const target = clickTargets[Math.floor(Math.random() * clickTargets.length)];
-            await page.mouse.click(target.x, target.y).catch(() => {});
-          } else {
-            await page.mouse.click(
+        switch (actionType) {
+          case 0: {
+            // Random click
+            if (clickTargets.length > 0) {
+              const target = clickTargets[Math.floor(Math.random() * clickTargets.length)];
+              await page.mouse.click(target.x, target.y).catch(() => {});
+            } else {
+              await page.mouse.click(
+                Math.floor(Math.random() * 800) + 50,
+                Math.floor(Math.random() * 600) + 50,
+              );
+            }
+            break;
+          }
+
+          case 1: {
+            // Rapid scroll
+            const scrollY = Math.floor(Math.random() * 3000);
+            await safeEvaluate<void>(page, `window.scrollTo(0, ${scrollY})`, undefined);
+            break;
+          }
+
+          case 2: {
+            // Double click
+            await page.mouse.dblclick(
               Math.floor(Math.random() * 800) + 50,
               Math.floor(Math.random() * 600) + 50,
             );
+            break;
           }
-          break;
-        }
 
-        case 1: {
-          // Rapid scroll
-          const scrollY = Math.floor(Math.random() * 3000);
-          await safeEvaluate<void>(page, `window.scrollTo(0, ${scrollY})`, undefined);
-          break;
-        }
+          case 3: {
+            // Keyboard input
+            await page.keyboard.press("Tab");
+            await page.keyboard.type("stress test input", { delay: 5 });
+            break;
+          }
 
-        case 2: {
-          // Double click
-          await page.mouse.dblclick(
-            Math.floor(Math.random() * 800) + 50,
-            Math.floor(Math.random() * 600) + 50,
-          );
-          break;
-        }
+          case 4: {
+            // Mouse drag
+            const startX = Math.floor(Math.random() * 400) + 50;
+            const startY = Math.floor(Math.random() * 300) + 50;
+            await page.mouse.move(startX, startY);
+            await page.mouse.down();
+            await page.mouse.move(startX + 200, startY + 100);
+            await page.mouse.up();
+            break;
+          }
 
-        case 3: {
-          // Keyboard input
-          await page.keyboard.press("Tab");
-          await page.keyboard.type("stress test input", { delay: 5 });
-          break;
-        }
+          case 5: {
+            // Wheel scroll
+            await page.mouse.wheel(0, Math.floor(Math.random() * 500) - 250);
+            break;
+          }
 
-        case 4: {
-          // Mouse drag
-          const startX = Math.floor(Math.random() * 400) + 50;
-          const startY = Math.floor(Math.random() * 300) + 50;
-          await page.mouse.move(startX, startY);
-          await page.mouse.down();
-          await page.mouse.move(startX + 200, startY + 100);
-          await page.mouse.up();
-          break;
-        }
-
-        case 5: {
-          // Wheel scroll
-          await page.mouse.wheel(0, Math.floor(Math.random() * 500) - 250);
-          break;
-        }
-
-        case 6: {
-          // Navigate back/forward
-          try {
-            await page.goBack({ timeout: 5_000 });
-            await page.waitForTimeout(200);
-            await page.goForward({ timeout: 5_000 });
-          } catch {
-            // Navigation might not have history, reload instead
+          case 6: {
+            // Navigate back/forward
             try {
-              await page.reload({ waitUntil: "load", timeout: 10_000 });
+              await page.goBack({ timeout: 5_000 });
+              await page.waitForTimeout(200);
+              await page.goForward({ timeout: 5_000 });
             } catch {
-              // Non-fatal
+              // Navigation might not have history, reload instead
+              try {
+                await page.reload({ waitUntil: "load", timeout: 10_000 });
+              } catch {
+                // Non-fatal
+              }
             }
+            break;
           }
+        }
+
+        actionsExecuted++;
+
+        // Check memory every 10 actions via CDP — abort if JSHeapUsedSize > 500MB
+        if (client && i % 10 === 0 && i > 0) {
+          try {
+            const { metrics } = await client.send("Performance.getMetrics") as {
+              metrics: Array<{ name: string; value: number }>;
+            };
+            const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
+            if (heap) {
+              if (heap.value > peakMemory) {
+                peakMemory = heap.value;
+              }
+              if (heap.value > HEAP_ABORT_THRESHOLD) {
+                onProgress("warn", `  Aborting stress test: JSHeapUsedSize (${Math.round(heap.value / 1_000_000)}MB) exceeds 500MB threshold`);
+                errors.push(`Memory abort at action ${i}: JSHeapUsedSize ${Math.round(heap.value / 1_000_000)}MB > 500MB`);
+                break;
+              }
+            }
+          } catch {
+            // CDP session may have been lost
+            client = null;
+          }
+        }
+        // Also check memory at the original report interval for peak tracking
+        else if (client && i % reportInterval === 0) {
+          try {
+            const { metrics } = await client.send("Performance.getMetrics") as {
+              metrics: Array<{ name: string; value: number }>;
+            };
+            const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
+            if (heap && heap.value > peakMemory) {
+              peakMemory = heap.value;
+            }
+          } catch {
+            // CDP session may have been lost
+            client = null;
+          }
+        }
+
+        // Report progress
+        if (i % reportInterval === 0 && i > 0) {
+          onProgress("step", `  ${actionsExecuted}/${maxActions} actions completed, ${errors.length} errors`);
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+
+        // Check for crash indicators
+        if (
+          message.includes("Target closed") ||
+          message.includes("Session closed") ||
+          message.includes("Page crashed") ||
+          message.includes("Target page, context or browser has been closed")
+        ) {
+          crashed = true;
+          errors.push(`Page crashed at action ${i}: ${message.slice(0, 100)}`);
+          onProgress("fail", `  Page crashed at action ${i}`);
           break;
         }
+
+        errors.push(`Action ${i} failed: ${message.slice(0, 100)}`);
+        actionsExecuted++;
       }
-
-      actionsExecuted++;
-
-      // Check memory periodically
-      if (client && i % reportInterval === 0) {
-        try {
-          const { metrics } = await client.send("Performance.getMetrics") as {
-            metrics: Array<{ name: string; value: number }>;
-          };
-          const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
-          if (heap && heap.value > peakMemory) {
-            peakMemory = heap.value;
-          }
-        } catch {
-          // CDP session may have been lost
-          client = null;
-        }
-      }
-
-      // Report progress
-      if (i % reportInterval === 0 && i > 0) {
-        onProgress("step", `  ${actionsExecuted}/${maxActions} actions completed, ${errors.length} errors`);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-
-      // Check for crash indicators
-      if (
-        message.includes("Target closed") ||
-        message.includes("Session closed") ||
-        message.includes("Page crashed") ||
-        message.includes("Target page, context or browser has been closed")
-      ) {
-        crashed = true;
-        errors.push(`Page crashed at action ${i}: ${message.slice(0, 100)}`);
-        onProgress("fail", `  Page crashed at action ${i}`);
-        break;
-      }
-
-      errors.push(`Action ${i} failed: ${message.slice(0, 100)}`);
-      actionsExecuted++;
     }
+  } catch (fatalErr: unknown) {
+    // Top-level catch: a single unexpected crash should not kill the whole test
+    const fatalMessage = fatalErr instanceof Error ? fatalErr.message : String(fatalErr);
+    crashed = true;
+    errors.push(`Fatal stress test error: ${fatalMessage.slice(0, 200)}`);
+    onProgress("fail", `  Stress test encountered a fatal error: ${fatalMessage.slice(0, 100)}`);
   }
 
   // Measure final memory

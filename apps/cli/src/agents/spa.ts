@@ -223,7 +223,135 @@ export async function discoverSPARoutes(
     }
   }
 
+  // Step 6: Fallback route discovery for production builds where framework
+  //         globals (__REACT_ROUTER__, etc.) may not exist
+  const fallbackRoutes = await discoverRoutesFallback(page, origin);
+  for (const route of fallbackRoutes) {
+    allRoutes.add(route);
+  }
+
   return Array.from(allRoutes);
+}
+
+// ---------------------------------------------------------------------------
+// discoverRoutesFallback — Fallback route discovery when framework globals
+// are unavailable (production builds, minified bundles, etc.)
+// ---------------------------------------------------------------------------
+
+async function discoverRoutesFallback(
+  page: any,
+  baseUrl: string,
+): Promise<string[]> {
+  const discovered = new Set<string>();
+
+  // --- 1. Source scanning: extract route patterns from HTML/script content ---
+  try {
+    const html = await page.content();
+
+    // Match path: "/some/route" patterns (common in route configs)
+    const pathConfigPattern = new RegExp("path:\\s*[\"'](/[^\"']*?)[\"']", "g");
+    let match: RegExpExecArray | null;
+    while ((match = pathConfigPattern.exec(html)) !== null) {
+      if (match[1]) discovered.add(new URL(match[1], baseUrl).href);
+    }
+
+    // Match to="/some/route" patterns (React Router Link components)
+    const toLinkPattern = new RegExp("to=[\"'](/[^\"']*?)[\"']", "g");
+    while ((match = toLinkPattern.exec(html)) !== null) {
+      if (match[1]) discovered.add(new URL(match[1], baseUrl).href);
+    }
+
+    // Match href="/some/route" in <a> and <router-link> tags
+    const hrefPattern = new RegExp("href=[\"'](/[^\"']*?)[\"']", "g");
+    while ((match = hrefPattern.exec(html)) !== null) {
+      if (match[1]) discovered.add(new URL(match[1], baseUrl).href);
+    }
+  } catch {
+    // Source scanning failed — continue with other fallbacks
+  }
+
+  // --- 2. Common path probing: try well-known paths and check for non-404 ---
+  const commonPaths = [
+    "/about", "/login", "/signup", "/dashboard", "/settings",
+    "/profile", "/search", "/contact", "/pricing", "/docs",
+    "/blog", "/faq", "/terms", "/privacy",
+  ];
+
+  for (const path of commonPaths) {
+    try {
+      const probeUrl = new URL(path, baseUrl).href;
+      const response = await page.goto(probeUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: 5_000,
+      });
+
+      const status = response ? response.status() : 0;
+
+      // Skip obvious 404/error responses
+      if (status >= 400) continue;
+
+      // Check if page has meaningful content (not a generic error/404 page)
+      const pageInfo = await safeEvaluate<{ title: string; bodyLength: number; has404: boolean }>(
+        page,
+        `(() => {
+          const bodyText = (document.body.textContent || "").trim();
+          const title = document.title || "";
+          const has404 = /404|not found|page not found|does not exist/i.test(bodyText + " " + title);
+          return { title, bodyLength: bodyText.length, has404 };
+        })()`,
+        { title: "", bodyLength: 0, has404: true },
+        3_000,
+      );
+
+      if (!pageInfo.has404 && pageInfo.bodyLength > 50) {
+        discovered.add(probeUrl);
+      }
+    } catch {
+      // Probe failed — skip this path
+    }
+  }
+
+  // --- 3. Next.js _next/data discovery: scan build manifest for page routes ---
+  try {
+    const manifestUrl = new URL("/_next/static/chunks/pages/_buildManifest.js", baseUrl).href;
+    const manifestResponse = await page.goto(manifestUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 5_000,
+    });
+
+    if (manifestResponse && manifestResponse.status() === 200) {
+      const manifestContent = await safeEvaluate<string>(
+        page,
+        `(() => {
+          return (document.body.innerText || document.body.textContent || "");
+        })()`,
+        "",
+        3_000,
+      );
+
+      // Extract page routes from build manifest (keys like "/about", "/blog/[slug]")
+      const routePattern = new RegExp("\"(/[^\"]*?)\"\\s*:", "g");
+      let routeMatch: RegExpExecArray | null;
+      while ((routeMatch = routePattern.exec(manifestContent)) !== null) {
+        const route = routeMatch[1];
+        // Skip internal Next.js routes and dynamic segments for now
+        if (route && !route.startsWith("/_") && !route.includes("[")) {
+          discovered.add(new URL(route, baseUrl).href);
+        }
+      }
+    }
+  } catch {
+    // Not a Next.js app or manifest not accessible — ignore
+  }
+
+  // Navigate back to the base URL after probing
+  try {
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 10_000 });
+  } catch {
+    // Best effort
+  }
+
+  return Array.from(discovered);
 }
 
 // ---------------------------------------------------------------------------
