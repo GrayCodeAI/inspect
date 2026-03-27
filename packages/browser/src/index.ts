@@ -27,7 +27,12 @@ export {
 } from "./vision/detector.js";
 
 // Cookie extraction
-export { BROWSER_CONFIGS, findBrowserConfig, getAvailableBrowsers, resolveBrowserPath } from "./cookies/browsers.js";
+export {
+  BROWSER_CONFIGS,
+  findBrowserConfig,
+  getAvailableBrowsers,
+  resolveBrowserPath,
+} from "./cookies/browsers.js";
 export { CookieExtractor } from "./cookies/extract.js";
 
 // Session recording
@@ -37,6 +42,34 @@ export { HARRecorder } from "./session/har.js";
 // MCP server
 export { MCPServer } from "./mcp/server.js";
 export { BROWSER_TOOLS, getToolDefinition, getToolNames } from "./mcp/tools.js";
+
+// DOM traversal (iFrame and Shadow DOM)
+export {
+  FrameTraverser,
+  type FrameTraversalOptions,
+  type FrameTraversalResult,
+} from "./dom/frame-traverser.js";
+export {
+  ShadowDomResolver,
+  type ShadowRootInfo,
+  type ShadowDomResult,
+} from "./dom/shadow-resolver.js";
+
+// Browser profiles
+export {
+  ProfileManager,
+  type BrowserProfile,
+  type ProfileManagerConfig,
+} from "./profiles/manager.js";
+
+// Browser backends
+export {
+  LightpandaBackend,
+  ChromiumBackend,
+  BackendFactory,
+  type LightpandaConfig,
+  type BrowserBackend,
+} from "./backends/lightpanda.js";
 
 // Re-export shared types for convenience
 export type {

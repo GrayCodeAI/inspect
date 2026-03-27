@@ -20,3 +20,6 @@ export type { MaskingPattern, MaskRegion } from "./security/masking.js";
 // Cloudflare tunnel management
 export { TunnelManager } from "./tunnel/cloudflare.js";
 export type { TunnelInfo, TunnelOptions } from "./tunnel/cloudflare.js";
+
+// Stealth browsing
+export { StealthEngine } from "./stealth/stealth.js";

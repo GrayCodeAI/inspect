@@ -40,3 +40,12 @@ export { AzureBlobStorage } from "./storage/azure-blob.js";
 export type { AzureBlobConfig, AzureBlobUploadResult } from "./storage/azure-blob.js";
 export { LocalStorage } from "./storage/local.js";
 export type { LocalFileMetadata } from "./storage/local.js";
+
+// Crawler
+export { WebCrawler, type CrawlProgressCallback } from "./crawler/crawler.js";
+export { SitemapParser, type SitemapEntry } from "./crawler/sitemap.js";
+export { RobotsParser, type RobotsRule } from "./crawler/robots.js";
+export { LinkExtractor, type ExtractedLink } from "./crawler/link-extractor.js";
+
+// Change Tracking
+export { Snapshotter, Differ, ChangeTracker } from "./tracking/tracker.js";
