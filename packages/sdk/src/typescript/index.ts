@@ -15,16 +15,49 @@ import type {
 } from "@inspect/shared";
 import { DEFAULT_BROWSER_CONFIG, DEFAULT_AGENT_CONFIG, DEFAULT_VIEWPORT } from "@inspect/shared";
 
-import { ActHandler, type ActResult, type ActOptions, type LLMClient, type PageInterface, type ActionCacheInterface } from "./act.js";
-import { ExtractHandler, type ExtractResult, type ExtractOptions, type SchemaLike } from "./extract.js";
-import { ObserveHandler, type ObserveResult, type ObserveOptions, type ActionSuggestion } from "./observe.js";
-import { AgentHandler, type AgentResult, type AgentOptions, type AgentStep, type AgentStreamEvent } from "./agent.js";
+import {
+  ActHandler,
+  type ActResult,
+  type ActOptions,
+  type LLMClient,
+  type PageInterface,
+  type ActionCacheInterface,
+} from "./act.js";
+import {
+  ExtractHandler,
+  type ExtractResult,
+  type ExtractOptions,
+  type SchemaLike,
+} from "./extract.js";
+import {
+  ObserveHandler,
+  type ObserveResult,
+  type ObserveOptions,
+  type ActionSuggestion,
+} from "./observe.js";
+import {
+  AgentHandler,
+  type AgentResult,
+  type AgentOptions,
+  type AgentStep,
+  type AgentStreamEvent,
+} from "./agent.js";
 
 // ── Re-exports ──────────────────────────────────────────────────────────────
 
 export { ActHandler, type ActResult, type ActOptions } from "./act.js";
-export { ExtractHandler, type ExtractResult, type ExtractOptions, type SchemaLike } from "./extract.js";
-export { ObserveHandler, type ObserveResult, type ObserveOptions, type ActionSuggestion } from "./observe.js";
+export {
+  ExtractHandler,
+  type ExtractResult,
+  type ExtractOptions,
+  type SchemaLike,
+} from "./extract.js";
+export {
+  ObserveHandler,
+  type ObserveResult,
+  type ObserveOptions,
+  type ActionSuggestion,
+} from "./observe.js";
 export {
   AgentHandler,
   type AgentResult,
@@ -188,11 +221,12 @@ export class Inspect {
     if (this.initialized) return;
 
     // Resolve API key from config or environment
-    const apiKey = this.config.apiKey
-      ?? this.config.env?.ANTHROPIC_API_KEY
-      ?? process.env.ANTHROPIC_API_KEY
-      ?? process.env.OPENAI_API_KEY
-      ?? "";
+    const apiKey =
+      this.config.apiKey ??
+      this.config.env?.ANTHROPIC_API_KEY ??
+      process.env.ANTHROPIC_API_KEY ??
+      process.env.OPENAI_API_KEY ??
+      "";
 
     // Initialize LLM client
     this.llmClient = this.createLLMClient(apiKey);
@@ -215,7 +249,7 @@ export class Inspect {
       if (this.config.verbose) {
         console.warn(
           "[inspect] @inspect/browser not available. Browser operations will fail. " +
-          "Install @inspect/browser for full functionality.",
+            "Install @inspect/browser for full functionality.",
         );
       }
     }
@@ -247,14 +281,17 @@ export class Inspect {
     this.ensureInitialized();
     this.ensurePage();
 
-    const result = await this.actHandler!.execute(
-      this.page!,
-      instruction,
-      options,
-    );
+    const result = await this.actHandler!.execute(this.page!, instruction, options);
 
     this.recordMetrics("act", result.tokenUsage);
-    this.addHistory("act", instruction, result.success, result.tokenUsage, result.durationMs, result.error);
+    this.addHistory(
+      "act",
+      instruction,
+      result.success,
+      result.tokenUsage,
+      result.durationMs,
+      result.error,
+    );
 
     return result;
   }
@@ -275,14 +312,20 @@ export class Inspect {
     this.ensureInitialized();
     this.ensurePage();
 
-    const result = await this.extractHandler!.execute<T>(
-      this.page!,
-      instruction,
-      { ...options, schema },
-    );
+    const result = await this.extractHandler!.execute<T>(this.page!, instruction, {
+      ...options,
+      schema,
+    });
 
     this.recordMetrics("extract", result.tokenUsage);
-    this.addHistory("extract", instruction, result.success, result.tokenUsage, result.durationMs, result.error);
+    this.addHistory(
+      "extract",
+      instruction,
+      result.success,
+      result.tokenUsage,
+      result.durationMs,
+      result.error,
+    );
 
     return result;
   }
@@ -294,21 +337,21 @@ export class Inspect {
    * @param options - Observation options
    * @returns Observation result with action suggestions
    */
-  async observe(
-    instruction: string,
-    options?: ObserveOptions,
-  ): Promise<ObserveResult> {
+  async observe(instruction: string, options?: ObserveOptions): Promise<ObserveResult> {
     this.ensureInitialized();
     this.ensurePage();
 
-    const result = await this.observeHandler!.execute(
-      this.page!,
-      instruction,
-      options,
-    );
+    const result = await this.observeHandler!.execute(this.page!, instruction, options);
 
     this.recordMetrics("observe", result.tokenUsage);
-    this.addHistory("observe", instruction, result.success, result.tokenUsage, result.durationMs, result.error);
+    this.addHistory(
+      "observe",
+      instruction,
+      result.success,
+      result.tokenUsage,
+      result.durationMs,
+      result.error,
+    );
 
     return result;
   }
@@ -320,18 +363,11 @@ export class Inspect {
    * @param options - Agent execution options
    * @returns Complete agent execution result
    */
-  async agent(
-    instruction: string,
-    options?: AgentOptions,
-  ): Promise<AgentResult> {
+  async agent(instruction: string, options?: AgentOptions): Promise<AgentResult> {
     this.ensureInitialized();
     this.ensurePage();
 
-    const result = await this.agentHandler!.execute(
-      this.page!,
-      instruction,
-      options,
-    );
+    const result = await this.agentHandler!.execute(this.page!, instruction, options);
 
     this.recordMetrics("agent", result.tokenUsage);
     this.addHistory(
@@ -366,7 +402,9 @@ export class Inspect {
       } else {
         // Fallback: use the page interface methods
         // The actual navigation is handled by the browser module
-        throw new Error("Page does not support navigation. Ensure @inspect/browser is initialized.");
+        throw new Error(
+          "Page does not support navigation. Ensure @inspect/browser is initialized.",
+        );
       }
 
       this.addHistory(
@@ -453,6 +491,125 @@ export class Inspect {
   }
 
   /**
+   * Crawl a website and extract content.
+   *
+   * @param url - Starting URL to crawl
+   * @param options - Crawl options
+   * @returns Crawl results
+   */
+  async crawl(
+    url: string,
+    options?: {
+      depth?: number;
+      maxPages?: number;
+      format?: "json" | "csv" | "jsonl";
+      extractContent?: boolean;
+      exclude?: string[];
+      include?: string[];
+    },
+  ): Promise<{ pagesCrawled: number; errorCount: number; results: unknown[] }> {
+    const { WebCrawler } = await import("@inspect/data");
+
+    const crawler = new WebCrawler({
+      startUrl: url,
+      maxDepth: options?.depth ?? 3,
+      maxPages: options?.maxPages ?? 100,
+      extractContent: options?.extractContent ?? false,
+      excludePatterns: options?.exclude ?? [],
+      includePatterns: options?.include ?? [],
+    });
+
+    const job = await crawler.crawl();
+    const output = crawler.export(options?.format ?? "json");
+
+    return {
+      pagesCrawled: job.pagesCrawled,
+      errorCount: job.errorCount,
+      results: JSON.parse(output),
+    };
+  }
+
+  /**
+   * Track changes on a set of URLs.
+   *
+   * @param urls - URLs to monitor
+   * @param options - Tracking options
+   * @returns Change diffs detected
+   */
+  async track(
+    urls: string[],
+    options?: {
+      interval?: number;
+      onDiff?: (diff: unknown) => void;
+    },
+  ): Promise<{ urlsMonitored: number; diffs: unknown[] }> {
+    const { ChangeTracker } = await import("@inspect/data");
+    const diffs: unknown[] = [];
+
+    const tracker = new ChangeTracker({
+      urls,
+      interval: (options?.interval ?? 60) * 1000,
+      onDiff: (diff: unknown) => {
+        diffs.push(diff);
+        options?.onDiff?.(diff);
+      },
+    });
+
+    await tracker.snapshotAll();
+
+    return { urlsMonitored: urls.length, diffs };
+  }
+
+  /**
+   * Start a network fault injection proxy.
+   *
+   * @param options - Proxy options
+   * @returns Proxy server handle
+   */
+  async createProxy(options?: {
+    port?: number;
+    upstream?: string;
+    preset?: string;
+    latency?: number;
+  }): Promise<{
+    status: () => Record<string, unknown>;
+    addFault: (type: string, attributes: Record<string, unknown>) => void;
+    stop: () => Promise<void>;
+  }> {
+    const { ProxyServer } = await import("@inspect/quality");
+
+    const server = new ProxyServer({
+      port: options?.port ?? 8888,
+      upstream: options?.upstream ?? "localhost:80",
+      name: "sdk-proxy",
+    });
+
+    if (options?.preset) {
+      server.applyPreset(options.preset);
+    }
+
+    if (options?.latency) {
+      server.addToxic({
+        type: "latency",
+        name: "sdk-latency",
+        attributes: { latency: options.latency },
+      });
+    }
+
+    await server.start();
+
+    return {
+      status: () => server.getStatus() as unknown as Record<string, unknown>,
+      addFault: (type: string, attributes: Record<string, unknown>) => {
+        server.addToxic({ type: type as any, name: `sdk-${type}`, attributes });
+      },
+      stop: async () => {
+        await server.stop();
+      },
+    };
+  }
+
+  /**
    * Get aggregate token usage and cost metrics.
    */
   get metrics(): { total: TokenMetrics; perFunction: FunctionMetrics } {
@@ -530,12 +687,7 @@ export class Inspect {
         options?: { temperature?: number; maxTokens?: number },
       ) {
         const url = resolveProviderUrl(providerName, baseUrl);
-        const body = buildRequestBody(
-          providerName,
-          model,
-          messages,
-          options,
-        );
+        const body = buildRequestBody(providerName, model, messages, options);
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
@@ -558,9 +710,7 @@ export class Inspect {
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => "");
-          throw new Error(
-            `LLM API error (${response.status}): ${errorText.slice(0, 500)}`,
-          );
+          throw new Error(`LLM API error (${response.status}): ${errorText.slice(0, 500)}`);
         }
 
         const data = (await response.json()) as Record<string, unknown>;
@@ -631,14 +781,26 @@ export class Inspect {
 
 /** Simple in-memory action cache */
 class SimpleActionCache implements ActionCacheInterface {
-  private store = new Map<string, { action: AgentAction; elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string } }>();
+  private store = new Map<
+    string,
+    {
+      action: AgentAction;
+      elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string };
+    }
+  >();
   private maxEntries = 1000;
 
   get(key: string) {
     return this.store.get(key);
   }
 
-  set(key: string, value: { action: AgentAction; elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string } }) {
+  set(
+    key: string,
+    value: {
+      action: AgentAction;
+      elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string };
+    },
+  ) {
     // Evict oldest if at capacity
     if (this.store.size >= this.maxEntries) {
       const firstKey = this.store.keys().next().value as string;
@@ -727,15 +889,18 @@ function parseProviderResponse(
 } {
   if (provider === "anthropic") {
     const content = data.content as Array<{ type: string; text?: string }>;
-    const text = content
-      ?.filter((c) => c.type === "text")
-      .map((c) => c.text ?? "")
-      .join("") ?? "";
+    const text =
+      content
+        ?.filter((c) => c.type === "text")
+        .map((c) => c.text ?? "")
+        .join("") ?? "";
 
-    const usage = data.usage as {
-      input_tokens?: number;
-      output_tokens?: number;
-    } | undefined;
+    const usage = data.usage as
+      | {
+          input_tokens?: number;
+          output_tokens?: number;
+        }
+      | undefined;
 
     return {
       content: text,
@@ -753,11 +918,13 @@ function parseProviderResponse(
   }>;
   const text = choices?.[0]?.message?.content ?? "";
 
-  const usage = data.usage as {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-  } | undefined;
+  const usage = data.usage as
+    | {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+      }
+    | undefined;
 
   return {
     content: text,
@@ -911,7 +1078,9 @@ function createPageWrapper(rawPage: unknown): PageInterface {
         const locator = page.locator(`[data-ref="${ref}"]`);
         await locator.scrollIntoViewIfNeeded();
       } catch {
-        await page.evaluate(`document.querySelector('[data-ref="${ref}"]')?.scrollIntoView({ behavior: 'smooth' })`);
+        await page.evaluate(
+          `document.querySelector('[data-ref="${ref}"]')?.scrollIntoView({ behavior: 'smooth' })`,
+        );
       }
     },
 

@@ -293,6 +293,12 @@ importers:
       '@inspect/core':
         specifier: workspace:*
         version: link:../core
+      '@inspect/data':
+        specifier: workspace:*
+        version: link:../data
+      '@inspect/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared

@@ -21,7 +21,9 @@
     "@inspect/shared": "workspace:*",
     "@inspect/browser": "workspace:*",
     "@inspect/agent": "workspace:*",
-    "@inspect/core": "workspace:*"
+    "@inspect/core": "workspace:*",
+    "@inspect/data": "workspace:*",
+    "@inspect/quality": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
