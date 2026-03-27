@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@inspect/shared": "workspace:*",
+    "@inspect/data": "workspace:*",
+    "@inspect/quality": "workspace:*",
     "node-cron": "^3.0.0"
   },
   "devDependencies": {

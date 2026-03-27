@@ -36,6 +36,12 @@ export type {
   HumanBlockResult,
 } from "./blocks/human.js";
 
+// New blocks (world-class features)
+export { executeCrawlBlock } from "./blocks/crawl.js";
+export { executeTrackBlock } from "./blocks/track.js";
+export { executeProxyBlock } from "./blocks/proxy.js";
+export { executeBenchmarkBlock } from "./blocks/benchmark.js";
+
 // Copilot
 export { WorkflowGenerator } from "./copilot/generator.js";
 export type { WorkflowLLM, BlockSuggestion } from "./copilot/generator.js";

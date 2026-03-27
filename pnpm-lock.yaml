@@ -342,6 +342,12 @@ importers:
 
   packages/workflow:
     dependencies:
+      '@inspect/data':
+        specifier: workspace:*
+        version: link:../data
+      '@inspect/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared

@@ -4,10 +4,25 @@
 
 /** Types of workflow blocks */
 export type WorkflowBlockType =
-  | 'task' | 'for_loop' | 'code' | 'text_prompt' | 'data_extraction'
-  | 'validation' | 'file_download' | 'file_upload' | 'file_parser'
-  | 'send_email' | 'http_request' | 'wait' | 'human_interaction'
-  | 'conditional' | 'pdf_parser';
+  | "task"
+  | "for_loop"
+  | "code"
+  | "text_prompt"
+  | "data_extraction"
+  | "validation"
+  | "file_download"
+  | "file_upload"
+  | "file_parser"
+  | "send_email"
+  | "http_request"
+  | "wait"
+  | "human_interaction"
+  | "conditional"
+  | "pdf_parser"
+  | "crawl"
+  | "track"
+  | "proxy"
+  | "benchmark";
 
 /** Single block within a workflow */
 export interface WorkflowBlock {
@@ -23,11 +38,11 @@ export interface WorkflowBlock {
 }
 
 /** Workflow status */
-export type WorkflowStatus = 'draft' | 'active' | 'paused' | 'archived';
+export type WorkflowStatus = "draft" | "active" | "paused" | "archived";
 
 /** Workflow parameter definition */
 export interface WorkflowParameter {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  type: "string" | "number" | "boolean" | "array" | "object";
   description?: string;
   default?: unknown;
   required?: boolean;
@@ -44,7 +59,7 @@ export interface WorkflowDefinition {
   parameters?: Record<string, WorkflowParameter>;
   cronSchedule?: string;
   webhookUrl?: string;
-  templateEngine: 'handlebars';
+  templateEngine: "handlebars";
   strictMode: boolean;
   createdAt: number;
   updatedAt: number;
@@ -53,12 +68,17 @@ export interface WorkflowDefinition {
 
 /** Workflow run status */
 export type WorkflowRunStatus =
-  | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused_for_input';
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "paused_for_input";
 
 /** Result of a single block execution */
 export interface WorkflowBlockResult {
   blockId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
   output?: unknown;
   error?: string;
   duration?: number;
