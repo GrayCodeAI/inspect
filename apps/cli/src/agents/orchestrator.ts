@@ -513,6 +513,32 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       tokenUsage,
     });
 
+    // AI failure analysis (if there are failures and LLM is available)
+    if (report.summary.failed > 0) {
+      try {
+        const { analyzeFailures } = await import("./failure-analysis.js");
+        onProgress("info", "");
+        const analysis = await analyzeFailures(report, trackedLlm, onProgress);
+        if (analysis.topIssues.length > 0) {
+          onProgress("done", "");
+          onProgress("done", "Top issues:");
+          for (const issue of analysis.topIssues) {
+            onProgress("warn", `  ${issue}`);
+          }
+        }
+      } catch {
+        // Failure analysis is non-critical
+      }
+    }
+
+    // Record results for flake detection
+    try {
+      const { recordResults } = await import("./flake-detection.js");
+      recordResults(report);
+    } catch {
+      // Non-critical
+    }
+
     await browserMgr.closeBrowser();
     return report;
 

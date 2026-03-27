@@ -61,6 +61,25 @@ export { generateGitHubActionsYAML, generateGitLabCIYAML, evaluateQualityGates, 
 // --- Advanced Capabilities ---
 export { testPDFDownload, checkEmailReceived, createScheduleConfig, generateCronExpression, selfHealSelector, selfHealPlan } from "./advanced.js";
 
+// --- AI Failure Analysis ---
+export { analyzeFailures, classifyFailure } from "./failure-analysis.js";
+export type { FailureAnalysis, AnalysisReport } from "./failure-analysis.js";
+
+// --- Record & Playback ---
+export { startRecording, actionsToTestSteps, actionsToYAML, recordSession } from "./recorder.js";
+
+// --- Flake Detection ---
+export { recordResults, getFlakeReport, isFlaky, getStepHistory, clearHistory } from "./flake-detection.js";
+
+// --- Smart Dynamic Masking ---
+export { detectDynamicContent, applySmartMasks, learnMasks } from "./smart-masking.js";
+
+// --- Synthetic Monitoring ---
+export { startMonitor, saveMonitorResult, loadMonitorHistory, detectRegression, sendAlert, generateMonitorHTML } from "./monitoring.js";
+
+// --- API Security Scanning ---
+export { fetchOpenAPISpec, testGraphQLIntrospection, scanOpenAPIEndpoints, scanGraphQLSecurity, runAPIScan } from "./api-scanning.js";
+
 // --- Utilities ---
 export { withCache, withRetry, clearCache } from "./cache.js";
 export { safeEvaluate, safeEvaluateVoid } from "./evaluate.js";
