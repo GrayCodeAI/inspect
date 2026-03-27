@@ -40,16 +40,60 @@ async function runTunnel(options: TunnelOptions): Promise<void> {
 
     // Keep the process alive
     await new Promise(() => {});
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("cloudflared") || msg.includes("ENOENT")) {
-      console.error(chalk.red("\nError: cloudflared binary not found."));
-      console.log(chalk.dim("Install it from: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/"));
-      console.log(chalk.dim("Or: brew install cloudflare/cloudflare/cloudflared"));
-    } else {
-      console.error(chalk.red(`\nError: ${msg}`));
+  } catch {
+    // Direct cloudflared fallback when @inspect/network is not available
+    const { execFile: execFileCb } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFile = promisify(execFileCb);
+
+    // Check if cloudflared is installed
+    try {
+      await execFile("cloudflared", ["--version"]);
+    } catch {
+      console.error(chalk.red("\nError: cloudflared is not installed."));
+      console.error(chalk.dim("  Install: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/"));
+      console.error(chalk.dim("  Or: brew install cloudflared"));
+      process.exit(1);
     }
-    process.exit(1);
+
+    console.log(chalk.dim(`Starting tunnel to localhost:${port}...`));
+
+    const { spawn } = await import("node:child_process");
+    const child = spawn("cloudflared", ["tunnel", "--url", `${protocol}://localhost:${port}`], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    // Parse tunnel URL from stderr (cloudflared outputs it there)
+    let tunnelUrl = "";
+    child.stderr.on("data", (data: Buffer) => {
+      const line = data.toString();
+      const urlMatch = line.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+      if (urlMatch && !tunnelUrl) {
+        tunnelUrl = urlMatch[0];
+        console.log(chalk.green(`\n  Tunnel is live!\n`));
+        console.log(`  ${chalk.bold("Public URL:")} ${tunnelUrl}`);
+        console.log(`  ${chalk.dim("Local:")}      ${protocol}://localhost:${port}`);
+        console.log(chalk.dim("\n  Press Ctrl+C to stop the tunnel\n"));
+      }
+    });
+
+    child.on("error", (err) => {
+      console.error(chalk.red(`Tunnel error: ${err.message}`));
+    });
+
+    await new Promise<void>((resolve) => {
+      process.on("SIGINT", () => {
+        console.log(chalk.dim("\nClosing tunnel..."));
+        child.kill("SIGTERM");
+        setTimeout(() => { if (!child.killed) child.kill("SIGKILL"); }, 3000);
+        resolve();
+      });
+      process.on("SIGTERM", () => {
+        child.kill("SIGTERM");
+        resolve();
+      });
+      child.on("exit", () => resolve());
+    });
   }
 }
 

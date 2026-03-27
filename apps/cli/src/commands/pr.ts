@@ -212,17 +212,21 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
     )
   );
 
-  // In a full implementation, this would:
-  // 1. Launch the TestExecutor with the prompt
-  // 2. Stream results to the TUI
-  // 3. Optionally post a comment to the PR
-  // 4. Optionally set commit status
-  console.log(chalk.dim("Test execution starting..."));
-  console.log(
-    chalk.yellow(
-      "\nFull agent execution not yet wired — PR context gathered successfully."
-    )
-  );
+  // Wire to test execution via the shared runTest function
+  console.log(chalk.dim("Running AI-powered test on PR changes..."));
+
+  const { runTest } = await import("./test.js");
+  await runTest({
+    message: `Test PR #${pr.number}: ${instruction}`,
+    url: targetUrl,
+    agent: options.agent ?? "claude",
+    target: "branch",
+    mode: options.mode ?? "hybrid",
+    headed: options.headed ?? false,
+    devices: options.devices ?? "desktop-chrome",
+    verbose: options.verbose ?? false,
+    browser: "chromium",
+  });
 
   if (options.comment) {
     console.log(
@@ -276,6 +280,13 @@ export function registerPRCommand(program: Command): void {
       "--status",
       "Set commit status based on results"
     )
+    .addHelpText("after", `
+Examples:
+  $ inspect pr https://github.com/owner/repo/pull/123
+  $ inspect pr owner/repo#42 --agent claude --headed
+  $ inspect pr 15 --repo owner/repo --comment --status
+  $ inspect pr owner/repo#7 --devices "iphone-15,desktop-chrome"
+`)
     .action(async (pr: string, opts: PROptions) => {
       try {
         await runPRTest(pr, opts);

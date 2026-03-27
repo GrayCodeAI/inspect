@@ -7,6 +7,7 @@ export interface ChaosOptions {
   fpsThreshold?: string;
   headed?: boolean;
   maxErrors?: string;
+  json?: boolean;
 }
 
 async function runChaos(url: string | undefined, options: ChaosOptions): Promise<void> {
@@ -67,13 +68,27 @@ async function runChaos(url: string | undefined, options: ChaosOptions): Promise
     });
     const elapsed = Date.now() - startTime;
 
-    // Display results
-    console.log(chalk.dim("\n─────────────────────────────────────────\n"));
-
     const interactions = report.interactions ?? 0;
     const errors = report.errors ?? [];
     const fpsDrops = report.fpsDrops ?? [];
     const consoleErrors = report.consoleErrors ?? [];
+
+    if (options.json) {
+      const data = {
+        interactions,
+        elapsed,
+        errors: errors.map((e: unknown) => typeof e === "string" ? e : (e as { message?: string }).message ?? String(e)),
+        consoleErrors,
+        fpsDrops,
+        passed: errors.length === 0 && fpsDrops.length === 0,
+      };
+      process.stdout.write(JSON.stringify(data, null, 2) + "\n");
+      await browserMgr.closeBrowser();
+      return;
+    }
+
+    // Display results
+    console.log(chalk.dim("\n─────────────────────────────────────────\n"));
 
     console.log(chalk.bold("Chaos Test Results:\n"));
     console.log(`  Interactions:   ${interactions}`);
@@ -126,6 +141,7 @@ export function registerChaosCommand(program: Command): void {
     .option("--fps-threshold <fps>", "FPS drop threshold for failure", "10")
     .option("--max-errors <count>", "Max JS errors before stopping", "50")
     .option("--headed", "Run browser in headed mode")
+    .option("--json", "Output as JSON")
     .action(async (url: string | undefined, opts: ChaosOptions) => {
       await runChaos(url, opts);
     });

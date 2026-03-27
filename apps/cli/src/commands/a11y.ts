@@ -10,6 +10,7 @@ export interface A11yOptions {
   reporter?: string;
   output?: string;
   headed?: boolean;
+  json?: boolean;
 }
 
 async function runA11y(url: string | undefined, options: A11yOptions): Promise<void> {
@@ -76,6 +77,12 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
     const violations = report.violations ?? [];
     const passes = report.passes ?? [];
     const incomplete = report.incomplete ?? [];
+
+    if (options.json) {
+      process.stdout.write(JSON.stringify({ score: report.score ?? null, violations, passes, incomplete }, null, 2) + "\n");
+      await browserMgr.closeBrowser();
+      return;
+    }
 
     console.log(chalk.dim("\n─────────────────────────────────────────"));
     console.log(chalk.bold(`\nAccessibility Score: ${report.score ?? "N/A"}/100\n`));
@@ -159,6 +166,7 @@ export function registerA11yCommand(program: Command): void {
     .option("--reporter <format>", "Report format: cli, html, json", "cli")
     .option("-o, --output <file>", "Output file path")
     .option("--headed", "Run browser in headed mode")
+    .option("--json", "Output as JSON")
     .action(async (url: string | undefined, opts: A11yOptions) => {
       await runA11y(url, opts);
     });

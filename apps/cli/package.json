@@ -1,10 +1,37 @@
 {
   "name": "@inspect/cli",
   "version": "0.1.0",
-  "private": true,
+  "description": "AI-Powered Browser Testing CLI",
   "type": "module",
+  "keywords": [
+    "testing",
+    "browser",
+    "ai",
+    "playwright",
+    "cli",
+    "accessibility",
+    "visual-regression"
+  ],
+  "author": "Lakshman Patel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nichochar/inspect.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/nichochar/inspect",
+  "bugs": "https://github.com/nichochar/inspect/issues",
   "bin": {
     "inspect": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

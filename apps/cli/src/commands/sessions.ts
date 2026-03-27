@@ -9,6 +9,7 @@ export interface SessionsOptions {
   browser?: string;
   headed?: boolean;
   viewport?: string;
+  json?: boolean;
 }
 
 interface SessionInfo {
@@ -49,6 +50,12 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
   switch (action) {
     case "list": {
       const sessions = loadSessions();
+
+      if (options.json) {
+        process.stdout.write(JSON.stringify(sessions, null, 2) + "\n");
+        return;
+      }
+
       console.log(chalk.blue("\nBrowser Sessions\n"));
 
       if (sessions.length === 0) {
@@ -108,6 +115,10 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
         const sessions = loadSessions();
         sessions.push(session);
         saveSessions(sessions);
+
+        if (options.json) {
+          process.stdout.write(JSON.stringify(session, null, 2) + "\n");
+        }
 
         console.log(chalk.green(`\nSession created: ${sessionId}`));
         console.log(chalk.dim(`Use "inspect sessions attach --id ${sessionId}" to connect.`));
@@ -209,6 +220,7 @@ export function registerSessionsCommand(program: Command): void {
     .option("--browser <browser>", "Browser: chromium, firefox, webkit", "chromium")
     .option("--headed", "Run in headed browser mode")
     .option("--viewport <viewport>", "Viewport size: WIDTHxHEIGHT", "1920x1080")
+    .option("--json", "Output as JSON")
     .action(async (action: string, opts: SessionsOptions) => {
       await runSessions(action, opts);
     });

@@ -9,6 +9,7 @@ export interface LighthouseCliOptions {
   reporter?: string;
   output?: string;
   device?: string;
+  json?: boolean;
 }
 
 async function runLighthouse(url: string | undefined, options: LighthouseCliOptions): Promise<void> {
@@ -55,10 +56,15 @@ async function runLighthouse(url: string | undefined, options: LighthouseCliOpti
     });
     const elapsed = Date.now() - startTime;
 
+    const scores = report.scores ?? {};
+
+    if (options.json) {
+      process.stdout.write(JSON.stringify({ scores, metrics: report.metrics ?? null, elapsed }, null, 2) + "\n");
+      return;
+    }
+
     // Display results
     console.log(chalk.dim("\n─────────────────────────────────────────\n"));
-
-    const scores = report.scores ?? {};
     const scoreEntries = Object.entries(scores) as Array<[string, number]>;
 
     for (const [category, score] of scoreEntries) {
@@ -120,6 +126,7 @@ export function registerLighthouseCommand(program: Command): void {
     .option("--reporter <format>", "Report format: cli, html, json", "cli")
     .option("-o, --output <file>", "Output file path")
     .option("--device <device>", "Device: mobile, desktop", "mobile")
+    .option("--json", "Output as JSON")
     .action(async (url: string | undefined, opts: LighthouseCliOptions) => {
       await runLighthouse(url, opts);
     });

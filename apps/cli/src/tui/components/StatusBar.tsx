@@ -12,25 +12,17 @@ interface StatusBarProps {
 
 export function StatusBar({ items }: StatusBarProps): React.ReactElement {
   return (
-    <Box
-      marginTop={1}
-      paddingTop={0}
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      borderColor="gray"
-    >
-      <Box gap={1} paddingTop={0}>
+    <Box marginTop={1} paddingX={1}>
+      <Box gap={2}>
         {items.map((item, index) => (
-          <React.Fragment key={index}>
-            <Box>
-              <Text color="gray" bold>{item.label}</Text>
-              <Text color="gray" dimColor> {item.value}</Text>
-            </Box>
-            {index < items.length - 1 && <Text color="gray" dimColor>{"  "}</Text>}
-          </React.Fragment>
+          <Box key={index} gap={0}>
+            <Text backgroundColor="#333333" color="white" bold>
+              {" "}{item.label}{" "}
+            </Text>
+            <Text color="#888888">
+              {" "}{item.value}
+            </Text>
+          </Box>
         ))}
       </Box>
     </Box>

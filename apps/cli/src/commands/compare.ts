@@ -7,6 +7,7 @@ export interface CompareOptions {
   format?: string;
   output?: string;
   threshold?: string;
+  json?: boolean;
 }
 
 interface RunResult {
@@ -146,6 +147,11 @@ async function runCompare(
     }
   }
 
+  if (options.json) {
+    process.stdout.write(JSON.stringify(comparison, null, 2) + "\n");
+    return;
+  }
+
   // Display results
   console.log(chalk.dim("\n─────────────────────────────────────────\n"));
 
@@ -228,6 +234,7 @@ export function registerCompareCommand(program: Command): void {
     .option("--format <format>", "Output format: cli, json", "cli")
     .option("-o, --output <file>", "Output file path")
     .option("--threshold <ratio>", "Timing change threshold (ratio)", "0.2")
+    .option("--json", "Output as JSON")
     .action(async (baseline: string | undefined, current: string | undefined, opts: CompareOptions) => {
       await runCompare(baseline, current, opts);
     });

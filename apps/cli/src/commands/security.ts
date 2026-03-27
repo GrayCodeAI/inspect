@@ -10,6 +10,7 @@ export interface SecurityOptions {
   output?: string;
   rateLimit?: string;
   reporter?: string;
+  json?: boolean;
 }
 
 async function runSecurity(url: string | undefined, options: SecurityOptions): Promise<void> {
@@ -94,6 +95,26 @@ async function runSecurity(url: string | undefined, options: SecurityOptions): P
     }
 
     const elapsed = Date.now() - startTime;
+
+    if (options.json) {
+      const data = {
+        url,
+        scanner,
+        severity,
+        elapsed,
+        summary: {
+          critical: allFindings.filter((f) => f.severity === "critical").length,
+          high: allFindings.filter((f) => f.severity === "high").length,
+          medium: allFindings.filter((f) => f.severity === "medium").length,
+          low: allFindings.filter((f) => f.severity === "low").length,
+          informational: allFindings.filter((f) => f.severity === "informational").length,
+          total: allFindings.length,
+        },
+        findings: allFindings,
+      };
+      process.stdout.write(JSON.stringify(data, null, 2) + "\n");
+      return;
+    }
 
     // Display results
     console.log(chalk.dim("\n─────────────────────────────────────────\n"));
@@ -194,6 +215,7 @@ export function registerSecurityCommand(program: Command): void {
     .option("--rate-limit <rps>", "Rate limit (requests/second)", "100")
     .option("--reporter <format>", "Report format: cli, json", "cli")
     .option("-o, --output <file>", "Output file path")
+    .option("--json", "Output as JSON")
     .action(async (url: string | undefined, opts: SecurityOptions) => {
       await runSecurity(url, opts);
     });

@@ -159,13 +159,13 @@ function createInMemoryWorkflowStore() {
         const run = await executor.execute(workflow, params);
         runs.set(run.id, run);
         return run;
-      } catch {
-        // Fallback: create a stub run
-        const { generateId } = await import("@inspect/shared");
+      } catch (err) {
+        // If workflow package not available, return descriptive error
         const run = {
-          id: generateId(),
+          id: `run_${Date.now()}`,
           workflowId: id,
-          status: "completed" as const,
+          status: "failed" as const,
+          error: `Workflow execution failed: ${err instanceof Error ? err.message : err}`,
           parameters: params ?? {},
           blockResults: {},
           startedAt: Date.now(),

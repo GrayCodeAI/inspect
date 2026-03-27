@@ -1,11 +1,12 @@
 import type { Command } from "commander";
 import chalk from "chalk";
 import { existsSync, writeFileSync, mkdirSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
 
 export interface InitOptions {
   template?: string;
   yes?: boolean;
+  ci?: string;
 }
 
 const CONFIG_FILENAME = "inspect.config.ts";
@@ -167,8 +168,115 @@ export default defineConfig({
     prComment: true,
     commitStatus: true,
   },
+
+  // Named project configurations
+  projects: {
+    smoke: {
+      message: "Quick smoke test of core flows",
+      devices: "desktop-chrome",
+      mode: "dom",
+      preset: "quick",
+    },
+    "mobile-regression": {
+      devices: "iphone-15,pixel-8,galaxy-s24",
+      mode: "hybrid",
+      a11y: true,
+    },
+    "full-suite": {
+      devices: "desktop-chrome,desktop-firefox,iphone-15,ipad-pro",
+      mode: "hybrid",
+      a11y: true,
+      lighthouse: true,
+      retries: 2,
+      reporter: "junit",
+    },
+  },
 });
 `,
+};
+
+const CI_TEMPLATES: Record<string, () => { path: string; content: string }> = {
+  "github-actions": () => ({
+    path: ".github/workflows/inspect.yml",
+    content: `name: Inspect Tests
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run Inspect tests
+        run: npx inspect test -m "test the application" --reporter github --json > results.json
+        env:
+          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inspect-results
+          path: |
+            results.json
+            .inspect/reports/
+            .inspect/traces/
+`,
+  }),
+
+  "gitlab-ci": () => ({
+    path: ".gitlab-ci.yml",
+    content: `inspect-test:
+  image: node:22
+  stage: test
+  before_script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+  script:
+    - npx inspect test -m "test the application" --reporter junit --output-dir reports
+  artifacts:
+    when: always
+    reports:
+      junit: reports/*.xml
+    paths:
+      - .inspect/reports/
+  variables:
+    ANTHROPIC_API_KEY: \$ANTHROPIC_API_KEY
+`,
+  }),
+
+  circleci: () => ({
+    path: ".circleci/config.yml",
+    content: `version: 2.1
+jobs:
+  inspect-test:
+    docker:
+      - image: cimg/node:22.0-browsers
+    steps:
+      - checkout
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run:
+          name: Run Inspect tests
+          command: npx inspect test -m "test the application" --reporter junit --output-dir test-results
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: .inspect/reports
+
+workflows:
+  test:
+    jobs:
+      - inspect-test
+`,
+  }),
 };
 
 function detectPackageManager(): string {
@@ -250,6 +358,22 @@ async function runInit(options: InitOptions): Promise<void> {
     console.log(chalk.green("  Created .inspect/flows/ directory"));
   }
 
+  // Generate CI template if requested
+  if (options.ci) {
+    const ciGen = CI_TEMPLATES[options.ci];
+    if (!ciGen) {
+      console.error(chalk.red(`Unknown CI platform: "${options.ci}". Available: ${Object.keys(CI_TEMPLATES).join(", ")}`));
+      process.exit(1);
+    }
+
+    const { path: ciPath, content } = ciGen();
+    const fullPath = resolve(cwd, ciPath);
+    const ciDir = dirname(fullPath);
+    if (!existsSync(ciDir)) mkdirSync(ciDir, { recursive: true });
+    writeFileSync(fullPath, content, "utf-8");
+    console.log(chalk.green(`  Created ${ciPath}`));
+  }
+
   // Suggest installing dependencies
   const pm = detectPackageManager();
   console.log(chalk.blue("\nNext steps:"));
@@ -269,6 +393,17 @@ export function registerInitCommand(program: Command): void {
       "default"
     )
     .option("-y, --yes", "Overwrite existing config without prompting")
+    .option("--ci <platform>", "Generate CI workflow: github-actions, gitlab-ci, circleci")
+    .addHelpText("after", `
+Examples:
+  $ inspect init                              Create default config
+  $ inspect init --template minimal           Minimal config for quick start
+  $ inspect init --template comprehensive     Full config with all options
+  $ inspect init -y                           Overwrite existing config
+  $ inspect init --ci github-actions          Generate GitHub Actions workflow
+  $ inspect init --ci gitlab-ci              Generate GitLab CI config
+  $ inspect init --ci circleci               Generate CircleCI config
+`)
     .action(async (opts: InitOptions) => {
       try {
         await runInit(opts);

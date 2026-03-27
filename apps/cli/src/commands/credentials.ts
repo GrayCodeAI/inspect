@@ -6,6 +6,7 @@ export interface CredentialsOptions {
   name?: string;
   domain?: string;
   type?: string;
+  json?: boolean;
 }
 
 async function runCredentials(action: string, options: CredentialsOptions): Promise<void> {
@@ -14,8 +15,14 @@ async function runCredentials(action: string, options: CredentialsOptions): Prom
 
   switch (action) {
     case "list": {
-      console.log(chalk.blue("\nStored Credentials\n"));
       const credentials = vault.list();
+
+      if (options.json) {
+        process.stdout.write(JSON.stringify(credentials, null, 2) + "\n");
+        return;
+      }
+
+      console.log(chalk.blue("\nStored Credentials\n"));
       if (credentials.length === 0) {
         console.log(chalk.dim("  No credentials stored."));
         console.log(chalk.dim('  Use "inspect credentials add --name <name> --domain <domain>" to add one.'));
@@ -146,6 +153,7 @@ export function registerCredentialsCommand(program: Command): void {
     .option("--name <name>", "Credential name/label")
     .option("--domain <domain>", "Domain the credential is for")
     .option("--type <type>", "Credential type: password, api-key, oauth, totp, certificate", "password")
+    .option("--json", "Output as JSON")
     .action(async (action: string, opts: CredentialsOptions) => {
       await runCredentials(action, opts);
     });

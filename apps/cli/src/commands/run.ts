@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import chalk from "chalk";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve, extname, basename } from "node:path";
+import { resolve, extname, basename, normalize } from "node:path";
 
 export interface RunOptions {
   env?: string;
@@ -225,11 +225,20 @@ async function runYamlTest(file: string, options: RunOptions): Promise<void> {
             if (step.selector) {
               const el = await page.$(step.selector);
               if (!el) throw new Error(`Element not found: ${step.selector}`);
+            } else {
+              throw new Error("Assert step requires a 'selector' property");
             }
             break;
-          case "screenshot":
-            await page.screenshot({ path: step.value ?? `.inspect/run-step-${i + 1}.png` });
+          case "screenshot": {
+            const screenshotPath = normalize(step.value ?? `.inspect/run-step-${i + 1}.png`);
+            // Prevent writing outside the current working directory
+            const resolvedPath = resolve(screenshotPath);
+            if (!resolvedPath.startsWith(resolve("."))) {
+              throw new Error(`Screenshot path "${screenshotPath}" resolves outside the current directory`);
+            }
+            await page.screenshot({ path: screenshotPath });
             break;
+          }
           default:
             console.log(chalk.yellow(`  Unknown action: ${action}`));
         }
@@ -276,6 +285,12 @@ export function registerRunCommand(program: Command): void {
     .option("--env <env>", "Environment variables file (.env)")
     .option("--parallel", "Run test steps in parallel where possible")
     .option("--verbose", "Show detailed output")
+    .addHelpText("after", `
+Examples:
+  $ inspect run tests/login.yaml
+  $ inspect run tests/checkout.json --env .env.staging
+  $ inspect run tests/smoke.yaml --verbose
+`)
     .action(async (file: string, opts: RunOptions) => {
       await runYamlTest(file, opts);
     });

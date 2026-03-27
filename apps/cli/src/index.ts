@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import chalk from "chalk";
 import { render } from "ink";
 import React from "react";
 import { registerTestCommand } from "./commands/test.js";
@@ -24,39 +25,102 @@ import { registerRunCommand } from "./commands/run.js";
 import { registerGenerateCommand } from "./commands/generate.js";
 import { registerSessionsCommand } from "./commands/sessions.js";
 import { registerAuditCommand } from "./commands/audit.js";
-import { MainMenu } from "./tui/screens/MainMenu.js";
+import { registerOpenCommand } from "./commands/open.js";
+import { registerScreenshotCommand } from "./commands/screenshot.js";
+import { registerPDFCommand } from "./commands/pdf.js";
+import { registerCodegenCommand } from "./commands/codegen.js";
+import { registerWatchCommand } from "./commands/watch.js";
+import { registerShowReportCommand } from "./commands/show-report.js";
+import { registerShowTraceCommand } from "./commands/show-trace.js";
+import { registerInstallCommand } from "./commands/install.js";
+import { registerAliasCommand, expandAliases } from "./commands/alias.js";
+import { registerEngineCommand } from "./commands/engine.js";
 
 const VERSION = "0.1.0";
+
+function getVersionString(): string {
+  const nodeVersion = process.version;
+  const platform = process.platform;
+  const arch = process.arch;
+  return `inspect v${VERSION} (node ${nodeVersion}, ${platform} ${arch})`;
+}
 
 const program = new Command();
 
 program
   .name("inspect")
   .description("AI-Powered Browser Testing Platform")
-  .version(VERSION, "-v, --version", "Display the current version");
+  .version(getVersionString(), "-v, --version", "Display version with environment info")
+  .option("--verbose", "Enable verbose output across all commands")
+  .option("--config <path>", "Path to config file (default: auto-detected)")
+  .addHelpText("after", `
+Examples:
+  $ inspect                                      Launch interactive TUI
+  $ inspect test -m "test login flow" --url https://myapp.com
+  $ inspect test -m "checkout works" --agent gemini --headed
+  $ inspect test --target branch --a11y           Test branch changes with a11y audit
+  $ inspect run tests/login.yaml                  Run a YAML test definition
+  $ inspect pr owner/repo#123                     Test a GitHub PR's preview URL
+  $ inspect doctor                                Check environment setup
+  $ inspect init --template comprehensive         Generate config file
+  $ inspect visual compare before.png after.png   Visual regression comparison
+  $ inspect a11y https://example.com              Run accessibility audit
+  $ inspect lighthouse https://example.com        Run Lighthouse audit
 
-// Register all commands
+Environment Variables:
+  ANTHROPIC_API_KEY    Claude API key
+  OPENAI_API_KEY       OpenAI/GPT API key
+  GOOGLE_AI_KEY        Google Gemini API key
+  DEEPSEEK_API_KEY     DeepSeek API key
+  INSPECT_LOG_LEVEL    Log level (debug/info/warn/error)
+  INSPECT_TELEMETRY    Set to "false" to disable telemetry
+
+Documentation:
+  https://github.com/nichochar/inspect
+`);
+
+// ── Testing Commands ─────────────────────────────────────────────────────
 registerTestCommand(program);
+registerRunCommand(program);
 registerPRCommand(program);
-registerVisualCommand(program);
-registerInitCommand(program);
-registerDoctorCommand(program);
-registerWorkflowCommand(program);
-registerServeCommand(program);
-registerMCPCommand(program);
-registerExtractCommand(program);
-registerCredentialsCommand(program);
-registerA11yCommand(program);
-registerLighthouseCommand(program);
-registerChaosCommand(program);
-registerSecurityCommand(program);
 registerReplayCommand(program);
 registerCompareCommand(program);
+registerWatchCommand(program);
+
+// ── Browser Commands ────────────────────────────────────────────────────
+registerOpenCommand(program);
+registerScreenshotCommand(program);
+registerPDFCommand(program);
+registerCodegenCommand(program);
+
+// ── Quality Commands ─────────────────────────────────────────────────────
+registerA11yCommand(program);
+registerLighthouseCommand(program);
+registerSecurityCommand(program);
+registerChaosCommand(program);
+registerVisualCommand(program);
+
+// ── Infrastructure Commands ──────────────────────────────────────────────
+registerServeCommand(program);
 registerTunnelCommand(program);
-registerRunCommand(program);
-registerGenerateCommand(program);
 registerSessionsCommand(program);
+registerMCPCommand(program);
+registerEngineCommand(program);
+
+// ── Data & Workflow Commands ─────────────────────────────────────────────
+registerExtractCommand(program);
+registerWorkflowCommand(program);
+registerCredentialsCommand(program);
+
+// ── Setup & Info Commands ────────────────────────────────────────────────
+registerInstallCommand(program);
+registerInitCommand(program);
+registerDoctorCommand(program);
+registerGenerateCommand(program);
 registerAuditCommand(program);
+registerShowReportCommand(program);
+registerShowTraceCommand(program);
+registerAliasCommand(program);
 
 // Inline utility commands (no external deps needed)
 program
@@ -70,7 +134,8 @@ program
       console.log(JSON.stringify(DEVICE_PRESETS, null, 2));
       return;
     }
-    console.log("\nAvailable Device Presets:\n");
+    const lines: string[] = [];
+    lines.push("\nAvailable Device Presets:\n");
     const entries = Object.entries(DEVICE_PRESETS) as [string, any][];
     const filtered = opts.category
       ? entries.filter(([, d]) => {
@@ -82,9 +147,12 @@ program
       : entries;
     for (const [key, device] of filtered) {
       const type = device.mobile ? (device.width > 500 ? "tablet" : "mobile") : "desktop";
-      console.log(`  ${key.padEnd(25)} ${String(device.width).padStart(4)}x${String(device.height).padEnd(4)}  @${device.dpr}x  ${type}`);
+      lines.push(`  ${key.padEnd(25)} ${String(device.width).padStart(4)}x${String(device.height).padEnd(4)}  @${device.dpr}x  ${type}`);
     }
-    console.log(`\n  ${filtered.length} device${filtered.length !== 1 ? "s" : ""} available\n`);
+    lines.push(`\n  ${filtered.length} device${filtered.length !== 1 ? "s" : ""} available\n`);
+    const output = lines.join("\n");
+    const { pipeToPager } = await import("./utils/pager.js");
+    pipeToPager(output);
   });
 
 program
@@ -97,7 +165,8 @@ program
       console.log(JSON.stringify(SUPPORTED_MODELS, null, 2));
       return;
     }
-    console.log("\nAvailable AI Providers & Models:\n");
+    const agentLines: string[] = [];
+    agentLines.push("\nAvailable AI Providers & Models:\n");
     const byProvider = new Map<string, string[]>();
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
       const m = model as any;
@@ -106,10 +175,13 @@ program
       byProvider.get(provider)!.push(`  ${id.padEnd(35)} ${m.vision ? "vision" : "      "} ${m.thinking ? "thinking" : "        "}`);
     }
     for (const [provider, models] of byProvider) {
-      console.log(`  ${provider.toUpperCase()}`);
-      for (const line of models) console.log(line);
-      console.log();
+      agentLines.push(`  ${provider.toUpperCase()}`);
+      for (const line of models) agentLines.push(line);
+      agentLines.push("");
     }
+    const agentOutput = agentLines.join("\n");
+    const { pipeToPager: pagerAgents } = await import("./utils/pager.js");
+    pagerAgents(agentOutput);
   });
 
 program
@@ -122,24 +194,98 @@ program
       console.log(JSON.stringify(SUPPORTED_MODELS, null, 2));
       return;
     }
-    console.log("\nSupported LLM Models:\n");
-    console.log("  " + "Model".padEnd(35) + "Provider".padEnd(12) + "Vision  Thinking");
-    console.log("  " + "-".repeat(70));
+    const modelLines: string[] = [];
+    modelLines.push("\nSupported LLM Models:\n");
+    modelLines.push("  " + "Model".padEnd(35) + "Provider".padEnd(12) + "Vision  Thinking");
+    modelLines.push("  " + "-".repeat(70));
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "?";
-      console.log(`  ${id.padEnd(35)} ${provider.padEnd(12)} ${m.vision ? "yes" : " - "}     ${m.thinking ? "yes" : " - "}`);
+      modelLines.push(`  ${id.padEnd(35)} ${provider.padEnd(12)} ${m.vision ? "yes" : " - "}     ${m.thinking ? "yes" : " - "}`);
     }
-    console.log();
+    modelLines.push("");
+    const modelOutput = modelLines.join("\n");
+    const { pipeToPager: pagerModels } = await import("./utils/pager.js");
+    pagerModels(modelOutput);
   });
 
-// Default action: open TUI if no command provided
+program
+  .command("completions")
+  .description("Generate shell completion scripts")
+  .argument("<shell>", "Shell type: bash, zsh, or fish")
+  .addHelpText("after", `
+Examples:
+  $ inspect completions bash >> ~/.bashrc
+  $ inspect completions zsh >> ~/.zshrc
+  $ inspect completions fish | source
+  $ eval "$(inspect completions bash)"
+`)
+  .action((shell: string) => {
+    // dynamic import to avoid loading at startup
+    import("./utils/completions.js").then(({ generateBashCompletions, generateZshCompletions, generateFishCompletions }) => {
+      switch (shell.toLowerCase()) {
+        case "bash":
+          process.stdout.write(generateBashCompletions());
+          break;
+        case "zsh":
+          process.stdout.write(generateZshCompletions());
+          break;
+        case "fish":
+          process.stdout.write(generateFishCompletions());
+          break;
+        default:
+          console.error(`Unknown shell: "${shell}". Use bash, zsh, or fish.`);
+          process.exit(1);
+      }
+    });
+  });
+
+// Default action: detect interactive vs headless mode
 program.action(async () => {
-  const { waitUntilExit } = render(React.createElement(MainMenu));
+  // Detect if running in a non-interactive / CI / agent environment
+  const isTTY = process.stdin.isTTY;
+  const isCI = !!(
+    process.env.CI ||
+    process.env.CLAUDECODE ||
+    process.env.CURSOR_AGENT ||
+    process.env.CODEX_CI ||
+    process.env.GITHUB_ACTIONS ||
+    process.env.GITLAB_CI ||
+    process.env.JENKINS_URL ||
+    process.env.BUILDKITE ||
+    process.env.CIRCLECI ||
+    process.env.TF_BUILD
+  );
+
+  if (!isTTY || isCI) {
+    // Headless mode — print summary and usage hint instead of launching TUI
+    console.log(`inspect v${VERSION} — AI-Powered Browser Testing\n`);
+    console.log('Run "inspect --help" for usage or "inspect test -m <instruction>" to start testing.\n');
+    if (isCI) {
+      console.log("Detected CI/agent environment. Use \"inspect test\" with flags for non-interactive mode.");
+    }
+    return;
+  }
+
+  // Start update check in background (non-blocking)
+  const updatePromise = import("./utils/update-check.js")
+    .then(({ checkForUpdate }) => checkForUpdate())
+    .catch(() => null);
+
+  // Interactive REPL (like Claude Code)
+  const { Repl } = await import("./tui/Repl.js");
+  const { waitUntilExit } = render(React.createElement(Repl), { exitOnCtrlC: false });
   await waitUntilExit();
+
+  // Show update message after TUI exits
+  const updateMsg = await updatePromise;
+  if (updateMsg) {
+    console.log(chalk.yellow(`\n${updateMsg}\n`));
+  }
 });
 
-program.parseAsync(process.argv).catch((err) => {
+const expandedArgv = expandAliases(process.argv);
+program.parseAsync(expandedArgv).catch((err) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });

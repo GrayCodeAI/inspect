@@ -14,6 +14,8 @@ export interface VisualOptions {
   url?: string;
   output?: string;
   headed?: boolean;
+  updateSnapshots?: boolean;
+  json?: boolean;
 }
 
 const DEFAULT_VIEWPORTS = [
@@ -71,58 +73,235 @@ async function captureScreenshots(
   maskSelectors: string[],
   headed: boolean
 ): Promise<Map<string, string>> {
-  // This would use @inspect/browser's Playwright wrapper in the full implementation.
-  // For now, we set up the structure and log what would happen.
+  const { BrowserManager } = await import("@inspect/browser");
+  const { mkdirSync: mkdirSyncLocal, existsSync: existsSyncLocal } = await import("node:fs");
+  const { join: joinLocal } = await import("node:path");
+
+  if (!existsSyncLocal(outputDir)) mkdirSyncLocal(outputDir, { recursive: true });
+
   const screenshots = new Map<string, string>();
+  const browserMgr = new BrowserManager();
 
   for (const viewport of viewports) {
-    const filename = `${viewport.label}-${viewport.width}x${viewport.height}.png`;
-    const filepath = join(outputDir, filename);
-    screenshots.set(viewport.label, filepath);
-
     console.log(
       chalk.dim(
         `  Capturing ${viewport.label} (${viewport.width}x${viewport.height})...`
       )
     );
 
-    // Placeholder: actual Playwright capture would go here
-    // const browser = await chromium.launch({ headless: !headed });
-    // const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
-    // const page = await context.newPage();
-    // await page.goto(url, { waitUntil: 'networkidle' });
-    // if (maskSelectors.length > 0) {
-    //   for (const sel of maskSelectors) {
-    //     await page.evaluate((s) => {
-    //       document.querySelectorAll(s).forEach(el => {
-    //         (el as HTMLElement).style.visibility = 'hidden';
-    //       });
-    //     }, sel);
-    //   }
-    // }
-    // await page.screenshot({ path: filepath, fullPage: true });
-    // await browser.close();
+    await browserMgr.launchBrowser({
+      headless: !headed,
+      stealth: false,
+      viewport: { width: viewport.width, height: viewport.height },
+    });
+    const page = await browserMgr.newPage();
+
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+
+    // Mask dynamic elements if specified
+    if (maskSelectors.length > 0) {
+      for (const selector of maskSelectors) {
+        try {
+          const escapedSelector = selector.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+          await page.evaluate(`
+            (function() {
+              var els = document.querySelectorAll('${escapedSelector}');
+              els.forEach(function(el) { el.style.visibility = 'hidden'; });
+            })()
+          `);
+        } catch { /* selector not found, skip */ }
+      }
+    }
+
+    const filename = `${viewport.label}-${viewport.width}x${viewport.height}.png`;
+    const filepath = joinLocal(outputDir, filename);
+
+    await page.screenshot({
+      path: filepath,
+      fullPage: true,
+    });
+
+    screenshots.set(viewport.label, filepath);
+    await browserMgr.closeBrowser();
   }
 
   return screenshots;
 }
 
-function computePixelDiff(
+function buildPNGChunk(type: string, data: Buffer): Buffer {
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  const typeBytes = Buffer.from(type, "ascii");
+  const crcInput = Buffer.concat([typeBytes, data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(pngCRC32(crcInput), 0);
+  return Buffer.concat([length, typeBytes, data, crc]);
+}
+
+function pngCRC32(data: Buffer): number {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) {
+    c ^= data[i];
+    for (let j = 0; j < 8; j++) {
+      c = (c >>> 1) ^ (c & 1 ? 0xEDB88320 : 0);
+    }
+  }
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+async function computePixelDiff(
   baselinePath: string,
   currentPath: string,
+  diffPath: string,
   threshold: number
-): { diffPercent: number; diffPath: string; passed: boolean } {
-  // Placeholder: would use pixelmatch or similar in full implementation
-  // const baseline = PNG.sync.read(readFileSync(baselinePath));
-  // const current = PNG.sync.read(readFileSync(currentPath));
-  // const { width, height } = baseline;
-  // const diff = new PNG({ width, height });
-  // const numDiffPixels = pixelmatch(baseline.data, current.data, diff.data, width, height, { threshold });
-  // const diffPercent = (numDiffPixels / (width * height)) * 100;
+): Promise<{ diffPercent: number; diffPixels: number; totalPixels: number; passed: boolean }> {
+  const { readFileSync, writeFileSync, mkdirSync: mkdirSyncLocal, existsSync: existsSyncLocal } = await import("node:fs");
+  const { dirname } = await import("node:path");
+  const { inflateSync, deflateSync } = await import("node:zlib");
+
+  if (!existsSyncLocal(baselinePath)) {
+    throw new Error(`Baseline not found: ${baselinePath}`);
+  }
+  if (!existsSyncLocal(currentPath)) {
+    throw new Error(`Current screenshot not found: ${currentPath}`);
+  }
+
+  const baselineBuf = readFileSync(baselinePath);
+  const currentBuf = readFileSync(currentPath);
+
+  // Parse PNG dimensions from IHDR chunk and extract raw pixel data
+  function parsePNG(buf: Buffer) {
+    if (buf.length < 24 || buf[0] !== 0x89 || buf[1] !== 0x50) {
+      throw new Error("Not a valid PNG file");
+    }
+    const width = buf.readUInt32BE(16);
+    const height = buf.readUInt32BE(20);
+    const bitDepth = buf[24];
+    const colorType = buf[25];
+
+    let bytesPerPixel: number;
+    switch (colorType) {
+      case 2: bytesPerPixel = 3 * (bitDepth / 8); break; // RGB
+      case 6: bytesPerPixel = 4 * (bitDepth / 8); break; // RGBA
+      case 0: bytesPerPixel = 1 * (bitDepth / 8); break; // Grayscale
+      case 4: bytesPerPixel = 2 * (bitDepth / 8); break; // Gray+Alpha
+      default: throw new Error(`Unsupported PNG color type: ${colorType}`);
+    }
+
+    // Collect IDAT chunks
+    const idatChunks: Buffer[] = [];
+    let offset = 8;
+    while (offset < buf.length - 4) {
+      const chunkLength = buf.readUInt32BE(offset);
+      const chunkType = buf.subarray(offset + 4, offset + 8).toString("ascii");
+      if (chunkType === "IDAT") {
+        idatChunks.push(buf.subarray(offset + 8, offset + 8 + chunkLength));
+      }
+      offset += 12 + chunkLength;
+    }
+
+    const compressed = Buffer.concat(idatChunks);
+    const raw = inflateSync(compressed);
+
+    return { width, height, bytesPerPixel, colorType, bitDepth, raw };
+  }
+
+  const baseline = parsePNG(baselineBuf);
+  const current = parsePNG(currentBuf);
+
+  if (baseline.width !== current.width || baseline.height !== current.height) {
+    // Different dimensions — 100% diff
+    return {
+      diffPercent: 100,
+      diffPixels: baseline.width * baseline.height,
+      totalPixels: baseline.width * baseline.height,
+      passed: false,
+    };
+  }
+
+  const { width, height, bytesPerPixel } = baseline;
+  const rowBytes = 1 + width * bytesPerPixel; // +1 for filter byte
+  const totalPixels = width * height;
+
+  // Create diff image (RGBA)
+  const diffBpp = 4;
+  const diffRowBytes = 1 + width * diffBpp;
+  const diffRaw = Buffer.alloc(height * diffRowBytes);
+
+  let diffPixels = 0;
+  const colorThreshold = 25; // per-channel tolerance
+
+  for (let y = 0; y < height; y++) {
+    const bRow = y * rowBytes + 1; // skip filter byte
+    const cRow = y * rowBytes + 1;
+    const dRow = y * diffRowBytes;
+    diffRaw[dRow] = 0; // no filter for diff image
+
+    for (let x = 0; x < width; x++) {
+      const bOff = bRow + x * bytesPerPixel;
+      const cOff = cRow + x * bytesPerPixel;
+      const dOff = dRow + 1 + x * diffBpp;
+
+      // Compare RGB channels
+      let isDiff = false;
+      for (let c = 0; c < Math.min(3, bytesPerPixel); c++) {
+        if (Math.abs(baseline.raw[bOff + c] - current.raw[cOff + c]) > colorThreshold) {
+          isDiff = true;
+          break;
+        }
+      }
+
+      if (isDiff) {
+        diffPixels++;
+        // Red highlight for diff pixels
+        diffRaw[dOff] = 255;     // R
+        diffRaw[dOff + 1] = 0;   // G
+        diffRaw[dOff + 2] = 0;   // B
+        diffRaw[dOff + 3] = 200; // A
+      } else {
+        // Dimmed original pixel
+        diffRaw[dOff] = Math.floor(current.raw[cOff] * 0.3);
+        diffRaw[dOff + 1] = Math.floor(current.raw[cOff + 1] * 0.3);
+        diffRaw[dOff + 2] = Math.floor(current.raw[cOff + 2] * 0.3);
+        diffRaw[dOff + 3] = 255;
+      }
+    }
+  }
+
+  const diffPercent = (diffPixels / totalPixels) * 100;
+
+  // Write diff PNG
+  const diffDirPath = dirname(diffPath);
+  if (!existsSyncLocal(diffDirPath)) mkdirSyncLocal(diffDirPath, { recursive: true });
+
+  // Build a minimal PNG: signature + IHDR + IDAT + IEND
+  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+  // IHDR
+  const ihdrData = Buffer.alloc(13);
+  ihdrData.writeUInt32BE(width, 0);
+  ihdrData.writeUInt32BE(height, 4);
+  ihdrData[8] = 8;  // bit depth
+  ihdrData[9] = 6;  // RGBA color type
+  ihdrData[10] = 0; // compression
+  ihdrData[11] = 0; // filter
+  ihdrData[12] = 0; // interlace
+  const ihdrChunk = buildPNGChunk("IHDR", ihdrData);
+
+  // IDAT
+  const compressedDiff = deflateSync(diffRaw);
+  const idatChunk = buildPNGChunk("IDAT", compressedDiff);
+
+  // IEND
+  const iendChunk = buildPNGChunk("IEND", Buffer.alloc(0));
+
+  writeFileSync(diffPath, Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]));
+
   return {
-    diffPercent: 0,
-    diffPath: currentPath.replace(".png", "-diff.png"),
-    passed: true,
+    diffPercent: Math.round(diffPercent * 100) / 100,
+    diffPixels,
+    totalPixels,
+    passed: diffPercent <= threshold * 100,
   };
 }
 
@@ -214,6 +393,21 @@ async function runVisual(options: VisualOptions): Promise<void> {
     options.headed ?? false
   );
 
+  if (options.updateSnapshots) {
+    console.log(chalk.blue("\nUpdating baselines...\n"));
+    const { copyFileSync, mkdirSync: mkdirSyncSnap, existsSync: existsSyncSnap } = await import("node:fs");
+    if (!existsSyncSnap(baselineDir)) mkdirSyncSnap(baselineDir, { recursive: true });
+
+    for (const [name, currentPath] of currentScreenshots) {
+      const baselinePath = join(baselineDir, `${name}.png`);
+      copyFileSync(currentPath, baselinePath);
+      console.log(chalk.green(`  ✓ Updated baseline: ${name}`));
+    }
+
+    console.log(chalk.dim(`\n  ${currentScreenshots.size} baseline(s) updated.\n`));
+    return;  // Don't run comparison after updating
+  }
+
   // Compare with baseline
   console.log(chalk.dim("\nComparing with baseline..."));
   const results: Array<{
@@ -233,7 +427,11 @@ async function runVisual(options: VisualOptions): Promise<void> {
       continue;
     }
 
-    const diff = computePixelDiff(baselinePath, currentPath, threshold);
+    const diffFilePath = join(
+      diffDir,
+      currentPath.split("/").pop()!.replace(".png", "-diff.png")
+    );
+    const diff = await computePixelDiff(baselinePath, currentPath, diffFilePath, threshold);
     results.push({
       viewport: label,
       diffPercent: diff.diffPercent,
@@ -244,6 +442,11 @@ async function runVisual(options: VisualOptions): Promise<void> {
     console.log(
       `  ${icon} ${label}: ${diff.diffPercent.toFixed(2)}% different`
     );
+  }
+
+  if (options.json) {
+    process.stdout.write(JSON.stringify({ threshold, results }, null, 2) + "\n");
+    return;
   }
 
   // Summary
@@ -289,6 +492,8 @@ export function registerVisualCommand(program: Command): void {
     .option("--url <url>", "URL to capture")
     .option("--output <dir>", "Output directory", ".inspect/visual")
     .option("--headed", "Run in headed browser mode")
+    .option("-u, --update-snapshots", "Update baselines with current screenshots")
+    .option("--json", "Output as JSON")
     .action(async (opts: VisualOptions) => {
       try {
         await runVisual(opts);

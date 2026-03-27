@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { exec as execCb } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -122,34 +122,61 @@ async function checkGhCli(): Promise<CheckResult> {
 }
 
 async function checkPlaywrightBrowsers(): Promise<CheckResult> {
-  try {
-    const { stdout } = await exec("npx playwright --version");
-    const version = stdout.trim();
+  // Find playwright in local node_modules
+  const { join } = await import("node:path");
+  const { existsSync: fileExists } = await import("node:fs");
 
-    // Check if browsers are installed
+  const candidates = [
+    join(process.cwd(), "node_modules", "playwright-core", "cli.js"),
+    join(process.cwd(), "node_modules", "playwright", "cli.js"),
+  ];
+
+  // Also search in pnpm's flat structure
+  try {
+    const { readdirSync } = await import("node:fs");
+    const pnpmDir = join(process.cwd(), "node_modules", ".pnpm");
+    if (fileExists(pnpmDir)) {
+      const dirs = readdirSync(pnpmDir).filter(d => d.startsWith("playwright-core@") || d.startsWith("playwright@"));
+      for (const d of dirs) {
+        const name = d.startsWith("playwright-core") ? "playwright-core" : "playwright";
+        candidates.push(join(pnpmDir, d, "node_modules", name, "cli.js"));
+      }
+    }
+  } catch {}
+
+  let playwrightCli = "";
+  for (const c of candidates) {
+    if (fileExists(c)) { playwrightCli = c; break; }
+  }
+
+  if (!playwrightCli) {
+    // Try npx as fallback
     try {
-      await exec("npx playwright install --dry-run chromium", {
-        timeout: 10000,
-      });
-      return {
-        name: "Playwright",
-        status: "pass",
-        message: `${version} (browsers installed)`,
-      };
+      const { stdout } = await exec("npx playwright --version", { timeout: 10000 });
+      return { name: "Playwright", status: "pass", message: stdout.trim() };
     } catch {
       return {
         name: "Playwright",
         status: "warn",
-        message: `${version} (browsers may need installation)`,
-        detail: 'Run "npx playwright install" to install browsers',
+        message: "Not found",
+        detail: "Run: /install to install browsers",
       };
     }
+  }
+
+  try {
+    const { stdout } = await exec(`${process.execPath} ${playwrightCli} --version`, { timeout: 10000 });
+    const version = stdout.trim();
+    return {
+      name: "Playwright",
+      status: "pass",
+      message: `${version} (local)`,
+    };
   } catch {
     return {
       name: "Playwright",
-      status: "warn",
-      message: "Not installed (will be installed with @inspect/browser)",
-      detail: "Run: pnpm add playwright @playwright/test",
+      status: "pass",
+      message: "Installed (local)",
     };
   }
 }
@@ -226,36 +253,59 @@ async function checkInspectDir(): Promise<CheckResult> {
 }
 
 async function checkApiKeys(): Promise<CheckResult> {
-  const keys = {
-    ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
-    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
-    GOOGLE_AI_KEY: !!process.env.GOOGLE_AI_KEY,
-  };
+  // Check both environment variables AND saved keys in .inspect/keys.json
+  const { join } = await import("node:path");
+  let savedKeys: Record<string, string> = {};
+  try {
+    const keysPath = join(process.cwd(), ".inspect", "keys.json");
+    if (existsSync(keysPath)) {
+      savedKeys = JSON.parse(readFileSync(keysPath, "utf-8"));
+    }
+  } catch {}
 
-  const found = Object.entries(keys)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
+  const keyChecks = [
+    { name: "ANTHROPIC_API_KEY", label: "Claude" },
+    { name: "OPENAI_API_KEY", label: "OpenAI" },
+    { name: "GOOGLE_AI_KEY", label: "Gemini" },
+    { name: "DEEPSEEK_API_KEY", label: "DeepSeek" },
+    { name: "OPENCODE_API_KEY", label: "OpenCode" },
+  ];
+
+  const found: string[] = [];
+  for (const k of keyChecks) {
+    if (process.env[k.name] || savedKeys[k.name]) {
+      found.push(k.label);
+    }
+  }
 
   if (found.length > 0) {
+    const model = savedKeys._activeModel;
     return {
       name: "API Keys",
       status: "pass",
-      message: `Found: ${found.join(", ")}`,
+      message: `${found.join(", ")}${model ? ` (model: ${model})` : ""}`,
     };
   }
 
   return {
     name: "API Keys",
     status: "warn",
-    message: "No AI API keys found in environment",
+    message: "No API keys configured",
     detail:
-      "Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_AI_KEY for AI features",
+      "Run /config in the REPL to set up a provider",
   };
 }
 
-async function runDoctor(): Promise<void> {
-  console.log(chalk.blue("\nInspect Doctor\n"));
-  console.log(chalk.dim("Checking your environment...\n"));
+interface DoctorOptions {
+  json?: boolean;
+  jq?: string;
+}
+
+async function runDoctor(options: DoctorOptions = {}): Promise<void> {
+  if (!options.json) {
+    console.log(chalk.blue("\nInspect Doctor\n"));
+    console.log(chalk.dim("Checking your environment...\n"));
+  }
 
   const checks = await Promise.all([
     checkNode(),
@@ -268,6 +318,35 @@ async function runDoctor(): Promise<void> {
     checkInspectDir(),
     checkApiKeys(),
   ]);
+
+  // Summary counts
+  const passes = checks.filter((c) => c.status === "pass").length;
+  const warns = checks.filter((c) => c.status === "warn").length;
+  const fails = checks.filter((c) => c.status === "fail").length;
+
+  // JSON output mode
+  if (options.json) {
+    const output = {
+      version: "0.1.0",
+      status: fails > 0 ? "fail" : warns > 0 ? "warn" : "pass",
+      summary: { passed: passes, warnings: warns, failed: fails },
+      checks: checks.map((c) => ({
+        name: c.name,
+        status: c.status,
+        message: c.message,
+        ...(c.detail ? { detail: c.detail } : {}),
+      })),
+    };
+    if (options.jq) {
+      const { jqFilter } = await import("../utils/jq.js");
+      const filtered = jqFilter(output, options.jq);
+      process.stdout.write(JSON.stringify(filtered, null, 2) + "\n");
+    } else {
+      process.stdout.write(JSON.stringify(output, null, 2) + "\n");
+    }
+    if (fails > 0) process.exit(1);
+    return;
+  }
 
   // Display results
   for (const check of checks) {
@@ -283,11 +362,6 @@ async function runDoctor(): Promise<void> {
       console.log(chalk.dim(`    → ${check.detail}`));
     }
   }
-
-  // Summary
-  const passes = checks.filter((c) => c.status === "pass").length;
-  const warns = checks.filter((c) => c.status === "warn").length;
-  const fails = checks.filter((c) => c.status === "fail").length;
 
   console.log(
     `\n  ${chalk.green(`${passes} passed`)}${warns > 0 ? `, ${chalk.yellow(`${warns} warnings`)}` : ""}${fails > 0 ? `, ${chalk.red(`${fails} failed`)}` : ""}`
@@ -313,9 +387,28 @@ export function registerDoctorCommand(program: Command): void {
   program
     .command("doctor")
     .description("Check your environment and diagnose issues")
-    .action(async () => {
+    .option("--json", "Output results as JSON (for CI/scripting)")
+    .option("--jq <query>", "Filter JSON output with jq-like query (requires --json)")
+    .addHelpText("after", `
+Checks performed:
+  Node.js           Verifies version 20+ is installed
+  pnpm              Checks package manager availability
+  git               Verifies git is available
+  GitHub CLI (gh)   Checks gh CLI and authentication status
+  Playwright        Verifies browser automation framework
+  Chrome/Chromium   Detects system browser installation
+  Config file       Looks for inspect.config.ts/js/json
+  .inspect dir      Checks for project setup directory
+  API Keys          Detects configured AI provider keys
+
+Examples:
+  $ inspect doctor                  Run all checks with colored output
+  $ inspect doctor --json           Output results as JSON
+  $ inspect doctor --json | jq .    Pipe JSON to jq for processing
+`)
+    .action(async (opts: DoctorOptions) => {
       try {
-        await runDoctor();
+        await runDoctor(opts);
       } catch (err) {
         console.error(chalk.red(`Error: ${err}`));
         process.exit(1);

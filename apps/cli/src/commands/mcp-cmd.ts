@@ -2,6 +2,286 @@ import type { Command } from "commander";
 import chalk from "chalk";
 import { createServer as createNetServer } from "node:net";
 
+// Lazy-initialized shared browser session for MCP tool calls
+let browserSessionPromise: Promise<BrowserSession> | null = null;
+
+interface BrowserSession {
+  browserManager: any;
+  page: any;
+  snapshotBuilder: any;
+  consoleLogs: Array<{ level: string; text: string; timestamp: number }>;
+}
+
+async function getOrCreateBrowserSession(): Promise<BrowserSession> {
+  if (!browserSessionPromise) {
+    browserSessionPromise = (async () => {
+      const { BrowserManager, AriaSnapshotBuilder } = await import("@inspect/browser");
+      const browserManager = new BrowserManager();
+      await browserManager.launchBrowser({
+        headless: true,
+        viewport: { width: 1280, height: 720 },
+      } as any);
+      const page = await browserManager.newPage();
+      const snapshotBuilder = new AriaSnapshotBuilder();
+
+      // Capture console logs
+      const consoleLogs: Array<{ level: string; text: string; timestamp: number }> = [];
+      page.on("console", (msg: any) => {
+        consoleLogs.push({
+          level: msg.type(),
+          text: msg.text(),
+          timestamp: Date.now(),
+        });
+      });
+
+      return { browserManager, page, snapshotBuilder, consoleLogs };
+    })();
+  }
+  return browserSessionPromise;
+}
+
+async function closeBrowserSession(): Promise<void> {
+  if (browserSessionPromise) {
+    try {
+      const session = await browserSessionPromise;
+      await session.browserManager.closeBrowser();
+    } catch {
+      // Ignore cleanup errors
+    }
+    browserSessionPromise = null;
+  }
+}
+
+/**
+ * Execute an MCP tool against a real browser instance.
+ * Returns the text result content.
+ */
+async function executeBrowserTool(
+  toolName: string,
+  toolArgs: Record<string, unknown>,
+): Promise<string> {
+  const session = await getOrCreateBrowserSession();
+  const { page, snapshotBuilder, consoleLogs } = session;
+
+  switch (toolName) {
+    case "browser_navigate": {
+      const url = toolArgs.url as string;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+      const title = await page.title();
+      return `Navigated to: ${page.url()}\nTitle: ${title}`;
+    }
+
+    case "browser_snapshot": {
+      await snapshotBuilder.buildTree(page);
+      const formatted = snapshotBuilder.getFormattedTree();
+      const stats = snapshotBuilder.getStats();
+      return `${formatted}\n\n---\nElements: ${stats.refCount} | Interactive: ${stats.interactiveCount} | ~${stats.tokenEstimate} tokens`;
+    }
+
+    case "browser_click": {
+      if (toolArgs.ref) {
+        const locator = snapshotBuilder.getRefLocator(page, toolArgs.ref as string);
+        const count = (toolArgs.clickCount as number) ?? 1;
+        const button = (toolArgs.button as string) ?? "left";
+        await locator.click({ button, clickCount: count });
+        return `Clicked element [${toolArgs.ref}]`;
+      } else if (toolArgs.selector) {
+        await page.click(toolArgs.selector as string);
+        return `Clicked selector: ${toolArgs.selector}`;
+      } else if (toolArgs.coordinates) {
+        const coords = toolArgs.coordinates as { x: number; y: number };
+        await page.mouse.click(coords.x, coords.y);
+        return `Clicked at (${coords.x}, ${coords.y})`;
+      }
+      return "No click target specified. Provide ref, selector, or coordinates.";
+    }
+
+    case "browser_type": {
+      const text = toolArgs.text as string;
+      const clear = (toolArgs.clear as boolean) ?? true;
+      if (toolArgs.ref) {
+        const locator = snapshotBuilder.getRefLocator(page, toolArgs.ref as string);
+        if (clear) {
+          await locator.fill(text);
+        } else {
+          await locator.pressSequentially(text);
+        }
+        if (toolArgs.pressEnter) await page.keyboard.press("Enter");
+        return `Typed "${text}" into [${toolArgs.ref}]`;
+      } else if (toolArgs.selector) {
+        if (clear) {
+          await page.fill(toolArgs.selector as string, text);
+        } else {
+          await page.type(toolArgs.selector as string, text);
+        }
+        if (toolArgs.pressEnter) await page.keyboard.press("Enter");
+        return `Typed "${text}" into ${toolArgs.selector}`;
+      }
+      await page.keyboard.type(text);
+      if (toolArgs.pressEnter) await page.keyboard.press("Enter");
+      return `Typed "${text}" into focused element`;
+    }
+
+    case "browser_screenshot": {
+      const mode = (toolArgs.mode as string) ?? "viewport";
+      let buffer: Buffer;
+      if (mode === "element" && toolArgs.selector) {
+        const el = page.locator(toolArgs.selector as string);
+        buffer = await el.screenshot();
+      } else if (mode === "full") {
+        buffer = await page.screenshot({ fullPage: true });
+      } else {
+        buffer = await page.screenshot();
+      }
+      const base64 = buffer.toString("base64");
+      return `Screenshot captured (${mode} mode, ${buffer.length} bytes). Base64 data: ${base64.slice(0, 100)}...`;
+    }
+
+    case "browser_console": {
+      const level = (toolArgs.level as string) ?? "all";
+      const filtered = level === "all"
+        ? consoleLogs
+        : consoleLogs.filter((l) => l.level === level);
+      if (toolArgs.clear) consoleLogs.length = 0;
+      if (filtered.length === 0) return "(No console messages)";
+      return filtered.map((m) => `[${m.level.toUpperCase()}] ${m.text}`).join("\n");
+    }
+
+    case "browser_evaluate": {
+      const expression = toolArgs.expression as string;
+      const result = await page.evaluate(expression);
+      return JSON.stringify(result, null, 2);
+    }
+
+    case "browser_scroll": {
+      const direction = (toolArgs.direction as string) ?? "down";
+      const amount = (toolArgs.amount as number) ?? 300;
+      if (toolArgs.selector) {
+        const sel = (toolArgs.selector as string).replace(/'/g, "\\'");
+        const scrollProp = direction === "left" || direction === "right" ? "scrollLeft" : "scrollTop";
+        const scrollVal = direction === "up" || direction === "left" ? -amount : amount;
+        await page.evaluate(`document.querySelector('${sel}').${scrollProp} += ${scrollVal}`);
+      } else {
+        const scrollMap: Record<string, [number, number]> = {
+          down: [0, amount], up: [0, -amount], right: [amount, 0], left: [-amount, 0],
+        };
+        const [x, y] = scrollMap[direction] ?? [0, amount];
+        await page.mouse.wheel(x, y);
+      }
+      return `Scrolled ${direction} by ${amount}px`;
+    }
+
+    case "browser_hover": {
+      if (toolArgs.ref) {
+        const locator = snapshotBuilder.getRefLocator(page, toolArgs.ref as string);
+        await locator.hover();
+        return `Hovered over element [${toolArgs.ref}]`;
+      } else if (toolArgs.selector) {
+        await page.hover(toolArgs.selector as string);
+        return `Hovered over selector: ${toolArgs.selector}`;
+      }
+      return "No hover target specified.";
+    }
+
+    case "browser_keyboard": {
+      const key = toolArgs.key as string;
+      const modifiers = (toolArgs.modifiers as string[]) ?? [];
+      if (modifiers.length > 0) {
+        const combo = [...modifiers, key].join("+");
+        await page.keyboard.press(combo);
+        return `Pressed key combination: ${combo}`;
+      }
+      await page.keyboard.press(key);
+      return `Pressed key: ${key}`;
+    }
+
+    case "browser_select": {
+      const selector = (toolArgs.ref ?? toolArgs.selector) as string;
+      if (toolArgs.label) {
+        await page.selectOption(selector, { label: toolArgs.label as string });
+        return `Selected option with label "${toolArgs.label}" in ${selector}`;
+      }
+      if (toolArgs.value) {
+        await page.selectOption(selector, toolArgs.value as string);
+        return `Selected option with value "${toolArgs.value}" in ${selector}`;
+      }
+      return "No value or label provided for select.";
+    }
+
+    case "browser_file_upload": {
+      const selector = (toolArgs.ref ?? toolArgs.selector ?? 'input[type="file"]') as string;
+      const filePath = toolArgs.filePath as string;
+      await page.setInputFiles(selector, filePath);
+      return `Uploaded file "${filePath}" to ${selector}`;
+    }
+
+    case "browser_wait": {
+      const timeout = (toolArgs.timeout as number) ?? 30000;
+      if (toolArgs.selector) {
+        await page.waitForSelector(toolArgs.selector as string, { timeout });
+        return `Selector "${toolArgs.selector}" appeared`;
+      } else if (toolArgs.text) {
+        const searchText = (toolArgs.text as string).replace(/'/g, "\\'");
+        await page.waitForFunction(
+          `document.body.innerText.includes('${searchText}')`,
+          { timeout },
+        );
+        return `Text "${toolArgs.text}" appeared`;
+      } else if (toolArgs.navigation) {
+        await page.waitForLoadState("networkidle", { timeout });
+        return "Navigation completed";
+      }
+      return "No wait condition specified.";
+    }
+
+    case "browser_cookies": {
+      const action = toolArgs.action as string;
+      if (action === "get") {
+        const cookies = await page.context().cookies();
+        return JSON.stringify(cookies, null, 2);
+      } else if (action === "set" && toolArgs.cookies) {
+        await page.context().addCookies(toolArgs.cookies as any[]);
+        return `Set ${(toolArgs.cookies as any[]).length} cookies`;
+      } else if (action === "clear") {
+        await page.context().clearCookies();
+        return "Cleared all cookies";
+      }
+      return `Unknown cookie action: ${action}`;
+    }
+
+    case "browser_storage": {
+      const storageType = toolArgs.type as string;
+      const storageAction = toolArgs.action as string;
+      const storageApi = storageType === "session" ? "sessionStorage" : "localStorage";
+
+      if (storageAction === "getAll") {
+        const data = await page.evaluate(`JSON.stringify(${storageApi})`);
+        return data as string;
+      } else if (storageAction === "get" && toolArgs.key) {
+        const escapedKey = (toolArgs.key as string).replace(/'/g, "\\'");
+        const val = await page.evaluate(`${storageApi}.getItem('${escapedKey}')`);
+        return (val as string) ?? "(null)";
+      } else if (storageAction === "set" && toolArgs.key) {
+        const escapedKey = (toolArgs.key as string).replace(/'/g, "\\'");
+        const escapedVal = (toolArgs.value as string ?? "").replace(/'/g, "\\'");
+        await page.evaluate(`${storageApi}.setItem('${escapedKey}', '${escapedVal}')`);
+        return `Set ${storageApi}.${toolArgs.key}`;
+      } else if (storageAction === "clear") {
+        await page.evaluate(`${storageApi}.clear()`);
+        return `Cleared ${storageApi}`;
+      }
+      return `Unknown storage action: ${storageAction}`;
+    }
+
+    case "browser_network": {
+      return "Network request logging requires active session monitoring. Use browser_console for captured logs.";
+    }
+
+    default:
+      return `Unknown tool: ${toolName}`;
+  }
+}
+
 export interface MCPOptions {
   transport?: "stdio" | "sse" | "streamable-http";
   port?: string;
@@ -309,12 +589,12 @@ const MCP_TOOLS = [
 /**
  * Handle an incoming MCP JSON-RPC request.
  */
-function handleMCPRequest(request: {
+async function handleMCPRequest(request: {
   jsonrpc: string;
   id: number | string;
   method: string;
   params?: Record<string, unknown>;
-}): object {
+}): Promise<object> {
   switch (request.method) {
     case "initialize":
       return {
@@ -357,23 +637,40 @@ function handleMCPRequest(request: {
         };
       }
 
-      // In full implementation: dispatch to actual browser automation
+      // Dispatch to real browser automation
       console.error(
         chalk.dim(`[MCP] Tool call: ${toolName}(${JSON.stringify(toolArgs)})`)
       );
 
-      return {
-        jsonrpc: "2.0",
-        id: request.id,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: `Tool ${toolName} executed successfully (stub). Args: ${JSON.stringify(toolArgs)}`,
-            },
-          ],
-        },
-      };
+      try {
+        const resultText = await executeBrowserTool(toolName, toolArgs ?? {});
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: "text",
+                text: resultText,
+              },
+            ],
+          },
+        };
+      } catch (toolErr) {
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: "text",
+                text: `Error executing ${toolName}: ${toolErr instanceof Error ? toolErr.message : toolErr}`,
+              },
+            ],
+            isError: true,
+          },
+        };
+      }
     }
 
     case "notifications/initialized":
@@ -399,7 +696,7 @@ async function startStdioMCP(): Promise<void> {
   let buffer = "";
 
   process.stdin.setEncoding("utf-8");
-  process.stdin.on("data", (chunk: string) => {
+  process.stdin.on("data", async (chunk: string) => {
     buffer += chunk;
 
     // Process complete JSON-RPC messages (separated by newlines)
@@ -412,7 +709,7 @@ async function startStdioMCP(): Promise<void> {
 
       try {
         const request = JSON.parse(trimmed);
-        const response = handleMCPRequest(request);
+        const response = await handleMCPRequest(request);
 
         // Only send response if it has an id (not a notification)
         if (request.id !== undefined) {
@@ -432,8 +729,9 @@ async function startStdioMCP(): Promise<void> {
     }
   });
 
-  process.stdin.on("end", () => {
+  process.stdin.on("end", async () => {
     console.error(chalk.dim("MCP stdin closed"));
+    await closeBrowserSession();
     process.exit(0);
   });
 
@@ -471,11 +769,11 @@ async function startSSEMCP(port: number): Promise<void> {
       // HTTP endpoint for client-to-server messages
       const chunks: Buffer[] = [];
       req.on("data", (chunk) => chunks.push(chunk));
-      req.on("end", () => {
+      req.on("end", async () => {
         const body = Buffer.concat(chunks).toString();
         try {
           const request = JSON.parse(body);
-          const response = handleMCPRequest(request);
+          const response = await handleMCPRequest(request);
           res.writeHead(200, {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
