@@ -26,6 +26,12 @@ export interface TestOptions {
   seo?: boolean;
   fast?: boolean;
   full?: boolean;
+  advancedSecurity?: boolean;
+  visualRegression?: boolean;
+  apiTesting?: boolean;
+  logicTesting?: boolean;
+  crossBrowser?: boolean;
+  loadTesting?: boolean;
   mock?: string;
   fault?: string;
   browser?: string;
@@ -393,7 +399,7 @@ export async function runTest(options: TestOptions): Promise<void> {
   }
 
   // ── Full agent pipeline (--full, --security, --seo, --responsive, --performance, --fast) ──
-  const useAgentPipeline = options.full || options.fast || options.security || options.performance || options.responsive || options.seo;
+  const useAgentPipeline = options.full || options.fast || options.security || options.performance || options.responsive || options.seo || options.advancedSecurity || options.visualRegression || options.apiTesting || options.logicTesting || options.crossBrowser || options.loadTesting;
   if (useAgentPipeline && config.url) {
     try {
       const { runFullTest, runQuickTest } = await import("../agents/index.js");
@@ -439,15 +445,27 @@ export async function runTest(options: TestOptions): Promise<void> {
       };
 
       const tiers = options.full
-        ? { discovery: true, execution: true, accessibility: true, security: true, performance: true, responsive: true, seo: true }
+        ? {
+            discovery: true, execution: true, accessibility: true, security: true,
+            advancedSecurity: true, performance: true, responsive: true, seo: true,
+            spa: true, visualRegression: true, apiTesting: true,
+            logicTesting: false, crossBrowser: false, loadTesting: false,
+          }
         : {
             discovery: !options.fast,
             execution: true,
             accessibility: options.a11y ?? !options.fast,
             security: options.security ?? false,
+            advancedSecurity: options.advancedSecurity ?? false,
             performance: options.performance ?? false,
             responsive: options.responsive ?? false,
             seo: options.seo ?? false,
+            spa: true,
+            visualRegression: options.visualRegression ?? false,
+            apiTesting: options.apiTesting ?? false,
+            logicTesting: options.logicTesting ?? false,
+            crossBrowser: options.crossBrowser ?? false,
+            loadTesting: options.loadTesting ?? false,
           };
 
       console.log(chalk.blue(`\nRunning ${options.fast ? "quick" : options.full ? "full" : "targeted"} test with ${config.agent} agent`));
@@ -848,7 +866,13 @@ export function registerTestCommand(program: Command): void {
     .option("--responsive", "Include responsive audit (9 viewports)")
     .option("--seo", "Include SEO audit (meta, sitemap, structured data)")
     .option("--fast", "Quick test — execution tier only, skip quality audits")
-    .option("--full", "Full autonomous test — all 12 agents, all tiers")
+    .option("--full", "Full autonomous test — all agents, all tiers")
+    .option("--advanced-security", "Include advanced security (CSRF, SQL injection, clickjacking)")
+    .option("--visual-regression", "Include visual regression testing (baseline screenshots)")
+    .option("--api-testing", "Include API/network audit (schema validation, WebSocket)")
+    .option("--logic-testing", "Include app logic testing (CRUD, drag-drop, game logic)")
+    .option("--cross-browser", "Run tests across Chromium, Firefox, WebKit")
+    .option("--load-testing", "Include load/stress testing (concurrent sessions)")
     .option("--max-steps <count>", "Maximum test steps to execute (default: 25)")
     .option("--max-pages <count>", "Maximum pages to crawl in discovery (default: 20)")
     .option("--lighthouse", "Include Lighthouse audit in test run")

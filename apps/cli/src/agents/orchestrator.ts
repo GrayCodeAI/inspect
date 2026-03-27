@@ -25,16 +25,29 @@ export interface OrchestratorOptions {
   maxPages?: number;
   llm: LLMCall;
   onProgress: ProgressCallback;
-  /** Which quality tiers to run */
+  /** Which tiers/agents to run */
   tiers?: {
     discovery?: boolean;
     execution?: boolean;
     accessibility?: boolean;
     security?: boolean;
+    advancedSecurity?: boolean;
     performance?: boolean;
     responsive?: boolean;
     seo?: boolean;
+    spa?: boolean;
+    visualRegression?: boolean;
+    apiTesting?: boolean;
+    logicTesting?: boolean;
+    crossBrowser?: boolean;
+    loadTesting?: boolean;
   };
+  /** Pre-authenticated cookies to inject before testing */
+  cookies?: Array<{ name: string; value: string; domain: string; path?: string }>;
+  /** Pre-authenticated storage to inject */
+  storage?: { localStorage?: Record<string, string>; sessionStorage?: Record<string, string> };
+  /** Visual regression baseline directory */
+  baselineDir?: string;
   /** Viewport for testing */
   viewport?: { width: number; height: number };
   /** Skip quality checks (fast mode) */
@@ -61,9 +74,16 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     execution: options.tiers?.execution ?? true,
     accessibility: options.tiers?.accessibility ?? !fast,
     security: options.tiers?.security ?? !fast,
+    advancedSecurity: options.tiers?.advancedSecurity ?? false,
     performance: options.tiers?.performance ?? !fast,
     responsive: options.tiers?.responsive ?? !fast,
     seo: options.tiers?.seo ?? !fast,
+    spa: options.tiers?.spa ?? true,
+    visualRegression: options.tiers?.visualRegression ?? false,
+    apiTesting: options.tiers?.apiTesting ?? false,
+    logicTesting: options.tiers?.logicTesting ?? false,
+    crossBrowser: options.tiers?.crossBrowser ?? false,
+    loadTesting: options.tiers?.loadTesting ?? false,
   };
 
   const startTime = Date.now();
@@ -122,6 +142,27 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   if (!existsSync(screenshotDir)) mkdirSync(screenshotDir, { recursive: true });
 
   try {
+    // =========================================================================
+    // PRE-FLIGHT: Auth injection (if credentials provided)
+    // =========================================================================
+    if (options.cookies || options.storage) {
+      try {
+        const { injectCookies, injectStorage } = await import("./auth.js");
+        if (options.cookies) {
+          await injectCookies(page, options.cookies);
+          onProgress("info", `Injected ${options.cookies.length} cookie(s) for auth`);
+        }
+        if (options.storage) {
+          // Navigate first so storage can be set on the right origin
+          await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+          await injectStorage(page, options.storage);
+          onProgress("info", "Injected storage tokens for auth");
+        }
+      } catch (err: any) {
+        onProgress("warn", `Auth injection failed: ${err.message}`);
+      }
+    }
+
     // =========================================================================
     // TIER 1: DISCOVERY — understand the website
     // =========================================================================
@@ -196,6 +237,36 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         onProgress("pass", `Found ${siteAnalysis.features.authFlows.length} auth flows, ${siteAnalysis.features.formPages.length} forms, ${siteAnalysis.techStack.length} tech stack items`);
       } catch (err: any) {
         onProgress("warn", `Analysis skipped: ${err.message}`);
+      }
+    }
+
+    // SPA detection & hydration
+    if (tiers.spa !== false) {
+      try {
+        const { detectFramework, waitForHydration, discoverSPARoutes } = await import("./spa.js");
+        const framework = await detectFramework(page);
+        if (framework) {
+          onProgress("info", `SPA detected: ${framework}`);
+          await waitForHydration(page, 5000);
+          onProgress("pass", "Framework hydration complete");
+
+          if (tiers.discovery) {
+            const spaRoutes = await discoverSPARoutes(page, url);
+            if (spaRoutes.length > 0) {
+              onProgress("info", `Discovered ${spaRoutes.length} SPA route(s)`);
+            }
+          }
+
+          // Re-navigate and re-snapshot after SPA discovery
+          await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+          try {
+            const rebuildSnap = new AriaSnapshotBuilder();
+            await rebuildSnap.buildTree(page);
+            snapshotText = rebuildSnap.getFormattedTree();
+          } catch {}
+        }
+      } catch (err: any) {
+        onProgress("warn", `SPA detection skipped: ${err.message}`);
       }
     }
 
@@ -373,6 +444,49 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       }
     }
 
+    // Advanced security (CSRF, SQL injection, clickjacking, etc.)
+    if (tiers.advancedSecurity) {
+      try {
+        const { runAdvancedSecurityAudit } = await import("./advanced-security.js");
+        onProgress("info", "Running advanced security audit...");
+        const advSecResults = await runAdvancedSecurityAudit(page, url, onProgress);
+        const advSecFailed = advSecResults.filter(r => !r.passed).length;
+        onProgress("pass", `Advanced security: ${advSecResults.length} tests, ${advSecFailed} failed`);
+      } catch (err: any) {
+        onProgress("warn", `Advanced security skipped: ${err.message}`);
+      }
+    }
+
+    // Visual regression
+    if (tiers.visualRegression) {
+      try {
+        const { runVisualRegression } = await import("./visual-regression.js");
+        const baselineDir = options.baselineDir ?? join(process.cwd(), ".inspect", "baselines");
+        onProgress("info", "Running visual regression...");
+        const vrReports = await runVisualRegression(
+          page, [url],
+          [{ width: 1440, height: 900, label: "Desktop" }, { width: 375, height: 667, label: "Mobile" }],
+          baselineDir, onProgress,
+        );
+        const totalDiffs = vrReports.reduce((s, r) => s + r.diffs.filter(d => !d.match).length, 0);
+        onProgress("pass", `Visual regression: ${totalDiffs} diff(s) across ${vrReports.length} report(s)`);
+      } catch (err: any) {
+        onProgress("warn", `Visual regression skipped: ${err.message}`);
+      }
+    }
+
+    // API testing
+    if (tiers.apiTesting) {
+      try {
+        const { runAPIAudit } = await import("./api-testing.js");
+        onProgress("info", "Running API audit...");
+        const apiResult = await runAPIAudit(page, url, onProgress);
+        onProgress("pass", `API: ${apiResult.endpoints} endpoints, avg ${Math.round(apiResult.avgResponseTime)}ms, ${apiResult.failures} failures`);
+      } catch (err: any) {
+        onProgress("warn", `API audit skipped: ${err.message}`);
+      }
+    }
+
     // Responsive runs last — it changes viewport size
     if (tiers.responsive) {
       try {
@@ -441,9 +555,16 @@ export async function runMultiPageTest(options: OrchestratorOptions): Promise<Te
       execution: true,
       accessibility: true,
       security: true,
+      advancedSecurity: true,
       performance: true,
       responsive: true,
       seo: true,
+      spa: true,
+      visualRegression: true,
+      apiTesting: true,
+      logicTesting: false, // requires LLM — opt-in only
+      crossBrowser: false, // requires playwright installed — opt-in only
+      loadTesting: false, // resource-heavy — opt-in only
     },
   });
 }
