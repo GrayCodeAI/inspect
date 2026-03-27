@@ -14,6 +14,8 @@ import { renderSessions } from "./pages/sessions.js";
 import { renderDevices } from "./pages/devices.js";
 import { renderModels } from "./pages/models.js";
 import { renderSettings } from "./pages/settings.js";
+import { renderA11y } from "./pages/a11y.js";
+import { renderPerformance } from "./pages/performance.js";
 
 // Register all pages
 registerPage("dashboard", renderDashboard);
@@ -26,6 +28,8 @@ registerPage("sessions", renderSessions);
 registerPage("devices", renderDevices);
 registerPage("models", renderModels);
 registerPage("settings", renderSettings);
+registerPage("a11y", renderA11y);
+registerPage("performance", renderPerformance);
 
 // Start the router
 startRouter();

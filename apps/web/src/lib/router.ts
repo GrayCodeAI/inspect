@@ -6,6 +6,7 @@ export type PageRenderer = (container: HTMLElement) => void | Promise<void>;
 
 const routes = new Map<string, PageRenderer>();
 let currentPage = "";
+let currentHash = "";
 
 export function registerPage(path: string, renderer: PageRenderer): void {
   routes.set(path, renderer);
@@ -20,7 +21,9 @@ export function startRouter(): void {
     const hash = window.location.hash.slice(1) || "/";
     const page = hash.split("/")[1] || "dashboard";
 
-    if (page === currentPage) return;
+    // Skip re-render only if the full hash is unchanged
+    if (hash === currentHash) return;
+    currentHash = hash;
     currentPage = page;
 
     // Update active nav link
