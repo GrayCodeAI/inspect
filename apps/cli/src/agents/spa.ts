@@ -3,6 +3,7 @@
 // client-side route discovery, hydration, shadow DOM, virtual scroll
 // ============================================================================
 
+import type { Page } from "@inspect/browser";
 import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
@@ -11,7 +12,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function discoverSPARoutes(
-  page: any,
+  page: Page,
   baseUrl: string,
 ): Promise<string[]> {
   const origin = new URL(baseUrl).origin;
@@ -239,7 +240,7 @@ export async function discoverSPARoutes(
 // ---------------------------------------------------------------------------
 
 async function discoverRoutesFallback(
-  page: any,
+  page: Page,
   baseUrl: string,
 ): Promise<string[]> {
   const discovered = new Set<string>();
@@ -359,7 +360,7 @@ async function discoverRoutesFallback(
 // ---------------------------------------------------------------------------
 
 export async function waitForHydration(
-  page: any,
+  page: Page,
   timeout: number = 10_000,
 ): Promise<void> {
   const deadline = Date.now() + timeout;
@@ -580,7 +581,7 @@ export async function waitForHydration(
 // ---------------------------------------------------------------------------
 
 export async function pierceShadowDOM(
-  page: any,
+  page: Page,
   selector: string,
 ): Promise<string[]> {
   const results = await safeEvaluate<string[]>(
@@ -641,7 +642,7 @@ export async function pierceShadowDOM(
 // handleVirtualScroll — Scroll through virtualized lists to materialise items
 // ---------------------------------------------------------------------------
 
-export async function handleVirtualScroll(page: any): Promise<number> {
+export async function handleVirtualScroll(page: Page): Promise<number> {
   // Detect virtual scroll container and count items by scrolling incrementally
   const result = await safeEvaluate<number>(
     page,
@@ -767,7 +768,7 @@ export async function handleVirtualScroll(page: any): Promise<number> {
 // detectFramework — Detect which frontend framework is in use
 // ---------------------------------------------------------------------------
 
-export async function detectFramework(page: any): Promise<string | null> {
+export async function detectFramework(page: Page): Promise<string | null> {
   const framework = await safeEvaluate<string | null>(
     page,
     `(() => {
@@ -900,7 +901,7 @@ export async function detectFramework(page: any): Promise<string | null> {
 // ---------------------------------------------------------------------------
 
 export async function waitForSPANavigation(
-  page: any,
+  page: Page,
   action: () => Promise<void>,
 ): Promise<string> {
   // Record current URL and set up mutation observer
@@ -993,7 +994,7 @@ export async function waitForSPANavigation(
 // ---------------------------------------------------------------------------
 
 export async function testBackForward(
-  page: any,
+  page: Page,
   urls: string[],
 ): Promise<{ passed: boolean; issues: string[] }> {
   const issues: string[] = [];

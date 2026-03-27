@@ -1,4 +1,4 @@
-import { createTask, getTask } from "../lib/api.js";
+import { createTask, getTaskDetails } from "../lib/api.js";
 
 // ============================================================================
 // Helpers
@@ -202,8 +202,8 @@ function badgeClass(status: string): string {
 // ============================================================================
 
 function renderTaskDetail(container: HTMLElement, task: TaskEntry): void {
-  const steps = task.steps ?? getMockSteps(task.status);
-  const tokenUsage = task.tokenUsage ?? getMockTokenUsage();
+  const steps = task.steps ?? [];
+  const tokenUsage = task.tokenUsage ?? { input: 0, output: 0, total: 0 };
   const completedSteps = steps.filter((s) => s.status === "pass").length;
   const totalSteps = steps.length;
 
@@ -343,7 +343,7 @@ async function pollTaskStatus(
     // Check if we're still supposed to be polling this task
     if (activePollingId !== id) return;
     try {
-      const result = await getTask(id);
+      const result = await getTaskDetails(id);
       const task = tasks.find((t) => t.id === id);
       if (task) {
         task.status = result.status;
@@ -365,7 +365,7 @@ async function pollTaskDetail(
     });
     if (activePollingId !== task.id) return;
     try {
-      const result = await getTask(task.id);
+      const result = await getTaskDetails(task.id);
       task.status = result.status;
       if (result.error) task.error = result.error;
       if (result.steps) {
@@ -445,7 +445,7 @@ async function renderTaskDetailView(container: HTMLElement, taskId: string): Pro
   if (!task) {
     // Try to fetch from API
     try {
-      const result = await getTask(taskId);
+      const result = await getTaskDetails(taskId);
       task = {
         id: result.id,
         prompt: (result.definition?.prompt as string) ?? "Unknown task",

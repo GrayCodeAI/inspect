@@ -2,7 +2,8 @@
 // @inspect/observability - Structured Logging (Pino-compatible format)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
+import { appendFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 
 /** Log levels ordered by severity */
@@ -201,16 +202,14 @@ export class Logger {
       }
     }
 
-    // Write to file
+    // Write to file (async, fire-and-forget)
     if (this.filePath) {
-      try {
-        appendFileSync(this.filePath, serialized + "\n", "utf-8");
-      } catch (error) {
+      appendFile(this.filePath, serialized + "\n", "utf-8").catch((error) => {
         // Write to stderr to avoid infinite recursion (don't call this.log())
         process.stderr.write(
           `[Logger] Failed to write to log file ${this.filePath}: ${error instanceof Error ? error.message : error}\n`,
         );
-      }
+      });
     }
   }
 

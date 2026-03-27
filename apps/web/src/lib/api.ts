@@ -57,3 +57,43 @@ export const getDevices = () =>
 // Agents
 export const getAgents = () =>
   request<{ agents: Array<{ key: string; name: string; provider: string; supportsVision: boolean; supportsThinking: boolean }>; total: number }>("/agents");
+
+// Runs (task history)
+export const listRuns = (limit = 20) =>
+  request<{ runs: Array<{ id: string; instruction: string; status: string; agent: string; device: string; duration: number; timestamp: string; tokenCount?: number }>; total: number }>(`/tasks?limit=${limit}`).catch(() => ({ runs: [], total: 0 }));
+
+// Task details with steps
+export const getTaskDetails = (id: string) =>
+  request<{
+    id: string;
+    status: string;
+    definition: { prompt: string; url: string; maxSteps: number };
+    result?: { passed: boolean; duration: number; summary: string; stepsCompleted: number };
+    steps?: Array<{ index: number; description: string; status: string; duration: number; toolCalls?: unknown[]; error?: string }>;
+    extractedData?: unknown;
+    createdAt: number;
+    startedAt?: number;
+    completedAt?: number;
+    error?: string;
+    tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+  }>(`/tasks/${id}`);
+
+// Quality audit results
+export const getA11yResults = () =>
+  request<{
+    score: number;
+    violations: Array<{ id: string; impact: string; description: string; nodes: number }>;
+    passes: number;
+    total: number;
+    standard: string;
+    url: string;
+    timestamp: number;
+  }>("/audits/a11y").catch(() => null);
+
+export const getPerfResults = () =>
+  request<{
+    scores: { performance: number; accessibility: number; bestPractices: number; seo: number };
+    metrics: Record<string, { value: number; rating: string; displayValue?: string }>;
+    url: string;
+    timestamp: number;
+  }>("/audits/performance").catch(() => null);

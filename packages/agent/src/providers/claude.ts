@@ -266,7 +266,7 @@ export class ClaudeProvider extends LLMProvider {
     return {
       "x-api-key": this.config.apiKey,
       "anthropic-version": API_VERSION,
-      "anthropic-beta": "interleaved-thinking-2025-05-14",
+      "anthropic-beta": "interleaved-thinking-2025-05-14,prompt-caching-2024-07-31",
     };
   }
 
@@ -284,7 +284,13 @@ export class ClaudeProvider extends LLMProvider {
     };
 
     if (systemPrompt) {
-      body.system = systemPrompt;
+      body.system = [
+        {
+          type: "text",
+          text: systemPrompt,
+          cache_control: { type: "ephemeral" },
+        },
+      ];
     }
 
     if (options?.temperature !== undefined) {
@@ -302,7 +308,10 @@ export class ClaudeProvider extends LLMProvider {
     }
 
     if (tools?.length) {
-      body.tools = tools.map(this.convertTool);
+      const convertedTools = tools.map(this.convertTool);
+      // Add cache_control to the last tool for prompt caching
+      (convertedTools[convertedTools.length - 1] as unknown as Record<string, unknown>).cache_control = { type: "ephemeral" };
+      body.tools = convertedTools;
     }
 
     // Extended thinking

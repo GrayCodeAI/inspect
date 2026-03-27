@@ -2,7 +2,7 @@
 // @inspect/agent - Long-Term Memory
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { mkdir, readFile, writeFile, readdir, access, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
 /** A learned pattern from past agent actions */
@@ -46,14 +46,20 @@ export class LongTermMemory {
   constructor(projectRoot: string) {
     this.memoryDir = join(projectRoot, ".inspect", "memory");
     this.patternsFile = join(this.memoryDir, "patterns.json");
-    this.ensureDir();
-    this.loadPatterns();
+  }
+
+  /**
+   * Initialize the memory directory and load persisted patterns.
+   */
+  async init(): Promise<void> {
+    await this.ensureDir();
+    await this.loadPatterns();
   }
 
   /**
    * Store a value in long-term memory.
    */
-  store(key: string, value: unknown): void {
+  async store(key: string, value: unknown): Promise<void> {
     const existing = this.cache.get(key);
     const now = Date.now();
 
@@ -66,13 +72,13 @@ export class LongTermMemory {
     };
 
     this.cache.set(key, entry);
-    this.persistEntry(key, entry);
+    await this.persistEntry(key, entry);
   }
 
   /**
    * Retrieve a value from long-term memory.
    */
-  retrieve<T = unknown>(key: string): T | null {
+  async retrieve<T = unknown>(key: string): Promise<T | null> {
     // Check in-memory cache first
     const cached = this.cache.get(key);
     if (cached) {
@@ -83,26 +89,29 @@ export class LongTermMemory {
 
     // Try loading from disk
     const filePath = this.entryPath(key);
-    if (existsSync(filePath)) {
-      try {
-        const data = JSON.parse(readFileSync(filePath, "utf-8")) as MemoryEntry<T>;
-        data.accessCount++;
-        data.updatedAt = Date.now();
-        this.cache.set(key, data);
-        return data.value;
-      } catch {
-        return null;
-      }
+    try {
+      await access(filePath);
+    } catch {
+      return null;
     }
 
-    return null;
+    try {
+      const raw = await readFile(filePath, "utf-8");
+      const data = JSON.parse(raw) as MemoryEntry<T>;
+      data.accessCount++;
+      data.updatedAt = Date.now();
+      this.cache.set(key, data);
+      return data.value;
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Learn from an action result. Over time, patterns emerge about
    * what works and what doesn't on specific pages/elements.
    */
-  learnPattern(action: string, result: "success" | "failure", context: string): void {
+  async learnPattern(action: string, result: "success" | "failure", context: string): Promise<void> {
     const patternKey = this.hashPattern(action, context);
     const existing = this.patterns.get(patternKey);
     const now = Date.now();
@@ -134,7 +143,7 @@ export class LongTermMemory {
       });
     }
 
-    this.savePatterns();
+    await this.savePatterns();
   }
 
   /**
@@ -164,17 +173,17 @@ export class LongTermMemory {
   /**
    * Clear all stored patterns.
    */
-  clearPatterns(): void {
+  async clearPatterns(): Promise<void> {
     this.patterns.clear();
-    this.savePatterns();
+    await this.savePatterns();
   }
 
   /**
    * List all stored memory keys.
    */
-  listKeys(): string[] {
+  async listKeys(): Promise<string[]> {
     try {
-      const files = readdirSync(this.memoryDir);
+      const files = await readdir(this.memoryDir);
       return files
         .filter((f) => f.endsWith(".json") && f !== "patterns.json")
         .map((f) => f.replace(".json", ""));
@@ -186,12 +195,11 @@ export class LongTermMemory {
   /**
    * Delete a specific memory entry.
    */
-  delete(key: string): boolean {
+  async delete(key: string): Promise<boolean> {
     this.cache.delete(key);
     const filePath = this.entryPath(key);
     try {
-      const { unlinkSync } = require("node:fs");
-      unlinkSync(filePath);
+      await unlink(filePath);
       return true;
     } catch {
       return false;
@@ -200,9 +208,11 @@ export class LongTermMemory {
 
   // ── Private helpers ──────────────────────────────────────────────────────
 
-  private ensureDir(): void {
-    if (!existsSync(this.memoryDir)) {
-      mkdirSync(this.memoryDir, { recursive: true });
+  private async ensureDir(): Promise<void> {
+    try {
+      await access(this.memoryDir);
+    } catch {
+      await mkdir(this.memoryDir, { recursive: true });
     }
   }
 
@@ -212,32 +222,37 @@ export class LongTermMemory {
     return join(this.memoryDir, `${safeKey}.json`);
   }
 
-  private persistEntry(key: string, entry: MemoryEntry): void {
+  private async persistEntry(key: string, entry: MemoryEntry): Promise<void> {
     try {
-      writeFileSync(this.entryPath(key), JSON.stringify(entry, null, 2));
+      await writeFile(this.entryPath(key), JSON.stringify(entry, null, 2));
     } catch {
       // Non-critical - memory is still in cache
     }
   }
 
-  private loadPatterns(): void {
-    if (existsSync(this.patternsFile)) {
-      try {
-        const data = JSON.parse(readFileSync(this.patternsFile, "utf-8")) as LearnedPattern[];
-        for (const pattern of data) {
-          const key = this.hashPattern(pattern.action, pattern.context);
-          this.patterns.set(key, pattern);
-        }
-      } catch {
-        // Start fresh if file is corrupted
+  private async loadPatterns(): Promise<void> {
+    try {
+      await access(this.patternsFile);
+    } catch {
+      return;
+    }
+
+    try {
+      const raw = await readFile(this.patternsFile, "utf-8");
+      const data = JSON.parse(raw) as LearnedPattern[];
+      for (const pattern of data) {
+        const key = this.hashPattern(pattern.action, pattern.context);
+        this.patterns.set(key, pattern);
       }
+    } catch {
+      // Start fresh if file is corrupted
     }
   }
 
-  private savePatterns(): void {
+  private async savePatterns(): Promise<void> {
     try {
       const data = Array.from(this.patterns.values());
-      writeFileSync(this.patternsFile, JSON.stringify(data, null, 2));
+      await writeFile(this.patternsFile, JSON.stringify(data, null, 2));
     } catch {
       // Non-critical
     }

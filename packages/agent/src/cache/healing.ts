@@ -157,7 +157,7 @@ export class SelfHealer {
   /**
    * Update the cache after a successful heal.
    */
-  updateCache(cacheKey: string, newRef: string, newSelector?: string): boolean {
+  async updateCache(cacheKey: string, newRef: string, newSelector?: string): Promise<boolean> {
     return this.cache.heal(cacheKey, newSelector ?? newRef, newRef);
   }
 
@@ -359,27 +359,35 @@ Return ONLY the JSON object, nothing else.`,
     if (m === 0) return n;
     if (n === 0) return m;
 
-    const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+    // Use two rolling arrays instead of full matrix: O(min(m,n)) space
+    const shorter = m <= n ? a : b;
+    const longer = m <= n ? b : a;
+    const sLen = shorter.length;
+    const lLen = longer.length;
 
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    let prev = Array.from({ length: sLen + 1 }, (_, i) => i);
+    let curr = new Array<number>(sLen + 1);
 
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,
-          dp[i][j - 1] + 1,
-          dp[i - 1][j - 1] + cost,
+    for (let j = 1; j <= lLen; j++) {
+      curr[0] = j;
+      for (let i = 1; i <= sLen; i++) {
+        const cost = shorter[i - 1] === longer[j - 1] ? 0 : 1;
+        curr[i] = Math.min(
+          prev[i] + 1,
+          curr[i - 1] + 1,
+          prev[i - 1] + cost,
         );
       }
+      [prev, curr] = [curr, prev];
     }
 
-    return dp[m][n];
+    return prev[sLen];
   }
 
-  private areRolesRelated(roleA: string, roleB: string): boolean {
-    const relatedGroups = [
+  /** Static role relationship map for O(1) lookups */
+  private static readonly RELATED_ROLES = (() => {
+    const map = new Map<string, Set<string>>();
+    const groups = [
       ["button", "link", "menuitem"],
       ["textbox", "searchbox", "combobox", "spinbutton"],
       ["checkbox", "switch", "radio"],
@@ -390,13 +398,17 @@ Return ONLY the JSON object, nothing else.`,
       ["dialog", "alertdialog"],
       ["img", "figure"],
     ];
-
-    for (const group of relatedGroups) {
-      if (group.includes(roleA) && group.includes(roleB)) {
-        return true;
+    for (const group of groups) {
+      const set = new Set(group);
+      for (const role of group) {
+        map.set(role, set);
       }
     }
+    return map;
+  })();
 
-    return false;
+  private areRolesRelated(roleA: string, roleB: string): boolean {
+    const group = SelfHealer.RELATED_ROLES.get(roleA);
+    return group ? group.has(roleB) : false;
   }
 }

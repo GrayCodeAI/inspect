@@ -3,6 +3,7 @@
 // For AUTHORIZED security testing only (defensive/educational)
 // ============================================================================
 
+import type { Page } from "@inspect/browser";
 import { safeEvaluate } from "./evaluate.js";
 import type { ProgressCallback } from "./types.js";
 
@@ -23,7 +24,7 @@ export interface SecurityTestResult {
 // ---------------------------------------------------------------------------
 
 export async function testCSRF(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityTestResult> {
   try {
@@ -141,7 +142,7 @@ const SQL_ERROR_PATTERNS = [
 ];
 
 export async function testSQLInjection(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
@@ -271,7 +272,7 @@ export async function testSQLInjection(
 // ---------------------------------------------------------------------------
 
 export async function testClickjacking(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityTestResult> {
   let xFrameOptions: string | null = null;
@@ -347,7 +348,7 @@ export async function testClickjacking(
 // ---------------------------------------------------------------------------
 
 export async function testCORSConfig(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityTestResult> {
   try {
@@ -459,7 +460,7 @@ const PATH_TRAVERSAL_PAYLOADS = [
 ];
 
 export async function testPathTraversal(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
@@ -556,7 +557,7 @@ export async function testPathTraversal(
 // ---------------------------------------------------------------------------
 
 export async function testInfoDisclosure(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
@@ -830,7 +831,7 @@ function compareVersions(a: string, b: string): number {
 }
 
 export async function scanDependencies(
-  page: any,
+  page: Page,
 ): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
 
@@ -976,7 +977,7 @@ export async function scanDependencies(
 // ---------------------------------------------------------------------------
 
 export async function detectWAF(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<{ detected: boolean; provider: string | null; recommendations: string[] }> {
   const recommendations: string[] = [];
@@ -1073,7 +1074,7 @@ export async function detectWAF(
 // ---------------------------------------------------------------------------
 
 export async function runAdvancedSecurityAudit(
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<SecurityTestResult[]> {

@@ -2,6 +2,7 @@
 // Load & Stress Testing Agent — Measures performance under concurrent load
 // ============================================================================
 
+import type { Page } from "@inspect/browser";
 import { freemem, totalmem } from "node:os";
 import type { ProgressCallback } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
@@ -226,7 +227,7 @@ export async function runLoadTest(
  * N actions. Flags a leak if memory growth exceeds 20%.
  */
 export async function detectMemoryLeak(
-  page: any,
+  page: Page,
   url: string,
   actions: number,
 ): Promise<MemoryProfile> {
@@ -368,7 +369,7 @@ export async function detectMemoryLeak(
  * Checks for crashes, unhandled errors, and memory issues.
  */
 export async function stressTest(
-  page: any,
+  page: Page,
   url: string,
   maxActions: number,
   onProgress: ProgressCallback,
@@ -674,7 +675,7 @@ export async function stressTest(
  * Measures load time and performance metrics under constrained network.
  */
 export async function testWithThrottling(
-  page: any,
+  page: Page,
   url: string,
   profile: "3g" | "4g" | "wifi",
 ): Promise<{ loadTime: number; metrics: any }> {
@@ -785,7 +786,7 @@ export async function testWithThrottling(
  * and detect caching strategy.
  */
 export async function testServiceWorker(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<{
   hasServiceWorker: boolean;

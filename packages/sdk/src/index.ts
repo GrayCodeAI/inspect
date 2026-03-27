@@ -4,7 +4,9 @@
 
 export {
   Inspect,
+  defineConfig,
   type InspectSDKConfig,
+  type InspectConfig,
   type HistoryEntry,
   ActHandler,
   type ActResult,

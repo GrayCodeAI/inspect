@@ -61,8 +61,8 @@ export function withRetry(
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await llm(messages);
-      } catch (err: any) {
-        lastError = err;
+      } catch (err: unknown) {
+        lastError = err as Error;
 
         if (attempt >= maxRetries || !isRetryableError(err)) {
           throw err;

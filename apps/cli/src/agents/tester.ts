@@ -181,8 +181,8 @@ export async function executeStep(
       step.retries = attempt;
       step.duration = Date.now() - startTime;
       return step;
-    } catch (err: any) {
-      lastError = err;
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err : new Error(String(err));
     }
   }
 

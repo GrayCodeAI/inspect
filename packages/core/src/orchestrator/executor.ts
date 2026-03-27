@@ -1,4 +1,5 @@
 import type { DeviceConfig } from "../devices/presets.js";
+import type { AgentRouter } from "@inspect/agent";
 
 export interface ExecutionConfig {
   instruction: string;
@@ -11,12 +12,20 @@ export interface ExecutionConfig {
   headed: boolean;
   a11y: boolean;
   lighthouse: boolean;
+  security: boolean;
   mockFile?: string;
   faultProfile?: string;
+  credentialId?: string;
   maxSteps: number;
   timeoutMs: number;
   stepTimeoutMs: number;
   verbose: boolean;
+}
+
+export interface ExecutorDependencies {
+  router: AgentRouter;
+  browserManager: unknown;
+  credentialVault?: unknown;
 }
 
 export interface StepPlan {
@@ -75,13 +84,15 @@ type ProgressCallback = (progress: ExecutionProgress) => void;
  */
 export class TestExecutor {
   private config: ExecutionConfig;
+  private deps: ExecutorDependencies;
   private onProgress: ProgressCallback | null = null;
   private abortController: AbortController;
   private tokenCount = 0;
   private startTime = 0;
 
-  constructor(config: ExecutionConfig) {
+  constructor(config: ExecutionConfig, deps?: ExecutorDependencies) {
     this.config = config;
+    this.deps = deps ?? { router: null as unknown as AgentRouter, browserManager: null };
     this.abortController = new AbortController();
   }
 

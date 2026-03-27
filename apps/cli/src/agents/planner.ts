@@ -2,6 +2,52 @@ import type { TestPlan, TestStep, TestFlow, TestDataSet, PageType, LLMCall, Prog
 import { generateTestData } from "./form-filler.js";
 
 // ---------------------------------------------------------------------------
+// Robust JSON extraction from LLM responses
+// ---------------------------------------------------------------------------
+
+function tryParseSteps(response: string): TestStep[] | null {
+  try {
+    let jsonStr = response.trim();
+
+    // Strip markdown code fences (```json ... ``` or ``` ... ```)
+    const fenceMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (fenceMatch) jsonStr = fenceMatch[1].trim();
+
+    // Find outermost array boundaries
+    const arrayStart = jsonStr.indexOf("[");
+    const arrayEnd = jsonStr.lastIndexOf("]");
+    if (arrayStart >= 0 && arrayEnd > arrayStart) {
+      jsonStr = jsonStr.slice(arrayStart, arrayEnd + 1);
+    }
+
+    // Fix common LLM JSON mistakes
+    // 1. Trailing commas before ] or }
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+    // 2. Single-line // comments
+    jsonStr = jsonStr.replace(/\/\/[^\n]*/g, "");
+    // 3. Unescaped newlines inside strings (replace with space)
+    jsonStr = jsonStr.replace(/(?<=":[ ]*"[^"]*)\n(?=[^"]*")/g, " ");
+
+    const parsed = JSON.parse(jsonStr) as Array<Record<string, unknown>>;
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+
+    return parsed.map((s, i) => ({
+      id: (s.id as number) ?? i + 1,
+      action: (s.action as string) ?? "assert",
+      description: (s.description as string) ?? `Step ${i + 1}`,
+      target: s.target as string | undefined,
+      value: s.value as string | undefined,
+      assertion: s.assertion as string | undefined,
+      flow: s.flow as string | undefined,
+      priority: (s.priority as number) ?? 3,
+      status: "pending" as const,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Page-type detection heuristics
 // ---------------------------------------------------------------------------
 
@@ -288,6 +334,7 @@ export async function planTests(
   pageTitle: string,
   llm: LLMCall,
   onProgress: ProgressCallback,
+  spaRoutes: string[] = [],
 ): Promise<TestPlan> {
   onProgress("info", "Planning test steps...");
 
@@ -358,40 +405,37 @@ Use this test data for forms:
 - Password: ${testData.password}
 - Name: ${testData.name.full}
 ` : ""}
-
+${spaRoutes.length > 0 ? `
+SPA Routes discovered (test navigation to these):
+${spaRoutes.filter(r => !r.includes(":") && !r.includes("[")).slice(0, 8).map(r => `- ${r}`).join("\n")}
+Include "navigate" steps to visit the most important routes above and verify they load correctly.
+` : ""}
 IMPORTANT: Return ONLY a JSON array. No markdown, no explanation. Start with [ end with ].`;
 
   const response = await llm([{ role: "user", content: prompt }]);
 
-  // Parse LLM response
-  let steps: TestStep[] = [];
-  try {
-    let jsonStr = response.trim();
-    const jsonMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-    if (jsonMatch) jsonStr = jsonMatch[1].trim();
+  // Parse LLM response with robust extraction
+  let steps: TestStep[] | null = tryParseSteps(response);
 
-    const arrayStart = jsonStr.indexOf("[");
-    const arrayEnd = jsonStr.lastIndexOf("]");
-    if (arrayStart >= 0 && arrayEnd > arrayStart) {
-      jsonStr = jsonStr.slice(arrayStart, arrayEnd + 1);
+  // Retry once with a corrective prompt if first attempt failed
+  if (!steps) {
+    onProgress("warn", "AI response was not valid JSON, retrying with corrective prompt...");
+    try {
+      const retryPrompt = `Your previous response was not valid JSON. Return ONLY a raw JSON array of test step objects. No markdown, no code fences, no explanation. Start with [ end with ].
+
+Fix this response into valid JSON:
+${response.slice(0, 1500)}`;
+
+      const retryResponse = await llm([{ role: "user", content: retryPrompt }]);
+      steps = tryParseSteps(retryResponse);
+    } catch {
+      // Retry failed — fall through to fallback
     }
+  }
 
-    const parsed = JSON.parse(jsonStr) as Array<Record<string, unknown>>;
-
-    steps = parsed.map((s, i) => ({
-      id: (s.id as number) ?? i + 1,
-      action: (s.action as string) ?? "assert",
-      description: (s.description as string) ?? `Step ${i + 1}`,
-      target: s.target as string | undefined,
-      value: s.value as string | undefined,
-      assertion: s.assertion as string | undefined,
-      flow: s.flow as string | undefined,
-      priority: (s.priority as number) ?? 3,
-      status: "pending" as const,
-    }));
-  } catch {
-    onProgress("warn", "AI response was not valid JSON, building plan from page analysis");
-    steps = buildFallbackPlan(url, snapshot, pageType, testData);
+  if (!steps) {
+    onProgress("warn", "AI planner failed after retry, building plan from page analysis");
+    steps = buildFallbackPlan(url, snapshot, pageType, testData, spaRoutes);
   }
 
   // Inject form-aware steps if the planner missed them
@@ -450,6 +494,7 @@ function buildFallbackPlan(
   snapshot: string,
   pageType: PageType,
   testData: TestDataSet,
+  spaRoutes: string[] = [],
 ): TestStep[] {
   const steps: TestStep[] = [];
   let id = 1;
@@ -475,8 +520,30 @@ function buildFallbackPlan(
     status: "pending", priority: 3,
   });
 
+  // ----- Interactive elements from snapshot -----
+  // Extract ALL clickable elements (buttons, links) from the snapshot
+  const snapshotLines = snapshot.split("\n");
+
+  // Button clicks — click these FIRST (primary interactions on the page)
+  const buttonLines = snapshotLines.filter(l => l.includes("button") && l.includes('"'));
+  for (const line of buttonLines.slice(0, 5)) {
+    const nameMatch = line.match(/"([^"]+)"/);
+    if (nameMatch && !nameMatch[1].toLowerCase().includes("close")) {
+      steps.push({
+        id: id++, action: "click", description: `Click "${nameMatch[1]}" button`,
+        target: nameMatch[1], assertion: "Button responds to click and UI updates",
+        status: "pending", priority: 2,
+      });
+      // Screenshot after important button clicks to capture state changes
+      steps.push({
+        id: id++, action: "screenshot", description: `Capture state after clicking "${nameMatch[1]}"`,
+        status: "pending", priority: 4,
+      });
+    }
+  }
+
   // Navigation links
-  const linkLines = snapshot.split("\n").filter(l => l.includes("link") && l.includes('"'));
+  const linkLines = snapshotLines.filter(l => l.includes("link") && l.includes('"'));
   for (const line of linkLines.slice(0, 5)) {
     const nameMatch = line.match(/"([^"]+)"/);
     if (nameMatch) {
@@ -495,16 +562,42 @@ function buildFallbackPlan(
     steps.push(s);
   }
 
-  // Button clicks
-  const buttonLines = snapshot.split("\n").filter(l => l.includes("button") && l.includes('"'));
-  for (const line of buttonLines.slice(0, 3)) {
-    const nameMatch = line.match(/"([^"]+)"/);
-    if (nameMatch && !nameMatch[1].toLowerCase().includes("close")) {
-      steps.push({
-        id: id++, action: "click", description: `Click "${nameMatch[1]}" button`,
-        target: nameMatch[1], assertion: "Button responds to click",
-        status: "pending", priority: 3,
-      });
+  // ----- SPA route navigation -----
+  if (spaRoutes.length > 0) {
+    // Filter out parametric routes and the current URL, take top routes
+    const routesToTest = spaRoutes
+      .filter(r => {
+        if (r === url) return false;
+        // Skip parametric patterns like /users/:id or /blog/[slug]
+        if (r.includes(":") || r.includes("[")) return false;
+        // Skip asset/static paths
+        try {
+          const path = new URL(r).pathname;
+          if (/\.(js|css|png|jpg|svg|ico|woff|json)$/i.test(path)) return false;
+        } catch {}
+        return true;
+      })
+      .slice(0, 6);
+
+    if (routesToTest.length > 0) {
+      for (const route of routesToTest) {
+        let label: string;
+        try {
+          label = new URL(route).pathname || route;
+        } catch {
+          label = route;
+        }
+        steps.push({
+          id: id++, action: "navigate", description: `Navigate to SPA route: ${label}`,
+          target: route, value: route,
+          assertion: "Page loads with content and no JavaScript errors",
+          status: "pending", flow: "navigation", priority: 2,
+        });
+        steps.push({
+          id: id++, action: "screenshot", description: `Capture ${label}`,
+          status: "pending", priority: 4,
+        });
+      }
     }
   }
 

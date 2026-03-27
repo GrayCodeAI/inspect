@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { mkdir, readFile, writeFile, readdir, unlink, access } from "node:fs/promises";
 import { join } from "node:path";
 
 /** A cached action result */
@@ -53,6 +53,9 @@ export interface ActionCacheConfig {
   enabled?: boolean;
 }
 
+const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_MAX_ENTRIES = 10_000;
+
 /**
  * Caches agent actions keyed by instruction + URL + variables.
  * Enables instant replay of known actions and provides the foundation
@@ -67,12 +70,17 @@ export class ActionCache {
 
   constructor(config: ActionCacheConfig) {
     this.cacheDir = join(config.projectRoot, ".inspect", "cache");
-    this.maxEntries = config.maxEntries ?? 10_000;
-    this.ttl = config.ttl ?? 7 * 24 * 60 * 60 * 1000; // 7 days
+    this.maxEntries = config.maxEntries ?? DEFAULT_MAX_ENTRIES;
+    this.ttl = config.ttl ?? DEFAULT_TTL_MS;
     this.enabled = config.enabled ?? true;
+  }
 
+  /**
+   * Initialize the cache directory. Call after construction.
+   */
+  async init(): Promise<void> {
     if (this.enabled) {
-      this.ensureDir();
+      await this.ensureDir();
     }
   }
 
@@ -97,7 +105,7 @@ export class ActionCache {
    * Look up a cached action by key.
    * Returns null if not found or expired.
    */
-  get(key: string): CachedAction | null {
+  async get(key: string): Promise<CachedAction | null> {
     if (!this.enabled) return null;
 
     // Check in-memory cache first
@@ -114,38 +122,41 @@ export class ActionCache {
 
     // Try loading from disk
     const filePath = this.entryPath(key);
-    if (existsSync(filePath)) {
-      try {
-        const data = JSON.parse(readFileSync(filePath, "utf-8")) as CachedAction;
-
-        if (this.isExpired(data)) {
-          return null;
-        }
-
-        data.hitCount++;
-        data.lastAccessed = Date.now();
-        this.inMemory.set(key, data);
-        this.persistEntry(key, data);
-        return data;
-      } catch {
-        return null;
-      }
+    try {
+      await access(filePath);
+    } catch {
+      return null;
     }
 
-    return null;
+    try {
+      const raw = await readFile(filePath, "utf-8");
+      const data = JSON.parse(raw) as CachedAction;
+
+      if (this.isExpired(data)) {
+        return null;
+      }
+
+      data.hitCount++;
+      data.lastAccessed = Date.now();
+      this.inMemory.set(key, data);
+      await this.persistEntry(key, data);
+      return data;
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Store an action in the cache.
    */
-  set(key: string, action: CachedAction["action"], meta: {
+  async set(key: string, action: CachedAction["action"], meta: {
     instruction: string;
     url: string;
     variables?: Record<string, string>;
     selector?: string;
     elementDescription?: CachedAction["elementDescription"];
     success?: boolean;
-  }): void {
+  }): Promise<void> {
     if (!this.enabled) return;
 
     const entry: CachedAction = {
@@ -165,7 +176,7 @@ export class ActionCache {
     };
 
     this.inMemory.set(key, entry);
-    this.persistEntry(key, entry);
+    await this.persistEntry(key, entry);
 
     // Evict old entries if over limit
     if (this.inMemory.size > this.maxEntries) {
@@ -176,8 +187,8 @@ export class ActionCache {
   /**
    * Update a cache entry after self-healing found a new selector.
    */
-  heal(key: string, newSelector: string, newRef?: string): boolean {
-    const entry = this.get(key);
+  async heal(key: string, newSelector: string, newRef?: string): Promise<boolean> {
+    const entry = await this.get(key);
     if (!entry) return false;
 
     entry.action.selector = newSelector;
@@ -188,17 +199,18 @@ export class ActionCache {
     entry.lastAccessed = Date.now();
 
     this.inMemory.set(key, entry);
-    this.persistEntry(key, entry);
+    await this.persistEntry(key, entry);
     return true;
   }
 
   /**
    * Get cache statistics.
    */
-  stats(): { totalEntries: number; diskEntries: number; memoryEntries: number } {
+  async stats(): Promise<{ totalEntries: number; diskEntries: number; memoryEntries: number }> {
     let diskEntries = 0;
     try {
-      diskEntries = readdirSync(this.cacheDir).filter((f) => f.endsWith(".json")).length;
+      const files = await readdir(this.cacheDir);
+      diskEntries = files.filter((f) => f.endsWith(".json")).length;
     } catch {
       // Directory might not exist
     }
@@ -213,17 +225,16 @@ export class ActionCache {
   /**
    * Clear the entire cache.
    */
-  clear(): void {
+  async clear(): Promise<void> {
     this.inMemory.clear();
 
     try {
-      const files = readdirSync(this.cacheDir);
-      for (const file of files) {
-        if (file.endsWith(".json")) {
-          const { unlinkSync } = require("node:fs");
-          unlinkSync(join(this.cacheDir, file));
-        }
-      }
+      const files = await readdir(this.cacheDir);
+      await Promise.all(
+        files
+          .filter((f) => f.endsWith(".json"))
+          .map((f) => unlink(join(this.cacheDir, f)).catch(() => {})),
+      );
     } catch {
       // Ignore cleanup errors
     }
@@ -231,9 +242,11 @@ export class ActionCache {
 
   // ── Private helpers ──────────────────────────────────────────────────────
 
-  private ensureDir(): void {
-    if (!existsSync(this.cacheDir)) {
-      mkdirSync(this.cacheDir, { recursive: true });
+  private async ensureDir(): Promise<void> {
+    try {
+      await access(this.cacheDir);
+    } catch {
+      await mkdir(this.cacheDir, { recursive: true });
     }
   }
 
@@ -241,9 +254,9 @@ export class ActionCache {
     return join(this.cacheDir, `${key}.json`);
   }
 
-  private persistEntry(key: string, entry: CachedAction): void {
+  private async persistEntry(key: string, entry: CachedAction): Promise<void> {
     try {
-      writeFileSync(this.entryPath(key), JSON.stringify(entry, null, 2));
+      await writeFile(this.entryPath(key), JSON.stringify(entry, null, 2));
     } catch {
       // Non-critical
     }

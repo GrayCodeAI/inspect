@@ -59,7 +59,7 @@ export { ContextCompactor, type CompactionOptions, type CompactionResult } from 
 
 // Cache
 export { ActionCache, type ActionCacheConfig, type CachedAction } from "./cache/store.js";
-export { SelfHealer, type HealResult, type HealCandidate, type ElementDescription } from "./cache/healing.js";
+export { SelfHealer, type HealResult, type HealCandidate, type ElementDescription, type SnapshotElement } from "./cache/healing.js";
 
 // Watchdogs
 export {

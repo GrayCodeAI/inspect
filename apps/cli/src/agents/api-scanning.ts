@@ -2,6 +2,7 @@
 // API Scanning Agent — OpenAPI/GraphQL security and conformance scanning
 // ============================================================================
 
+import type { Page } from "@inspect/browser";
 import { safeEvaluate } from "./evaluate.js";
 import type { ProgressCallback } from "./types.js";
 
@@ -89,7 +90,7 @@ const INTROSPECTION_QUERY = JSON.stringify({
 // ---------------------------------------------------------------------------
 
 export async function fetchOpenAPISpec(
-  page: any,
+  page: Page,
   baseUrl: string,
 ): Promise<OpenAPISpec | null> {
   // Normalize base URL (remove trailing slash)
@@ -204,7 +205,7 @@ export async function fetchOpenAPISpec(
 // ---------------------------------------------------------------------------
 
 export async function testGraphQLIntrospection(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<GraphQLSchema | null> {
   const base = url.replace(/\/+$/, "");
@@ -298,7 +299,7 @@ export async function testGraphQLIntrospection(
 // ---------------------------------------------------------------------------
 
 export async function scanOpenAPIEndpoints(
-  page: any,
+  page: Page,
   spec: OpenAPISpec,
   baseUrl: string,
   onProgress: ProgressCallback,
@@ -514,7 +515,7 @@ export async function scanOpenAPIEndpoints(
 // ---------------------------------------------------------------------------
 
 export async function scanGraphQLSecurity(
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<APIScanResult[]> {
@@ -781,7 +782,7 @@ export async function scanGraphQLSecurity(
 // ---------------------------------------------------------------------------
 
 export async function runAPIScan(
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<APIScanResult[]> {
@@ -963,7 +964,7 @@ export async function runAPIScan(
  * traffic for XHR/fetch requests.
  */
 async function discoverEndpointsFromTraffic(
-  page: any,
+  page: Page,
   url: string,
 ): Promise<APIEndpoint[]> {
   const endpoints: APIEndpoint[] = [];

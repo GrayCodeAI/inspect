@@ -25,6 +25,7 @@ export {
 } from "./routes/sessions.js";
 export type { BrowserSession, SessionManager } from "./routes/sessions.js";
 export { registerSystemRoutes } from "./routes/system.js";
+export { registerAuditRoutes } from "./routes/audits.js";
 export type { HealthStatus, HealthCheck } from "./routes/system.js";
 
 // Webhooks
@@ -45,6 +46,10 @@ export { RateLimiter } from "./middleware/rate-limit.js";
 export type { RateLimitConfig } from "./middleware/rate-limit.js";
 export { AuditLogger } from "./middleware/audit-log.js";
 export type { AuditLogConfig, AuditLogEntry } from "./middleware/audit-log.js";
+
+// Storage
+export { JsonStore, PersistentTaskStore, PersistentWorkflowStore, PersistentSessionManager } from "./storage/index.js";
+export { createPersistentStores, getDefaultDataDir } from "./storage/index.js";
 
 // Streaming
 export { SSEManager } from "./streaming/sse.js";

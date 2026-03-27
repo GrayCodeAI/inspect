@@ -1,5 +1,5 @@
 import type { DeviceConfig } from "../devices/presets.js";
-import type { ExecutionConfig, ExecutionResult } from "./executor.js";
+import type { ExecutionConfig, ExecutionResult, ExecutorDependencies } from "./executor.js";
 import { TestExecutor } from "./executor.js";
 
 export interface SchedulerConfig {
@@ -32,16 +32,18 @@ interface TestTask {
  */
 export class TestScheduler {
   private config: SchedulerConfig;
+  private deps: ExecutorDependencies;
   private runs: Map<string, ScheduledRun> = new Map();
   private activeCount = 0;
   private aborted = false;
 
-  constructor(config: Partial<SchedulerConfig> = {}) {
+  constructor(config: Partial<SchedulerConfig> = {}, deps: ExecutorDependencies) {
     this.config = {
       concurrency: config.concurrency ?? 3,
       failFast: config.failFast ?? false,
       globalTimeoutMs: config.globalTimeoutMs ?? 600_000, // 10 minutes
     };
+    this.deps = deps;
   }
 
   /**
@@ -108,7 +110,7 @@ export class TestScheduler {
         run.startedAt = new Date();
 
         try {
-          const executor = new TestExecutor(task.config);
+          const executor = new TestExecutor(task.config, this.deps);
           const result = await executor.execute();
 
           run.result = result;
@@ -182,7 +184,7 @@ export class TestScheduler {
         const executor = new TestExecutor({
           ...baseConfig,
           device,
-        });
+        }, this.deps);
         const result = await executor.execute();
 
         run.result = result;

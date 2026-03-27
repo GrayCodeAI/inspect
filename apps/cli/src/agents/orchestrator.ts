@@ -6,6 +6,7 @@ import type {
 import { planTests, generateTestData } from "./planner.js";
 import { executeStep } from "./tester.js";
 import { validateStep, createNetworkMonitor, createConsoleMonitor, trackUrlChanges } from "./validator.js";
+import { runAgentLoop } from "./agent-loop.js";
 import { checkAccessibility } from "./accessibility.js";
 import { generateReport } from "./reporter.js";
 import { withCache, withRetry } from "./cache.js";
@@ -96,6 +97,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   let siteMap: SiteMap | undefined;
   let formResults: FormTestResult[] | undefined;
   let tokenUsage = 0;
+  let discoveredSPARoutes: string[] = [];
 
   // Wrap LLM with retry + optional cache
   const retriedLlm = withRetry(llm, { maxRetries: 3, baseDelay: 1000 });
@@ -158,8 +160,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           await injectStorage(page, options.storage);
           onProgress("info", "Injected storage tokens for auth");
         }
-      } catch (err: any) {
-        onProgress("warn", `Auth injection failed: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Auth injection failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -222,8 +224,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         const recoverBuilder = new AriaSnapshotBuilder();
         await recoverBuilder.buildTree(page);
         snapshotText = recoverBuilder.getFormattedTree();
-      } catch (err: any) {
-        onProgress("warn", `Crawl skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Crawl skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -235,8 +237,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         onProgress("info", "Analyzing site features...");
         siteAnalysis = await analyzeSite(siteMap, page, trackedLlm, onProgress);
         onProgress("pass", `Found ${siteAnalysis.features.authFlows.length} auth flows, ${siteAnalysis.features.formPages.length} forms, ${siteAnalysis.techStack.length} tech stack items`);
-      } catch (err: any) {
-        onProgress("warn", `Analysis skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Analysis skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -253,6 +255,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           if (tiers.discovery) {
             const spaRoutes = await discoverSPARoutes(page, url);
             if (spaRoutes.length > 0) {
+              discoveredSPARoutes = spaRoutes;
               onProgress("info", `Discovered ${spaRoutes.length} SPA route(s)`);
             }
           }
@@ -265,23 +268,16 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
             snapshotText = rebuildSnap.getFormattedTree();
           } catch {}
         }
-      } catch (err: any) {
-        onProgress("warn", `SPA detection skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `SPA detection skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
     // =========================================================================
-    // TIER 2: EXECUTION — interact with the website
+    // TIER 2: EXECUTION — AI agent explores and tests the website
     // =========================================================================
     onProgress("info", "");
     onProgress("info", "═══ TIER 2: EXECUTION ═══════════════════════");
-
-    // PLANNER — create test plan
-    const plan = await planTests(url, snapshotText, title, trackedLlm, onProgress);
-
-    onProgress("info", "");
-    onProgress("info", `Starting ${plan.steps.length} test steps...`);
-    onProgress("info", "");
 
     // Set up monitoring
     const networkMonitor = createNetworkMonitor(page);
@@ -290,74 +286,40 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     consoleMonitor.start();
     const urlTracker = trackUrlChanges(page);
 
-    // TESTER + VALIDATOR loop
-    const results: TestStep[] = [];
-    const stepsToRun = plan.steps.slice(0, maxSteps);
-    let consecutiveFailures = 0;
+    // Run the autonomous agent loop — LLM decides each action in real-time
+    onProgress("info", "Agent starting autonomous exploration...");
+    onProgress("info", "");
 
-    for (let i = 0; i < stepsToRun.length; i++) {
-      const step = stepsToRun[i];
-      const beforeSnapshot = snapshotText;
-      const beforeUrl = page.url();
+    const agentResult = await runAgentLoop({
+      page,
+      url,
+      snapshot: snapshotText,
+      title,
+      llm: trackedLlm,
+      onProgress,
+      maxSteps,
+      spaRoutes: discoveredSPARoutes,
+      executeStep,
+      validateStep,
+      screenshotDir,
+      AriaSnapshotBuilder,
+      networkMonitor,
+      consoleMonitor,
+    });
 
-      // Clear monitoring state for this step
-      networkMonitor.failures.length = 0;
-      const prevConsoleErrors = [...consoleMonitor.errors];
+    const plan = agentResult.plan;
+    const results = agentResult.steps;
 
-      // TESTER — execute the step
-      step.status = "running";
-      const result = await executeStep(step, page, snapshotText, trackedLlm, onProgress);
-      results.push(result);
+    // Update snapshot to whatever the agent left the page on
+    try {
+      const finalBuilder = new AriaSnapshotBuilder();
+      await finalBuilder.buildTree(page);
+      snapshotText = finalBuilder.getFormattedTree();
+    } catch {}
 
-      // Wait for page to settle
-      await page.waitForTimeout(500);
-
-      // Re-snapshot after action
-      try {
-        const newBuilder = new AriaSnapshotBuilder();
-        await newBuilder.buildTree(page);
-        snapshotText = newBuilder.getFormattedTree();
-      } catch {
-        // Page might be navigating, keep old snapshot
-      }
-
-      // New console errors since this step started
-      const newConsoleErrors = consoleMonitor.errors.filter(e => !prevConsoleErrors.includes(e));
-
-      // VALIDATOR — check if action succeeded
-      if (result.status === "pass" && step.assertion) {
-        await validateStep(result, beforeSnapshot, snapshotText, trackedLlm, onProgress, {
-          networkMonitor,
-          consoleErrors: newConsoleErrors,
-          beforeUrl,
-          afterUrl: page.url(),
-          page,
-        });
-      }
-
-      // Take screenshot after each step
-      try {
-        const stepScreenshot = join(screenshotDir, `step-${step.id}-${Date.now()}.png`);
-        await page.screenshot({ path: stepScreenshot });
-        screenshots.push(stepScreenshot);
-        result.screenshot = stepScreenshot;
-      } catch {}
-
-      // Track consecutive failures for early exit
-      if (result.status === "fail") {
-        consecutiveFailures++;
-        if (consecutiveFailures >= 5) {
-          onProgress("warn", "5 consecutive failures — skipping remaining steps");
-          for (let j = i + 1; j < stepsToRun.length; j++) {
-            stepsToRun[j].status = "skip";
-            stepsToRun[j].error = "Skipped due to consecutive failures";
-            results.push(stepsToRun[j]);
-          }
-          break;
-        }
-      } else {
-        consecutiveFailures = 0;
-      }
+    // Collect screenshots from results
+    for (const r of results) {
+      if (r.screenshot) screenshots.push(r.screenshot);
     }
 
     // Stop monitoring
@@ -377,8 +339,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
             formResults.push(...fResults);
           }
         }
-      } catch (err: any) {
-        onProgress("warn", `Form testing skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Form testing skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -397,8 +359,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           onProgress("info", "Running accessibility audit...");
           const a11yReport = await checkAccessibility(page, page.url(), onProgress);
           a11yReports.push(a11yReport);
-        } catch (err: any) {
-          onProgress("warn", `Accessibility audit skipped: ${err.message}`);
+        } catch (err: unknown) {
+          onProgress("warn", `Accessibility audit skipped: ${err instanceof Error ? err.message : String(err)}`);
         }
       })());
     }
@@ -410,8 +372,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           onProgress("info", "Running security audit...");
           securityReport = await runSecurityAudit(page, url, onProgress);
           onProgress("pass", `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`);
-        } catch (err: any) {
-          onProgress("warn", `Security audit skipped: ${err.message}`);
+        } catch (err: unknown) {
+          onProgress("warn", `Security audit skipped: ${err instanceof Error ? err.message : String(err)}`);
         }
       })());
     }
@@ -423,8 +385,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           onProgress("info", "Running SEO audit...");
           seoReport = await runSEOAudit(page, url, onProgress);
           onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
-        } catch (err: any) {
-          onProgress("warn", `SEO audit skipped: ${err.message}`);
+        } catch (err: unknown) {
+          onProgress("warn", `SEO audit skipped: ${err instanceof Error ? err.message : String(err)}`);
         }
       })());
     }
@@ -439,8 +401,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         const perfReport = await runPerformanceAudit(page, url, onProgress);
         performanceReports = [perfReport];
         onProgress("pass", `Performance: ${perfReport.score}/100 (LCP: ${perfReport.metrics.lcp}ms, CLS: ${perfReport.metrics.cls.toFixed(3)})`);
-      } catch (err: any) {
-        onProgress("warn", `Performance audit skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Performance audit skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -452,8 +414,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         const advSecResults = await runAdvancedSecurityAudit(page, url, onProgress);
         const advSecFailed = advSecResults.filter(r => !r.passed).length;
         onProgress("pass", `Advanced security: ${advSecResults.length} tests, ${advSecFailed} failed`);
-      } catch (err: any) {
-        onProgress("warn", `Advanced security skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Advanced security skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -470,8 +432,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         );
         const totalDiffs = vrReports.reduce((s, r) => s + r.diffs.filter(d => !d.match).length, 0);
         onProgress("pass", `Visual regression: ${totalDiffs} diff(s) across ${vrReports.length} report(s)`);
-      } catch (err: any) {
-        onProgress("warn", `Visual regression skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Visual regression skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -482,8 +444,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         onProgress("info", "Running API audit...");
         const apiResult = await runAPIAudit(page, url, onProgress);
         onProgress("pass", `API: ${apiResult.endpoints} endpoints, avg ${Math.round(apiResult.avgResponseTime)}ms, ${apiResult.failures} failures`);
-      } catch (err: any) {
-        onProgress("warn", `API audit skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `API audit skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -494,8 +456,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         onProgress("info", "Running responsive audit...");
         responsiveReport = await runResponsiveAudit(page, url, onProgress);
         onProgress("pass", `Responsive: ${responsiveReport.score}/100 across ${responsiveReport.viewports.length} viewports`);
-      } catch (err: any) {
-        onProgress("warn", `Responsive audit skipped: ${err.message}`);
+      } catch (err: unknown) {
+        onProgress("warn", `Responsive audit skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -542,8 +504,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     await browserMgr.closeBrowser();
     return report;
 
-  } catch (err: any) {
-    onProgress("fail", `Test failed: ${err.message}`);
+  } catch (err: unknown) {
+    onProgress("fail", `Test failed: ${err instanceof Error ? err.message : String(err)}`);
     await browserMgr.closeBrowser();
     throw err;
   }

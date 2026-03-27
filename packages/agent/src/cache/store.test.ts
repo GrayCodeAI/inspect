@@ -6,8 +6,9 @@ describe("ActionCache", () => {
   let cache: ActionCache;
   const projectRoot = "/tmp/inspect-test-cache-" + Date.now();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     cache = new ActionCache({ projectRoot, ttl: 60_000 });
+    await cache.init();
   });
 
   afterEach(() => {
@@ -56,16 +57,16 @@ describe("ActionCache", () => {
   });
 
   describe("set and get", () => {
-    it("roundtrips a cached action", () => {
+    it("roundtrips a cached action", async () => {
       const key = cache.getKey("click submit", "https://example.com");
-      cache.set(key, { type: "click", ref: "e5" }, {
+      await cache.set(key, { type: "click", ref: "e5" }, {
         instruction: "click submit",
         url: "https://example.com",
         selector: "#submit-btn",
         success: true,
       });
 
-      const result = cache.get(key);
+      const result = await cache.get(key);
       expect(result).not.toBeNull();
       expect(result!.action.type).toBe("click");
       expect(result!.action.ref).toBe("e5");
@@ -74,77 +75,77 @@ describe("ActionCache", () => {
       expect(result!.success).toBe(true);
     });
 
-    it("returns null for missing keys", () => {
-      expect(cache.get("nonexistent_key_abc123ab")).toBeNull();
+    it("returns null for missing keys", async () => {
+      expect(await cache.get("nonexistent_key_abc123ab")).toBeNull();
     });
 
-    it("increments hitCount on subsequent gets", () => {
+    it("increments hitCount on subsequent gets", async () => {
       const key = cache.getKey("click", "https://example.com");
-      cache.set(key, { type: "click" }, {
+      await cache.set(key, { type: "click" }, {
         instruction: "click",
         url: "https://example.com",
       });
 
-      cache.get(key);
-      cache.get(key);
-      const result = cache.get(key);
+      await cache.get(key);
+      await cache.get(key);
+      const result = await cache.get(key);
       expect(result!.hitCount).toBeGreaterThanOrEqual(3);
     });
   });
 
   describe("heal", () => {
-    it("updates selector on an existing cache entry", () => {
+    it("updates selector on an existing cache entry", async () => {
       const key = cache.getKey("click submit", "https://example.com");
-      cache.set(key, { type: "click", ref: "e5", selector: "#old-btn" }, {
+      await cache.set(key, { type: "click", ref: "e5", selector: "#old-btn" }, {
         instruction: "click submit",
         url: "https://example.com",
       });
 
-      const healed = cache.heal(key, "#new-btn", "e10");
+      const healed = await cache.heal(key, "#new-btn", "e10");
       expect(healed).toBe(true);
 
-      const result = cache.get(key);
+      const result = await cache.get(key);
       expect(result!.action.selector).toBe("#new-btn");
       expect(result!.action.ref).toBe("e10");
       expect(result!.healCount).toBeGreaterThanOrEqual(1);
     });
 
-    it("returns false for non-existent key", () => {
-      expect(cache.heal("nonexistent_key_abc123ab", "#new")).toBe(false);
+    it("returns false for non-existent key", async () => {
+      expect(await cache.heal("nonexistent_key_abc123ab", "#new")).toBe(false);
     });
   });
 
   describe("enabled flag", () => {
-    it("returns null for get when disabled", () => {
+    it("returns null for get when disabled", async () => {
       const disabled = new ActionCache({ projectRoot, enabled: false });
       const key = "somekey";
-      disabled.set(key, { type: "click" }, {
+      await disabled.set(key, { type: "click" }, {
         instruction: "test",
         url: "https://example.com",
       });
-      expect(disabled.get(key)).toBeNull();
+      expect(await disabled.get(key)).toBeNull();
     });
   });
 
   describe("stats", () => {
-    it("reports correct memory entries", () => {
+    it("reports correct memory entries", async () => {
       const key1 = cache.getKey("action1", "https://example.com");
       const key2 = cache.getKey("action2", "https://example.com");
-      cache.set(key1, { type: "click" }, { instruction: "action1", url: "https://example.com" });
-      cache.set(key2, { type: "type" }, { instruction: "action2", url: "https://example.com" });
+      await cache.set(key1, { type: "click" }, { instruction: "action1", url: "https://example.com" });
+      await cache.set(key2, { type: "type" }, { instruction: "action2", url: "https://example.com" });
 
-      const stats = cache.stats();
+      const stats = await cache.stats();
       expect(stats.memoryEntries).toBe(2);
       expect(stats.totalEntries).toBeGreaterThanOrEqual(2);
     });
   });
 
   describe("clear", () => {
-    it("removes all entries from memory", () => {
+    it("removes all entries from memory", async () => {
       const key = cache.getKey("action1", "https://example.com");
-      cache.set(key, { type: "click" }, { instruction: "action1", url: "https://example.com" });
-      cache.clear();
-      const stats = cache.stats();
+      await cache.set(key, { type: "click" }, { instruction: "action1", url: "https://example.com" });
+      await cache.clear();
+      const stats = await cache.stats();
       expect(stats.memoryEntries).toBe(0);
     });
   });

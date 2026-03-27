@@ -34,6 +34,29 @@ export {
 } from "./agent.js";
 export type { LLMClient, PageInterface, ActionCacheInterface } from "./act.js";
 
+// ── Config helper ───────────────────────────────────────────────────────────
+
+/** Inspect configuration object shape for defineConfig */
+export interface InspectConfig {
+  agent?: { primary?: string; mode?: string; fallback?: string };
+  devices?: string[];
+  browser?: { type?: string; headless?: boolean; slowMo?: number };
+  git?: { scope?: string; maxFiles?: number; maxDiffChars?: number };
+  a11y?: { enabled?: boolean; standard?: string };
+  visual?: { enabled?: boolean; threshold?: number; viewports?: string[] };
+  timeouts?: { test?: number; step?: number; navigation?: number };
+  maxSteps?: number;
+  url?: string;
+}
+
+/**
+ * Define an Inspect configuration with type checking.
+ * Used in inspect.config.ts files.
+ */
+export function defineConfig(config: InspectConfig): InspectConfig {
+  return config;
+}
+
 // ── SDK Configuration ───────────────────────────────────────────────────────
 
 /** Configuration for the Inspect SDK */

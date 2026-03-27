@@ -1,4 +1,4 @@
-import { getHealth, getModels, getDevices, listSessions } from "../lib/api.js";
+import { getHealth, getModels, getDevices, listSessions, listRuns, getA11yResults, getPerfResults } from "../lib/api.js";
 
 // ============================================================================
 // Helpers
@@ -154,19 +154,46 @@ export async function renderDashboard(container: HTMLElement): Promise<void> {
 
   const checks = Object.entries(healthData.checks);
 
-  // Use mock data for runs and trend (would come from API in production)
-  const recentRuns = getMockRuns();
-  const trendData = getMockTrend();
+  // Fetch real data from API (falls back gracefully)
+  const [runsData, a11yData, perfData] = await Promise.all([
+    listRuns(8).catch(() => ({ runs: [], total: 0 })),
+    getA11yResults().catch(() => null),
+    getPerfResults().catch(() => null),
+  ]);
+
+  const recentRuns: RunEntry[] = runsData.runs.map((r: any) => ({
+    id: r.id,
+    instruction: r.instruction ?? r.definition?.prompt ?? "Test run",
+    status: r.status,
+    agent: r.agent ?? "unknown",
+    device: r.device ?? "Desktop",
+    duration: r.duration ?? r.totalDuration ?? 0,
+    timestamp: r.timestamp ?? new Date(r.createdAt).toISOString(),
+  }));
+
+  // Compute trend from recent runs
+  const trendData: TrendEntry[] = [];
+  const runsByDay = new Map<string, { total: number; passed: number }>();
+  for (const r of recentRuns) {
+    const day = r.timestamp.slice(0, 10);
+    const entry = runsByDay.get(day) ?? { total: 0, passed: 0 };
+    entry.total++;
+    if (r.status === "pass" || r.status === "completed") entry.passed++;
+    runsByDay.set(day, entry);
+  }
+  for (const [date, counts] of runsByDay) {
+    trendData.push({ date, passRate: counts.total > 0 ? Math.round((counts.passed / counts.total) * 100) : 0 });
+  }
 
   const totalRuns = recentRuns.length;
-  const passCount = recentRuns.filter((r) => r.status === "pass").length;
+  const passCount = recentRuns.filter((r) => r.status === "pass" || r.status === "completed").length;
   const overallPassRate = totalRuns > 0 ? Math.round((passCount / totalRuns) * 100) : 0;
 
-  // Mock scores
-  const a11yScore = 87;
-  const perfScore = 72;
-  const seoScore = 94;
-  const secScore = 68;
+  // Quality scores from real audits (default to -- if no data)
+  const a11yScore = a11yData?.score ?? 0;
+  const perfScore = perfData?.scores?.performance ?? 0;
+  const seoScore = perfData?.scores?.seo ?? 0;
+  const secScore = 0; // Security score computed separately
 
   container.innerHTML = `
     <div class="page-header">

@@ -17,12 +17,12 @@ async function startServer(options: ServeOptions): Promise<void> {
   const {
     APIServer,
     registerTaskRoutes,
-    InMemoryTaskStore,
     registerWorkflowRoutes,
     registerCredentialRoutes,
     registerSessionRoutes,
-    InMemorySessionManager,
     registerSystemRoutes,
+    registerAuditRoutes,
+    createPersistentStores,
   } = await import("@inspect/api");
 
   const server = new APIServer({
@@ -36,13 +36,15 @@ async function startServer(options: ServeOptions): Promise<void> {
     api: async () => ({ status: "ok" as const, message: "API server running" }),
   });
 
-  // Register task routes with in-memory store
-  const taskStore = new InMemoryTaskStore();
-  registerTaskRoutes(server, taskStore);
+  // Create persistent stores (data survives restarts in .inspect/data/)
+  const stores = createPersistentStores();
+  console.log(chalk.dim(`  Data directory: ${stores.dataDir}`));
 
-  // Register workflow routes with in-memory store
-  const workflowStore = createInMemoryWorkflowStore();
-  registerWorkflowRoutes(server, workflowStore);
+  // Register task routes
+  registerTaskRoutes(server, stores.taskStore);
+
+  // Register workflow routes
+  registerWorkflowRoutes(server, stores.workflowStore);
 
   // Register credential routes
   try {
@@ -62,8 +64,10 @@ async function startServer(options: ServeOptions): Promise<void> {
   }
 
   // Register session routes
-  const sessionManager = new InMemorySessionManager();
-  registerSessionRoutes(server, sessionManager);
+  registerSessionRoutes(server, stores.sessionManager);
+
+  // Register audit routes (a11y, performance)
+  registerAuditRoutes(server, stores.dataDir);
 
   // Add device presets and agents endpoints
   const { DEVICE_PRESETS, SUPPORTED_MODELS } = await import("@inspect/shared");
@@ -128,63 +132,6 @@ async function startServer(options: ServeOptions): Promise<void> {
 
   // Keep alive
   await new Promise(() => {});
-}
-
-/**
- * Create an in-memory workflow store for the API server.
- */
-function createInMemoryWorkflowStore() {
-  const workflows = new Map<string, any>();
-  const runs = new Map<string, any>();
-
-  return {
-    getWorkflow(id: string) { return workflows.get(id); },
-    setWorkflow(id: string, w: any) { workflows.set(id, w); },
-    deleteWorkflow(id: string) { return workflows.delete(id); },
-    listWorkflows() { return Array.from(workflows.values()); },
-    getRun(id: string) { return runs.get(id); },
-    setRun(id: string, r: any) { runs.set(id, r); },
-    listRuns(workflowId?: string) {
-      const all = Array.from(runs.values());
-      return workflowId ? all.filter((r: any) => r.workflowId === workflowId) : all;
-    },
-    async executeWorkflow(id: string, params?: Record<string, unknown>) {
-      const workflow = workflows.get(id);
-      if (!workflow) throw new Error("Workflow not found");
-
-      // Use the workflow executor if available
-      try {
-        const { WorkflowExecutor } = await import("@inspect/workflow");
-        const executor = new WorkflowExecutor();
-        const run = await executor.execute(workflow, params);
-        runs.set(run.id, run);
-        return run;
-      } catch (err) {
-        // If workflow package not available, return descriptive error
-        const run = {
-          id: `run_${Date.now()}`,
-          workflowId: id,
-          status: "failed" as const,
-          error: `Workflow execution failed: ${err instanceof Error ? err.message : err}`,
-          parameters: params ?? {},
-          blockResults: {},
-          startedAt: Date.now(),
-          completedAt: Date.now(),
-          duration: 0,
-        };
-        runs.set(run.id, run);
-        return run;
-      }
-    },
-    cancelRun(runId: string) {
-      const run = runs.get(runId);
-      if (run) run.status = "cancelled";
-    },
-    continueRun(runId: string, _data?: unknown) {
-      const run = runs.get(runId);
-      if (run) run.status = "running";
-    },
-  };
 }
 
 export function registerServeCommand(program: Command): void {

@@ -44,6 +44,7 @@ export interface TestOptions {
   outputDir?: string;
   preset?: string;
   trace?: boolean;
+  export?: boolean;
   shard?: string;
   project?: string;
   budget?: string;
@@ -487,10 +488,7 @@ export async function runTest(options: TestOptions): Promise<void> {
     }
   }
 
-  // Trace log — hoisted so it's accessible in both the tracing setup and trace-save sections
-  const traceLog: Array<{ method: string; url: string; status: number; duration: number }> = [];
-
-  // Headless / CI mode: run without TUI (legacy single-LLM-call path)
+  // ── TestExecutor-based execution ──────────────────────────────────────────
   console.log(chalk.blue(`\nRunning tests with agent: ${config.agent} (mode: ${config.mode})`));
   console.log(chalk.dim(`Devices: ${config.devices.join(", ")} | Browser: ${config.browser}`));
   if (config.url) console.log(chalk.dim(`URL: ${config.url}`));
@@ -498,75 +496,13 @@ export async function runTest(options: TestOptions): Promise<void> {
   console.log();
 
   try {
-    // 1. Launch browser
-    console.log(chalk.dim("Launching browser..."));
-    const { BrowserManager } = await import("@inspect/browser");
-    const browserMgr = new BrowserManager();
-    await browserMgr.launchBrowser({
-      headless: !config.headed,
-      viewport: { width: 1920, height: 1080 },
-    } as any);
-    const page = await browserMgr.newPage();
-
-    // Trace mode: record request/response pairs
-    if (options.trace) {
-      console.log(chalk.dim("Tracing enabled — recording requests...\n"));
-
-      page.on("request", (req: any) => {
-        const entry = { method: req.method(), url: req.url(), status: 0, duration: Date.now() };
-        traceLog.push(entry);
-      });
-
-      page.on("response", (res: any) => {
-        const entry = traceLog.find(e => e.url === res.url() && e.status === 0);
-        if (entry) {
-          entry.status = res.status();
-          entry.duration = Date.now() - entry.duration;
-        }
-      });
-    }
-
-    // Cookie sync
-    if (options.cookies !== undefined) {
-      const { syncCookies } = await import("../utils/cookie-sync.js");
-      const domain = typeof options.cookies === "string" ? options.cookies : undefined;
-      console.log(chalk.dim("Syncing cookies from local browser..."));
-      const syncResult = await syncCookies(page, { domain });
-      if (syncResult.success) {
-        console.log(chalk.dim(`  ${syncResult.cookieCount} cookies synced from ${syncResult.browser}`));
-      } else {
-        console.log(chalk.yellow(`  Cookie sync: ${syncResult.error}`));
-      }
-    }
-
-    // 2. Navigate to URL if provided
-    if (config.url) {
-      console.log(chalk.dim(`Navigating to ${config.url}...`));
-      await page.goto(config.url, { waitUntil: "domcontentloaded", timeout: 30000 });
-    }
-
-    // 3. Take ARIA snapshot
-    console.log(chalk.dim("Taking page snapshot..."));
-    const { AriaSnapshotBuilder } = await import("@inspect/browser");
-    const snapshotBuilder = new AriaSnapshotBuilder();
-    const elements = await snapshotBuilder.buildTree(page);
-    const stats = snapshotBuilder.getStats();
-    console.log(chalk.dim(`  ${stats.refCount} elements, ~${stats.tokenEstimate} tokens`));
-
-    // 4. Build system message with snapshot
-    const snapshotText = snapshotBuilder.getFormattedTree();
-    const fullPrompt = prompt + "\n\n## Current Page Snapshot\n```\n" + snapshotText.slice(0, 8000) + "\n```";
-
-    // 5. Resolve LLM provider
-    console.log(chalk.dim(`Calling ${config.agent} agent...`));
+    // Resolve LLM provider
     const agentToProvider: Record<string, string> = {
       claude: "anthropic", gpt: "openai", openai: "openai",
       gemini: "gemini", deepseek: "deepseek", ollama: "ollama",
       anthropic: "anthropic", google: "gemini",
     };
     const providerName = agentToProvider[config.agent] ?? config.agent;
-
-    // Check for API key
     const keyMap: Record<string, string> = {
       anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY",
       gemini: "GOOGLE_AI_KEY", deepseek: "DEEPSEEK_API_KEY",
@@ -579,153 +515,88 @@ export async function runTest(options: TestOptions): Promise<void> {
       console.log(chalk.yellow("  OPENAI_API_KEY     — for GPT/OpenAI"));
       console.log(chalk.yellow("  GOOGLE_AI_KEY      — for Gemini"));
       console.log(chalk.yellow("  DEEPSEEK_API_KEY   — for DeepSeek"));
-      await browserMgr.closeBrowser();
       process.exit(EXIT_CODES.AUTH_ERROR);
     }
 
-    // Create provider directly to avoid config complexity
+    // Create dependencies
     const { AgentRouter } = await import("@inspect/agent");
+    const { BrowserManager } = await import("@inspect/browser");
+    const { TestExecutor } = await import("@inspect/core");
+    const { getPreset } = await import("@inspect/core");
+
     type PN = "anthropic" | "openai" | "gemini" | "deepseek" | "ollama";
     const router = new AgentRouter({
       keys: { [providerName]: apiKey } as Partial<Record<PN, string>>,
       defaultProvider: providerName as PN,
     });
-    const provider = router.getProvider(providerName as PN);
+    const browserMgr = new BrowserManager();
 
-    const startTime = Date.now();
-    const response = await provider.chat([
-      { role: "system", content: "You are an adversarial browser testing agent. Analyze the page and find bugs. Respond with a JSON object: { \"steps\": [{ \"action\": \"description\", \"result\": \"pass|fail\", \"evidence\": \"what you observed\" }], \"summary\": \"overall summary\" }" },
-      { role: "user", content: fullPrompt },
-    ]);
-    const elapsed = Date.now() - startTime;
-
-    // 6. Parse and display results
-    console.log(chalk.dim(`\nAgent responded in ${(elapsed / 1000).toFixed(1)}s\n`));
-
-    let testResults: { steps: { action: string; result: string; evidence: string }[]; summary: string };
+    // Optional credential vault
+    let credentialVault: any = undefined;
     try {
-      const jsonStr = response.content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-      testResults = JSON.parse(jsonStr);
-    } catch {
-      // If not valid JSON, show raw response
-      console.log(chalk.white(response.content));
-      testResults = { steps: [{ action: "AI Analysis", result: "info", evidence: response.content.slice(0, 200) }], summary: response.content.slice(0, 300) };
-    }
+      const { CredentialVault } = await import("@inspect/credentials");
+      credentialVault = new CredentialVault();
+    } catch { /* credentials optional */ }
 
-    // Display results
-    let passed = 0, failed = 0;
-    for (const step of testResults.steps) {
-      const icon = step.result === "pass" ? chalk.green("PASS") : step.result === "fail" ? chalk.red("FAIL") : chalk.yellow("INFO");
-      console.log(`  ${icon}  ${step.action}`);
-      if (step.evidence) console.log(chalk.dim(`         ${step.evidence.slice(0, 120)}`));
+    const devicePreset = getPreset(config.devices[0]) ?? { name: config.devices[0], viewport: { width: 1920, height: 1080 } };
 
-      // In UI mode, pause between steps
-      if (options.ui && testResults.steps.indexOf(step) < testResults.steps.length - 1) {
-        const readline = await import("node:readline");
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        await new Promise<void>((resolve) => {
-          rl.question(chalk.dim("  [Enter to continue, 'q' to quit] "), (answer) => {
-            rl.close();
-            if (answer.toLowerCase() === "q") {
-              process.exit(0);
-            }
-            resolve();
-          });
-        });
-      }
-    }
-    passed = testResults.steps.filter((s) => s.result === "pass").length;
-    failed = testResults.steps.filter((s) => s.result === "fail").length;
+    const executor = new TestExecutor(
+      {
+        instruction,
+        prompt,
+        agent: config.agent,
+        mode: config.mode as "dom" | "hybrid" | "cua",
+        url: config.url,
+        device: devicePreset as any,
+        browser: config.browser as "chromium" | "firefox" | "webkit",
+        headed: config.headed,
+        a11y: config.a11y,
+        lighthouse: options.lighthouse ?? false,
+        security: options.security ?? false,
+        maxSteps: parseInt(String(options.maxSteps ?? "25"), 10),
+        timeoutMs: 300_000,
+        stepTimeoutMs: 30_000,
+        verbose: options.verbose ?? false,
+      },
+      { router, browserManager: browserMgr, credentialVault },
+    );
 
-    // Retry logic
-    const maxRetries = parseInt(String(options.retries ?? "0"), 10);
-    if (failed > 0 && maxRetries > 0) {
-      for (let retry = 1; retry <= maxRetries; retry++) {
-        console.log(chalk.yellow(`\nRetry ${retry}/${maxRetries}...`));
-
-        // Re-run the LLM call
-        const retryResponse = await provider.chat([
-          { role: "system", content: "You are an adversarial browser testing agent. Analyze the page and find bugs. Respond with a JSON object: { \"steps\": [{ \"action\": \"description\", \"result\": \"pass|fail\", \"evidence\": \"what you observed\" }], \"summary\": \"overall summary\" }" },
-          { role: "user", content: fullPrompt },
-        ]);
-
-        // Re-parse results
-        try {
-          const retryJsonStr = retryResponse.content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-          const retryResults = JSON.parse(retryJsonStr);
-          const retryFailed = retryResults.steps.filter((s: any) => s.result === "fail").length;
-
-          if (retryFailed === 0) {
-            console.log(chalk.green(`  All tests passed on retry ${retry}`));
-            failed = 0;
-            passed = retryResults.steps.length;
-            testResults = retryResults;
-            break;
-          } else {
-            console.log(chalk.dim(`  Still ${retryFailed} failure(s)`));
-            // Update results with latest
-            testResults = retryResults;
-            failed = retryFailed;
-            passed = retryResults.steps.filter((s: any) => s.result === "pass").length;
-          }
-        } catch {
-          console.log(chalk.dim(`  Retry parse error, continuing...`));
+    // Progress display
+    executor.setProgressCallback((progress) => {
+      if (progress.currentToolCall) {
+        process.stdout.write(chalk.dim(`  [${progress.phase}] Step ${progress.currentStep + 1}: ${progress.currentToolCall}      \r`));
+      } else if (progress.stepResult) {
+        const icon = progress.stepResult.status === "pass" ? chalk.green("PASS") : chalk.red("FAIL");
+        console.log(`  ${icon}  ${progress.stepResult.description.slice(0, 100)}`);
+        if (progress.stepResult.error) {
+          console.log(chalk.red(`         ${progress.stepResult.error.slice(0, 120)}`));
         }
       }
-    }
+    });
 
-    // Grep filter — only show matching steps
-    if (options.grep) {
-      const pattern = new RegExp(options.grep, "i");
-      testResults.steps = testResults.steps.filter((s: any) =>
-        pattern.test(s.action) || pattern.test(s.evidence ?? "")
-      );
-      passed = testResults.steps.filter((s) => s.result === "pass").length;
-      failed = testResults.steps.filter((s) => s.result === "fail").length;
-    }
+    console.log(chalk.dim("Starting test execution...\n"));
+    const result = await executor.execute();
+    const elapsed = result.totalDuration;
+
+    // Summary
+    const passed = result.steps.filter((s) => s.status === "pass").length;
+    const failed = result.steps.filter((s) => s.status === "fail").length;
 
     console.log(chalk.dim("\n" + "-".repeat(60)));
-    console.log(`\n${chalk.bold("Summary:")} ${testResults.summary}`);
-    console.log(`\n  ${chalk.green(`${passed} passed`)}  ${failed > 0 ? chalk.red(`${failed} failed`) : ""}  ${chalk.dim(`${(elapsed / 1000).toFixed(1)}s`)}\n`);
+    console.log(`\n${chalk.bold("Result:")} ${result.status.toUpperCase()}`);
+    console.log(`  ${chalk.green(`${passed} passed`)}  ${failed > 0 ? chalk.red(`${failed} failed`) : ""}  ${chalk.dim(`${(elapsed / 1000).toFixed(1)}s`)}  ${chalk.dim(`${result.tokenCount} tokens`)}\n`);
 
-    // Budget check
-    if (options.budget || (await import("node:fs")).existsSync((await import("node:path")).join(process.cwd(), "inspect.budget.json"))) {
-      const { loadBudget, checkBudget } = await import("../utils/budgets.js");
-      const budget = loadBudget(options.budget);
-      const budgetResults = checkBudget(budget, {
-        testFailures: failed,
-        duration: elapsed,
-      });
-
-      if (budgetResults.length > 0) {
-        console.log(chalk.dim("\nBudget check:"));
-        for (const check of budgetResults) {
-          const icon = check.passed ? chalk.green("\u2713") : chalk.red("\u2717");
-          console.log(`  ${icon} ${check.metric}: ${check.actual} (budget: ${check.budget})`);
-        }
-        const budgetFailed = budgetResults.some(c => !c.passed);
-        if (budgetFailed) {
-          console.log(chalk.red("\n  Budget exceeded \u2014 failing.\n"));
-          failed = Math.max(failed, 1);
-        }
-      }
-    }
-
-    // JSON output mode: emit structured JSON and exit
+    // JSON output
     if (options.json) {
       const output = {
         version: "0.1.0",
         instruction,
+        ...result,
         agent: config.agent,
         mode: config.mode,
         device: config.devices[0],
         browser: config.browser,
         url: config.url ?? null,
-        duration: elapsed,
-        status: failed > 0 ? "fail" : "pass",
-        summary: testResults.summary,
-        steps: testResults.steps,
-        tokens: response.usage,
       };
       if (options.jq) {
         const { jqFilter } = await import("../utils/jq.js");
@@ -734,7 +605,6 @@ export async function runTest(options: TestOptions): Promise<void> {
       } else {
         process.stdout.write(JSON.stringify(output, null, 2) + "\n");
       }
-      await browserMgr.closeBrowser();
       process.exit(failed > 0 ? EXIT_CODES.TEST_FAILURE : EXIT_CODES.SUCCESS);
     }
 
@@ -742,7 +612,6 @@ export async function runTest(options: TestOptions): Promise<void> {
     if (options.reporter) {
       const { formatResults, writeReport } = await import("../utils/reporters.js");
       const reporterType = options.reporter as any;
-
       const runResult = {
         instruction,
         agent: config.agent,
@@ -751,20 +620,18 @@ export async function runTest(options: TestOptions): Promise<void> {
         browser: config.browser,
         url: config.url,
         status: (failed > 0 ? "fail" : "pass") as "pass" | "fail",
-        steps: testResults.steps.map((s: any) => ({
-          action: s.action,
-          result: s.result as any,
-          evidence: s.evidence,
+        steps: result.steps.map((s) => ({
+          action: s.description,
+          result: (s.status === "skipped" ? "skip" : s.status) as any,
+          evidence: s.toolCalls.map((t) => `${t.tool}(${JSON.stringify(t.args)})`).join(", "),
           error: s.error,
         })),
-        summary: testResults.summary,
+        summary: `${passed} passed, ${failed} failed`,
         duration: elapsed,
-        tokens: response.usage,
-        timestamp: new Date().toISOString(),
+        tokens: { totalTokens: result.tokenCount, promptTokens: 0, completionTokens: 0 },
+        timestamp: result.timestamp,
       };
-
       if (reporterType === "github") {
-        // GitHub annotations go to stdout
         console.log(formatResults(runResult, "github"));
       } else {
         const filepath = writeReport(runResult, reporterType, options.outputDir);
@@ -772,17 +639,16 @@ export async function runTest(options: TestOptions): Promise<void> {
       }
     }
 
-    // 7. Run a11y audit if requested
-    if (config.a11y) {
-      console.log(chalk.dim("Running accessibility audit..."));
-      try {
-        const quality = await import("@inspect/quality" as string);
-        const auditor = new quality.AccessibilityAuditor();
-        const a11yReport = await auditor.audit(page);
-        console.log(chalk.dim(`  A11y score: ${a11yReport.score}/100, ${a11yReport.violations.length} violations\n`));
-      } catch {
-        console.log(chalk.yellow("  A11y audit requires @inspect/quality package"));
-      }
+    // Export Playwright test code if requested
+    if (options.export) {
+      const { exportPlaywrightTest } = await import("@inspect/core");
+      const exportPath = exportPlaywrightTest(result, instruction, config.url ?? "", {
+        testName: instruction.slice(0, 60),
+        includeComments: true,
+        includeAssertions: true,
+      });
+      console.log(chalk.green(`Playwright test exported: ${exportPath}`));
+      console.log(chalk.dim(`  Run with: npx playwright test ${exportPath}`));
     }
 
     // Save trace if enabled
@@ -796,15 +662,18 @@ export async function runTest(options: TestOptions): Promise<void> {
         instruction,
         url: config.url,
         agent: config.agent,
-        timestamp: new Date().toISOString(),
-        requests: traceLog,
+        timestamp: result.timestamp,
+        steps: result.steps.map((s) => ({
+          description: s.description,
+          status: s.status,
+          duration: s.duration,
+          toolCalls: s.toolCalls,
+        })),
       }, null, 2));
       console.log(chalk.dim(`Trace saved: ${traceFile}`));
     }
 
-    // Cleanup
-    await browserMgr.closeBrowser();
-
+    // Browser cleanup is handled by TestExecutor
     if (failed > 0) process.exit(EXIT_CODES.TEST_FAILURE);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -887,6 +756,7 @@ export function registerTestCommand(program: Command): void {
     .option("--reporter <type>", "Output format: list, dot, json, junit, html, markdown, github (default: list)")
     .option("--output-dir <dir>", "Directory for report files (default: .inspect/reports)")
     .option("--preset <name>", "Apply a preset configuration: ci, mobile, desktop, comprehensive, quick, debug")
+    .option("--export", "Export test as Playwright .spec.ts file (zero vendor lock-in)")
     .option("--trace", "Enable request/response tracing for debugging")
     .option("--shard <shard>", "Run a shard of tests: current/total (e.g. 1/3 for first of 3 shards)")
     .option("--project <name>", "Use a named project configuration from inspect.config")

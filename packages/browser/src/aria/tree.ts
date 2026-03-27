@@ -52,19 +52,22 @@ export class AriaTree {
   async build(page: Page): Promise<ElementSnapshot[]> {
     // Use CDP to get accessibility tree (page.accessibility was removed in newer Playwright)
     const cdp = await page.context().newCDPSession(page);
-    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
-    await cdp.detach();
-    const snapshot = this.cdpNodesToAXTree(nodes);
-    if (!snapshot) return [];
+    try {
+      const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+      const snapshot = this.cdpNodesToAXTree(nodes);
+      if (!snapshot) return [];
 
-    this.refManager.clear();
-    return this.processNode(snapshot as AXNode);
+      this.refManager.clear();
+      return this.processNode(snapshot as AXNode);
+    } finally {
+      await cdp.detach().catch(() => {});
+    }
   }
 
   /**
    * Convert CDP Accessibility nodes into the legacy AXNode tree format.
    */
-  private cdpNodesToAXTree(nodes: any[]): AXNode | null {
+  private cdpNodesToAXTree(nodes: Array<{ nodeId: string; role?: { value?: string }; name?: { value?: string }; childIds?: string[]; parentId?: string }>): AXNode | null {
     if (!nodes || nodes.length === 0) return null;
     const map = new Map<string, AXNode>();
     for (const node of nodes) {
@@ -270,10 +273,14 @@ export class AriaTree {
 
   private flattenTree(tree: ElementSnapshot[]): ElementSnapshot[] {
     const result: ElementSnapshot[] = [];
-    for (const node of tree) {
+    const stack: ElementSnapshot[] = [...tree].reverse();
+    while (stack.length > 0) {
+      const node = stack.pop()!;
       result.push(node);
       if (node.children) {
-        result.push(...this.flattenTree(node.children));
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
+        }
       }
     }
     return result;
@@ -281,10 +288,14 @@ export class AriaTree {
 
   private flattenDOMTree(tree: DOMNode[]): DOMNode[] {
     const result: DOMNode[] = [];
-    for (const node of tree) {
+    const stack: DOMNode[] = [...tree].reverse();
+    while (stack.length > 0) {
+      const node = stack.pop()!;
       result.push(node);
       if (node.children) {
-        result.push(...this.flattenDOMTree(node.children));
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
+        }
       }
     }
     return result;
