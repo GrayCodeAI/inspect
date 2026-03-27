@@ -1,0 +1,23 @@
+node_modules
+dist
+.turbo
+*.tsbuildinfo
+.git
+.inspect
+.env
+.env.*
+coverage
+
+# Vendored reference projects (not needed in container)
+firecrawl
+lighthouse
+msw
+gremlins-js
+backstopjs
+browsergym
+toxiproxy
+zap
+
+# OS files
+.DS_Store
+*.log

@@ -1,73 +1,194 @@
-# Inspect
+<p align="center">
+  <h1 align="center">Inspect</h1>
+  <p align="center"><strong>AI-Powered Browser Testing Platform</strong></p>
+</p>
 
-**AI-Powered Browser Testing Platform**
+<p align="center">
+  <img src="https://img.shields.io/github/actions/workflow/status/nichochar/inspect/ci.yml?branch=main&label=build" alt="Build Status">
+  <img src="https://img.shields.io/badge/tests-566%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
+  <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node Version">
+  <img src="https://img.shields.io/badge/packages-15-orange" alt="Packages">
+  <img src="https://img.shields.io/badge/CLI%20commands-35-purple" alt="CLI Commands">
+</p>
 
-Inspect uses AI agents to automatically test websites — give it a natural language instruction and it launches a real browser, finds bugs, and reports results.
+---
+
+Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 15 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, and more.
+
+**Inspired by**: Playwright (browser API), Vitest (runner/reporter), Lighthouse (auditing), GitHub CLI (command structure), Vercel (developer experience), Expect (assertions)
+
+## Features
+
+- **AI-Powered Testing** -- Describe what to test in plain English; an AI agent drives a real browser
+- **35 CLI Commands** -- Organized into 6 groups: Testing, Browser, Quality, Infrastructure, Data & Workflow, Setup & Info
+- **Interactive TUI** -- Form-based interface with instruction history, auto-URL detection, agent/device/mode selectors, and Zustand state persistence
+- **Web Dashboard** -- 12-page dashboard with score gauges, trend charts, visual diff viewer, accessibility violations, performance metrics, and dark theme
+- **7 Reporter Formats** -- list, dot, json, junit, html, markdown, github
+- **5 LLM Providers** -- Claude, GPT, Gemini, DeepSeek, Ollama (local)
+- **Visual Regression** -- Pixel diff with slider, side-by-side, and overlay comparison modes
+- **Accessibility Auditing** -- axe-core with WCAG 2.2 compliance (105 rules)
+- **Performance Scoring** -- Lighthouse integration with Core Web Vitals
+- **Security Scanning** -- OWASP Top 10, CVE scanning, chaos testing
+- **YAML Workflows** -- 15 block types, cron scheduling, conditional logic
+- **Credential Vault** -- AES-256-GCM encrypted storage with Bitwarden, 1Password, and Azure Key Vault backends
+- **CI/CD Ready** -- JUnit/GitHub reporters, sharding, presets, template generation for GitHub Actions/GitLab CI/CircleCI
+- **Shell Completions** -- bash, zsh, and fish
+- **SDK** -- `act()`, `extract()`, `observe()`, `agent()` for programmatic use
 
 ## Quick Start
 
 ```bash
-# Install
-pnpm install
+# 1. Install and build
+pnpm install && pnpm build
 
-# Build
-pnpm build
-
-# Initialize
-node apps/cli/dist/index.js init
-
-# Check your environment
+# 2. Check your environment
 node apps/cli/dist/index.js doctor
 
-# Run a test (requires API key)
+# 3. Run a test
 ANTHROPIC_API_KEY=sk-ant-... node apps/cli/dist/index.js test \
   -m "test the login flow" \
   --url https://your-app.com \
   -y
 ```
 
-## How It Works
+## CLI Reference
 
-1. **You describe what to test** in plain English
-2. **Inspect gathers git context** — what files changed, the diff, recent commits
-3. **An AI agent opens a real browser** — navigates, clicks, types, scrolls
-4. **The agent thinks adversarially** — tries edge cases, invalid inputs, breaking scenarios
-5. **Results are reported** with pass/fail, evidence, and screenshots
+Inspect ships 35 commands organized into 6 groups.
 
-## CLI Commands
+### Testing
+
+| Command | Description |
+|---------|-------------|
+| `inspect test` | AI-powered browser test with natural-language instructions |
+| `inspect run` | Run a saved test suite or YAML test file |
+| `inspect pr` | Test a GitHub pull request with full git context |
+| `inspect replay` | Replay a previous test run from its trace |
+| `inspect compare` | Compare two test runs side by side |
+| `inspect watch` | Watch for file changes and re-run tests automatically |
 
 ```bash
-# Core testing
-inspect test -m "test checkout flow"           # AI-powered test
-inspect test -m "test login" --url https://...  # Test specific URL
-inspect test --target branch                    # Test branch changes
-inspect test -m "test forms" --headed           # Watch the browser
-inspect test -m "test" --agent gpt              # Use GPT instead of Claude
-inspect test -m "test" --mode cua               # Computer Use Agent mode
-
-# GitHub PR testing
+inspect test -m "test checkout flow" --url https://shop.example.com
+inspect test -m "test forms" --headed --agent gpt --mode cua
+inspect test -m "test search" --workers 4 --shard 1/3 --grep "login"
 inspect pr https://github.com/user/repo/pull/123
+inspect run tests/checkout.yaml --retries 2
+inspect watch --grep "login" --reporter dot
+```
 
-# Visual regression
+### Browser
+
+| Command | Description |
+|---------|-------------|
+| `inspect open` | Open a URL in a managed browser session |
+| `inspect screenshot` | Capture a screenshot of a page |
+| `inspect pdf` | Export a page to PDF |
+| `inspect codegen` | Generate test code from browser interactions |
+
+```bash
+inspect open https://example.com --device "iPhone 15"
+inspect screenshot https://example.com -o screenshot.png --full-page
+inspect pdf https://example.com -o page.pdf
+inspect codegen https://example.com
+```
+
+### Quality
+
+| Command | Description |
+|---------|-------------|
+| `inspect a11y` | Run accessibility audit (axe-core, WCAG 2.2) |
+| `inspect lighthouse` | Run Lighthouse performance audit |
+| `inspect security` | Run security scan (OWASP Top 10) |
+| `inspect chaos` | Run chaos/monkey testing (Gremlins.js) |
+| `inspect visual` | Run visual regression comparison |
+
+```bash
+inspect a11y https://example.com --standard wcag22aa
+inspect lighthouse https://example.com --budget perf:90,a11y:95
+inspect security https://example.com --level full
+inspect chaos https://example.com --duration 30s
 inspect visual --baseline main --branch feature/ui
+```
 
-# Quality testing
-inspect a11y https://your-app.com               # Accessibility audit
-inspect lighthouse https://your-app.com          # Performance audit
-inspect chaos https://your-app.com               # Monkey testing
-inspect security https://your-app.com            # Security scan
+### Infrastructure
 
-# Workflows
-inspect workflow run tests/checkout.yaml
-inspect workflow create                          # AI-assisted
+| Command | Description |
+|---------|-------------|
+| `inspect serve` | Start the REST API server |
+| `inspect tunnel` | Create a Cloudflare tunnel to the API server |
+| `inspect sessions` | Manage browser sessions |
+| `inspect mcp` | Start the MCP (Model Context Protocol) tool server |
 
-# Utilities
-inspect doctor                                   # Check environment
-inspect init                                     # Initialize project
-inspect devices                                  # List device presets
-inspect models                                   # List LLM models
-inspect serve                                    # Start API server
-inspect mcp                                      # Start MCP server
+```bash
+inspect serve --port 3000 --auth jwt
+inspect tunnel --subdomain my-inspect
+inspect sessions list
+inspect mcp
+```
+
+### Data & Workflow
+
+| Command | Description |
+|---------|-------------|
+| `inspect extract` | Extract structured data from a page |
+| `inspect workflow` | Run or create YAML workflows |
+| `inspect credentials` | Manage the encrypted credential vault |
+
+```bash
+inspect extract https://example.com -s '{"title": "string", "price": "number"}'
+inspect workflow run tests/e2e.yaml
+inspect workflow create
+inspect credentials set STAGING_PASSWORD
+```
+
+### Setup & Info
+
+| Command | Description |
+|---------|-------------|
+| `inspect init` | Initialize project config and CI templates |
+| `inspect doctor` | Check environment, dependencies, and API keys |
+| `inspect generate` | Generate test files from descriptions |
+| `inspect audit` | Audit project dependencies and config |
+| `inspect install` | Install browser binaries (Chromium, Firefox, WebKit) |
+| `inspect show-report` | Open a generated report in the browser |
+| `inspect show-trace` | Open a trace file in the viewer |
+| `inspect devices` | List available device presets (25 devices) |
+| `inspect agents` | List available AI agents and their capabilities |
+| `inspect models` | List available LLM models across all providers |
+| `inspect completions` | Generate shell completions (bash/zsh/fish) |
+| `inspect alias` | Manage command aliases |
+
+```bash
+inspect init
+inspect init --ci github-actions
+inspect doctor --json
+inspect devices --format json
+inspect models --provider anthropic
+inspect completions --shell zsh >> ~/.zshrc
+```
+
+## Web Dashboard
+
+The web dashboard provides 12 pages for monitoring and managing test runs:
+
+| Page | Description |
+|------|-------------|
+| **Dashboard** | Overview with score gauges, trend charts, and recent runs |
+| **Tasks** | Browse and filter all test tasks |
+| **Run Detail** | Step timeline, live polling, token usage breakdown |
+| **Visual Diff** | Slider, side-by-side, and pixel diff comparison modes |
+| **Reports** | Browse reports with drag-and-drop file upload |
+| **Accessibility** | Violations dashboard grouped by severity and rule |
+| **Performance** | Lighthouse scores with Core Web Vitals breakdown |
+| **Workflows** | View and manage YAML workflow definitions |
+| **Credentials** | Manage encrypted credential vault entries |
+| **Sessions** | Active browser session management |
+| **Devices** | Device preset browser |
+| **Settings** | Configuration, API keys, and preferences |
+
+```bash
+# Start the dashboard
+cd apps/web && pnpm dev
 ```
 
 ## SDK Usage
@@ -83,17 +204,20 @@ const inspect = new Inspect({
 
 await inspect.init();
 
-// Single action
+// Execute a single action
 await inspect.act("Click the login button");
 
-// Extract data
+// Extract structured data with Zod validation
 const data = await inspect.extract("Get all product prices", {
   schema: z.object({
     products: z.array(z.object({ name: z.string(), price: z.number() })),
   }),
 });
 
-// Multi-step agent
+// Get suggested actions from the current page
+const actions = await inspect.observe("What can I do on this page?");
+
+// Run a multi-step autonomous agent
 const result = await inspect.agent("Complete the checkout flow", {
   maxSteps: 20,
   onStep: (step) => console.log(step),
@@ -102,63 +226,180 @@ const result = await inspect.agent("Complete the checkout flow", {
 await inspect.close();
 ```
 
-## Environment Variables
+## Configuration
 
-| Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Claude API key |
-| `OPENAI_API_KEY` | OpenAI API key |
-| `GOOGLE_AI_KEY` | Google Gemini API key |
-| `DEEPSEEK_API_KEY` | DeepSeek API key |
-| `INSPECT_TELEMETRY` | Set to `false` to disable telemetry |
-| `INSPECT_LOG_LEVEL` | Logging level: debug, info, warn, error |
+### Config File
+
+Create `inspect.config.ts` (or `.js`, `.json`) in your project root:
+
+```typescript
+import { defineConfig } from "@inspect/sdk";
+
+export default defineConfig({
+  provider: "anthropic",
+  headless: true,
+  device: "Desktop Chrome",
+  timeout: 30_000,
+  retries: 2,
+  reporter: ["list", "html"],
+  outputDir: "./inspect-results",
+});
+```
+
+### Presets
+
+```bash
+inspect test -m "test login" --preset ci        # CI-optimized (headless, retries, junit)
+inspect test -m "test login" --preset fast       # Fast mode (reduced timeouts)
+inspect test -m "test login" --preset thorough   # Thorough (more steps, screenshots)
+```
+
+### Performance Budgets
+
+```bash
+inspect lighthouse https://example.com \
+  --budget perf:90,a11y:100,bp:90,seo:90,pwa:50
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/inspect.yml
+name: Inspect Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install && pnpm build
+      - run: npx inspect test -m "test critical flows" --preset ci --reporter github
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+inspect:
+  image: node:20
+  before_script:
+    - npm i -g pnpm && pnpm install && pnpm build
+  script:
+    - npx inspect test -m "test critical flows" --preset ci --reporter junit
+  artifacts:
+    reports:
+      junit: inspect-results/junit.xml
+```
+
+### CircleCI
+
+```yaml
+# .circleci/config.yml
+version: 2.1
+jobs:
+  inspect:
+    docker:
+      - image: cimg/node:20.0-browsers
+    steps:
+      - checkout
+      - run: npm i -g pnpm && pnpm install && pnpm build
+      - run: npx inspect test -m "test critical flows" --preset ci --reporter junit
+      - store_test_results:
+          path: inspect-results
+```
+
+### Sharding
+
+Split tests across CI workers for parallel execution:
+
+```bash
+# Worker 1 of 3
+inspect run tests/ --shard 1/3 --reporter junit
+
+# Worker 2 of 3
+inspect run tests/ --shard 2/3 --reporter junit
+
+# Worker 3 of 3
+inspect run tests/ --shard 3/3 --reporter junit
+```
+
+### Template Generation
+
+```bash
+inspect init --ci github-actions   # Generate .github/workflows/inspect.yml
+inspect init --ci gitlab-ci        # Generate .gitlab-ci.yml
+inspect init --ci circleci         # Generate .circleci/config.yml
+```
 
 ## Architecture
 
 ```
 inspect/
-  apps/cli/          CLI application (Ink/React TUI, 23 commands)
-  packages/
-    shared/           Types, utilities, constants (122+ types, 25 devices)
-    browser/          Playwright wrapper, ARIA, DOM, vision, cookies, MCP
-    agent/            5 LLM providers, prompts, memory, cache, watchdogs
-    core/             Orchestrator, git integration, GitHub PR, device pool
-    workflow/         YAML workflow engine, 15 block types, cron scheduling
-    credentials/      Bitwarden, 1Password, Azure Key Vault, TOTP
-    data/             Zod/JSON extraction, CSV/PDF/Excel parsers, S3
-    api/              REST API server, JWT auth, webhooks, SSE, WebSocket
-    network/          Proxy pool, SOCKS5, domain security, tunneling
-    observability/    PostHog analytics, OpenTelemetry, Web Vitals
-    quality/          axe-core a11y, Lighthouse, chaos testing, security
-    visual/           Pixel diff, slider reports, Storybook capture
-    reporter/         Markdown/HTML/JSON reports, GitHub PR comments
-    sdk/              Public TypeScript SDK (act/extract/observe/agent)
-  evals/              Benchmarks (GAIA, Mind2Web, WebVoyager, etc.)
-  yaml/               YAML test definitions, parser, runner
-  docker/             Dockerfile + Dockerfile.fast
+├── apps/
+│   ├── cli/                  CLI (Commander + Ink TUI, 35 commands)
+│   └── web/                  Web Dashboard (Vite, 12 pages)
+├── packages/
+│   ├── shared/               Types (122+), utils (25), constants (68), device presets (25)
+│   ├── browser/              Playwright wrapper, ARIA snapshots, DOM, vision, cookies, MCP
+│   ├── agent/                5 LLM providers, prompts, memory, cache, watchdogs
+│   ├── core/                 Test orchestrator, git integration, GitHub PR, device pool
+│   ├── workflow/             YAML engine, 15 block types, cron scheduling
+│   ├── credentials/          AES-256-GCM vault (Bitwarden, 1Password, Azure)
+│   ├── data/                 JSON/CSV parsers, cloud storage (S3)
+│   ├── api/                  REST server, JWT auth, webhooks, SSE, WebSocket
+│   ├── network/              Domain security, data masking, tunneling
+│   ├── observability/        Metrics, logging, tracing, performance
+│   ├── quality/              axe-core a11y, Lighthouse, chaos, security
+│   ├── visual/               Pixel diff, PNG manipulation, slider reports
+│   ├── reporter/             7 formats: list, dot, json, junit, html, markdown, github
+│   └── sdk/                  Public SDK (act / extract / observe / agent)
+├── evals/                    Benchmarks (GAIA, Mind2Web, WebVoyager)
+├── yaml/                     YAML test definitions
+└── docker/                   Dockerfile + Dockerfile.fast
 ```
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `ANTHROPIC_API_KEY` | Claude API key (Sonnet, Opus, Haiku) | For Anthropic provider |
+| `OPENAI_API_KEY` | OpenAI API key (GPT-4o, GPT-4.1, o3) | For OpenAI provider |
+| `GOOGLE_AI_KEY` | Google Gemini API key (2.5 Pro/Flash) | For Gemini provider |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (R1, V3) | For DeepSeek provider |
+| `INSPECT_LOG_LEVEL` | Logging level: `debug`, `info`, `warn`, `error` | No (default: `info`) |
+| `INSPECT_TELEMETRY` | Set to `false` to disable telemetry | No (default: `true`) |
+| `INSPECT_CONFIG` | Path to config file | No |
+| `INSPECT_OUTPUT_DIR` | Output directory for results | No |
 
 ## Supported AI Providers
 
 | Provider | Models | Features |
 |----------|--------|----------|
-| Anthropic | Claude 4 Sonnet/Opus, Haiku 3.5 | Vision, thinking, tool use |
-| OpenAI | GPT-4o, GPT-4.1, o3 | Vision, function calling |
-| Google | Gemini 2.5 Pro/Flash | Vision, thinking budget |
-| DeepSeek | DeepSeek-R1, V3 | Reasoning, cost-efficient |
-| Ollama | Any local model | Privacy, offline use |
+| **Anthropic** | Claude 4 Sonnet/Opus, Haiku 3.5 | Vision, extended thinking, tool use |
+| **OpenAI** | GPT-4o, GPT-4.1, o3 | Vision, function calling |
+| **Google** | Gemini 2.5 Pro/Flash | Vision, thinking budget |
+| **DeepSeek** | DeepSeek-R1, V3 | Reasoning, cost-efficient |
+| **Ollama** | Any local model | Privacy, offline use, no API key |
 
 ## Testing Types
 
-| Type | Tool | What it does |
+| Type | Tool | What It Does |
 |------|------|--------------|
-| Functional | AI Agent | Tests user flows with natural language |
-| Accessibility | axe-core | WCAG 2.2 compliance (105 rules) |
-| Performance | Lighthouse | Core Web Vitals, SEO, PWA |
-| Security | Nuclei + ZAP | OWASP Top 10, CVE scanning |
-| Visual | Pixel diff | Screenshot comparison |
-| Chaos | Gremlins.js | Random monkey testing |
-| Resilience | Toxiproxy | Network fault injection |
+| **Functional** | AI Agent | Tests user flows with natural-language instructions |
+| **Accessibility** | axe-core | WCAG 2.2 compliance checking (105 rules) |
+| **Performance** | Lighthouse | Core Web Vitals, SEO, PWA scoring |
+| **Security** | Nuclei + ZAP | OWASP Top 10, CVE scanning |
+| **Visual** | Pixel diff | Screenshot comparison with configurable thresholds |
+| **Chaos** | Gremlins.js | Random monkey testing |
+| **Resilience** | Toxiproxy | Network fault injection |
 
 ## Development
 
@@ -166,22 +407,32 @@ inspect/
 # Install dependencies
 pnpm install
 
-# Build all packages
+# Build all packages (Turborepo)
 pnpm build
 
-# Run tests
+# Run all 566 tests
 npx vitest run
 
-# Run specific test file
+# Run a specific test file
 npx vitest run packages/shared/src/utils/index.test.ts
 
 # Watch mode
 npx vitest
 
+# Typecheck
+pnpm typecheck
+
 # Run the CLI
 node apps/cli/dist/index.js --help
+
+# Start the web dashboard
+cd apps/web && pnpm dev
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding conventions, and how to submit changes.
 
 ## License
 
-MIT
+[MIT](LICENSE) -- Copyright (c) 2026 Lakshman Patel

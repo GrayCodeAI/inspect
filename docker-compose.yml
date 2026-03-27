@@ -1,0 +1,99 @@
+# =============================================================================
+# Inspect — Docker Compose
+# =============================================================================
+#
+# Usage:
+#   docker compose up                    Start API server + dashboard
+#   docker compose up -d                 Start in background
+#   docker compose run cli test ...      Run CLI commands
+#   docker compose run cli doctor        Check environment inside container
+#   docker compose down                  Stop everything
+#
+# With specific profiles:
+#   docker compose --profile full up     Start everything (API + dashboard + tunnel)
+#
+# Environment:
+#   Copy .env.example to .env and set your API keys before starting.
+#
+
+services:
+  # ── API Server ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "${INSPECT_PORT:-4100}:3000"
+    environment:
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_AI_KEY=${GOOGLE_AI_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - INSPECT_JWT_SECRET=${INSPECT_JWT_SECRET:-inspect-dev-secret}
+      - INSPECT_CORS_ORIGIN=${INSPECT_CORS_ORIGIN:-http://localhost:5173}
+      - INSPECT_LOG_LEVEL=${INSPECT_LOG_LEVEL:-info}
+      - INSPECT_TELEMETRY=${INSPECT_TELEMETRY:-false}
+    volumes:
+      - inspect-data:/app/.inspect
+      - inspect-reports:/app/.inspect/reports
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ── Web Dashboard ──────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "${DASHBOARD_PORT:-5173}:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://api:3000
+    restart: unless-stopped
+
+  # ── CLI Runner ─────────────────────────────────────────────────────────
+  # Use: docker compose run cli <command>
+  # Example: docker compose run cli test -m "test login" --url https://example.com
+  cli:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    entrypoint: ["dumb-init", "--", "node", "apps/cli/dist/index.js"]
+    environment:
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_AI_KEY=${GOOGLE_AI_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - INSPECT_LOG_LEVEL=${INSPECT_LOG_LEVEL:-info}
+      - CI=true
+    volumes:
+      - inspect-data:/app/.inspect
+      - inspect-reports:/app/.inspect/reports
+    profiles:
+      - cli
+
+  # ── Cloudflare Tunnel (optional) ───────────────────────────────────────
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://api:3000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - full
+
+volumes:
+  inspect-data:
+    driver: local
+  inspect-reports:
+    driver: local

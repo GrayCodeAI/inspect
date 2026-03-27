@@ -1,9 +1,18 @@
 # =============================================================================
 # Inspect - Multi-stage Production Dockerfile
 # =============================================================================
+#
+# Build:  docker build -f docker/Dockerfile -t inspect .
+# Run:    docker run -p 4100:3000 -e ANTHROPIC_API_KEY=sk-... inspect
+# CLI:    docker run --rm -e ANTHROPIC_API_KEY=sk-... inspect node apps/cli/dist/index.js test -m "test login"
+#
 
 # Stage 1: Base image with pnpm
 FROM node:22-slim AS base
+LABEL org.opencontainers.image.title="Inspect"
+LABEL org.opencontainers.image.description="AI-Powered Browser Testing Platform"
+LABEL org.opencontainers.image.source="https://github.com/nichochar/inspect"
+LABEL org.opencontainers.image.licenses="MIT"
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
@@ -27,6 +36,7 @@ COPY packages/observability/package.json packages/observability/
 COPY packages/sdk/package.json packages/sdk/
 COPY packages/reporter/package.json packages/reporter/
 COPY apps/cli/package.json apps/cli/
+COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Stage 3: Build all packages
