@@ -4,37 +4,46 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/actions/workflow/status/nichochar/inspect/ci.yml?branch=main&label=build" alt="Build Status">
-  <img src="https://img.shields.io/badge/tests-566%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-986%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node Version">
-  <img src="https://img.shields.io/badge/packages-15-orange" alt="Packages">
-  <img src="https://img.shields.io/badge/CLI%20commands-35-purple" alt="CLI Commands">
+  <img src="https://img.shields.io/badge/packages-17-orange" alt="Packages">
+  <img src="https://img.shields.io/badge/CLI%20commands-70-purple" alt="CLI Commands">
 </p>
 
 ---
 
-Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 15 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, and more.
+Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 17 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, web crawling, stealth browsing, network fault injection, agent benchmarking, and more.
 
 **Inspired by**: Playwright (browser API), Vitest (runner/reporter), Lighthouse (auditing), GitHub CLI (command structure), Vercel (developer experience), Expect (assertions)
 
 ## Features
 
 - **AI-Powered Testing** -- Describe what to test in plain English; an AI agent drives a real browser
-- **35 CLI Commands** -- Organized into 6 groups: Testing, Browser, Quality, Infrastructure, Data & Workflow, Setup & Info
-- **Interactive TUI** -- Form-based interface with instruction history, auto-URL detection, agent/device/mode selectors, and Zustand state persistence
-- **Web Dashboard** -- 12-page dashboard with score gauges, trend charts, visual diff viewer, accessibility violations, performance metrics, and dark theme
+- **70 CLI Commands** -- Organized into 6 groups: Testing, Browser, Quality, Infrastructure, Data & Workflow, Setup & Info
+- **Interactive TUI** -- Form-based interface with instruction history, auto-URL detection, agent/device/mode selectors
+- **Web Dashboard** -- 12-page dashboard with score gauges, trend charts, visual diff viewer
 - **7 Reporter Formats** -- list, dot, json, junit, html, markdown, github
 - **5 LLM Providers** -- Claude, GPT, Gemini, DeepSeek, Ollama (local)
 - **Visual Regression** -- Pixel diff with slider, side-by-side, and overlay comparison modes
-- **Accessibility Auditing** -- axe-core with WCAG 2.2 compliance (105 rules)
+- **Accessibility Auditing** -- WCAG 2.2 compliance with iframe support (axe-core)
 - **Performance Scoring** -- Lighthouse integration with Core Web Vitals
-- **Security Scanning** -- OWASP Top 10, CVE scanning, chaos testing
-- **YAML Workflows** -- 15 block types, cron scheduling, conditional logic
-- **Credential Vault** -- AES-256-GCM encrypted storage with Bitwarden, 1Password, and Azure Key Vault backends
-- **CI/CD Ready** -- JUnit/GitHub reporters, sharding, presets, template generation for GitHub Actions/GitLab CI/CircleCI
-- **Shell Completions** -- bash, zsh, and fish
-- **SDK** -- `act()`, `extract()`, `observe()`, `agent()` for programmatic use
+- **Security Scanning** -- OWASP Top 10, CVE scanning, Nuclei multi-protocol (DNS/TCP/SSL)
+- **Web Crawler** -- Sitemap parsing, robots.txt, link discovery, batch scraping, media extraction
+- **Change Tracking** -- Scheduled monitoring with text/JSON diffing and webhook notifications
+- **Stealth Browsing** -- Fingerprint rotation, anti-detection headers, CAPTCHA detection
+- **Network Fault Injection** -- TCP proxy with toxicity presets (slow-3g, flaky-wifi, offline)
+- **WebSocket Mocking** -- Fluent API for WS handler mocking, message matching, recording
+- **Browser Profiles** -- Encrypted session persistence with cookie management
+- **iFrame/Shadow DOM** -- Traversal and element discovery across frames and shadow roots
+- **Agent Benchmarking** -- MiniWoB, WebArena, WorkArena suites with reward shaping
+- **CAPTCHA Solving** -- Multi-agent swarm architecture with vision detection
+- **Story Testing** -- Storybook, Ladle, Histoire story-level visual regression
+- **YAML Workflows** -- 14 block types (crawl, track, proxy, benchmark, task, loop, code, etc.)
+- **Microservice Architecture** -- Service registry, API gateway, message bus
+- **Credential Vault** -- AES-256-GCM encrypted storage with Bitwarden, 1Password, Azure
+- **CI/CD Ready** -- JUnit/GitHub reporters, sharding, presets, template generation
+- **SDK** -- 9 methods: `act()`, `extract()`, `observe()`, `agent()`, `navigate()`, `screenshot()`, `crawl()`, `track()`, `createProxy()`
 
 ## Quick Start
 
@@ -54,18 +63,18 @@ ANTHROPIC_API_KEY=sk-ant-... node apps/cli/dist/index.js test \
 
 ## CLI Reference
 
-Inspect ships 35 commands organized into 6 groups.
+Inspect ships 70 commands organized into 6 groups.
 
 ### Testing
 
-| Command | Description |
-|---------|-------------|
-| `inspect test` | AI-powered browser test with natural-language instructions |
-| `inspect run` | Run a saved test suite or YAML test file |
-| `inspect pr` | Test a GitHub pull request with full git context |
-| `inspect replay` | Replay a previous test run from its trace |
-| `inspect compare` | Compare two test runs side by side |
-| `inspect watch` | Watch for file changes and re-run tests automatically |
+| Command           | Description                                                |
+| ----------------- | ---------------------------------------------------------- |
+| `inspect test`    | AI-powered browser test with natural-language instructions |
+| `inspect run`     | Run a saved test suite or YAML test file                   |
+| `inspect pr`      | Test a GitHub pull request with full git context           |
+| `inspect replay`  | Replay a previous test run from its trace                  |
+| `inspect compare` | Compare two test runs side by side                         |
+| `inspect watch`   | Watch for file changes and re-run tests automatically      |
 
 ```bash
 inspect test -m "test checkout flow" --url https://shop.example.com
@@ -78,12 +87,12 @@ inspect watch --grep "login" --reporter dot
 
 ### Browser
 
-| Command | Description |
-|---------|-------------|
-| `inspect open` | Open a URL in a managed browser session |
-| `inspect screenshot` | Capture a screenshot of a page |
-| `inspect pdf` | Export a page to PDF |
-| `inspect codegen` | Generate test code from browser interactions |
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `inspect open`       | Open a URL in a managed browser session      |
+| `inspect screenshot` | Capture a screenshot of a page               |
+| `inspect pdf`        | Export a page to PDF                         |
+| `inspect codegen`    | Generate test code from browser interactions |
 
 ```bash
 inspect open https://example.com --device "iPhone 15"
@@ -94,13 +103,13 @@ inspect codegen https://example.com
 
 ### Quality
 
-| Command | Description |
-|---------|-------------|
-| `inspect a11y` | Run accessibility audit (axe-core, WCAG 2.2) |
-| `inspect lighthouse` | Run Lighthouse performance audit |
-| `inspect security` | Run security scan (OWASP Top 10) |
-| `inspect chaos` | Run chaos/monkey testing (Gremlins.js) |
-| `inspect visual` | Run visual regression comparison |
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `inspect a11y`       | Run accessibility audit (axe-core, WCAG 2.2) |
+| `inspect lighthouse` | Run Lighthouse performance audit             |
+| `inspect security`   | Run security scan (OWASP Top 10)             |
+| `inspect chaos`      | Run chaos/monkey testing (Gremlins.js)       |
+| `inspect visual`     | Run visual regression comparison             |
 
 ```bash
 inspect a11y https://example.com --standard wcag22aa
@@ -112,12 +121,12 @@ inspect visual --baseline main --branch feature/ui
 
 ### Infrastructure
 
-| Command | Description |
-|---------|-------------|
-| `inspect serve` | Start the REST API server |
-| `inspect tunnel` | Create a Cloudflare tunnel to the API server |
-| `inspect sessions` | Manage browser sessions |
-| `inspect mcp` | Start the MCP (Model Context Protocol) tool server |
+| Command            | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `inspect serve`    | Start the REST API server                          |
+| `inspect tunnel`   | Create a Cloudflare tunnel to the API server       |
+| `inspect sessions` | Manage browser sessions                            |
+| `inspect mcp`      | Start the MCP (Model Context Protocol) tool server |
 
 ```bash
 inspect serve --port 3000 --auth jwt
@@ -128,14 +137,23 @@ inspect mcp
 
 ### Data & Workflow
 
-| Command | Description |
-|---------|-------------|
-| `inspect extract` | Extract structured data from a page |
-| `inspect workflow` | Run or create YAML workflows |
-| `inspect credentials` | Manage the encrypted credential vault |
+| Command               | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `inspect extract`     | Extract structured data from a page                 |
+| `inspect crawl`       | Crawl a website and extract content                 |
+| `inspect track`       | Monitor pages for content changes                   |
+| `inspect proxy`       | Network fault injection proxy server                |
+| `inspect benchmark`   | Run agent benchmarks (miniwob, webarena, workarena) |
+| `inspect workflow`    | Run or create YAML workflows                        |
+| `inspect credentials` | Manage the encrypted credential vault               |
 
 ```bash
 inspect extract https://example.com -s '{"title": "string", "price": "number"}'
+inspect crawl https://example.com --depth 3 --max-pages 100 --format json
+inspect track https://example.com/pricing --interval 3600
+inspect proxy start --preset slow-3g --upstream localhost:3000
+inspect proxy presets
+inspect benchmark run --suite miniwob --concurrency 2
 inspect workflow run tests/e2e.yaml
 inspect workflow create
 inspect credentials set STAGING_PASSWORD
@@ -143,20 +161,20 @@ inspect credentials set STAGING_PASSWORD
 
 ### Setup & Info
 
-| Command | Description |
-|---------|-------------|
-| `inspect init` | Initialize project config and CI templates |
-| `inspect doctor` | Check environment, dependencies, and API keys |
-| `inspect generate` | Generate test files from descriptions |
-| `inspect audit` | Audit project dependencies and config |
-| `inspect install` | Install browser binaries (Chromium, Firefox, WebKit) |
-| `inspect show-report` | Open a generated report in the browser |
-| `inspect show-trace` | Open a trace file in the viewer |
-| `inspect devices` | List available device presets (25 devices) |
-| `inspect agents` | List available AI agents and their capabilities |
-| `inspect models` | List available LLM models across all providers |
-| `inspect completions` | Generate shell completions (bash/zsh/fish) |
-| `inspect alias` | Manage command aliases |
+| Command               | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `inspect init`        | Initialize project config and CI templates           |
+| `inspect doctor`      | Check environment, dependencies, and API keys        |
+| `inspect generate`    | Generate test files from descriptions                |
+| `inspect audit`       | Audit project dependencies and config                |
+| `inspect install`     | Install browser binaries (Chromium, Firefox, WebKit) |
+| `inspect show-report` | Open a generated report in the browser               |
+| `inspect show-trace`  | Open a trace file in the viewer                      |
+| `inspect devices`     | List available device presets (25 devices)           |
+| `inspect agents`      | List available AI agents and their capabilities      |
+| `inspect models`      | List available LLM models across all providers       |
+| `inspect completions` | Generate shell completions (bash/zsh/fish)           |
+| `inspect alias`       | Manage command aliases                               |
 
 ```bash
 inspect init
@@ -171,20 +189,20 @@ inspect completions --shell zsh >> ~/.zshrc
 
 The web dashboard provides 12 pages for monitoring and managing test runs:
 
-| Page | Description |
-|------|-------------|
-| **Dashboard** | Overview with score gauges, trend charts, and recent runs |
-| **Tasks** | Browse and filter all test tasks |
-| **Run Detail** | Step timeline, live polling, token usage breakdown |
-| **Visual Diff** | Slider, side-by-side, and pixel diff comparison modes |
-| **Reports** | Browse reports with drag-and-drop file upload |
-| **Accessibility** | Violations dashboard grouped by severity and rule |
-| **Performance** | Lighthouse scores with Core Web Vitals breakdown |
-| **Workflows** | View and manage YAML workflow definitions |
-| **Credentials** | Manage encrypted credential vault entries |
-| **Sessions** | Active browser session management |
-| **Devices** | Device preset browser |
-| **Settings** | Configuration, API keys, and preferences |
+| Page              | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| **Dashboard**     | Overview with score gauges, trend charts, and recent runs |
+| **Tasks**         | Browse and filter all test tasks                          |
+| **Run Detail**    | Step timeline, live polling, token usage breakdown        |
+| **Visual Diff**   | Slider, side-by-side, and pixel diff comparison modes     |
+| **Reports**       | Browse reports with drag-and-drop file upload             |
+| **Accessibility** | Violations dashboard grouped by severity and rule         |
+| **Performance**   | Lighthouse scores with Core Web Vitals breakdown          |
+| **Workflows**     | View and manage YAML workflow definitions                 |
+| **Credentials**   | Manage encrypted credential vault entries                 |
+| **Sessions**      | Active browser session management                         |
+| **Devices**       | Device preset browser                                     |
+| **Settings**      | Configuration, API keys, and preferences                  |
 
 ```bash
 # Start the dashboard
@@ -197,31 +215,44 @@ cd apps/web && pnpm dev
 import { Inspect } from "@inspect/sdk";
 
 const inspect = new Inspect({
-  provider: "anthropic",
   apiKey: process.env.ANTHROPIC_API_KEY,
   headless: true,
 });
 
 await inspect.init();
 
+// Navigate
+await inspect.navigate("https://example.com");
+
 // Execute a single action
 await inspect.act("Click the login button");
 
-// Extract structured data with Zod validation
-const data = await inspect.extract("Get all product prices", {
-  schema: z.object({
-    products: z.array(z.object({ name: z.string(), price: z.number() })),
-  }),
-});
+// Extract structured data
+const data = await inspect.extract("Get all product prices");
 
-// Get suggested actions from the current page
+// Get suggested actions
 const actions = await inspect.observe("What can I do on this page?");
 
 // Run a multi-step autonomous agent
 const result = await inspect.agent("Complete the checkout flow", {
   maxSteps: 20,
-  onStep: (step) => console.log(step),
 });
+
+// Crawl a website
+const crawled = await inspect.crawl("https://example.com", {
+  depth: 3,
+  maxPages: 100,
+});
+
+// Track changes on pages
+const changes = await inspect.track(["https://example.com/pricing"], {
+  interval: 3600,
+});
+
+// Start a fault injection proxy
+const proxy = await inspect.createProxy({ preset: "slow-3g" });
+// ... run tests with degraded network ...
+await proxy.stop();
 
 await inspect.close();
 ```
@@ -344,62 +375,68 @@ inspect init --ci circleci         # Generate .circleci/config.yml
 ```
 inspect/
 ├── apps/
-│   ├── cli/                  CLI (Commander + Ink TUI, 35 commands)
+│   ├── cli/                  CLI (Commander + Ink TUI, 70 commands)
 │   └── web/                  Web Dashboard (Vite, 12 pages)
 ├── packages/
-│   ├── shared/               Types (122+), utils (25), constants (68), device presets (25)
-│   ├── browser/              Playwright wrapper, ARIA snapshots, DOM, vision, cookies, MCP
-│   ├── agent/                5 LLM providers, prompts, memory, cache, watchdogs
-│   ├── core/                 Test orchestrator, git integration, GitHub PR, device pool
-│   ├── workflow/             YAML engine, 15 block types, cron scheduling
+│   ├── shared/               Types (20+ modules), utils, constants, device presets
+│   ├── browser/              Playwright, ARIA, DOM, vision, profiles, backends (Lightpanda)
+│   ├── agent/                5 LLM providers, tools registry, cache, memory, watchdogs
+│   ├── core/                 Orchestrator, git integration, GitHub PR, device pool
+│   ├── workflow/             YAML engine, 14 block types (crawl, track, proxy, benchmark)
 │   ├── credentials/          AES-256-GCM vault (Bitwarden, 1Password, Azure)
-│   ├── data/                 JSON/CSV parsers, cloud storage (S3)
-│   ├── api/                  REST server, JWT auth, webhooks, SSE, WebSocket
-│   ├── network/              Domain security, data masking, tunneling
-│   ├── observability/        Metrics, logging, tracing, performance
-│   ├── quality/              axe-core a11y, Lighthouse, chaos, security
-│   ├── visual/               Pixel diff, PNG manipulation, slider reports
+│   ├── data/                 Crawler, change tracking, extractors, parsers, cloud storage
+│   ├── api/                  REST server, webhooks, SSE, WebSocket
+│   ├── network/              Stealth browsing, proxy, domain security, data masking
+│   ├── observability/        Analytics, tracing, metrics, logging
+│   ├── quality/              a11y, Lighthouse, chaos, security, mocking, TCP proxy
+│   ├── visual/               Pixel diff, masking, storybook, slider reports
 │   ├── reporter/             7 formats: list, dot, json, junit, html, markdown, github
-│   └── sdk/                  Public SDK (act / extract / observe / agent)
-├── evals/                    Benchmarks (GAIA, Mind2Web, WebVoyager)
-├── yaml/                     YAML test definitions
+│   ├── sdk/                  Public SDK (9 methods)
+│   └── services/             Microservice architecture (9 services + 3 infra)
+├── evals/                    Benchmarks (MiniWoB, WebArena, WorkArena, reward shaping)
 └── docker/                   Dockerfile + Dockerfile.fast
 ```
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `ANTHROPIC_API_KEY` | Claude API key (Sonnet, Opus, Haiku) | For Anthropic provider |
-| `OPENAI_API_KEY` | OpenAI API key (GPT-4o, GPT-4.1, o3) | For OpenAI provider |
-| `GOOGLE_AI_KEY` | Google Gemini API key (2.5 Pro/Flash) | For Gemini provider |
-| `DEEPSEEK_API_KEY` | DeepSeek API key (R1, V3) | For DeepSeek provider |
-| `INSPECT_LOG_LEVEL` | Logging level: `debug`, `info`, `warn`, `error` | No (default: `info`) |
-| `INSPECT_TELEMETRY` | Set to `false` to disable telemetry | No (default: `true`) |
-| `INSPECT_CONFIG` | Path to config file | No |
-| `INSPECT_OUTPUT_DIR` | Output directory for results | No |
+| Variable             | Description                                     | Required               |
+| -------------------- | ----------------------------------------------- | ---------------------- |
+| `ANTHROPIC_API_KEY`  | Claude API key (Sonnet, Opus, Haiku)            | For Anthropic provider |
+| `OPENAI_API_KEY`     | OpenAI API key (GPT-4o, GPT-4.1, o3)            | For OpenAI provider    |
+| `GOOGLE_AI_KEY`      | Google Gemini API key (2.5 Pro/Flash)           | For Gemini provider    |
+| `DEEPSEEK_API_KEY`   | DeepSeek API key (R1, V3)                       | For DeepSeek provider  |
+| `INSPECT_LOG_LEVEL`  | Logging level: `debug`, `info`, `warn`, `error` | No (default: `info`)   |
+| `INSPECT_TELEMETRY`  | Set to `false` to disable telemetry             | No (default: `true`)   |
+| `INSPECT_CONFIG`     | Path to config file                             | No                     |
+| `INSPECT_OUTPUT_DIR` | Output directory for results                    | No                     |
 
 ## Supported AI Providers
 
-| Provider | Models | Features |
-|----------|--------|----------|
+| Provider      | Models                          | Features                            |
+| ------------- | ------------------------------- | ----------------------------------- |
 | **Anthropic** | Claude 4 Sonnet/Opus, Haiku 3.5 | Vision, extended thinking, tool use |
-| **OpenAI** | GPT-4o, GPT-4.1, o3 | Vision, function calling |
-| **Google** | Gemini 2.5 Pro/Flash | Vision, thinking budget |
-| **DeepSeek** | DeepSeek-R1, V3 | Reasoning, cost-efficient |
-| **Ollama** | Any local model | Privacy, offline use, no API key |
+| **OpenAI**    | GPT-4o, GPT-4.1, o3             | Vision, function calling            |
+| **Google**    | Gemini 2.5 Pro/Flash            | Vision, thinking budget             |
+| **DeepSeek**  | DeepSeek-R1, V3                 | Reasoning, cost-efficient           |
+| **Ollama**    | Any local model                 | Privacy, offline use, no API key    |
 
 ## Testing Types
 
-| Type | Tool | What It Does |
-|------|------|--------------|
-| **Functional** | AI Agent | Tests user flows with natural-language instructions |
-| **Accessibility** | axe-core | WCAG 2.2 compliance checking (105 rules) |
-| **Performance** | Lighthouse | Core Web Vitals, SEO, PWA scoring |
-| **Security** | Nuclei + ZAP | OWASP Top 10, CVE scanning |
-| **Visual** | Pixel diff | Screenshot comparison with configurable thresholds |
-| **Chaos** | Gremlins.js | Random monkey testing |
-| **Resilience** | Toxiproxy | Network fault injection |
+| Type                | Tool         | What It Does                                            |
+| ------------------- | ------------ | ------------------------------------------------------- |
+| **Functional**      | AI Agent     | Tests user flows with natural-language instructions     |
+| **Accessibility**   | axe-core     | WCAG 2.2 compliance with iframe support                 |
+| **Performance**     | Lighthouse   | Core Web Vitals, SEO, PWA scoring                       |
+| **Security**        | Nuclei + ZAP | OWASP Top 10, CVE scanning, DNS/TCP/SSL                 |
+| **Visual**          | Pixel diff   | Screenshot comparison with configurable thresholds      |
+| **Chaos**           | Gremlins.js  | Random monkey testing (5 species)                       |
+| **Resilience**      | Toxiproxy    | Network fault injection (TCP proxy, toxicity presets)   |
+| **Web Crawling**    | Custom       | Sitemap/robots.txt, link discovery, batch scraping      |
+| **Change Tracking** | Custom       | Scheduled monitoring with text/JSON diffing             |
+| **Stealth**         | Custom       | Fingerprint rotation, anti-detection, CAPTCHA detection |
+| **Mocking**         | MSW-inspired | REST + GraphQL + WebSocket handler mocking              |
+| **Benchmarking**    | BrowserGym   | MiniWoB, WebArena, WorkArena agent evaluation           |
+| **Story Testing**   | Lost Pixel   | Storybook, Ladle, Histoire visual regression            |
 
 ## Development
 
@@ -410,7 +447,7 @@ pnpm install
 # Build all packages (Turborepo)
 pnpm build
 
-# Run all 566 tests
+# Run all 986 tests
 npx vitest run
 
 # Run a specific test file
