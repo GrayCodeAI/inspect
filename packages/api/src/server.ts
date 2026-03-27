@@ -66,9 +66,9 @@ interface Route {
 
 /** Server configuration */
 export interface APIServerConfig {
-  /** JWT secret for authentication */
+  /** JWT secret for authentication (required for production) */
   jwtSecret?: string;
-  /** CORS allowed origins (default: "*") */
+  /** CORS allowed origins (default: none — must be explicitly configured) */
   corsOrigin?: string | string[];
   /** Enable request logging (default: true) */
   logging?: boolean;
@@ -90,9 +90,27 @@ export class APIServer {
   private config: Required<APIServerConfig>;
 
   constructor(config?: APIServerConfig) {
+    const jwtSecret = config?.jwtSecret ?? process.env.INSPECT_JWT_SECRET ?? "";
+
+    if (!jwtSecret) {
+      console.warn(
+        "[APIServer] WARNING: No JWT secret configured. " +
+        "Set INSPECT_JWT_SECRET or pass jwtSecret to enable authentication. " +
+        "All routes will be unauthenticated.",
+      );
+    }
+
+    const corsOrigin = config?.corsOrigin ?? process.env.INSPECT_CORS_ORIGIN ?? "";
+    if (!corsOrigin || corsOrigin === "*") {
+      console.warn(
+        "[APIServer] WARNING: CORS origin is set to wildcard or empty. " +
+        "Set corsOrigin to specific origins for production use.",
+      );
+    }
+
     this.config = {
-      jwtSecret: config?.jwtSecret ?? process.env.INSPECT_JWT_SECRET ?? "",
-      corsOrigin: config?.corsOrigin ?? "*",
+      jwtSecret,
+      corsOrigin: corsOrigin || "http://localhost:5173",
       logging: config?.logging ?? true,
       bodyLimit: config?.bodyLimit ?? 1_048_576, // 1MB
       requestTimeout: config?.requestTimeout ?? 30_000,

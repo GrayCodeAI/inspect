@@ -153,6 +153,8 @@ export class ClaudeProvider extends LLMProvider {
     const toolCalls: LLMToolCall[] = [];
     let totalContent = "";
     let totalThinking = "";
+    let inputTokens = 0;
+    let outputTokens = 0;
 
     for await (const line of this.fetchSSE(
       `${this.baseUrl}/v1/messages`,
@@ -225,24 +227,35 @@ export class ClaudeProvider extends LLMProvider {
           break;
         }
 
+        case "message_start": {
+          // Capture input token usage from the initial message
+          if (event.message?.usage) {
+            inputTokens = event.message.usage.input_tokens ?? 0;
+          }
+          break;
+        }
+
         case "message_stop":
+          break;
+
         case "message_delta": {
-          if (event.type === "message_delta") {
-            // Contains stop_reason and usage
+          // Capture output token usage from the final delta
+          if (event.usage) {
+            outputTokens = event.usage.output_tokens ?? 0;
           }
           break;
         }
       }
     }
 
-    // Yield final chunk
+    // Yield final chunk with actual usage data
     yield {
       done: true,
       finishReason: toolCalls.length > 0 ? "tool_calls" : "stop",
       usage: {
-        promptTokens: 0,
-        completionTokens: 0,
-        totalTokens: 0,
+        promptTokens: inputTokens,
+        completionTokens: outputTokens,
+        totalTokens: inputTokens + outputTokens,
       },
     };
   }

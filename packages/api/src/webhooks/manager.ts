@@ -322,8 +322,11 @@ export class WebhookManager {
         JSON.stringify(webhook, null, 2),
         "utf-8",
       );
-    } catch {
-      // Ignore persist errors
+    } catch (error) {
+      console.error(
+        `[WebhookManager] Failed to persist webhook ${webhook.id}:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

@@ -110,7 +110,9 @@ export class GeminiProvider extends LLMProvider {
     options?: LLMRequestOptions,
   ): Promise<LLMResponse> {
     const { url, body } = this.buildRequest(messages, tools, options, false);
-    const response = await this.fetchJSON<GeminiResponse>(url, body);
+    const response = await this.fetchJSON<GeminiResponse>(url, body, {
+      "x-goog-api-key": this.config.apiKey,
+    });
     return this.parseResponse(response);
   }
 
@@ -134,17 +136,21 @@ export class GeminiProvider extends LLMProvider {
     try {
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.config.apiKey,
+        },
         body: JSON.stringify(body),
         signal: controller.signal,
       });
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "");
+        const truncatedBody = errorBody.length > 500 ? errorBody.slice(0, 500) + "..." : errorBody;
         throw new LLMError(
-          `Gemini API error ${response.status}: ${errorBody}`,
+          `Gemini API error ${response.status}: ${truncatedBody}`,
           response.status,
-          errorBody,
+          truncatedBody,
         );
       }
 
@@ -210,7 +216,7 @@ export class GeminiProvider extends LLMProvider {
     const { systemInstruction, contents } = this.convertMessages(messages, options?.systemPrompt);
     const action = streaming ? "streamGenerateContent" : "generateContent";
     const altParam = streaming ? "?alt=sse" : "";
-    const url = `${this.baseUrl}/v1beta/models/${this.config.model}:${action}${altParam}&key=${this.config.apiKey}`;
+    const url = `${this.baseUrl}/v1beta/models/${this.config.model}:${action}${altParam}`;
 
     const body: Record<string, unknown> = {
       contents,

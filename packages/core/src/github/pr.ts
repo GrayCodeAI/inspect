@@ -1,7 +1,17 @@
-import { exec as execCb } from "node:child_process";
+import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 
-const exec = promisify(execCb);
+const execFile = promisify(execFileCb);
+
+/**
+ * Safely execute a gh CLI command with arguments as an array.
+ * Prevents shell injection by avoiding shell interpolation.
+ */
+function ghApi(args: string[], options?: { maxBuffer?: number }): Promise<{ stdout: string; stderr: string }> {
+  return execFile("gh", ["api", ...args], {
+    maxBuffer: options?.maxBuffer ?? 5 * 1024 * 1024,
+  });
+}
 
 /**
  * Parsed pull request identifier.
@@ -97,23 +107,24 @@ export class GitHubPR {
 
     try {
       // Try gh CLI
-      const { stdout } = await exec(
-        `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number} ` +
-          `--header "Accept: application/vnd.github.v3.diff"`,
-        { maxBuffer: 10 * 1024 * 1024 }
+      const { stdout } = await ghApi(
+        [
+          `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`,
+          "--header", "Accept: application/vnd.github.v3.diff",
+        ],
+        { maxBuffer: 10 * 1024 * 1024 },
       );
       raw = stdout;
     } catch {
-      // Fallback to curl
-      const authHeader = this.token
-        ? `-H "Authorization: Bearer ${this.token}"`
-        : "";
-      const { stdout } = await exec(
-        `curl -sL ${authHeader} ` +
-          `-H "Accept: application/vnd.github.v3.diff" ` +
-          `"https://api.github.com/repos/${pr.owner}/${pr.repo}/pulls/${pr.number}"`,
-        { maxBuffer: 10 * 1024 * 1024 }
-      );
+      // Fallback to curl with argument array (no shell interpolation)
+      const curlArgs = ["-sL", "-H", "Accept: application/vnd.github.v3.diff"];
+      if (this.token) {
+        curlArgs.push("-H", `Authorization: Bearer ${this.token}`);
+      }
+      curlArgs.push(`https://api.github.com/repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`);
+      const { stdout } = await execFile("curl", curlArgs, {
+        maxBuffer: 10 * 1024 * 1024,
+      });
       raw = stdout;
     }
 
@@ -148,9 +159,10 @@ export class GitHubPR {
    */
   async getPRFiles(pr: PRInfo): Promise<string[]> {
     try {
-      const { stdout } = await exec(
-        `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number}/files --jq '.[].filename'`
-      );
+      const { stdout } = await ghApi([
+        `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}/files`,
+        "--jq", ".[].filename",
+      ]);
       return stdout.trim().split("\n").filter(Boolean);
     } catch {
       // Fallback: parse from diff
@@ -165,9 +177,10 @@ export class GitHubPR {
    */
   async getPreviewUrl(pr: PRInfo): Promise<string | null> {
     try {
-      const { stdout } = await exec(
-        `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments --jq '.[].body'`
-      );
+      const { stdout } = await ghApi([
+        `repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments`,
+        "--jq", ".[].body",
+      ]);
 
       // Vercel
       const vercelMatch = stdout.match(
@@ -201,14 +214,16 @@ export class GitHubPR {
 
       // Check deployment statuses
       try {
-        const { stdout: deploymentsRaw } = await exec(
-          `gh api repos/${pr.owner}/${pr.repo}/deployments --jq '.[0].id'`
-        );
+        const { stdout: deploymentsRaw } = await ghApi([
+          `repos/${pr.owner}/${pr.repo}/deployments`,
+          "--jq", ".[0].id",
+        ]);
         const deploymentId = deploymentsRaw.trim();
-        if (deploymentId) {
-          const { stdout: statusRaw } = await exec(
-            `gh api repos/${pr.owner}/${pr.repo}/deployments/${deploymentId}/statuses --jq '.[0].environment_url'`
-          );
+        if (deploymentId && /^\d+$/.test(deploymentId)) {
+          const { stdout: statusRaw } = await ghApi([
+            `repos/${pr.owner}/${pr.repo}/deployments/${deploymentId}/statuses`,
+            "--jq", ".[0].environment_url",
+          ]);
           const envUrl = statusRaw.trim();
           if (envUrl && envUrl !== "null") return envUrl;
         }
@@ -233,10 +248,10 @@ export class GitHubPR {
     baseBranch: string;
     state: string;
   }> {
-    const { stdout } = await exec(
-      `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number} ` +
-        `--jq '{title: .title, body: .body, author: .user.login, headBranch: .head.ref, baseBranch: .base.ref, state: .state}'`
-    );
+    const { stdout } = await ghApi([
+      `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`,
+      "--jq", "{title: .title, body: .body, author: .user.login, headBranch: .head.ref, baseBranch: .base.ref, state: .state}",
+    ]);
     return JSON.parse(stdout);
   }
 }

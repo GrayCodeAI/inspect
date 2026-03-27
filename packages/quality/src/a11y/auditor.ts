@@ -18,6 +18,7 @@ interface PageHandle {
   evaluate<R>(fn: string | ((...args: unknown[]) => R), ...args: unknown[]): Promise<R>;
   addScriptTag(options: { url?: string; content?: string }): Promise<void>;
   waitForFunction(fn: string | (() => boolean), options?: { timeout?: number }): Promise<void>;
+  goto?(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
 }
 
 /** Options for accessibility audit */
@@ -166,10 +167,14 @@ export class AccessibilityAuditor {
 
     for (const url of urls) {
       try {
-        // Navigate to URL - use evaluate to trigger navigation
-        await page.evaluate(`window.location.href = ${JSON.stringify(url)}`);
-        // Wait for load
-        await page.waitForFunction(`document.readyState === 'complete'`, { timeout: 30_000 });
+        // Navigate to URL using page.goto if available (Playwright),
+        // falling back to window.location for basic page handles
+        if (page.goto) {
+          await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+        } else {
+          await page.evaluate(`window.location.href = ${JSON.stringify(url)}`);
+          await page.waitForFunction(`document.readyState === 'complete'`, { timeout: 30_000 });
+        }
         const report = await this.audit(page, options);
         results.set(url, report);
       } catch (error) {

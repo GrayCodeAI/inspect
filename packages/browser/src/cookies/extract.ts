@@ -77,10 +77,10 @@ export class CookieExtractor {
    * @param domain - Optional domain filter
    */
   async extractViaCDP(cdpEndpoint: string, domain?: string): Promise<CookieData[]> {
-    // Connect via CDP and use Network.getAllCookies
-    const wsUrl = cdpEndpoint.replace("http", "ws");
-    // Use fetch to call CDP HTTP API for cookies
+    // Resolve the WebSocket debugger URL from the CDP endpoint
     const httpUrl = cdpEndpoint.replace("ws://", "http://").replace("wss://", "https://");
+
+    // Get available targets to find the WebSocket URL
     const listResponse = await fetch(`${httpUrl}/json/list`);
     const targets = (await listResponse.json()) as Array<{
       webSocketDebuggerUrl: string;
@@ -91,24 +91,203 @@ export class CookieExtractor {
       throw new Error("No CDP targets found.");
     }
 
-    // Use the browser's HTTP endpoint to get cookies
-    const cookies: CookieData[] = [];
-
-    // For each target, get cookies via CDP HTTP
-    for (const target of targets.slice(0, 1)) {
-      try {
-        const response = await fetch(`${httpUrl}/json/protocol`);
-        // CDP doesn't have a simple HTTP cookie API — we need WebSocket
-        // Fall back to the approach of sending CDP commands
-        break;
-      } catch {
-        continue;
-      }
+    // Prefer the browser-level endpoint for getAllCookies
+    let wsUrl: string;
+    try {
+      const versionResponse = await fetch(`${httpUrl}/json/version`);
+      const version = (await versionResponse.json()) as { webSocketDebuggerUrl?: string };
+      wsUrl = version.webSocketDebuggerUrl ?? targets[0].webSocketDebuggerUrl;
+    } catch {
+      wsUrl = targets[0].webSocketDebuggerUrl;
     }
+
+    // Send CDP command via WebSocket to get all cookies
+    const rawCookies = await this.sendCDPCommand<{
+      cookies: Array<{
+        name: string;
+        value: string;
+        domain: string;
+        path: string;
+        expires: number;
+        httpOnly: boolean;
+        secure: boolean;
+        sameSite: string;
+      }>;
+    }>(wsUrl, "Network.getAllCookies", {});
+
+    // Convert CDP cookies to our CookieData format
+    const sameSiteMap: Record<string, "Strict" | "Lax" | "None"> = {
+      Strict: "Strict",
+      Lax: "Lax",
+      None: "None",
+    };
+
+    const cookies: CookieData[] = rawCookies.cookies.map((c) => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain,
+      path: c.path,
+      expires: c.expires === -1 ? -1 : Math.floor(c.expires),
+      httpOnly: c.httpOnly,
+      secure: c.secure,
+      sameSite: sameSiteMap[c.sameSite] ?? "None",
+      source: "CDP",
+    }));
 
     return domain
       ? cookies.filter((c) => c.domain.includes(domain))
       : cookies;
+  }
+
+  /**
+   * Send a CDP command over WebSocket and wait for the response.
+   * Uses a simple one-shot WebSocket connection.
+   */
+  private sendCDPCommand<T>(
+    wsUrl: string,
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      // Use Node.js built-in WebSocket (available since Node 21) or
+      // fall back to a manual HTTP upgrade + raw socket approach
+      const url = new URL(wsUrl);
+      const protocol = url.protocol === "wss:" ? "https" : "http";
+      const httpModule = protocol === "https"
+        ? require("node:https")
+        : require("node:http");
+
+      const requestId = 1;
+      const message = JSON.stringify({ id: requestId, method, params });
+
+      const req = httpModule.request(
+        {
+          hostname: url.hostname,
+          port: url.port || (protocol === "https" ? 443 : 80),
+          path: url.pathname + url.search,
+          headers: {
+            Connection: "Upgrade",
+            Upgrade: "websocket",
+            "Sec-WebSocket-Version": "13",
+            "Sec-WebSocket-Key": randomBytes(16).toString("base64"),
+          },
+        },
+        () => {
+          reject(new Error("CDP WebSocket upgrade failed: got HTTP response"));
+        },
+      );
+
+      const timeout = setTimeout(() => {
+        req.destroy();
+        reject(new Error("CDP command timed out after 10s"));
+      }, 10_000);
+
+      req.on("upgrade", (_res: unknown, socket: import("node:net").Socket) => {
+        // Send the CDP command as a WebSocket text frame
+        const payload = Buffer.from(message, "utf-8");
+        const frame = this.buildWebSocketFrame(payload);
+        socket.write(frame);
+
+        // Read the response
+        let buffer = Buffer.alloc(0);
+
+        socket.on("data", (data: Buffer) => {
+          buffer = Buffer.concat([buffer, data]);
+
+          // Try to parse a WebSocket frame
+          const parsed = this.parseWebSocketFrame(buffer);
+          if (parsed) {
+            clearTimeout(timeout);
+            socket.destroy();
+            try {
+              const response = JSON.parse(parsed.toString("utf-8"));
+              if (response.error) {
+                reject(new Error(`CDP error: ${response.error.message}`));
+              } else {
+                resolve(response.result as T);
+              }
+            } catch (e) {
+              reject(new Error(`Failed to parse CDP response: ${e}`));
+            }
+          }
+        });
+
+        socket.on("error", (err: Error) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+
+      req.on("error", (err: Error) => {
+        clearTimeout(timeout);
+        reject(new Error(`CDP connection failed: ${err.message}`));
+      });
+
+      req.end();
+    });
+  }
+
+  /**
+   * Build a WebSocket text frame (unmasked, for client-to-server).
+   */
+  private buildWebSocketFrame(payload: Buffer): Buffer {
+    const length = payload.length;
+    let header: Buffer;
+
+    if (length < 126) {
+      header = Buffer.alloc(6);
+      header[0] = 0x81; // FIN + text opcode
+      header[1] = 0x80 | length; // masked + length
+    } else if (length < 65536) {
+      header = Buffer.alloc(8);
+      header[0] = 0x81;
+      header[1] = 0x80 | 126;
+      header.writeUInt16BE(length, 2);
+    } else {
+      header = Buffer.alloc(14);
+      header[0] = 0x81;
+      header[1] = 0x80 | 127;
+      header.writeUInt32BE(0, 2);
+      header.writeUInt32BE(length, 6);
+    }
+
+    // Masking key
+    const maskKey = randomBytes(4);
+    const maskOffset = header.length - 4;
+    maskKey.copy(header, maskOffset);
+
+    // Mask the payload
+    const masked = Buffer.alloc(length);
+    for (let i = 0; i < length; i++) {
+      masked[i] = payload[i] ^ maskKey[i % 4];
+    }
+
+    return Buffer.concat([header, masked]);
+  }
+
+  /**
+   * Parse a basic WebSocket frame (for reading server responses).
+   */
+  private parseWebSocketFrame(buffer: Buffer): Buffer | null {
+    if (buffer.length < 2) return null;
+
+    const secondByte = buffer[1];
+    let payloadLength = secondByte & 0x7f;
+    let offset = 2;
+
+    if (payloadLength === 126) {
+      if (buffer.length < 4) return null;
+      payloadLength = buffer.readUInt16BE(2);
+      offset = 4;
+    } else if (payloadLength === 127) {
+      if (buffer.length < 10) return null;
+      payloadLength = buffer.readUInt32BE(6);
+      offset = 10;
+    }
+
+    if (buffer.length < offset + payloadLength) return null;
+
+    return buffer.subarray(offset, offset + payloadLength);
   }
 
   /**
@@ -325,13 +504,30 @@ export class CookieExtractor {
     }
   }
 
+  /**
+   * Sanitize a domain string for safe use in SQL LIKE clauses.
+   * Escapes SQL special characters to prevent injection.
+   */
+  private sanitizeDomainForSQL(domain: string): string {
+    return domain
+      .replace(/'/g, "''")
+      .replace(/%/g, "")
+      .replace(/_/g, "\\_")
+      .replace(/\\/g, "\\\\")
+      .replace(/[\x00-\x1f\x7f]/g, "");
+  }
+
   private buildChromiumQuery(domain?: string): string {
-    const whereClause = domain ? `WHERE host_key LIKE '%${domain}%'` : "";
+    const whereClause = domain
+      ? `WHERE host_key LIKE '%${this.sanitizeDomainForSQL(domain)}%'`
+      : "";
     return `SELECT host_key, name, path, expires_utc, is_httponly, is_secure, samesite, hex(encrypted_value) as encrypted_value FROM cookies ${whereClause} ORDER BY host_key, name`;
   }
 
   private buildFirefoxQuery(domain?: string): string {
-    const whereClause = domain ? `WHERE host LIKE '%${domain}%'` : "";
+    const whereClause = domain
+      ? `WHERE host LIKE '%${this.sanitizeDomainForSQL(domain)}%'`
+      : "";
     return `SELECT host, name, value, path, expiry, isHttpOnly, isSecure, sameSite FROM moz_cookies ${whereClause} ORDER BY host, name`;
   }
 

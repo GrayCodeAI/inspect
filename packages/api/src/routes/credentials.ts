@@ -80,6 +80,15 @@ export function registerCredentialRoutes(
         return;
       }
 
+      // Validate data size and depth to prevent DoS
+      if (body.data !== undefined) {
+        const dataStr = JSON.stringify(body.data);
+        if (dataStr.length > 65_536) {
+          res.status(400).json({ error: "Credential data exceeds maximum size (64KB)" });
+          return;
+        }
+      }
+
       try {
         const credential = vault.create({
           provider: (body.provider as CredentialProviderType) ?? "native",
@@ -111,7 +120,7 @@ export function registerCredentialRoutes(
       const credentials = vault.list(
         Object.keys(filter).length > 0 ? filter : undefined,
       );
-      res.json({ credentials, total: credentials.length });
+      res.json({ credentials });
     },
   );
 

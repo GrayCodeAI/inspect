@@ -205,8 +205,11 @@ export class Logger {
     if (this.filePath) {
       try {
         appendFileSync(this.filePath, serialized + "\n", "utf-8");
-      } catch {
-        // Silently fail on file write errors
+      } catch (error) {
+        // Write to stderr to avoid infinite recursion (don't call this.log())
+        process.stderr.write(
+          `[Logger] Failed to write to log file ${this.filePath}: ${error instanceof Error ? error.message : error}\n`,
+        );
       }
     }
   }

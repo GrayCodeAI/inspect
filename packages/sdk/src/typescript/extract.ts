@@ -266,7 +266,7 @@ export class ExtractHandler {
 
     try {
       return JSON.parse(jsonStr);
-    } catch {
+    } catch (parseError) {
       // Try to extract JSON from mixed content
       const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
       const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
@@ -276,10 +276,15 @@ export class ExtractHandler {
         try {
           return JSON.parse(match[0]);
         } catch {
-          return null;
+          // Fall through to warning
         }
       }
 
+      console.warn(
+        "[ExtractHandler] Failed to parse JSON from LLM response:",
+        parseError instanceof Error ? parseError.message : parseError,
+        `(response preview: ${jsonStr.slice(0, 100)}...)`,
+      );
       return null;
     }
   }

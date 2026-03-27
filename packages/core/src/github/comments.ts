@@ -1,8 +1,15 @@
-import { exec as execCb } from "node:child_process";
+import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import type { PRInfo } from "./pr.js";
 
-const exec = promisify(execCb);
+const execFile = promisify(execFileCb);
+
+/**
+ * Safely execute a gh CLI command with arguments as an array.
+ */
+function ghApi(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  return execFile("gh", ["api", ...args]);
+}
 
 /**
  * The payload for posting a comment to a PR.
@@ -72,19 +79,23 @@ export class PRComments {
 
     if (existingId) {
       // Update existing comment
-      const { stdout } = await exec(
-        `gh api repos/${pr.owner}/${pr.repo}/issues/comments/${existingId} ` +
-          `-X PATCH -f body=${JSON.stringify(markedBody)} --jq '{id: .id, url: .html_url}'`
-      );
+      const { stdout } = await ghApi([
+        `repos/${pr.owner}/${pr.repo}/issues/comments/${existingId}`,
+        "-X", "PATCH",
+        "-f", `body=${markedBody}`,
+        "--jq", "{id: .id, url: .html_url}",
+      ]);
       const result = JSON.parse(stdout);
       return { commentId: result.id, url: result.url };
     }
 
     // Create new comment
-    const { stdout } = await exec(
-      `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments ` +
-        `-X POST -f body=${JSON.stringify(markedBody)} --jq '{id: .id, url: .html_url}'`
-    );
+    const { stdout } = await ghApi([
+      `repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments`,
+      "-X", "POST",
+      "-f", `body=${markedBody}`,
+      "--jq", "{id: .id, url: .html_url}",
+    ]);
     const result = JSON.parse(stdout);
     return { commentId: result.id, url: result.url };
   }
@@ -104,27 +115,28 @@ export class PRComments {
     const { pr, sha, state, description, context, targetUrl } = payload;
 
     const args = [
-      `gh api repos/${pr.owner}/${pr.repo}/statuses/${sha}`,
-      `-X POST`,
-      `-f state=${state}`,
-      `-f description=${JSON.stringify(description)}`,
-      `-f context=${JSON.stringify(context)}`,
+      `repos/${pr.owner}/${pr.repo}/statuses/${sha}`,
+      "-X", "POST",
+      "-f", `state=${state}`,
+      "-f", `description=${description}`,
+      "-f", `context=${context}`,
     ];
 
     if (targetUrl) {
-      args.push(`-f target_url=${JSON.stringify(targetUrl)}`);
+      args.push("-f", `target_url=${targetUrl}`);
     }
 
-    await exec(args.join(" "));
+    await ghApi(args);
   }
 
   /**
    * Get the HEAD SHA for a PR (needed for setting commit status).
    */
   async getPRHeadSha(pr: PRInfo): Promise<string> {
-    const { stdout } = await exec(
-      `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number} --jq '.head.sha'`
-    );
+    const { stdout } = await ghApi([
+      `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`,
+      "--jq", ".head.sha",
+    ]);
     return stdout.trim();
   }
 
@@ -161,10 +173,10 @@ export class PRComments {
     pr: PRInfo
   ): Promise<number | null> {
     try {
-      const { stdout } = await exec(
-        `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments ` +
-          `--jq '[.[] | select(.body | contains("${COMMENT_MARKER}")) | .id][0]'`
-      );
+      const { stdout } = await ghApi([
+        `repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments`,
+        "--jq", `[.[] | select(.body | contains("${COMMENT_MARKER}")) | .id][0]`,
+      ]);
       const id = parseInt(stdout.trim(), 10);
       return isNaN(id) ? null : id;
     } catch {

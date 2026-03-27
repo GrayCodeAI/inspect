@@ -49,7 +49,7 @@ const PBKDF2_ITERATIONS = 100_000;
  */
 export class CredentialVault {
   private credentials: Map<string, CredentialConfig> = new Map();
-  private masterKey: Buffer;
+  private rawKey: string;
   private storagePath: string;
   private loaded: boolean = false;
 
@@ -77,9 +77,9 @@ export class CredentialVault {
       if (!fs.existsSync(keyPath)) {
         fs.writeFileSync(keyPath, newKey, { mode: 0o600 });
       }
-      this.masterKey = this.deriveKey(newKey);
+      this.rawKey = newKey;
     } else {
-      this.masterKey = this.deriveKey(rawKey);
+      this.rawKey = rawKey;
     }
 
     this.ensureDir(path.dirname(this.storagePath));
@@ -275,11 +275,13 @@ export class CredentialVault {
   }
 
   /**
-   * Encrypt data using AES-256-GCM.
+   * Encrypt data using AES-256-GCM with a random salt.
+   * Format: Salt (32) + IV (16) + Tag (16) + Encrypted data
    */
   encrypt(plaintext: string): Buffer {
+    const { key, salt } = this.deriveKey(this.rawKey);
     const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, this.masterKey, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
     const encrypted = Buffer.concat([
       cipher.update(plaintext, "utf-8"),
@@ -287,23 +289,25 @@ export class CredentialVault {
     ]);
     const tag = cipher.getAuthTag();
 
-    // Format: IV (16) + Tag (16) + Encrypted data
-    return Buffer.concat([iv, tag, encrypted]);
+    return Buffer.concat([salt, iv, tag, encrypted]);
   }
 
   /**
    * Decrypt data using AES-256-GCM.
+   * Format: Salt (32) + IV (16) + Tag (16) + Encrypted data
    */
   decrypt(data: Buffer): string {
-    if (data.length < IV_LENGTH + TAG_LENGTH) {
+    if (data.length < SALT_LENGTH + IV_LENGTH + TAG_LENGTH) {
       throw new Error("Invalid encrypted data: too short");
     }
 
-    const iv = data.subarray(0, IV_LENGTH);
-    const tag = data.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
-    const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH);
+    const salt = data.subarray(0, SALT_LENGTH);
+    const iv = data.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+    const tag = data.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+    const encrypted = data.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
 
-    const decipher = crypto.createDecipheriv(ALGORITHM, this.masterKey, iv);
+    const { key } = this.deriveKey(this.rawKey, salt);
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(tag);
 
     return Buffer.concat([
@@ -314,23 +318,20 @@ export class CredentialVault {
 
   /**
    * Derive a 256-bit key from a passphrase using PBKDF2.
+   * Uses a random salt that is stored alongside the encrypted data.
    */
-  private deriveKey(passphrase: string): Buffer {
-    // Use a fixed salt derived from the passphrase for deterministic key derivation.
-    // In production, the salt should be stored alongside the encrypted data.
-    const salt = crypto
-      .createHash("sha256")
-      .update(`inspect-vault-${passphrase.substring(0, 8)}`)
-      .digest()
-      .subarray(0, SALT_LENGTH);
+  private deriveKey(passphrase: string, salt?: Buffer): { key: Buffer; salt: Buffer } {
+    const keySalt = salt ?? crypto.randomBytes(SALT_LENGTH);
 
-    return crypto.pbkdf2Sync(
+    const key = crypto.pbkdf2Sync(
       passphrase,
-      salt,
+      keySalt,
       PBKDF2_ITERATIONS,
       KEY_LENGTH,
       "sha512",
     );
+
+    return { key, salt: keySalt };
   }
 
   /**

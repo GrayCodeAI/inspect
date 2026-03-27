@@ -86,8 +86,10 @@ export class GitManager {
       });
 
       return log.all.map(
-        (entry) =>
-          `${(entry as any).hash} ${(entry as any).message} (${(entry as any).date})`
+        (entry) => {
+          const e = entry as unknown as { hash: string; message: string; date: string };
+          return `${e.hash} ${e.message} (${e.date})`;
+        }
       );
     } catch {
       return [];

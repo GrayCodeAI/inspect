@@ -95,6 +95,14 @@ export class WorkflowExecutor {
         const blockResult = await this.executeBlock(currentBlock, context, run);
         run.blockResults[currentBlock.id] = blockResult;
 
+        // Re-check cancellation after block execution in case
+        // cancellation was requested while the block was running
+        if (this.cancelledRuns.has(runId)) {
+          run.status = "cancelled";
+          this.emit("workflow:cancelled", { runId });
+          break;
+        }
+
         // Store block output in context for downstream blocks
         if (blockResult.output !== undefined) {
           context.set(`block_${currentBlock.id}`, blockResult.output);

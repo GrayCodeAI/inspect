@@ -141,6 +141,7 @@ export class OllamaProvider extends LLMProvider {
   ): AsyncGenerator<LLMChunk> {
     const body = this.buildRequestBody(messages, tools, options);
     body.stream = true;
+    let toolCallCounter = 0;
 
     const controller = new AbortController();
     const timeout = this.config.timeout ?? 300_000;
@@ -205,7 +206,7 @@ export class OllamaProvider extends LLMProvider {
             for (const tc of chunk.message.tool_calls) {
               yield {
                 toolCallDelta: {
-                  id: `ollama-tc-${Date.now()}`,
+                  id: `ollama-tc-${toolCallCounter++}`,
                   name: tc.function.name,
                   arguments: JSON.stringify(tc.function.arguments),
                 },

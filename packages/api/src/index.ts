@@ -40,6 +40,12 @@ export type {
   DeadLetterEntry,
 } from "./webhooks/retry.js";
 
+// Middleware
+export { RateLimiter } from "./middleware/rate-limit.js";
+export type { RateLimitConfig } from "./middleware/rate-limit.js";
+export { AuditLogger } from "./middleware/audit-log.js";
+export type { AuditLogConfig, AuditLogEntry } from "./middleware/audit-log.js";
+
 // Streaming
 export { SSEManager } from "./streaming/sse.js";
 export type { SSEClient } from "./streaming/sse.js";

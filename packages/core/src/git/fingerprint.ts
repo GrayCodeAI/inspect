@@ -99,7 +99,11 @@ export class Fingerprint {
     try {
       const content = readFileSync(filepath, "utf-8");
       return JSON.parse(content) as FingerprintData;
-    } catch {
+    } catch (error) {
+      console.warn(
+        `[Fingerprint] Failed to load fingerprint from ${filepath}:`,
+        error instanceof Error ? error.message : error,
+      );
       return null;
     }
   }

@@ -87,8 +87,9 @@ export class RetryPolicy {
           totalDuration: Date.now() - startTime,
         };
       } catch (error) {
-        lastError =
-          error instanceof Error ? error.message : String(error);
+        // Truncate error messages to prevent leaking sensitive response data
+        const rawError = error instanceof Error ? error.message : String(error);
+        lastError = rawError.length > 200 ? rawError.slice(0, 200) + "..." : rawError;
 
         // Extract status code from error message if present
         const statusMatch = lastError.match(

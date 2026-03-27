@@ -238,33 +238,50 @@ function matchWildcard(hostname: string, pattern: string): boolean {
 }
 
 /**
+ * Check if a 32-bit IP value falls within any blocked range.
+ * Covers loopback, private networks, link-local, and special-use addresses.
+ */
+function isBlockedIpValue(ipVal: number): boolean {
+  if (ipVal < 0 || ipVal > 0xFFFFFFFF) return false;
+
+  // 0.0.0.0
+  if (ipVal === 0) return true;
+  // 127.0.0.0/8 (loopback)
+  if ((ipVal >>> 24) === 127) return true;
+  // 10.0.0.0/8
+  if ((ipVal >>> 24) === 10) return true;
+  // 172.16.0.0/12
+  if ((ipVal >>> 20) === (172 << 4 | 1)) return true; // 0xAC1 = 172.16-31
+  // 192.168.0.0/16
+  if ((ipVal >>> 16) === (192 << 8 | 168)) return true; // 0xC0A8
+  // 169.254.0.0/16 (link-local / metadata)
+  if ((ipVal >>> 16) === (169 << 8 | 254)) return true; // 0xA9FE
+
+  return false;
+}
+
+/**
  * Check if an IP address falls within blocked ranges.
- * Covers private networks and special-use addresses.
+ * Covers private networks, special-use addresses, and alternative
+ * encodings (decimal, hexadecimal, octal).
  */
 function isBlockedIpRange(hostname: string): boolean {
-  // Check for IPv4 addresses that might be in decimal or hex notation
+  // Check for IPv4 addresses in decimal notation (e.g. "2130706433" for 127.0.0.1)
   const decimalIp = parseInt(hostname, 10);
   if (!isNaN(decimalIp) && hostname === String(decimalIp)) {
-    // Decimal notation for 127.0.0.1 = 2130706433, 0.0.0.0 = 0
-    if (decimalIp === 2130706433 || decimalIp === 0) {
-      return true;
-    }
+    if (isBlockedIpValue(decimalIp)) return true;
   }
 
-  // Check for hex-encoded localhost (0x7f000001)
+  // Check for hex-encoded IPs (e.g. "0x7f000001" for 127.0.0.1)
   if (/^0x[0-9a-f]+$/i.test(hostname)) {
     const hexVal = parseInt(hostname, 16);
-    if (hexVal === 0x7f000001 || hexVal === 0) {
-      return true;
-    }
+    if (isBlockedIpValue(hexVal)) return true;
   }
 
-  // Check for octal-encoded IPs
+  // Check for octal-encoded IPs (e.g. "017700000001" for 127.0.0.1)
   if (/^0[0-7]+/.test(hostname) && !hostname.includes(".")) {
     const octalVal = parseInt(hostname, 8);
-    if (octalVal === 0x7f000001 || octalVal === 0) {
-      return true;
-    }
+    if (isBlockedIpValue(octalVal)) return true;
   }
 
   return false;

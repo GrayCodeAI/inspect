@@ -28,8 +28,20 @@ export class LocalStorage {
 
   constructor(basePath?: string) {
     const base = basePath ?? process.cwd();
-    this.storageDir = path.join(base, ".inspect", "storage");
+    this.storageDir = path.resolve(base, ".inspect", "storage");
     this.ensureDir(this.storageDir);
+  }
+
+  /**
+   * Validate that a resolved file path is within the storage directory.
+   * Prevents path traversal attacks (e.g. "../../etc/passwd").
+   */
+  private validatePath(name: string): string {
+    const filePath = path.resolve(this.storageDir, name);
+    if (!filePath.startsWith(this.storageDir + path.sep) && filePath !== this.storageDir) {
+      throw new Error(`Path traversal detected: "${name}" resolves outside storage directory`);
+    }
+    return filePath;
   }
 
   /**
@@ -45,7 +57,7 @@ export class LocalStorage {
     data: Buffer | string,
     options?: { contentType?: string; overwrite?: boolean },
   ): Promise<LocalFileMetadata> {
-    const filePath = path.join(this.storageDir, name);
+    const filePath = this.validatePath(name);
     const dir = path.dirname(filePath);
     await fsp.mkdir(dir, { recursive: true });
 
@@ -80,7 +92,7 @@ export class LocalStorage {
    * Load a file from local storage.
    */
   async load(name: string): Promise<Buffer> {
-    const filePath = path.join(this.storageDir, name);
+    const filePath = this.validatePath(name);
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${name}`);
     }
@@ -144,7 +156,7 @@ export class LocalStorage {
    * Delete a file from storage.
    */
   async delete(name: string): Promise<boolean> {
-    const filePath = path.join(this.storageDir, name);
+    const filePath = this.validatePath(name);
     if (!fs.existsSync(filePath)) return false;
 
     await fsp.unlink(filePath);
@@ -172,14 +184,14 @@ export class LocalStorage {
    * Check if a file exists.
    */
   exists(name: string): boolean {
-    return fs.existsSync(path.join(this.storageDir, name));
+    return fs.existsSync(this.validatePath(name));
   }
 
   /**
    * Get file metadata without loading content.
    */
   async getMetadata(name: string): Promise<LocalFileMetadata | null> {
-    const filePath = path.join(this.storageDir, name);
+    const filePath = this.validatePath(name);
     if (!fs.existsSync(filePath)) return null;
 
     const stat = await fsp.stat(filePath);

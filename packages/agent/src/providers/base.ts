@@ -189,10 +189,11 @@ export abstract class LLMProvider {
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "");
+        const sanitizedBody = this.sanitizeErrorBody(errorBody);
         throw new LLMError(
-          `${this.getName()} API error ${response.status}: ${errorBody}`,
+          `${this.getName()} API error ${response.status}: ${sanitizedBody}`,
           response.status,
-          errorBody,
+          sanitizedBody,
         );
       }
 
@@ -200,6 +201,20 @@ export abstract class LLMProvider {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  /**
+   * Sanitize error response bodies to prevent leaking API keys or secrets.
+   */
+  private sanitizeErrorBody(body: string): string {
+    if (!body) return body;
+    // Truncate to prevent excessive logging
+    const truncated = body.length > 500 ? body.slice(0, 500) + "..." : body;
+    // Redact anything that looks like an API key
+    return truncated
+      .replace(/(?:key|token|secret|password|apiKey|api_key|authorization)["']?\s*[:=]\s*["']?[A-Za-z0-9_\-/.]{8,}["']?/gi, "[REDACTED]")
+      .replace(/sk-[A-Za-z0-9]{20,}/g, "[REDACTED]")
+      .replace(/Bearer\s+[A-Za-z0-9_\-.]+/gi, "Bearer [REDACTED]");
   }
 
   /**
@@ -234,10 +249,11 @@ export abstract class LLMProvider {
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "");
+        const sanitizedBody = this.sanitizeErrorBody(errorBody);
         throw new LLMError(
-          `${this.getName()} streaming error ${response.status}: ${errorBody}`,
+          `${this.getName()} streaming error ${response.status}: ${sanitizedBody}`,
           response.status,
-          errorBody,
+          sanitizedBody,
         );
       }
 

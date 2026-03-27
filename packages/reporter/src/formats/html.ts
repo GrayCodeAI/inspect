@@ -172,7 +172,7 @@ export class HTMLReporter {
       <div class="error-block">
         <div class="error-message">${escapeHTML(error.message)}</div>
         ${error.stack ? `<pre class="error-stack">${escapeHTML(error.stack)}</pre>` : ""}
-        ${error.screenshot ? `<img class="error-screenshot" src="${error.screenshot}" alt="Error screenshot" onclick="openLightbox(this.src)">` : ""}
+        ${error.screenshot ? `<img class="error-screenshot" src="${escapeHTML(error.screenshot)}" alt="Error screenshot" onclick="openLightbox(this.src)">` : ""}
       </div>`;
   }
 
@@ -211,7 +211,14 @@ export class HTMLReporter {
     if (screenshots.length === 0) return "";
 
     const items = screenshots.map((ss) => {
-      const src = ss.data ? `data:image/png;base64,${ss.data}` : ss.path;
+      let src: string;
+      if (ss.data) {
+        // Validate base64 data contains only safe characters
+        const safeData = ss.data.replace(/[^A-Za-z0-9+/=]/g, "");
+        src = `data:image/png;base64,${safeData}`;
+      } else {
+        src = escapeHTML(ss.path ?? "");
+      }
       return `
         <div class="screenshot-item">
           <img src="${src}" alt="${escapeHTML(ss.name)}" onclick="openLightbox(this.src)" loading="lazy">

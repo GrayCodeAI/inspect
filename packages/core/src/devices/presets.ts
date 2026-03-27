@@ -263,11 +263,16 @@ export function resolveDevices(input: string): DeviceConfig[] {
     if (preset && !seen.has(preset.name)) {
       seen.add(preset.name);
       result.push(preset);
+    } else if (!preset) {
+      const available = Object.keys(DevicePresets).join(", ");
+      console.warn(
+        `[DevicePresets] Unknown device "${token}". Available presets: ${available}`,
+      );
     }
   }
 
   if (result.length === 0) {
-    // Default to desktop-chrome
+    console.warn("[DevicePresets] No valid devices matched. Defaulting to desktop-chrome.");
     result.push(DevicePresets["desktop-chrome"]);
   }
 

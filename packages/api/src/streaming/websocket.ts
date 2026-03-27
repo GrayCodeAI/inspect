@@ -299,8 +299,13 @@ export class WebSocketManager {
       offset = 4;
     } else if (payloadLength === 127) {
       if (buffer.length < 10) return null;
-      // For simplicity, only handle 32-bit lengths
-      payloadLength = buffer.readUInt32BE(6);
+      // Read 64-bit length but enforce a maximum frame size of 16MB
+      const highBits = buffer.readUInt32BE(2);
+      const lowBits = buffer.readUInt32BE(6);
+      if (highBits !== 0 || lowBits > 16 * 1024 * 1024) {
+        throw new Error(`WebSocket frame too large: ${highBits > 0 ? "exceeds 4GB" : `${lowBits} bytes`}. Maximum is 16MB.`);
+      }
+      payloadLength = lowBits;
       offset = 10;
     }
 

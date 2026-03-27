@@ -193,16 +193,19 @@ export class TestExecutor {
 
   /**
    * Generate a test plan from the AI agent.
-   * In the full implementation, this sends the prompt to the configured agent
-   * and parses the structured plan response.
+   *
+   * NOTE: This is a placeholder implementation that returns a static plan.
+   * The full implementation will send the prompt to the configured agent
+   * via ACP/API and parse the structured plan response.
+   *
+   * @throws {Error} In production, this should be connected to an LLM provider.
    */
   private async generatePlan(): Promise<StepPlan[]> {
-    // In full implementation:
-    // 1. Send prompt to agent via ACP/API
-    // 2. Agent returns structured plan
-    // 3. Parse and validate plan
+    console.warn(
+      "[TestExecutor] generatePlan() is using placeholder implementation. " +
+      "Connect an LLM provider for real test plan generation.",
+    );
 
-    // For now, generate a reasonable plan from the instruction
     const plans: StepPlan[] = [
       {
         index: 0,
@@ -294,8 +297,11 @@ export class TestExecutor {
   }
 
   /**
-   * Run the actual step logic. In full implementation this dispatches
-   * to the browser automation layer and AI agent.
+   * Run the actual step logic.
+   *
+   * NOTE: This is a placeholder that records tool calls without executing
+   * real browser actions. The full implementation will dispatch to the
+   * browser automation layer and AI agent.
    */
   private async runStep(
     step: StepPlan,

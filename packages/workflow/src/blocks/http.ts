@@ -62,6 +62,40 @@ export class HTTPRequestBlock {
       throw new Error("HTTP request block requires a URL");
     }
 
+    // Validate URL to prevent SSRF attacks against internal services
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error(`Invalid URL: ${url}`);
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const blockedHosts = [
+      "localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]",
+      "169.254.169.254", "metadata.google.internal", "169.254.169.253",
+    ];
+    const blockedPrefixes = [
+      "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.",
+      "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
+      "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
+      "169.254.",
+    ];
+
+    if (
+      blockedHosts.includes(hostname) ||
+      blockedPrefixes.some((p) => hostname.startsWith(p))
+    ) {
+      throw new Error(
+        `HTTP request to internal/private host "${hostname}" is blocked. ` +
+        "Workflow HTTP blocks cannot access localhost, private networks, or cloud metadata endpoints.",
+      );
+    }
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      throw new Error(`Protocol "${parsedUrl.protocol}" is not allowed. Use http: or https:.`);
+    }
+
     // Build headers
     const headers: Record<string, string> = {
       ...this.defaultHeaders,

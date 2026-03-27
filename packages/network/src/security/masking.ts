@@ -120,8 +120,12 @@ export class SensitiveDataMasker {
       buffer[3] === 0x47;
 
     if (!isPng) {
-      // For non-PNG formats, return as-is with region metadata
-      // The caller can use the region info to overlay in their rendering pipeline
+      // For non-PNG formats, we cannot manipulate pixel data directly.
+      // Log a warning so callers know masking was not applied.
+      console.warn(
+        "[SensitiveDataMasker] Screenshot is not PNG format — pixel masking was not applied. " +
+        `${regions.length} region(s) remain unmasked. Convert to PNG before masking for full coverage.`,
+      );
       return { buffer, maskedRegions: regions };
     }
 

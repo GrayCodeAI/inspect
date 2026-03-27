@@ -80,6 +80,7 @@ export function slugify(text: string): string {
  * @returns The truncated string
  */
 export function truncate(text: string, maxLength: number = 256): string {
+  if (maxLength < 4) return text.slice(0, maxLength);
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - 3) + "...";
 }

@@ -67,9 +67,19 @@ export class TestScheduler {
       });
     }
 
-    // Global timeout
+    // Global timeout — marks scheduler as aborted so no new tasks start.
+    // Already-running tasks will finish their current step but won't
+    // start new steps (the executor checks its own timeout).
     const globalTimer = setTimeout(() => {
       this.abort();
+      // Mark any still-running runs as failed due to timeout
+      for (const run of this.runs.values()) {
+        if (run.status === "running") {
+          run.status = "failed";
+          run.error = "Global timeout exceeded";
+          run.completedAt = new Date();
+        }
+      }
     }, this.config.globalTimeoutMs);
 
     // Process task queue with concurrency limit

@@ -274,7 +274,11 @@ export class ObserveHandler {
       suggestions.sort((a, b) => b.confidence - a.confidence);
 
       return suggestions;
-    } catch {
+    } catch (error) {
+      console.warn(
+        "[ObserveHandler] Failed to parse action suggestions from LLM response:",
+        error instanceof Error ? error.message : error,
+      );
       return [];
     }
   }

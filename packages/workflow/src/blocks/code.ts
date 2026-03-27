@@ -181,12 +181,16 @@ export class CodeBlock {
       // Structured clone
       structuredClone: (obj: unknown) => JSON.parse(JSON.stringify(obj)),
 
-      // Timing (safe subset)
+      // Timing (safe subset — setInterval is blocked to prevent long-running loops)
       setTimeout: (fn: () => void, ms: number) => {
         const capped = Math.min(ms, 10_000);
         return setTimeout(fn, capped);
       },
       clearTimeout,
+      setInterval: () => {
+        throw new Error("setInterval is not allowed in workflow code blocks. Use setTimeout instead.");
+      },
+      clearInterval,
 
       // Iterators and typed arrays
       Uint8Array,
