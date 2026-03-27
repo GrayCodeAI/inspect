@@ -5,6 +5,11 @@
 // Playwright browser/page management
 export { BrowserManager } from "./playwright/browser.js";
 export { PageManager } from "./playwright/page.js";
+export {
+  CrossBrowserManager,
+  type BrowserEngine,
+  type CrossBrowserResult,
+} from "./playwright/cross-browser.js";
 export type { Page } from "playwright";
 
 // ARIA accessibility snapshots

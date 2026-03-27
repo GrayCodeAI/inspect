@@ -2,7 +2,12 @@
 // Re-exports all public APIs from sub-modules
 
 export { TestExecutor } from "./orchestrator/executor.js";
-export type { ExecutionConfig, ExecutionResult, ExecutionProgress, ExecutorDependencies } from "./orchestrator/executor.js";
+export type {
+  ExecutionConfig,
+  ExecutionResult,
+  ExecutionProgress,
+  ExecutorDependencies,
+} from "./orchestrator/executor.js";
 
 export { TestScheduler } from "./orchestrator/scheduler.js";
 export type { SchedulerConfig, ScheduledRun } from "./orchestrator/scheduler.js";
@@ -33,4 +38,16 @@ export { VisualRegression } from "./visual/regression.js";
 
 export { generatePlaywrightTest, exportPlaywrightTest } from "./export/playwright.js";
 export type { PlaywrightExportOptions } from "./export/playwright.js";
-export type { VisualRegressionConfig, VisualComparisonResult, VisualRegressionReport } from "./visual/regression.js";
+export type {
+  VisualRegressionConfig,
+  VisualComparisonResult,
+  VisualRegressionReport,
+} from "./visual/regression.js";
+
+// Flakiness detection
+export {
+  FlakinessDetector,
+  type TestExecution,
+  type FlakinessScore,
+  type FlakinessReport,
+} from "./testing/flakiness.js";

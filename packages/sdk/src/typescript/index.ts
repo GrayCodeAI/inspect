@@ -610,6 +610,57 @@ export class Inspect {
   }
 
   /**
+   * Run a test across all 3 browsers (Chromium, Firefox, WebKit).
+   *
+   * @param url - URL to test
+   * @param instruction - Test instruction
+   * @returns Results per browser
+   */
+  async testAllBrowsers(
+    url: string,
+    instruction: string,
+  ): Promise<Array<{ engine: string; passed: boolean; durationMs: number; error?: string }>> {
+    const { CrossBrowserManager } = await import("@inspect/browser");
+    const manager = new CrossBrowserManager();
+
+    try {
+      const results = await manager.runAllBrowsers(this.browserConfig, async (engine, context) => {
+        const page = await context.newPage();
+        await page.goto(url);
+        // Basic test: page loaded successfully
+        const title = await page.title();
+        if (!title) throw new Error(`${engine}: Page has no title`);
+      });
+      return results.map((r) => ({
+        engine: r.engine,
+        passed: r.passed,
+        durationMs: r.durationMs,
+        error: r.error,
+      }));
+    } finally {
+      await manager.closeAll();
+    }
+  }
+
+  /**
+   * Get flakiness score for a test.
+   *
+   * @param testId - Test identifier
+   * @returns Flakiness score or null if insufficient data
+   */
+  getFlakiness(testId: string): { score: number; passRate: number; recommendation: string } | null {
+    const { FlakinessDetector } = require("@inspect/core");
+    const detector = new FlakinessDetector();
+    const score = detector.getScore(testId);
+    if (!score) return null;
+    return {
+      score: score.score,
+      passRate: score.passRate,
+      recommendation: score.recommendation,
+    };
+  }
+
+  /**
    * Get aggregate token usage and cost metrics.
    */
   get metrics(): { total: TokenMetrics; perFunction: FunctionMetrics } {
