@@ -29,3 +29,7 @@ export { runSEOAudit, auditMetaTags, auditRobotsTxt, auditSitemap, auditStructur
 // --- Reporter ---
 export { generateReport, generateGitHubAnnotations } from "./reporter.js";
 export type { ReportOptions } from "./reporter.js";
+
+// --- Utilities ---
+export { withCache, clearCache } from "./cache.js";
+export { safeEvaluate, safeEvaluateVoid } from "./evaluate.js";

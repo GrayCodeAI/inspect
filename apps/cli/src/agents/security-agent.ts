@@ -412,7 +412,14 @@ function collectCookieIssues(
 // 4. XSS testing (reflected)
 // ---------------------------------------------------------------------------
 
-const XSS_PAYLOAD = '<img src=x onerror=alert(1)>';
+// Multiple XSS payloads to test different injection vectors
+const XSS_PAYLOADS = [
+  { payload: '<img src=x onerror=alert(1)>', check: '<img src=x onerror=alert(1)>', name: "img-onerror" },
+  { payload: '"><script>alert(1)</script>', check: '<script>alert(1)</script>', name: "script-inject" },
+  { payload: "javascript:alert(1)", check: "javascript:alert(1)", name: "js-protocol" },
+  { payload: "'-alert(1)-'", check: "'-alert(1)-'", name: "attr-break" },
+  { payload: '<svg onload=alert(1)>', check: '<svg onload=alert(1)>', name: "svg-onload" },
+];
 
 export async function testXss(
   page: any,
@@ -432,73 +439,114 @@ export async function testXss(
           const name = el.name || el.id || el.placeholder || ("input-" + i);
           const form = el.closest("form");
           const formAction = form ? (form.action || null) : null;
-          // Build a unique selector
           let selector;
-          if (el.id) {
-            selector = "#" + el.id;
-          } else if (el.name) {
-            selector = el.tagName.toLowerCase() + "[name='" + el.name + "']";
-          } else {
-            selector = el.tagName.toLowerCase() + ":nth-of-type(" + (i + 1) + ")";
-          }
+          if (el.id) selector = "#" + el.id;
+          else if (el.name) selector = el.tagName.toLowerCase() + "[name='" + el.name + "']";
+          else selector = el.tagName.toLowerCase() + ":nth-of-type(" + (i + 1) + ")";
           return { selector, name, formAction };
         });
       })()
     `)) as Array<{ selector: string; name: string; formAction: string | null }>;
   } catch {
-    // Page may have navigated or be inaccessible
     return results;
   }
 
   for (const field of inputFields) {
-    const result: XssTestResult = {
-      url,
-      field: field.name,
-      payload: XSS_PAYLOAD,
-      reflected: false,
-      executed: false,
-    };
+    for (const xss of XSS_PAYLOADS) {
+      const result: XssTestResult = {
+        url,
+        field: field.name,
+        payload: xss.payload,
+        reflected: false,
+        executed: false,
+      };
 
-    try {
-      // Navigate back to the page to start fresh for each field
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10_000 });
+      try {
+        // Fresh page for each test
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10_000 });
 
-      // Fill the input with the XSS payload
-      const input = await page.$(field.selector);
-      if (!input) continue;
+        const input = await page.$(field.selector);
+        if (!input) continue;
 
-      await input.fill(XSS_PAYLOAD);
+        await input.fill(xss.payload);
 
-      // Try to submit: press Enter (most common form submission)
-      await input.press("Enter");
+        // Submit: try Enter, then look for submit button
+        try {
+          await input.press("Enter");
+        } catch {
+          try {
+            const submitBtn = await page.$('button[type="submit"], input[type="submit"], button:not([type])');
+            if (submitBtn) await submitBtn.click();
+          } catch {}
+        }
 
-      // Wait briefly for navigation or DOM update
-      await page.waitForTimeout(1_000);
+        await page.waitForTimeout(1_000);
 
-      // Check if the payload appears unescaped in the DOM
-      const reflected = (await page.evaluate(`
-        (() => {
-          const html = document.body.innerHTML;
-          // Check for unescaped payload (the angle brackets are not entity-encoded)
-          return html.includes('<img src=x onerror=alert(1)>');
-        })()
-      `)) as boolean;
+        // Check reflected XSS — payload appears unescaped in DOM
+        const checkStr = xss.check.replace(/'/g, "\\'");
+        const reflected = (await page.evaluate(`
+          (() => {
+            const html = document.body.innerHTML;
+            return html.includes('${checkStr}');
+          })()
+        `)) as boolean;
 
-      result.reflected = reflected;
-      // We never actually execute scripts — executed stays false
-    } catch {
-      // If filling/submitting fails, skip this field
+        result.reflected = reflected;
+
+        // Check stored XSS — reload and check if payload persists
+        if (reflected) {
+          try {
+            await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 });
+            await page.waitForTimeout(500);
+            const storedReflected = (await page.evaluate(`
+              (() => document.body.innerHTML.includes('${checkStr}'))()
+            `)) as boolean;
+            if (storedReflected) {
+              result.executed = true; // stored XSS is more severe
+            }
+          } catch {}
+        }
+      } catch {
+        // Skip on error
+      }
+
+      if (result.reflected) {
+        results.push(result);
+        break; // One reflected payload per field is enough
+      }
     }
-
-    results.push(result);
   }
 
-  // Navigate back to the original URL
+  // Check DOM-based XSS: test URL hash/query parameter injection
+  try {
+    const testUrl = new URL(url);
+    testUrl.searchParams.set("q", '<img src=x onerror=alert(1)>');
+    testUrl.hash = '<img src=x onerror=alert(1)>';
+    await page.goto(testUrl.toString(), { waitUntil: "domcontentloaded", timeout: 10_000 });
+    await page.waitForTimeout(500);
+
+    const domXss = (await page.evaluate(`
+      (() => {
+        const html = document.body.innerHTML;
+        return html.includes('<img src=x onerror=alert(1)>');
+      })()
+    `)) as boolean;
+
+    if (domXss) {
+      results.push({
+        url: testUrl.toString(),
+        field: "url-parameter",
+        payload: '<img src=x onerror=alert(1)>',
+        reflected: true,
+        executed: false,
+      });
+    }
+  } catch {}
+
+  // Navigate back
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10_000 });
-  } catch {
-    // Best effort
-  }
+  } catch {}
 
   return results;
 }

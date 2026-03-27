@@ -21,11 +21,12 @@ export async function crawlSite(
   startUrl: string,
   page: any, // Playwright Page
   onProgress: ProgressCallback,
-  options?: { maxPages?: number; maxDepth?: number; timeout?: number },
+  options?: { maxPages?: number; maxDepth?: number; timeout?: number; crawlDelay?: number },
 ): Promise<SiteMap> {
   const maxPages = options?.maxPages ?? 50;
   const maxDepth = options?.maxDepth ?? 5;
   const timeout = options?.timeout ?? 15_000;
+  const crawlDelay = options?.crawlDelay ?? 500; // politeness delay between requests
   const crawlStart = Date.now();
 
   const baseOrigin = new URL(startUrl).origin;
@@ -107,6 +108,11 @@ export async function crawlSite(
     }
 
     visited.add(normalized);
+
+    // Politeness delay to avoid hammering the server
+    if (pages.length > 0 && crawlDelay > 0) {
+      await new Promise(r => setTimeout(r, crawlDelay));
+    }
 
     onProgress("step", `[${pages.length + 1}/${maxPages}] Visiting: ${normalized}`);
 

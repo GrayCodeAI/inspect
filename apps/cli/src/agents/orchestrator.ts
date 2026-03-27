@@ -8,6 +8,7 @@ import { executeStep } from "./tester.js";
 import { validateStep, createNetworkMonitor, createConsoleMonitor, trackUrlChanges } from "./validator.js";
 import { checkAccessibility } from "./accessibility.js";
 import { generateReport } from "./reporter.js";
+import { withCache } from "./cache.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 
@@ -18,7 +19,9 @@ import { existsSync, mkdirSync } from "node:fs";
 export interface OrchestratorOptions {
   url: string;
   headed?: boolean;
+  /** Max test steps to execute (default: 25) */
   maxSteps?: number;
+  /** Max pages to crawl in discovery (default: 20) */
   maxPages?: number;
   llm: LLMCall;
   onProgress: ProgressCallback;
@@ -36,6 +39,10 @@ export interface OrchestratorOptions {
   viewport?: { width: number; height: number };
   /** Skip quality checks (fast mode) */
   fast?: boolean;
+  /** Enable LLM response caching (default: true) */
+  cache?: boolean;
+  /** Max token budget (estimated). Test aborts if exceeded. 0 = unlimited */
+  tokenBudget?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,13 +77,34 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   let formResults: FormTestResult[] | undefined;
   let tokenUsage = 0;
 
-  // Track LLM token usage
+  // Wrap LLM with optional cache
+  const baseLlm = options.cache !== false ? withCache(llm) : llm;
+
+  const tokenBudget = options.tokenBudget ?? 0;
+
+  // Track LLM token usage with budget enforcement
   const trackedLlm: LLMCall = async (messages) => {
+    // Budget check before calling LLM
+    if (tokenBudget > 0 && tokenUsage > tokenBudget) {
+      throw new Error(`Token budget exceeded (${tokenUsage.toLocaleString()} / ${tokenBudget.toLocaleString()}). Use --token-budget to increase.`);
+    }
+
     const inputTokens = messages.reduce((sum, m) => sum + m.content.length / 4, 0);
-    const response = await llm(messages);
+
+    // Pre-flight estimate: warn if this call alone will be expensive
+    if (tokenBudget > 0 && tokenUsage + inputTokens > tokenBudget * 0.9) {
+      onProgress("warn", `Token usage at ${Math.round((tokenUsage / tokenBudget) * 100)}% of budget`);
+    }
+
+    const response = await baseLlm(messages);
     tokenUsage += Math.round(inputTokens + response.length / 4);
     return response;
   };
+
+  // Print cost estimate upfront
+  if (tokenBudget > 0) {
+    onProgress("info", `Token budget: ${tokenBudget.toLocaleString()} (~$${(tokenBudget * 0.000003).toFixed(2)})`);
+  }
 
   // 1. Launch browser
   onProgress("info", `Launching ${headed ? "headed" : "headless"} browser...`);

@@ -8,13 +8,40 @@ async function runAxeCore(page: any, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
   try {
-    // Inject axe-core
-    await page.addScriptTag({
-      url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js",
-    });
+    // Inject axe-core — try local node_modules first, then CDN fallback
+    const alreadyLoaded = await page.evaluate("typeof window.axe !== 'undefined'") as boolean;
+    if (!alreadyLoaded) {
+      let injected = false;
 
-    // Wait for axe to be available
-    await page.waitForFunction("typeof window.axe !== 'undefined'", { timeout: 5000 });
+      // Strategy 1: load from node_modules (works if axe-core is installed)
+      try {
+        const axePath = require.resolve("axe-core/axe.min.js");
+        const { readFileSync } = await import("node:fs");
+        const axeSource = readFileSync(axePath, "utf-8");
+        await page.addScriptTag({ content: axeSource });
+        injected = true;
+      } catch {
+        // axe-core not installed locally
+      }
+
+      // Strategy 2: CDN fallback
+      if (!injected) {
+        try {
+          await page.addScriptTag({
+            url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js",
+          });
+        } catch {
+          // CDN blocked by CSP or network — axe-core unavailable
+        }
+      }
+
+      // Wait for axe to be available (with short timeout)
+      try {
+        await page.waitForFunction("typeof window.axe !== 'undefined'", { timeout: 3000 });
+      } catch {
+        // axe-core not available — manual checks will still run
+      }
+    }
 
     // Run axe
     const results = await page.evaluate(`

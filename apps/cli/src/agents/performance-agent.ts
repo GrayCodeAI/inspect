@@ -137,6 +137,25 @@ export async function runPerformanceAudit(
 // ---------------------------------------------------------------------------
 
 export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
+  // Simulate a user interaction to trigger FID measurement
+  try {
+    await page.mouse.click(0, 0); // click at top-left (usually safe)
+    await page.waitForTimeout(100);
+  } catch {}
+
+  // Wait for page to fully settle (images, fonts, lazy content)
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 5000 });
+  } catch {}
+
+  // Scroll to trigger layout shifts and lazy content
+  try {
+    await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)");
+    await page.waitForTimeout(300);
+    await page.evaluate("window.scrollTo(0, 0)");
+    await page.waitForTimeout(300);
+  } catch {}
+
   const vitals = await page.evaluate(`
     (async () => {
       const result = {
@@ -189,7 +208,7 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
             setTimeout(() => {
               observer.disconnect();
               resolve(lcpValue);
-            }, 2000);
+            }, 3000);
           });
         } catch {
           // Fallback: use domContentLoaded as rough LCP estimate
@@ -227,7 +246,7 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
             setTimeout(() => {
               observer.disconnect();
               resolve(parseFloat(clsTotal.toFixed(4)));
-            }, 2000);
+            }, 3000);
           });
         } catch {
           result.cls = 0;
