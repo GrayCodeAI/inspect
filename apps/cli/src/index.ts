@@ -53,7 +53,9 @@ program
   .version(getVersionString(), "-v, --version", "Display version with environment info")
   .option("--verbose", "Enable verbose output across all commands")
   .option("--config <path>", "Path to config file (default: auto-detected)")
-  .addHelpText("after", `
+  .addHelpText(
+    "after",
+    `
 Examples:
   $ inspect                                      Launch interactive TUI
   $ inspect test -m "test login flow" --url https://myapp.com
@@ -77,7 +79,8 @@ Environment Variables:
 
 Documentation:
   https://github.com/nichochar/inspect
-`);
+`,
+  );
 
 // ── Testing Commands ─────────────────────────────────────────────────────
 registerTestCommand(program);
@@ -112,6 +115,16 @@ registerExtractCommand(program);
 registerWorkflowCommand(program);
 registerCredentialsCommand(program);
 
+// ── World-Class Features ──────────────────────────────────────────────────
+import { registerCrawlCommand } from "./commands/crawl.js";
+import { registerTrackCommand } from "./commands/track.js";
+import { registerProxyCommand } from "./commands/proxy.js";
+import { registerBenchmarkCommand } from "./commands/benchmark.js";
+registerCrawlCommand(program);
+registerTrackCommand(program);
+registerProxyCommand(program);
+registerBenchmarkCommand(program);
+
 // ── Setup & Info Commands ────────────────────────────────────────────────
 registerInstallCommand(program);
 registerInitCommand(program);
@@ -139,15 +152,19 @@ program
     const entries = Object.entries(DEVICE_PRESETS) as [string, any][];
     const filtered = opts.category
       ? entries.filter(([, d]) => {
-          if (opts.category === "mobile") return d.mobile && !d.name?.includes("iPad") && !d.name?.includes("Tab");
-          if (opts.category === "tablet") return d.name?.includes("iPad") || d.name?.includes("Tab");
+          if (opts.category === "mobile")
+            return d.mobile && !d.name?.includes("iPad") && !d.name?.includes("Tab");
+          if (opts.category === "tablet")
+            return d.name?.includes("iPad") || d.name?.includes("Tab");
           if (opts.category === "desktop") return !d.mobile;
           return true;
         })
       : entries;
     for (const [key, device] of filtered) {
       const type = device.mobile ? (device.width > 500 ? "tablet" : "mobile") : "desktop";
-      lines.push(`  ${key.padEnd(25)} ${String(device.width).padStart(4)}x${String(device.height).padEnd(4)}  @${device.dpr}x  ${type}`);
+      lines.push(
+        `  ${key.padEnd(25)} ${String(device.width).padStart(4)}x${String(device.height).padEnd(4)}  @${device.dpr}x  ${type}`,
+      );
     }
     lines.push(`\n  ${filtered.length} device${filtered.length !== 1 ? "s" : ""} available\n`);
     const output = lines.join("\n");
@@ -172,7 +189,11 @@ program
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "unknown";
       if (!byProvider.has(provider)) byProvider.set(provider, []);
-      byProvider.get(provider)!.push(`  ${id.padEnd(35)} ${m.vision ? "vision" : "      "} ${m.thinking ? "thinking" : "        "}`);
+      byProvider
+        .get(provider)!
+        .push(
+          `  ${id.padEnd(35)} ${m.vision ? "vision" : "      "} ${m.thinking ? "thinking" : "        "}`,
+        );
     }
     for (const [provider, models] of byProvider) {
       agentLines.push(`  ${provider.toUpperCase()}`);
@@ -201,7 +222,9 @@ program
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "?";
-      modelLines.push(`  ${id.padEnd(35)} ${provider.padEnd(12)} ${m.vision ? "yes" : " - "}     ${m.thinking ? "yes" : " - "}`);
+      modelLines.push(
+        `  ${id.padEnd(35)} ${provider.padEnd(12)} ${m.vision ? "yes" : " - "}     ${m.thinking ? "yes" : " - "}`,
+      );
     }
     modelLines.push("");
     const modelOutput = modelLines.join("\n");
@@ -213,31 +236,36 @@ program
   .command("completions")
   .description("Generate shell completion scripts")
   .argument("<shell>", "Shell type: bash, zsh, or fish")
-  .addHelpText("after", `
+  .addHelpText(
+    "after",
+    `
 Examples:
   $ inspect completions bash >> ~/.bashrc
   $ inspect completions zsh >> ~/.zshrc
   $ inspect completions fish | source
   $ eval "$(inspect completions bash)"
-`)
+`,
+  )
   .action((shell: string) => {
     // dynamic import to avoid loading at startup
-    import("./utils/completions.js").then(({ generateBashCompletions, generateZshCompletions, generateFishCompletions }) => {
-      switch (shell.toLowerCase()) {
-        case "bash":
-          process.stdout.write(generateBashCompletions());
-          break;
-        case "zsh":
-          process.stdout.write(generateZshCompletions());
-          break;
-        case "fish":
-          process.stdout.write(generateFishCompletions());
-          break;
-        default:
-          console.error(`Unknown shell: "${shell}". Use bash, zsh, or fish.`);
-          process.exit(1);
-      }
-    });
+    import("./utils/completions.js").then(
+      ({ generateBashCompletions, generateZshCompletions, generateFishCompletions }) => {
+        switch (shell.toLowerCase()) {
+          case "bash":
+            process.stdout.write(generateBashCompletions());
+            break;
+          case "zsh":
+            process.stdout.write(generateZshCompletions());
+            break;
+          case "fish":
+            process.stdout.write(generateFishCompletions());
+            break;
+          default:
+            console.error(`Unknown shell: "${shell}". Use bash, zsh, or fish.`);
+            process.exit(1);
+        }
+      },
+    );
   });
 
 // Default action: detect interactive vs headless mode
@@ -260,9 +288,13 @@ program.action(async () => {
   if (!isTTY || isCI) {
     // Headless mode — print summary and usage hint instead of launching TUI
     console.log(`inspect v${VERSION} — AI-Powered Browser Testing\n`);
-    console.log('Run "inspect --help" for usage or "inspect test -m <instruction>" to start testing.\n');
+    console.log(
+      'Run "inspect --help" for usage or "inspect test -m <instruction>" to start testing.\n',
+    );
     if (isCI) {
-      console.log("Detected CI/agent environment. Use \"inspect test\" with flags for non-interactive mode.");
+      console.log(
+        'Detected CI/agent environment. Use "inspect test" with flags for non-interactive mode.',
+      );
     }
     return;
   }
