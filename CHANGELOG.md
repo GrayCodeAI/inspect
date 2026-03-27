@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- 12-agent autonomous testing system (PLAN-100 complete)
+- 28-agent autonomous testing system
   - Tier 1 Discovery: Crawler, Analyzer, Planner
   - Tier 2 Execution: Navigator, Tester, FormFiller, Validator
   - Tier 3 Quality: Accessibility, Performance, Security, Responsive, SEO

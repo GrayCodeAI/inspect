@@ -1,5 +1,5 @@
 // ============================================================================
-// PLAN-200 Agent Tests — comprehensive tests for all 10 new modules
+// Advanced Agent Tests — SPA, auth, visual regression, API, logic, cross-browser, load, security, CI, PDF/email
 // ============================================================================
 
 import { describe, it, expect, vi } from "vitest";
