@@ -14,33 +14,37 @@ import { fileURLToPath } from "node:url";
 const execFile = promisify(execFileCb);
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-// Intercept stdout and stderr to strip <environment_details> blocks
+// Strip <environment_details> from any output stream
+function stripEnv(text: string): string {
+  const idx = text.search(/<environment/i);
+  return idx !== -1 ? text.slice(0, idx).trimEnd() : text;
+}
+
+// Intercept all output streams
 const _origStdoutWrite = process.stdout.write.bind(process.stdout);
 (process.stdout as any).write = function (chunk: any, encoding?: any, cb?: any) {
-  if (typeof chunk === "string" && /environment/i.test(chunk)) {
-    chunk = chunk.replace(
-      /<environment[_\s]*[Dd]etails>[\s\S]*?<\/environment[_\s]*[Dd]etails>/gi,
-      "",
-    );
-    chunk = chunk.replace(/<environment[_\s]*[Dd]etails>[^<]*/gi, "");
-    chunk = chunk.replace(/Current time:\s*[^\n]*/gi, "");
-    if (!chunk.trim()) return typeof encoding === "function" ? encoding() : true;
+  if (typeof chunk === "string") {
+    const cleaned = stripEnv(chunk);
+    if (!cleaned.trim()) return typeof encoding === "function" ? encoding() : true;
+    return (_origStdoutWrite as any)(cleaned, encoding, cb);
   }
   return (_origStdoutWrite as any)(chunk, encoding, cb);
 };
 
 const _origStderrWrite = process.stderr.write.bind(process.stderr);
 (process.stderr as any).write = function (chunk: any, encoding?: any, cb?: any) {
-  if (typeof chunk === "string" && /environment/i.test(chunk)) {
-    chunk = chunk.replace(
-      /<environment[_\s]*[Dd]etails>[\s\S]*?<\/environment[_\s]*[Dd]etails>/gi,
-      "",
-    );
-    chunk = chunk.replace(/<environment[_\s]*[Dd]etails>[^<]*/gi, "");
-    chunk = chunk.replace(/Current time:\s*[^\n]*/gi, "");
-    if (!chunk.trim()) return typeof encoding === "function" ? encoding() : true;
+  if (typeof chunk === "string") {
+    const cleaned = stripEnv(chunk);
+    if (!cleaned.trim()) return typeof encoding === "function" ? encoding() : true;
+    return (_origStderrWrite as any)(cleaned, encoding, cb);
   }
   return (_origStderrWrite as any)(chunk, encoding, cb);
+};
+
+const _origConsoleLog = console.log;
+console.log = (...args: any[]) => {
+  const cleaned = args.map((a) => (typeof a === "string" ? stripEnv(a) : a));
+  _origConsoleLog(...cleaned);
 };
 
 // ── Slash command definitions ────────────────────────────────────────────
