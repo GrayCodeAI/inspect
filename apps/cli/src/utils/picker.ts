@@ -1,4 +1,6 @@
 import { createInterface } from "node:readline";
+import chalk from "chalk";
+import { PALETTE, ICONS } from "./theme.js";
 
 export interface PickerOption {
   label: string;
@@ -10,10 +12,7 @@ export interface PickerOption {
  * Interactive arrow-key picker for terminal selection.
  * Returns the selected value, or null if cancelled.
  */
-export async function pick(
-  prompt: string,
-  options: PickerOption[],
-): Promise<string | null> {
+export async function pick(prompt: string, options: PickerOption[]): Promise<string | null> {
   if (!process.stdin.isTTY) {
     // Non-interactive — return first option
     return options[0]?.value ?? null;
@@ -34,22 +33,28 @@ export async function pick(
       // Clear previous output
       process.stdout.write(`\x1b[${options.length + 2}A\x1b[J`);
 
-      process.stdout.write(`\x1b[1m${prompt}\x1b[0m\n`);
-      process.stdout.write(`\x1b[2m(↑↓ to select, Enter to confirm, Esc to cancel)\x1b[0m\n`);
+      process.stdout.write(`${chalk.hex(PALETTE.brand).bold(prompt)}\n`);
+      process.stdout.write(
+        `${chalk.hex(PALETTE.muted)(`\u2191\u2193 to select, Enter to confirm, Esc to cancel`)}\n`,
+      );
 
       for (let i = 0; i < options.length; i++) {
         const opt = options[i];
         const selected = i === selectedIndex;
-        const prefix = selected ? "\x1b[36m❯\x1b[0m" : " ";
-        const label = selected ? `\x1b[1m${opt.label}\x1b[0m` : `\x1b[2m${opt.label}\x1b[0m`;
-        const desc = opt.description ? ` \x1b[2m— ${opt.description}\x1b[0m` : "";
+        const prefix = selected ? chalk.hex(PALETTE.cyan)(ICONS.rightArrow) : " ";
+        const label = selected
+          ? chalk.hex(PALETTE.white).bold(opt.label)
+          : chalk.hex(PALETTE.muted)(opt.label);
+        const desc = opt.description
+          ? ` ${chalk.hex(PALETTE.subtle)("\u2014")} ${chalk.hex(PALETTE.dim)(opt.description)}`
+          : "";
         process.stdout.write(`  ${prefix} ${label}${desc}\n`);
       }
     };
 
     // Initial render — write blank lines first so clear works
     process.stdout.write(`${prompt}\n`);
-    process.stdout.write("(↑↓ to select, Enter to confirm, Esc to cancel)\n");
+    process.stdout.write("(\u2191\u2193 to select, Enter to confirm, Esc to cancel)\n");
     for (const opt of options) {
       process.stdout.write(`    ${opt.label}\n`);
     }
@@ -58,16 +63,20 @@ export async function pick(
     const onKeypress = (data: Buffer) => {
       const key = data.toString();
 
-      if (key === "\x1b[A") { // Up arrow
+      if (key === "\x1b[A") {
+        // Up arrow
         selectedIndex = (selectedIndex - 1 + options.length) % options.length;
         render();
-      } else if (key === "\x1b[B") { // Down arrow
+      } else if (key === "\x1b[B") {
+        // Down arrow
         selectedIndex = (selectedIndex + 1) % options.length;
         render();
-      } else if (key === "\r" || key === "\n") { // Enter
+      } else if (key === "\r" || key === "\n") {
+        // Enter
         cleanup();
         resolve(options[selectedIndex].value);
-      } else if (key === "\x1b" || key === "\x03") { // Escape or Ctrl+C
+      } else if (key === "\x1b" || key === "\x03") {
+        // Escape or Ctrl+C
         cleanup();
         resolve(null);
       }
@@ -88,12 +97,9 @@ export async function pick(
 /**
  * Multi-select picker — select multiple options with Space, confirm with Enter.
  */
-export async function pickMany(
-  prompt: string,
-  options: PickerOption[],
-): Promise<string[]> {
+export async function pickMany(prompt: string, options: PickerOption[]): Promise<string[]> {
   if (!process.stdin.isTTY) {
-    return options.map(o => o.value);
+    return options.map((o) => o.value);
   }
 
   let selectedIndex = 0;
@@ -110,21 +116,27 @@ export async function pickMany(
     const render = () => {
       process.stdout.write(`\x1b[${options.length + 2}A\x1b[J`);
 
-      process.stdout.write(`\x1b[1m${prompt}\x1b[0m\n`);
-      process.stdout.write(`\x1b[2m(↑↓ move, Space toggle, Enter confirm, Esc cancel)\x1b[0m\n`);
+      process.stdout.write(`${chalk.hex(PALETTE.brand).bold(prompt)}\n`);
+      process.stdout.write(
+        `${chalk.hex(PALETTE.muted)(`\u2191\u2193 move, Space toggle, Enter confirm, Esc cancel`)}\n`,
+      );
 
       for (let i = 0; i < options.length; i++) {
         const opt = options[i];
-        const cursor = i === selectedIndex ? "\x1b[36m❯\x1b[0m" : " ";
-        const check = selected.has(i) ? "\x1b[32m✓\x1b[0m" : "○";
-        const label = selected.has(i) ? `\x1b[1m${opt.label}\x1b[0m` : opt.label;
+        const cursor = i === selectedIndex ? chalk.hex(PALETTE.cyan)(ICONS.rightArrow) : " ";
+        const check = selected.has(i)
+          ? chalk.hex(PALETTE.green)(ICONS.pass)
+          : chalk.hex(PALETTE.subtle)(ICONS.pending);
+        const label = selected.has(i)
+          ? chalk.hex(PALETTE.white).bold(opt.label)
+          : chalk.hex(PALETTE.dim)(opt.label);
         process.stdout.write(`  ${cursor} ${check} ${label}\n`);
       }
     };
 
     // Initial render
     process.stdout.write(`${prompt}\n`);
-    process.stdout.write("(↑↓ move, Space toggle, Enter confirm)\n");
+    process.stdout.write("(\u2191\u2193 move, Space toggle, Enter confirm)\n");
     for (const _opt of options) {
       process.stdout.write("  \n");
     }
@@ -145,7 +157,7 @@ export async function pickMany(
         render();
       } else if (key === "\r" || key === "\n") {
         cleanup();
-        resolve([...selected].map(i => options[i].value));
+        resolve([...selected].map((i) => options[i].value));
       } else if (key === "\x1b" || key === "\x03") {
         cleanup();
         resolve([]);

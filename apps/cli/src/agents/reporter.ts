@@ -1,6 +1,20 @@
-import type { TestPlan, TestStep, A11yReport, SecurityReport, PerformanceReport, ResponsiveReport, SEOReport, FormTestResult, SiteMap, TestReport, ProgressCallback } from "./types.js";
+import type {
+  TestPlan,
+  TestStep,
+  A11yReport,
+  SecurityReport,
+  PerformanceReport,
+  ResponsiveReport,
+  SEOReport,
+  FormTestResult,
+  SiteMap,
+  TestReport,
+  ProgressCallback,
+} from "./types.js";
 import { writeFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, basename } from "node:path";
+import chalk from "chalk";
+import { PALETTE, ICONS } from "../utils/theme.js";
 
 // ---------------------------------------------------------------------------
 // Report generation
@@ -30,15 +44,19 @@ export function generateReport(
   onProgress: ProgressCallback,
   options?: Partial<ReportOptions>,
 ): TestReport {
-  const passed = results.filter(s => s.status === "pass").length;
-  const failed = results.filter(s => s.status === "fail").length;
-  const skipped = results.filter(s => s.status === "skip" || s.status === "pending").length;
+  const passed = results.filter((s) => s.status === "pass").length;
+  const failed = results.filter((s) => s.status === "fail").length;
+  const skipped = results.filter((s) => s.status === "skip" || s.status === "pending").length;
   const duration = Date.now() - startTime;
 
   // Calculate overall score
   const overallScore = calculateOverallScore(
-    results, a11yReports, options?.security, options?.performance,
-    options?.responsive, options?.seo,
+    results,
+    a11yReports,
+    options?.security,
+    options?.performance,
+    options?.responsive,
+    options?.seo,
   );
 
   const report: TestReport = {
@@ -56,7 +74,9 @@ export function generateReport(
     summary: { total: results.length, passed, failed, skipped, duration, overallScore },
     screenshots,
     timestamp: new Date().toISOString(),
-    cost: options?.tokenUsage ? { tokens: options.tokenUsage, estimatedCost: options.tokenUsage * 0.000003 } : undefined,
+    cost: options?.tokenUsage
+      ? { tokens: options.tokenUsage, estimatedCost: options.tokenUsage * 0.000003 }
+      : undefined,
   };
 
   // Print summary to console
@@ -67,12 +87,13 @@ export function generateReport(
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
   const timestamp = Date.now();
+  const reportPaths: string[] = [];
 
   // JSON report
   try {
     const jsonFile = `report-${timestamp}.json`;
     writeFileSync(join(dir, jsonFile), JSON.stringify(report, null, 2));
-    onProgress("info", `  JSON report: .inspect/reports/${jsonFile}`);
+    reportPaths.push(`  ${chalk.hex(PALETTE.dim)("JSON")}  ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${jsonFile}`)}`);
   } catch {}
 
   // HTML report
@@ -80,7 +101,7 @@ export function generateReport(
     const htmlFile = `report-${timestamp}.html`;
     const html = generateHtmlReport(report);
     writeFileSync(join(dir, htmlFile), html);
-    onProgress("info", `  HTML report: .inspect/reports/${htmlFile}`);
+    reportPaths.push(`  ${chalk.hex(PALETTE.dim)("HTML")}  ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${htmlFile}`)}`);
   } catch {}
 
   // JUnit XML report
@@ -88,8 +109,12 @@ export function generateReport(
     const junitFile = `report-${timestamp}.xml`;
     const xml = generateJUnitXml(report);
     writeFileSync(join(dir, junitFile), xml);
-    onProgress("info", `  JUnit XML:   .inspect/reports/${junitFile}`);
+    reportPaths.push(`  ${chalk.hex(PALETTE.dim)("XML")}   ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${junitFile}`)}`);
   } catch {}
+
+  if (reportPaths.length > 0) {
+    onProgress("done", reportPaths.join("\n"));
+  }
 
   return report;
 }
@@ -110,7 +135,7 @@ function calculateOverallScore(
 
   // Test pass rate (weight: 30%)
   const total = results.length;
-  const passed = results.filter(s => s.status === "pass").length;
+  const passed = results.filter((s) => s.status === "pass").length;
   if (total > 0) {
     scores.push({ score: (passed / total) * 100, weight: 30 });
   }
@@ -146,7 +171,7 @@ function calculateOverallScore(
 
   // Normalize weights
   const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0);
-  return Math.round(scores.reduce((sum, s) => sum + (s.score * s.weight / totalWeight), 0));
+  return Math.round(scores.reduce((sum, s) => sum + (s.score * s.weight) / totalWeight, 0));
 }
 
 // ---------------------------------------------------------------------------
@@ -154,59 +179,109 @@ function calculateOverallScore(
 // ---------------------------------------------------------------------------
 
 function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): void {
-  onProgress("done", "");
-  onProgress("done", `━━━ Test Report ━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  onProgress("done", `  URL:      ${report.url}`);
-  onProgress("done", `  Title:    ${report.title}`);
-  onProgress("done", `  Duration: ${(report.summary.duration / 1000).toFixed(1)}s`);
-  onProgress("done", `  Score:    ${report.summary.overallScore}/100`);
-  onProgress("done", "");
+  const scoreVal = report.summary.overallScore;
+  const scoreColor = scoreVal >= 80 ? PALETTE.green : scoreVal >= 50 ? PALETTE.yellow : PALETTE.red;
+  const scoreLabel = scoreVal >= 80 ? "Excellent" : scoreVal >= 50 ? "Fair" : "Needs Work";
 
-  // Step results
+  const W = 25;
+  const barFilled = Math.min(Math.round(scoreVal / 4), W);
+  const bar =
+    chalk.hex(scoreColor)("\u2588".repeat(barFilled)) +
+    chalk.hex(PALETTE.border)("\u2591".repeat(W - barFilled));
+
+  const line = chalk.hex(PALETTE.subtle)("\u2500".repeat(50));
+
+  // Build the entire report as one string so the Repl renders it as a single block
+  const L: string[] = [];
+
+  // Header
+  L.push(`  ${chalk.hex(PALETTE.brand).bold(`${ICONS.gem} Inspect Test Report`)}`);
+  L.push(`  ${line}`);
+
+  // Metadata
+  L.push(`  ${chalk.hex(PALETTE.dim)("URL")}       ${chalk.hex(PALETTE.cyan)(report.url)}`);
+  L.push(`  ${chalk.hex(PALETTE.dim)("Title")}     ${chalk.hex(PALETTE.text)(report.title.slice(0, 50))}`);
+  L.push(`  ${chalk.hex(PALETTE.dim)("Duration")}  ${chalk.hex(PALETTE.amber)(`${(report.summary.duration / 1000).toFixed(1)}s`)}`);
+
+  // Score
+  L.push(`  ${chalk.hex(PALETTE.dim)("Score")}     ${chalk.hex(scoreColor).bold(`${scoreVal}/100`)} ${chalk.hex(PALETTE.dim)(scoreLabel)}`);
+  L.push(`            ${bar}`);
+  L.push("");
+
+  // Steps
+  L.push(`  ${chalk.hex(PALETTE.text).bold("Steps")}`);
   for (const step of report.results) {
-    const icon = step.status === "pass" ? "✓" : step.status === "fail" ? "✗" : "○";
-    const kind: "pass" | "fail" | "info" = step.status === "pass" ? "pass" : step.status === "fail" ? "fail" : "info";
-    onProgress(kind, `  ${icon} ${step.description}`);
-    if (step.error) onProgress("fail", `    → ${step.error}`);
+    if (step.status === "pass") {
+      L.push(`  ${chalk.hex(PALETTE.green)(ICONS.pass)} ${chalk.hex(PALETTE.text)(step.description)}`);
+    } else if (step.status === "fail") {
+      L.push(`  ${chalk.hex(PALETTE.red)(ICONS.fail)} ${chalk.hex(PALETTE.red)(step.description)}`);
+      if (step.error) {
+        L.push(`    ${chalk.hex(PALETTE.redDim)(ICONS.arrow)} ${chalk.hex(PALETTE.red)(step.error.slice(0, 60))}`);
+      }
+    } else {
+      L.push(`  ${chalk.hex(PALETTE.muted)(ICONS.pending)} ${chalk.hex(PALETTE.dim)(step.description)}`);
+    }
   }
+  L.push("");
 
-  // Category scores
-  onProgress("done", "");
-  onProgress("done", "  Category Scores:");
+  // Quality Scores
+  L.push(`  ${chalk.hex(PALETTE.text).bold("Quality")}`);
 
-  // A11y
+  const addScoreRow = (label: string, labelColor: string, score: number, extra?: string) => {
+    const sc = score >= 90 ? PALETTE.green : score >= 70 ? PALETTE.yellow : PALETTE.red;
+    const miniBar =
+      chalk.hex(sc)("\u2588".repeat(Math.round(score / 10))) +
+      chalk.hex(PALETTE.border)("\u2591".repeat(10 - Math.round(score / 10)));
+    const extraStr = extra ? chalk.hex(PALETTE.dim)(` ${extra}`) : "";
+    L.push(`  ${chalk.hex(labelColor)(label.padEnd(16))} ${chalk.hex(sc).bold(`${score}`.padStart(3))}/100 ${miniBar}${extraStr}`);
+  };
+
   const totalA11yIssues = report.a11y.reduce((sum, r) => sum + r.issues.length, 0);
-  const avgA11y = report.a11y.length > 0
-    ? Math.round(report.a11y.reduce((sum, r) => sum + r.score, 0) / report.a11y.length)
-    : 100;
-  onProgress("done", `    Accessibility: ${avgA11y}/100 (${totalA11yIssues} issues)`);
+  const avgA11y =
+    report.a11y.length > 0
+      ? Math.round(report.a11y.reduce((sum, r) => sum + r.score, 0) / report.a11y.length)
+      : 100;
+  addScoreRow("Accessibility", PALETTE.pink, avgA11y, `${totalA11yIssues} issues`);
 
   if (report.security) {
-    onProgress("done", `    Security:      ${report.security.score}/100 (${report.security.issues.length} issues)`);
+    addScoreRow("Security", PALETTE.rose, report.security.score, `${report.security.issues.length} issues`);
   }
 
   if (report.performance && report.performance.length > 0) {
-    const avgPerf = Math.round(report.performance.reduce((sum, r) => sum + r.score, 0) / report.performance.length);
-    onProgress("done", `    Performance:   ${avgPerf}/100`);
+    const avgPerf = Math.round(
+      report.performance.reduce((sum, r) => sum + r.score, 0) / report.performance.length,
+    );
+    addScoreRow("Performance", PALETTE.sky, avgPerf);
   }
 
   if (report.responsive) {
-    onProgress("done", `    Responsive:    ${report.responsive.score}/100`);
+    addScoreRow("Responsive", PALETTE.violet, report.responsive.score);
   }
 
   if (report.seo) {
-    onProgress("done", `    SEO:           ${report.seo.score}/100 (${report.seo.issues.length} issues)`);
+    addScoreRow("SEO", PALETTE.indigo, report.seo.score, `${report.seo.issues.length} issues`);
   }
 
-  // Summary line
-  onProgress("done", "");
-  onProgress("done", `  Result: ${report.summary.passed}/${report.summary.total} passed, ${report.summary.failed} failed, ${report.summary.skipped} skipped`);
+  // Summary
+  L.push("");
+  L.push(`  ${line}`);
+
+  const passed = report.summary.passed;
+  const failed = report.summary.failed;
+  const total = report.summary.total;
+  let summaryParts = `  ${chalk.hex(PALETTE.green).bold(`${ICONS.pass} ${passed} passed`)}`;
+  if (failed > 0) summaryParts += `  ${chalk.hex(PALETTE.red).bold(`${ICONS.fail} ${failed} failed`)}`;
+  summaryParts += `  ${chalk.hex(PALETTE.dim)(`of ${total} steps`)}`;
+  L.push(summaryParts);
 
   if (report.cost) {
-    onProgress("done", `  Tokens: ${report.cost.tokens.toLocaleString()} (~$${report.cost.estimatedCost.toFixed(4)})`);
+    L.push(`  ${chalk.hex(PALETTE.amber)(`${ICONS.lightning} ${report.cost.tokens.toLocaleString()} tokens`)} ${chalk.hex(PALETTE.dim)(`(~$${report.cost.estimatedCost.toFixed(4)})`)}`);
   }
 
-  onProgress("done", `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  L.push(`  ${line}`);
+
+  // Send as one block
+  onProgress("done", L.join("\n"));
 }
 
 // ---------------------------------------------------------------------------
@@ -214,12 +289,19 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
 // ---------------------------------------------------------------------------
 
 function generateHtmlReport(report: TestReport): string {
-  const scoreColor = report.summary.overallScore >= 80 ? "#22c55e" : report.summary.overallScore >= 50 ? "#eab308" : "#ef4444";
+  const scoreColor =
+    report.summary.overallScore >= 80
+      ? "#22c55e"
+      : report.summary.overallScore >= 50
+        ? "#eab308"
+        : "#ef4444";
 
-  const stepRows = report.results.map(step => {
-    const statusIcon = step.status === "pass" ? "✓" : step.status === "fail" ? "✗" : "○";
-    const statusClass = step.status === "pass" ? "pass" : step.status === "fail" ? "fail" : "skip";
-    return `<tr class="${statusClass}">
+  const stepRows = report.results
+    .map((step) => {
+      const statusIcon = step.status === "pass" ? "✓" : step.status === "fail" ? "✗" : "○";
+      const statusClass =
+        step.status === "pass" ? "pass" : step.status === "fail" ? "fail" : "skip";
+      return `<tr class="${statusClass}">
       <td>${step.id}</td>
       <td><span class="status-icon">${statusIcon}</span> ${escapeHtml(step.description)}</td>
       <td>${step.action}</td>
@@ -227,9 +309,14 @@ function generateHtmlReport(report: TestReport): string {
       <td>${step.duration ? `${step.duration}ms` : "-"}</td>
       <td>${step.error ? `<span class="error">${escapeHtml(step.error)}</span>` : "-"}</td>
     </tr>`;
-  }).join("\n");
+    })
+    .join("\n");
 
-  const a11yRows = report.a11y.flatMap(a => a.issues).slice(0, 50).map(issue => `
+  const a11yRows = report.a11y
+    .flatMap((a) => a.issues)
+    .slice(0, 50)
+    .map(
+      (issue) => `
     <tr class="${issue.severity}">
       <td><span class="severity severity-${issue.severity}">${issue.severity}</span></td>
       <td>${escapeHtml(issue.rule)}</td>
@@ -237,9 +324,13 @@ function generateHtmlReport(report: TestReport): string {
       <td>${issue.wcag ?? "-"}</td>
       <td>${issue.fix ? escapeHtml(issue.fix) : "-"}</td>
     </tr>
-  `).join("\n");
+  `,
+    )
+    .join("\n");
 
-  const securityRows = (report.security?.issues ?? []).map(issue => `
+  const securityRows = (report.security?.issues ?? [])
+    .map(
+      (issue) => `
     <tr class="${issue.severity}">
       <td><span class="severity severity-${issue.severity}">${issue.severity}</span></td>
       <td>${escapeHtml(issue.category)}</td>
@@ -247,31 +338,40 @@ function generateHtmlReport(report: TestReport): string {
       <td>${escapeHtml(issue.description)}</td>
       <td>${issue.fix ? escapeHtml(issue.fix) : "-"}</td>
     </tr>
-  `).join("\n");
+  `,
+    )
+    .join("\n");
 
-  const perfSection = (report.performance ?? []).map(p => `
+  const perfSection = (report.performance ?? [])
+    .map(
+      (p) => `
     <div class="metric-group">
       <h4>${escapeHtml(p.url)}</h4>
       <div class="metrics-grid">
-        <div class="metric"><span class="metric-label">LCP</span><span class="metric-value ${p.metrics.lcp <= 2500 ? 'good' : p.metrics.lcp <= 4000 ? 'needs-improvement' : 'poor'}">${p.metrics.lcp}ms</span></div>
-        <div class="metric"><span class="metric-label">CLS</span><span class="metric-value ${p.metrics.cls <= 0.1 ? 'good' : p.metrics.cls <= 0.25 ? 'needs-improvement' : 'poor'}">${p.metrics.cls.toFixed(3)}</span></div>
-        <div class="metric"><span class="metric-label">FCP</span><span class="metric-value ${p.metrics.fcp <= 1800 ? 'good' : p.metrics.fcp <= 3000 ? 'needs-improvement' : 'poor'}">${p.metrics.fcp}ms</span></div>
-        <div class="metric"><span class="metric-label">TTFB</span><span class="metric-value ${p.metrics.ttfb <= 800 ? 'good' : p.metrics.ttfb <= 1800 ? 'needs-improvement' : 'poor'}">${p.metrics.ttfb}ms</span></div>
+        <div class="metric"><span class="metric-label">LCP</span><span class="metric-value ${p.metrics.lcp <= 2500 ? "good" : p.metrics.lcp <= 4000 ? "needs-improvement" : "poor"}">${p.metrics.lcp}ms</span></div>
+        <div class="metric"><span class="metric-label">CLS</span><span class="metric-value ${p.metrics.cls <= 0.1 ? "good" : p.metrics.cls <= 0.25 ? "needs-improvement" : "poor"}">${p.metrics.cls.toFixed(3)}</span></div>
+        <div class="metric"><span class="metric-label">FCP</span><span class="metric-value ${p.metrics.fcp <= 1800 ? "good" : p.metrics.fcp <= 3000 ? "needs-improvement" : "poor"}">${p.metrics.fcp}ms</span></div>
+        <div class="metric"><span class="metric-label">TTFB</span><span class="metric-value ${p.metrics.ttfb <= 800 ? "good" : p.metrics.ttfb <= 1800 ? "needs-improvement" : "poor"}">${p.metrics.ttfb}ms</span></div>
         <div class="metric"><span class="metric-label">Load</span><span class="metric-value">${p.metrics.fullLoad}ms</span></div>
         <div class="metric"><span class="metric-label">Requests</span><span class="metric-value">${p.resources.totalRequests}</span></div>
       </div>
     </div>
-  `).join("\n");
+  `,
+    )
+    .join("\n");
 
-  const screenshotHtml = report.screenshots.slice(0, 20).map(s => {
-    try {
-      const data = readFileSync(s);
-      const base64 = data.toString("base64");
-      return `<div class="screenshot"><img src="data:image/png;base64,${base64}" alt="${basename(s)}"><span>${basename(s)}</span></div>`;
-    } catch {
-      return `<div class="screenshot"><span>${basename(s)} (not found)</span></div>`;
-    }
-  }).join("\n");
+  const screenshotHtml = report.screenshots
+    .slice(0, 20)
+    .map((s) => {
+      try {
+        const data = readFileSync(s);
+        const base64 = data.toString("base64");
+        return `<div class="screenshot"><img src="data:image/png;base64,${base64}" alt="${basename(s)}"><span>${basename(s)}</span></div>`;
+      } catch {
+        return `<div class="screenshot"><span>${basename(s)} (not found)</span></div>`;
+      }
+    })
+    .join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -356,17 +456,25 @@ function generateHtmlReport(report: TestReport): string {
     <tbody>${stepRows}</tbody>
   </table>
 
-  ${a11yRows ? `<h2>Accessibility Issues (${report.a11y.reduce((s, r) => s + r.issues.length, 0)})</h2>
+  ${
+    a11yRows
+      ? `<h2>Accessibility Issues (${report.a11y.reduce((s, r) => s + r.issues.length, 0)})</h2>
   <table>
     <thead><tr><th>Severity</th><th>Rule</th><th>Description</th><th>WCAG</th><th>Fix</th></tr></thead>
     <tbody>${a11yRows}</tbody>
-  </table>` : ""}
+  </table>`
+      : ""
+  }
 
-  ${securityRows ? `<h2>Security Issues (${report.security?.issues.length ?? 0})</h2>
+  ${
+    securityRows
+      ? `<h2>Security Issues (${report.security?.issues.length ?? 0})</h2>
   <table>
     <thead><tr><th>Severity</th><th>Category</th><th>Title</th><th>Description</th><th>Fix</th></tr></thead>
     <tbody>${securityRows}</tbody>
-  </table>` : ""}
+  </table>`
+      : ""
+  }
 
   ${perfSection ? `<h2>Performance</h2>${perfSection}` : ""}
 
@@ -385,19 +493,21 @@ function generateHtmlReport(report: TestReport): string {
 // ---------------------------------------------------------------------------
 
 function generateJUnitXml(report: TestReport): string {
-  const testcases = report.results.map(step => {
-    if (step.status === "fail") {
-      return `    <testcase name="${escapeXml(step.description)}" classname="inspect" time="${((step.duration ?? 0) / 1000).toFixed(3)}">
+  const testcases = report.results
+    .map((step) => {
+      if (step.status === "fail") {
+        return `    <testcase name="${escapeXml(step.description)}" classname="inspect" time="${((step.duration ?? 0) / 1000).toFixed(3)}">
       <failure message="${escapeXml(step.error ?? "Test failed")}" type="AssertionError">${escapeXml(step.error ?? "")}</failure>
     </testcase>`;
-    }
-    if (step.status === "skip" || step.status === "pending") {
-      return `    <testcase name="${escapeXml(step.description)}" classname="inspect" time="0">
+      }
+      if (step.status === "skip" || step.status === "pending") {
+        return `    <testcase name="${escapeXml(step.description)}" classname="inspect" time="0">
       <skipped/>
     </testcase>`;
-    }
-    return `    <testcase name="${escapeXml(step.description)}" classname="inspect" time="${((step.duration ?? 0) / 1000).toFixed(3)}"/>`;
-  }).join("\n");
+      }
+      return `    <testcase name="${escapeXml(step.description)}" classname="inspect" time="${((step.duration ?? 0) / 1000).toFixed(3)}"/>`;
+    })
+    .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
@@ -416,18 +526,26 @@ export function generateGitHubAnnotations(report: TestReport): string {
 
   for (const step of report.results) {
     if (step.status === "fail") {
-      annotations.push(`::error title=Test Failed: ${step.description}::${step.error ?? "Test step failed"}`);
+      annotations.push(
+        `::error title=Test Failed: ${step.description}::${step.error ?? "Test step failed"}`,
+      );
     }
   }
 
   for (const a11yReport of report.a11y) {
-    for (const issue of a11yReport.issues.filter(i => i.severity === "critical" || i.severity === "serious")) {
-      annotations.push(`::warning title=A11y: ${issue.rule}::${issue.description}${issue.wcag ? ` (WCAG ${issue.wcag})` : ""}`);
+    for (const issue of a11yReport.issues.filter(
+      (i) => i.severity === "critical" || i.severity === "serious",
+    )) {
+      annotations.push(
+        `::warning title=A11y: ${issue.rule}::${issue.description}${issue.wcag ? ` (WCAG ${issue.wcag})` : ""}`,
+      );
     }
   }
 
   if (report.security) {
-    for (const issue of report.security.issues.filter(i => i.severity === "critical" || i.severity === "high")) {
+    for (const issue of report.security.issues.filter(
+      (i) => i.severity === "critical" || i.severity === "high",
+    )) {
       annotations.push(`::error title=Security: ${issue.title}::${issue.description}`);
     }
   }

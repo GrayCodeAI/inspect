@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
+import { PALETTE, ICONS } from "../../utils/theme.js";
 
 export interface TestConfig {
   instruction: string;
@@ -46,18 +47,13 @@ interface TestingScreenProps {
   onComplete: (results: TestResults) => void;
 }
 
-export function TestingScreen({
-  config,
-  onComplete,
-}: TestingScreenProps): React.ReactElement {
+export function TestingScreen({ config, onComplete }: TestingScreenProps): React.ReactElement {
   const { exit } = useApp();
   const [steps, setSteps] = useState<StepResult[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [tokenCount, setTokenCount] = useState(0);
-  const [phase, setPhase] = useState<"planning" | "executing" | "verifying" | "done">(
-    "planning"
-  );
+  const [phase, setPhase] = useState<"planning" | "executing" | "verifying" | "done">("planning");
   const [liveToolCall, setLiveToolCall] = useState<string | null>(null);
   const [scrollOffset, setScrollOffset] = useState(0);
   const startTime = useRef(Date.now());
@@ -124,9 +120,7 @@ export function TestingScreen({
         setCurrentStep(i);
 
         // Mark step as running
-        setSteps((prev) =>
-          prev.map((s) => (s.index === i ? { ...s, status: "running" } : s))
-        );
+        setSteps((prev) => prev.map((s) => (s.index === i ? { ...s, status: "running" } : s)));
 
         // Simulate tool call
         const toolCalls = [
@@ -151,12 +145,12 @@ export function TestingScreen({
               ? {
                   ...s,
                   status: passed ? "pass" : "fail",
-                  duration: Date.now() - startTime.current - (i * 1500),
+                  duration: Date.now() - startTime.current - i * 1500,
                   toolCalls: [{ ...call, result: passed ? "success" : "element not found" }],
                   error: passed ? undefined : "Assertion failed: expected element to be visible",
                 }
-              : s
-          )
+              : s,
+          ),
         );
 
         setLiveToolCall(null);
@@ -222,27 +216,27 @@ export function TestingScreen({
       {/* Header */}
       <Box marginBottom={1} justifyContent="space-between">
         <Box>
-          <Text bold color="blue">
-            Inspect
+          <Text bold color={PALETTE.brand}>
+            {ICONS.diamond} Inspect
           </Text>
-          <Text dimColor> | </Text>
-          <Text>{config.agent}</Text>
-          <Text dimColor> | </Text>
-          <Text>{config.mode}</Text>
-          <Text dimColor> | </Text>
-          <Text>{config.devices[0]}</Text>
+          <Text color={PALETTE.subtle}> | </Text>
+          <Text color={PALETTE.orange}>{config.agent}</Text>
+          <Text color={PALETTE.subtle}> | </Text>
+          <Text color={PALETTE.cyan}>{config.mode}</Text>
+          <Text color={PALETTE.subtle}> | </Text>
+          <Text color={PALETTE.amber}>{config.devices[0]}</Text>
         </Box>
         <Box>
-          <Text dimColor>
-            {formatElapsed(elapsed)} | {tokenCount} tokens
+          <Text color={PALETTE.muted}>
+            {formatElapsed(elapsed)} {ICONS.separator} {tokenCount} tokens
           </Text>
         </Box>
       </Box>
 
       {/* Instruction */}
       <Box marginBottom={1}>
-        <Text dimColor>Instruction: </Text>
-        <Text>{config.instruction}</Text>
+        <Text color={PALETTE.muted}>Instruction: </Text>
+        <Text color={PALETTE.text}>{config.instruction}</Text>
       </Box>
 
       {/* Phase indicator */}
@@ -256,10 +250,11 @@ export function TestingScreen({
                   ? `Executing step ${currentStep + 1}/${steps.length}...`
                   : "Verifying results..."
             }
+            color="magenta"
           />
         ) : (
-          <Text color="green" bold>
-            Test complete
+          <Text color={PALETTE.green} bold>
+            {ICONS.pass} Test complete
           </Text>
         )}
       </Box>
@@ -270,34 +265,37 @@ export function TestingScreen({
           <Box key={step.index} marginLeft={1}>
             <Box width={3}>
               {step.status === "pass" ? (
-                <Text color="green">✓</Text>
+                <Text color={PALETTE.green}>{ICONS.pass}</Text>
               ) : step.status === "fail" ? (
-                <Text color="red">✗</Text>
+                <Text color={PALETTE.red}>{ICONS.fail}</Text>
               ) : step.status === "running" ? (
-                <Text color="yellow">●</Text>
+                <Text color={PALETTE.yellow}>{ICONS.running}</Text>
               ) : (
-                <Text dimColor>○</Text>
+                <Text color={PALETTE.subtle}>{ICONS.pending}</Text>
               )}
             </Box>
             <Box flexDirection="column">
               <Text
                 color={
                   step.status === "pass"
-                    ? "green"
+                    ? PALETTE.green
                     : step.status === "fail"
-                      ? "red"
+                      ? PALETTE.red
                       : step.status === "running"
-                        ? "yellow"
-                        : "gray"
+                        ? PALETTE.yellow
+                        : PALETTE.muted
                 }
               >
                 {step.description}
               </Text>
               {step.assertion && step.status !== "pending" && (
-                <Text dimColor>  Assert: {step.assertion}</Text>
+                <Text color={PALETTE.dim}> Assert: {step.assertion}</Text>
               )}
               {step.error && (
-                <Text color="red">  Error: {step.error}</Text>
+                <Text color={PALETTE.red}>
+                  {" "}
+                  {ICONS.fail} Error: {step.error}
+                </Text>
               )}
             </Box>
           </Box>
@@ -307,8 +305,8 @@ export function TestingScreen({
       {/* Live tool call */}
       {liveToolCall && (
         <Box marginTop={1} marginLeft={2}>
-          <Text dimColor>Tool: </Text>
-          <Text color="cyan">{liveToolCall}</Text>
+          <Text color={PALETTE.muted}>Tool: </Text>
+          <Text color={PALETTE.cyan}>{liveToolCall}</Text>
         </Box>
       )}
 
@@ -316,7 +314,10 @@ export function TestingScreen({
       <StatusBar
         items={[
           { label: "Phase", value: phase },
-          { label: "Steps", value: `${steps.filter((s) => s.status === "pass" || s.status === "fail").length}/${steps.length}` },
+          {
+            label: "Steps",
+            value: `${steps.filter((s) => s.status === "pass" || s.status === "fail").length}/${steps.length}`,
+          },
           { label: "Esc", value: "cancel" },
         ]}
       />

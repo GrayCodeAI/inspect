@@ -35,6 +35,8 @@ import { registerShowTraceCommand } from "./commands/show-trace.js";
 import { registerInstallCommand } from "./commands/install.js";
 import { registerAliasCommand, expandAliases } from "./commands/alias.js";
 import { registerEngineCommand } from "./commands/engine.js";
+import { registerDashboardCommand } from "./commands/dashboard.js";
+import { registerCostCommand } from "./commands/cost.js";
 
 const VERSION = "0.1.0";
 
@@ -105,6 +107,8 @@ registerVisualCommand(program);
 
 // ── Infrastructure Commands ──────────────────────────────────────────────
 registerServeCommand(program);
+registerDashboardCommand(program);
+registerCostCommand(program);
 registerTunnelCommand(program);
 registerSessionsCommand(program);
 registerMCPCommand(program);
@@ -148,7 +152,9 @@ program
       return;
     }
     const lines: string[] = [];
-    lines.push("\nAvailable Device Presets:\n");
+    lines.push("");
+    lines.push(`${chalk.hex("#a855f7").bold("  \u25c6 Available Device Presets")}`);
+    lines.push("");
     const entries = Object.entries(DEVICE_PRESETS) as [string, any][];
     const filtered = opts.category
       ? entries.filter(([, d]) => {
@@ -162,11 +168,18 @@ program
       : entries;
     for (const [key, device] of filtered) {
       const type = device.mobile ? (device.width > 500 ? "tablet" : "mobile") : "desktop";
+      const typeColor = type === "mobile" ? "#22d3ee" : type === "tablet" ? "#f59e0b" : "#22c55e";
       lines.push(
-        `  ${key.padEnd(25)} ${String(device.width).padStart(4)}x${String(device.height).padEnd(4)}  @${device.dpr}x  ${type}`,
+        `  ${chalk.hex("#e2e8f0")(key.padEnd(25))} ${chalk.hex("#94a3b8")(`${String(device.width).padStart(4)}x${String(device.height).padEnd(4)}`)}  ${chalk.hex("#64748b")(`@${device.dpr}x`)}  ${chalk.hex(typeColor)(type)}`,
       );
     }
-    lines.push(`\n  ${filtered.length} device${filtered.length !== 1 ? "s" : ""} available\n`);
+    lines.push("");
+    lines.push(
+      chalk.hex("#64748b")(
+        `  ${filtered.length} device${filtered.length !== 1 ? "s" : ""} available`,
+      ),
+    );
+    lines.push("");
     const output = lines.join("\n");
     const { pipeToPager } = await import("./utils/pager.js");
     pipeToPager(output);
@@ -183,20 +196,36 @@ program
       return;
     }
     const agentLines: string[] = [];
-    agentLines.push("\nAvailable AI Providers & Models:\n");
+    agentLines.push("");
+    agentLines.push(chalk.hex("#a855f7").bold("  \u25c6 Available AI Providers & Models"));
+    agentLines.push("");
     const byProvider = new Map<string, string[]>();
+    const providerColors: Record<string, string> = {
+      anthropic: "#f97316",
+      claude: "#f97316",
+      openai: "#22c55e",
+      gpt: "#22c55e",
+      google: "#f59e0b",
+      gemini: "#f59e0b",
+      deepseek: "#a855f7",
+      ollama: "#22d3ee",
+      opencode: "#6366f1",
+    };
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "unknown";
       if (!byProvider.has(provider)) byProvider.set(provider, []);
+      const vision = m.vision ? chalk.hex("#22d3ee")("vision") : chalk.hex("#475569")("      ");
+      const thinking = m.thinking
+        ? chalk.hex("#a855f7")("thinking")
+        : chalk.hex("#475569")("        ");
       byProvider
         .get(provider)!
-        .push(
-          `  ${id.padEnd(35)} ${m.vision ? "vision" : "      "} ${m.thinking ? "thinking" : "        "}`,
-        );
+        .push(`  ${chalk.hex("#e2e8f0")(id.padEnd(35))} ${vision} ${thinking}`);
     }
     for (const [provider, models] of byProvider) {
-      agentLines.push(`  ${provider.toUpperCase()}`);
+      const color = providerColors[provider] ?? "#e2e8f0";
+      agentLines.push(chalk.hex(color).bold(`  ${provider.toUpperCase()}`));
       for (const line of models) agentLines.push(line);
       agentLines.push("");
     }
@@ -216,14 +245,35 @@ program
       return;
     }
     const modelLines: string[] = [];
-    modelLines.push("\nSupported LLM Models:\n");
-    modelLines.push("  " + "Model".padEnd(35) + "Provider".padEnd(12) + "Vision  Thinking");
-    modelLines.push("  " + "-".repeat(70));
+    modelLines.push("");
+    modelLines.push(chalk.hex("#a855f7").bold("  \u25c6 Supported LLM Models"));
+    modelLines.push("");
+    modelLines.push(
+      "  " +
+        chalk.hex("#94a3b8")("Model".padEnd(35)) +
+        chalk.hex("#94a3b8")("Provider".padEnd(12)) +
+        chalk.hex("#94a3b8")("Vision  Thinking"),
+    );
+    modelLines.push(chalk.hex("#334155")("  " + "\u2500".repeat(70)));
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "?";
+      const providerColors: Record<string, string> = {
+        anthropic: "#f97316",
+        claude: "#f97316",
+        openai: "#22c55e",
+        gpt: "#22c55e",
+        google: "#f59e0b",
+        gemini: "#f59e0b",
+        deepseek: "#a855f7",
+        ollama: "#22d3ee",
+        opencode: "#6366f1",
+      };
+      const pColor = providerColors[provider] ?? "#e2e8f0";
+      const vision = m.vision ? chalk.hex("#22c55e")("yes") : chalk.hex("#475569")(" - ");
+      const thinking = m.thinking ? chalk.hex("#a855f7")("yes") : chalk.hex("#475569")(" - ");
       modelLines.push(
-        `  ${id.padEnd(35)} ${provider.padEnd(12)} ${m.vision ? "yes" : " - "}     ${m.thinking ? "yes" : " - "}`,
+        `  ${chalk.hex("#e2e8f0")(id.padEnd(35))} ${chalk.hex(pColor)(provider.padEnd(12))} ${vision}     ${thinking}`,
       );
     }
     modelLines.push("");

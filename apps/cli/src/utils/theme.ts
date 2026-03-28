@@ -14,6 +14,52 @@ export const COLORS = {
   errorBg: "#330b0b",
 };
 
+export const PALETTE = {
+  // Brand
+  brand: "#a855f7",
+  brandDim: "#7c3aed",
+  brandBright: "#c084fc",
+
+  // Accents
+  orange: "#f97316",
+  orangeDim: "#ea580c",
+  amber: "#f59e0b",
+  amberDim: "#d97706",
+  lime: "#84cc16",
+  emerald: "#10b981",
+  teal: "#14b8a6",
+  sky: "#0ea5e9",
+  indigo: "#6366f1",
+  violet: "#8b5cf6",
+  pink: "#ec4899",
+  rose: "#f43f5e",
+
+  // Semantic
+  cyan: "#22d3ee",
+  cyanDim: "#06b6d4",
+  green: "#22c55e",
+  greenDim: "#16a34a",
+  red: "#ef4444",
+  redDim: "#dc2626",
+  yellow: "#eab308",
+  yellowDim: "#ca8a04",
+  blue: "#3b82f6",
+  blueDim: "#2563eb",
+
+  // Neutrals
+  white: "#f8fafc",
+  text: "#e2e8f0",
+  textDim: "#cbd5e1",
+  dim: "#94a3b8",
+  muted: "#64748b",
+  subtle: "#475569",
+  border: "#334155",
+  surface: "#1e293b",
+  surfaceLight: "#283548",
+  bg: "#0f172a",
+  bgDeep: "#020617",
+};
+
 export const ICONS = {
   pass: "\u2713",
   fail: "\u2717",
@@ -23,4 +69,28 @@ export const ICONS = {
   running: "\u25CF",
   arrow: "\u2192",
   bullet: "\u2022",
+  diamond: "\u25c7",
+  star: "\u2605",
+  heart: "\u2665",
+  lightning: "\u26a1",
+  rocket: "\u25b6",
+  cross: "\u2716",
+  check: "\u2714",
+  circle: "\u25cf",
+  emptyCircle: "\u25cb",
+  rightArrow: "\u276f",
+  separator: "\u00b7",
+  boxH: "\u2500",
+  boxV: "\u2502",
+  boxCorner: "\u2514",
+  boxTee: "\u251c",
+  sparkle: "\u2728",
+  shield: "\u2740",
+  zap: "\u26a1",
+  gear: "\u2699",
+  chart: "\u25a0",
+  gem: "\u25c6",
+  bug: "\u266b",
+  globe: "\u25ce",
+  lock: "\u2588",
 };

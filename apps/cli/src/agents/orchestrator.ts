@@ -1,17 +1,34 @@
 import type {
-  TestPlan, TestStep, A11yReport, TestReport, ProgressCallback, LLMCall,
-  SecurityReport, PerformanceReport, ResponsiveReport, SEOReport,
-  SiteMap, FormTestResult, SiteAnalysis,
+  TestPlan,
+  TestStep,
+  A11yReport,
+  TestReport,
+  ProgressCallback,
+  LLMCall,
+  SecurityReport,
+  PerformanceReport,
+  ResponsiveReport,
+  SEOReport,
+  SiteMap,
+  FormTestResult,
+  SiteAnalysis,
 } from "./types.js";
 import { planTests, generateTestData } from "./planner.js";
 import { executeStep } from "./tester.js";
-import { validateStep, createNetworkMonitor, createConsoleMonitor, trackUrlChanges } from "./validator.js";
+import {
+  validateStep,
+  createNetworkMonitor,
+  createConsoleMonitor,
+  trackUrlChanges,
+} from "./validator.js";
 import { runAgentLoop } from "./agent-loop.js";
 import { checkAccessibility } from "./accessibility.js";
 import { generateReport } from "./reporter.js";
 import { withCache, withRetry } from "./cache.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
+import chalk from "chalk";
+import { PALETTE, ICONS } from "../utils/theme.js";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -65,7 +82,11 @@ export interface OrchestratorOptions {
 
 export async function runFullTest(options: OrchestratorOptions): Promise<TestReport> {
   const {
-    url, headed = true, maxSteps = 25, llm, onProgress,
+    url,
+    headed = true,
+    maxSteps = 25,
+    llm,
+    onProgress,
     viewport = { width: 1440, height: 900 },
     fast = false,
   } = options;
@@ -109,28 +130,38 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   const trackedLlm: LLMCall = async (messages) => {
     // Budget check before calling LLM
     if (tokenBudget > 0 && tokenUsage > tokenBudget) {
-      throw new Error(`Token budget exceeded (${tokenUsage.toLocaleString()} / ${tokenBudget.toLocaleString()}). Use --token-budget to increase.`);
+      throw new Error(
+        `Token budget exceeded (${tokenUsage.toLocaleString()} / ${tokenBudget.toLocaleString()}). Use --token-budget to increase.`,
+      );
     }
 
     const inputTokens = messages.reduce((sum, m) => sum + m.content.length / 4, 0);
 
     // Pre-flight estimate: warn if this call alone will be expensive
     if (tokenBudget > 0 && tokenUsage + inputTokens > tokenBudget * 0.9) {
-      onProgress("warn", `Token usage at ${Math.round((tokenUsage / tokenBudget) * 100)}% of budget`);
+      onProgress(
+        "warn",
+        `Token usage at ${Math.round((tokenUsage / tokenBudget) * 100)}% of budget`,
+      );
     }
 
     const response = await baseLlm(messages);
     tokenUsage += Math.round(inputTokens + response.length / 4);
+    // Emit real-time token update for footer
+    onProgress("info", `TOKENS:${tokenUsage}:${tokenUsage * 0.000005}`);
     return response;
   };
 
   // Print cost estimate upfront
   if (tokenBudget > 0) {
-    onProgress("info", `Token budget: ${tokenBudget.toLocaleString()} (~$${(tokenBudget * 0.000003).toFixed(2)})`);
+    onProgress(
+      "info",
+      `Token budget: ${tokenBudget.toLocaleString()} (~$${(tokenBudget * 0.000003).toFixed(2)})`,
+    );
   }
 
   // 1. Launch browser
-  onProgress("info", `Launching ${headed ? "headed" : "headless"} browser...`);
+  onProgress("info", "Launching browser...");
   const { BrowserManager } = await import("@inspect/browser");
   const browserMgr = new BrowserManager();
   await browserMgr.launchBrowser({
@@ -161,24 +192,27 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           onProgress("info", "Injected storage tokens for auth");
         }
       } catch (err: unknown) {
-        onProgress("warn", `Auth injection failed: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Auth injection failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
     // =========================================================================
     // TIER 1: DISCOVERY — understand the website
     // =========================================================================
-    onProgress("info", "");
-    onProgress("info", "═══ TIER 1: DISCOVERY ═══════════════════════");
+    onProgress("info", "TIER_BANNER:1:DISCOVERY:Understand the website");
 
-    // Navigate to initial URL
     onProgress("info", `Navigating to ${url}...`);
 
     // Set up navigation handling
     try {
       const { handleAlertDialogs } = await import("./navigator.js");
       await handleAlertDialogs(page);
-    } catch { /* navigator not available */ }
+    } catch {
+      /* navigator not available */
+    }
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     const title = await page.title();
@@ -191,7 +225,9 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       if (handled.length > 0) onProgress("info", `Dismissed ${handled.length} popup(s)`);
       const consent = await dismissCookieConsent(page);
       if (consent) onProgress("info", "Dismissed cookie consent");
-    } catch { /* navigator not available */ }
+    } catch {
+      /* navigator not available */
+    }
 
     // Initial screenshot
     const initialScreenshot = join(screenshotDir, `initial-${Date.now()}.png`);
@@ -199,24 +235,26 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     screenshots.push(initialScreenshot);
 
     // ARIA snapshot
-    onProgress("info", "Taking page snapshot...");
     const { AriaSnapshotBuilder } = await import("@inspect/browser");
     const snapshotBuilder = new AriaSnapshotBuilder();
     await snapshotBuilder.buildTree(page);
     let snapshotText = snapshotBuilder.getFormattedTree();
     const stats = snapshotBuilder.getStats();
-    onProgress("info", `Snapshot: ${stats.refCount} elements, ~${stats.tokenEstimate} tokens`);
+    onProgress("pass", `Snapshot: ${stats.refCount} elements, ~${stats.tokenEstimate} tokens`);
 
     // Site crawl (if discovery enabled and not in fast mode)
     if (tiers.discovery && !fast) {
       try {
         const { crawlSite } = await import("./crawler.js");
         onProgress("info", "Crawling site...");
-        siteMap = await crawlSite(url, page, onProgress, {
+        siteMap = await crawlSite(url, page, () => {}, {
           maxPages: options.maxPages ?? 20,
           maxDepth: 3,
         });
-        onProgress("pass", `Crawled ${siteMap.pages.length} pages, found ${siteMap.brokenLinks.length} broken links`);
+        onProgress(
+          "pass",
+          `Crawled ${siteMap.pages.length} pages, found ${siteMap.brokenLinks.length} broken links`,
+        );
 
         // Navigate back to initial URL after crawl
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
@@ -234,9 +272,12 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     if (tiers.discovery && siteMap && !fast) {
       try {
         const { analyzeSite } = await import("./analyzer.js");
-        onProgress("info", "Analyzing site features...");
-        siteAnalysis = await analyzeSite(siteMap, page, trackedLlm, onProgress);
-        onProgress("pass", `Found ${siteAnalysis.features.authFlows.length} auth flows, ${siteAnalysis.features.formPages.length} forms, ${siteAnalysis.techStack.length} tech stack items`);
+        onProgress("info", "Analyzing site...");
+        siteAnalysis = await analyzeSite(siteMap, page, trackedLlm, () => {});
+        onProgress(
+          "pass",
+          `Found ${siteAnalysis.features.authFlows.length} auth flows, ${siteAnalysis.features.formPages.length} forms, ${siteAnalysis.techStack.length} tech stack items`,
+        );
       } catch (err: unknown) {
         onProgress("warn", `Analysis skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -248,16 +289,18 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         const { detectFramework, waitForHydration, discoverSPARoutes } = await import("./spa.js");
         const framework = await detectFramework(page);
         if (framework) {
-          onProgress("info", `SPA detected: ${framework}`);
           await waitForHydration(page, 5000);
-          onProgress("pass", "Framework hydration complete");
 
           if (tiers.discovery) {
             const spaRoutes = await discoverSPARoutes(page, url);
             if (spaRoutes.length > 0) {
               discoveredSPARoutes = spaRoutes;
-              onProgress("info", `Discovered ${spaRoutes.length} SPA route(s)`);
+              onProgress("pass", `SPA: ${framework} (${spaRoutes.length} routes)`);
+            } else {
+              onProgress("pass", `SPA: ${framework}`);
             }
+          } else {
+            onProgress("pass", `SPA: ${framework}`);
           }
 
           // Re-navigate and re-snapshot after SPA discovery
@@ -269,15 +312,17 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           } catch {}
         }
       } catch (err: unknown) {
-        onProgress("warn", `SPA detection skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `SPA detection skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
     // =========================================================================
     // TIER 2: EXECUTION — AI agent explores and tests the website
     // =========================================================================
-    onProgress("info", "");
-    onProgress("info", "═══ TIER 2: EXECUTION ═══════════════════════");
+    onProgress("info", "TIER_BANNER:2:EXECUTION:AI agent explores and tests");
 
     // Set up monitoring
     const networkMonitor = createNetworkMonitor(page);
@@ -285,10 +330,6 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     networkMonitor.start();
     consoleMonitor.start();
     const urlTracker = trackUrlChanges(page);
-
-    // Run the autonomous agent loop — LLM decides each action in real-time
-    onProgress("info", "Agent starting autonomous exploration...");
-    onProgress("info", "");
 
     const agentResult = await runAgentLoop({
       page,
@@ -340,55 +381,99 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           }
         }
       } catch (err: unknown) {
-        onProgress("warn", `Form testing skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Form testing skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
     // =========================================================================
     // TIER 3: QUALITY — measure everything (run in parallel where possible)
     // =========================================================================
-    onProgress("info", "");
-    onProgress("info", "═══ TIER 3: QUALITY ═════════════════════════");
+    onProgress("info", "TIER_BANNER:3:QUALITY:Measure everything");
+
+    // Count enabled audits for progress tracking
+    const auditNames: string[] = [];
+    if (tiers.accessibility) auditNames.push("Accessibility");
+    if (tiers.security) auditNames.push("Security");
+    if (tiers.seo) auditNames.push("SEO");
+    if (tiers.performance) auditNames.push("Performance");
+    if (tiers.responsive) auditNames.push("Responsive");
+    const totalAudits = auditNames.length;
+    let completedAudits = 0;
+    const auditProgress = () => {
+      completedAudits++;
+      const pct = Math.round((completedAudits / totalAudits) * 100);
+      const filled = Math.round((pct / 100) * 20);
+      const bar = "\u2588".repeat(filled) + "\u2591".repeat(20 - filled);
+      const auditName = auditNames[completedAudits - 1] ?? "";
+      onProgress(
+        "info",
+        `PROGRESS_BAR:${bar}:${completedAudits}/${totalAudits}:${pct}%:${auditName} done`,
+      );
+    };
 
     // Run accessibility + security + SEO in parallel (they read-only the current page)
     const parallelQuality: Array<Promise<void>> = [];
 
     if (tiers.accessibility) {
-      parallelQuality.push((async () => {
-        try {
-          onProgress("info", "Running accessibility audit...");
-          const a11yReport = await checkAccessibility(page, page.url(), onProgress);
-          a11yReports.push(a11yReport);
-        } catch (err: unknown) {
-          onProgress("warn", `Accessibility audit skipped: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      })());
+      parallelQuality.push(
+        (async () => {
+          try {
+            const a11yReport = await checkAccessibility(page, page.url(), () => {});
+            a11yReports.push(a11yReport);
+            auditProgress();
+          } catch (err: unknown) {
+            onProgress(
+              "warn",
+              `Accessibility audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            auditProgress();
+          }
+        })(),
+      );
     }
 
     if (tiers.security) {
-      parallelQuality.push((async () => {
-        try {
-          const { runSecurityAudit } = await import("./security-agent.js");
-          onProgress("info", "Running security audit...");
-          securityReport = await runSecurityAudit(page, url, onProgress);
-          onProgress("pass", `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`);
-        } catch (err: unknown) {
-          onProgress("warn", `Security audit skipped: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      })());
+      parallelQuality.push(
+        (async () => {
+          try {
+            const { runSecurityAudit } = await import("./security-agent.js");
+            securityReport = await runSecurityAudit(page, url, () => {});
+            onProgress(
+              "pass",
+              `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`,
+            );
+            auditProgress();
+          } catch (err: unknown) {
+            onProgress(
+              "warn",
+              `Security audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            auditProgress();
+          }
+        })(),
+      );
     }
 
     if (tiers.seo) {
-      parallelQuality.push((async () => {
-        try {
-          const { runSEOAudit } = await import("./seo.js");
-          onProgress("info", "Running SEO audit...");
-          seoReport = await runSEOAudit(page, url, onProgress);
-          onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
-        } catch (err: unknown) {
-          onProgress("warn", `SEO audit skipped: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      })());
+      parallelQuality.push(
+        (async () => {
+          try {
+            const { runSEOAudit } = await import("./seo.js");
+            seoReport = await runSEOAudit(page, url, () => {});
+            onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
+            auditProgress();
+          } catch (err: unknown) {
+            onProgress(
+              "warn",
+              `SEO audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            auditProgress();
+          }
+        })(),
+      );
     }
 
     await Promise.all(parallelQuality);
@@ -397,12 +482,19 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     if (tiers.performance) {
       try {
         const { runPerformanceAudit } = await import("./performance-agent.js");
-        onProgress("info", "Running performance audit...");
-        const perfReport = await runPerformanceAudit(page, url, onProgress);
+        const perfReport = await runPerformanceAudit(page, url, () => {});
         performanceReports = [perfReport];
-        onProgress("pass", `Performance: ${perfReport.score}/100 (LCP: ${perfReport.metrics.lcp}ms, CLS: ${perfReport.metrics.cls.toFixed(3)})`);
+        onProgress(
+          "pass",
+          `Performance: ${perfReport.score}/100 (LCP: ${perfReport.metrics.lcp}ms, CLS: ${perfReport.metrics.cls.toFixed(3)})`,
+        );
+        auditProgress();
       } catch (err: unknown) {
-        onProgress("warn", `Performance audit skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Performance audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        auditProgress();
       }
     }
 
@@ -410,12 +502,17 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     if (tiers.advancedSecurity) {
       try {
         const { runAdvancedSecurityAudit } = await import("./advanced-security.js");
-        onProgress("info", "Running advanced security audit...");
-        const advSecResults = await runAdvancedSecurityAudit(page, url, onProgress);
-        const advSecFailed = advSecResults.filter(r => !r.passed).length;
-        onProgress("pass", `Advanced security: ${advSecResults.length} tests, ${advSecFailed} failed`);
+        const advSecResults = await runAdvancedSecurityAudit(page, url, () => {});
+        const advSecFailed = advSecResults.filter((r) => !r.passed).length;
+        onProgress(
+          "pass",
+          `Advanced security: ${advSecResults.length} tests, ${advSecFailed} failed`,
+        );
       } catch (err: unknown) {
-        onProgress("warn", `Advanced security skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Advanced security skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
@@ -424,16 +521,29 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       try {
         const { runVisualRegression } = await import("./visual-regression.js");
         const baselineDir = options.baselineDir ?? join(process.cwd(), ".inspect", "baselines");
-        onProgress("info", "Running visual regression...");
         const vrReports = await runVisualRegression(
-          page, [url],
-          [{ width: 1440, height: 900, label: "Desktop" }, { width: 375, height: 667, label: "Mobile" }],
-          baselineDir, onProgress,
+          page,
+          [url],
+          [
+            { width: 1440, height: 900, label: "Desktop" },
+            { width: 375, height: 667, label: "Mobile" },
+          ],
+          baselineDir,
+          () => {},
         );
-        const totalDiffs = vrReports.reduce((s, r) => s + r.diffs.filter(d => !d.match).length, 0);
-        onProgress("pass", `Visual regression: ${totalDiffs} diff(s) across ${vrReports.length} report(s)`);
+        const totalDiffs = vrReports.reduce(
+          (s, r) => s + r.diffs.filter((d) => !d.match).length,
+          0,
+        );
+        onProgress(
+          "pass",
+          `Visual regression: ${totalDiffs} diff(s) across ${vrReports.length} report(s)`,
+        );
       } catch (err: unknown) {
-        onProgress("warn", `Visual regression skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Visual regression skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
@@ -441,11 +551,16 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     if (tiers.apiTesting) {
       try {
         const { runAPIAudit } = await import("./api-testing.js");
-        onProgress("info", "Running API audit...");
-        const apiResult = await runAPIAudit(page, url, onProgress);
-        onProgress("pass", `API: ${apiResult.endpoints} endpoints, avg ${Math.round(apiResult.avgResponseTime)}ms, ${apiResult.failures} failures`);
+        const apiResult = await runAPIAudit(page, url, () => {});
+        onProgress(
+          "pass",
+          `API: ${apiResult.endpoints} endpoints, avg ${Math.round(apiResult.avgResponseTime)}ms, ${apiResult.failures} failures`,
+        );
       } catch (err: unknown) {
-        onProgress("warn", `API audit skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `API audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
@@ -453,11 +568,18 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     if (tiers.responsive) {
       try {
         const { runResponsiveAudit } = await import("./responsive.js");
-        onProgress("info", "Running responsive audit...");
-        responsiveReport = await runResponsiveAudit(page, url, onProgress);
-        onProgress("pass", `Responsive: ${responsiveReport.score}/100 across ${responsiveReport.viewports.length} viewports`);
+        responsiveReport = await runResponsiveAudit(page, url, () => {});
+        onProgress(
+          "pass",
+          `Responsive: ${responsiveReport.score}/100 across ${responsiveReport.viewports.length} viewports`,
+        );
+        auditProgress();
       } catch (err: unknown) {
-        onProgress("warn", `Responsive audit skipped: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Responsive audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        auditProgress();
       }
     }
 
@@ -475,18 +597,23 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       tokenUsage,
     });
 
+    // Emit actual token usage for footer tracking
+    const costEstimate = tokenUsage * 0.000005;
+    onProgress("info", `TOKENS:${tokenUsage}:${costEstimate}`);
+
     // AI failure analysis (if there are failures and LLM is available)
     if (report.summary.failed > 0) {
       try {
         const { analyzeFailures } = await import("./failure-analysis.js");
-        onProgress("info", "");
-        const analysis = await analyzeFailures(report, trackedLlm, onProgress);
+        onProgress("info", `Analyzing ${report.summary.failed} failure(s)...`);
+        const analysis = await analyzeFailures(report, trackedLlm, () => {});
         if (analysis.topIssues.length > 0) {
-          onProgress("done", "");
-          onProgress("done", "Top issues:");
+          const failLines: string[] = [];
+          failLines.push(`  ${chalk.hex(PALETTE.text).bold("Failure Analysis")}`);
           for (const issue of analysis.topIssues) {
-            onProgress("warn", `  ${issue}`);
+            failLines.push(`  ${chalk.hex(PALETTE.amber)(ICONS.arrow)} ${chalk.hex(PALETTE.text)(issue)}`);
           }
+          onProgress("done", failLines.join("\n"));
         }
       } catch {
         // Failure analysis is non-critical
@@ -503,7 +630,6 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
 
     await browserMgr.closeBrowser();
     return report;
-
   } catch (err: unknown) {
     onProgress("fail", `Test failed: ${err instanceof Error ? err.message : String(err)}`);
     await browserMgr.closeBrowser();
@@ -515,7 +641,9 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
 // Quick test — just execution tier, no quality checks
 // ---------------------------------------------------------------------------
 
-export async function runQuickTest(options: Omit<OrchestratorOptions, "tiers">): Promise<TestReport> {
+export async function runQuickTest(
+  options: Omit<OrchestratorOptions, "tiers">,
+): Promise<TestReport> {
   return runFullTest({
     ...options,
     fast: true,

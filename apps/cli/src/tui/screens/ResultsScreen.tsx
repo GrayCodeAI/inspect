@@ -2,14 +2,13 @@ import React, { useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import { StatusBar } from "../components/StatusBar.js";
 import type { TestResults, StepResult } from "./TestingScreen.js";
+import { PALETTE, ICONS } from "../../utils/theme.js";
 
 interface ResultsScreenProps {
   results: TestResults;
 }
 
-export function ResultsScreen({
-  results,
-}: ResultsScreenProps): React.ReactElement {
+export function ResultsScreen({ results }: ResultsScreenProps): React.ReactElement {
   const { exit } = useApp();
   const [message, setMessage] = useState<string | null>(null);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -61,7 +60,9 @@ export function ResultsScreen({
     lines.push("");
     lines.push(`**Instruction**: ${results.instruction}`);
     lines.push(`**Agent**: ${results.agent} | **Device**: ${results.device}`);
-    lines.push(`**Duration**: ${formatDuration(results.totalDuration)} | **Tokens**: ${results.tokenCount}`);
+    lines.push(
+      `**Duration**: ${formatDuration(results.totalDuration)} | **Tokens**: ${results.tokenCount}`,
+    );
     lines.push(`**Result**: ${passed}/${total} passed`);
     lines.push("");
     lines.push("| # | Step | Status |");
@@ -69,9 +70,7 @@ export function ResultsScreen({
 
     for (const step of results.steps) {
       const statusIcon = step.status === "pass" ? "PASS" : "FAIL";
-      lines.push(
-        `| ${step.index + 1} | ${step.description} | ${statusIcon} |`
-      );
+      lines.push(`| ${step.index + 1} | ${step.description} | ${statusIcon} |`);
       if (step.error) {
         lines.push(`| | Error: ${step.error} | |`);
       }
@@ -125,9 +124,7 @@ export function ResultsScreen({
       setScrollOffset((o) => Math.max(0, o - 1));
     }
     if (key.downArrow) {
-      setScrollOffset((o) =>
-        Math.min(results.steps.length - 1, o + 1)
-      );
+      setScrollOffset((o) => Math.min(results.steps.length - 1, o + 1));
     }
 
     // Actions
@@ -135,7 +132,7 @@ export function ResultsScreen({
       const report = formatMarkdownReport();
       const copied = await copyToClipboard(report);
       setMessage(
-        copied ? "Report copied to clipboard!" : "Copy failed — report printed to console"
+        copied ? "Report copied to clipboard!" : "Copy failed — report printed to console",
       );
       if (!copied) {
         console.log(report);
@@ -143,9 +140,7 @@ export function ResultsScreen({
     }
 
     if (input === "p" || input === "P") {
-      setMessage(
-        "PR comment posting not yet connected — use 'inspect pr' with --comment flag"
-      );
+      setMessage("PR comment posting not yet connected — use 'inspect pr' with --comment flag");
     }
 
     if (input === "s" || input === "S") {
@@ -157,24 +152,22 @@ export function ResultsScreen({
     }
   });
 
-  const visibleSteps = results.steps.slice(
-    scrollOffset,
-    scrollOffset + 12
-  );
+  const visibleSteps = results.steps.slice(scrollOffset, scrollOffset + 12);
 
   return (
     <Box flexDirection="column" padding={1}>
       {/* Header */}
       <Box marginBottom={1} justifyContent="space-between">
         <Box>
-          <Text bold color={results.status === "pass" ? "green" : "red"}>
-            {results.status === "pass" ? "ALL TESTS PASSED" : "TESTS FAILED"}
+          <Text bold color={results.status === "pass" ? PALETTE.green : PALETTE.red}>
+            {results.status === "pass"
+              ? `${ICONS.pass} ALL TESTS PASSED`
+              : `${ICONS.fail} TESTS FAILED`}
           </Text>
         </Box>
         <Box>
-          <Text dimColor>
-            {formatDuration(results.totalDuration)} | {results.tokenCount}{" "}
-            tokens
+          <Text color={PALETTE.muted}>
+            {formatDuration(results.totalDuration)} {ICONS.separator} {results.tokenCount} tokens
           </Text>
         </Box>
       </Box>
@@ -182,32 +175,30 @@ export function ResultsScreen({
       {/* Summary */}
       <Box marginBottom={1} flexDirection="column">
         <Box>
-          <Text dimColor>Instruction: </Text>
-          <Text>{results.instruction}</Text>
+          <Text color={PALETTE.muted}>Instruction: </Text>
+          <Text color={PALETTE.text}>{results.instruction}</Text>
         </Box>
         <Box>
-          <Text dimColor>Agent: </Text>
-          <Text>{results.agent}</Text>
-          <Text dimColor> | Device: </Text>
-          <Text>{results.device}</Text>
+          <Text color={PALETTE.muted}>Agent: </Text>
+          <Text color={PALETTE.orange}>{results.agent}</Text>
+          <Text color={PALETTE.muted}> | Device: </Text>
+          <Text color={PALETTE.cyan}>{results.device}</Text>
         </Box>
         <Box>
-          <Text color="green">{passed} passed</Text>
+          <Text color={PALETTE.green}>{passed} passed</Text>
           {failed > 0 && (
             <>
-              <Text dimColor> | </Text>
-              <Text color="red">{failed} failed</Text>
+              <Text color={PALETTE.subtle}> | </Text>
+              <Text color={PALETTE.red}>{failed} failed</Text>
             </>
           )}
-          <Text dimColor> | {total} total</Text>
+          <Text color={PALETTE.muted}> | {total} total</Text>
         </Box>
       </Box>
 
       {/* Divider */}
       <Box>
-        <Text dimColor>
-          {"─".repeat(60)}
-        </Text>
+        <Text color={PALETTE.subtle}>{"─".repeat(60)}</Text>
       </Box>
 
       {/* Step Results */}
@@ -219,9 +210,8 @@ export function ResultsScreen({
 
       {results.steps.length > 12 && (
         <Box marginTop={1}>
-          <Text dimColor>
-            Showing {scrollOffset + 1}-
-            {Math.min(scrollOffset + 12, results.steps.length)} of{" "}
+          <Text color={PALETTE.muted}>
+            Showing {scrollOffset + 1}-{Math.min(scrollOffset + 12, results.steps.length)} of{" "}
             {results.steps.length} steps (up/down to scroll)
           </Text>
         </Box>
@@ -230,7 +220,7 @@ export function ResultsScreen({
       {/* Message */}
       {message && (
         <Box marginTop={1}>
-          <Text color="cyan">{message}</Text>
+          <Text color={PALETTE.cyan}>{message}</Text>
         </Box>
       )}
 
@@ -251,11 +241,11 @@ export function ResultsScreen({
 function StepRow({ step }: { step: StepResult }): React.ReactElement {
   const statusIcon =
     step.status === "pass" ? (
-      <Text color="green">✓</Text>
+      <Text color={PALETTE.green}>{ICONS.pass}</Text>
     ) : step.status === "fail" ? (
-      <Text color="red">✗</Text>
+      <Text color={PALETTE.red}>{ICONS.fail}</Text>
     ) : (
-      <Text dimColor>○</Text>
+      <Text color={PALETTE.subtle}>{ICONS.pending}</Text>
     );
 
   return (
@@ -263,39 +253,39 @@ function StepRow({ step }: { step: StepResult }): React.ReactElement {
       <Box>
         <Box width={3}>{statusIcon}</Box>
         <Box width={4}>
-          <Text dimColor>{step.index + 1}.</Text>
+          <Text color={PALETTE.muted}>{step.index + 1}.</Text>
         </Box>
         <Text
           color={
             step.status === "pass"
-              ? "green"
+              ? PALETTE.green
               : step.status === "fail"
-                ? "red"
-                : undefined
+                ? PALETTE.red
+                : PALETTE.text
           }
         >
           {step.description}
         </Text>
-        {step.duration !== undefined && (
-          <Text dimColor> ({step.duration}ms)</Text>
-        )}
+        {step.duration !== undefined && <Text color={PALETTE.muted}> ({step.duration}ms)</Text>}
       </Box>
       {step.assertion && (
         <Box marginLeft={7}>
-          <Text dimColor>Assert: {step.assertion}</Text>
+          <Text color={PALETTE.dim}>Assert: {step.assertion}</Text>
         </Box>
       )}
       {step.error && (
         <Box marginLeft={7}>
-          <Text color="red">Error: {step.error}</Text>
+          <Text color={PALETTE.red}>
+            {ICONS.fail} Error: {step.error}
+          </Text>
         </Box>
       )}
       {step.toolCalls && step.toolCalls.length > 0 && (
         <Box marginLeft={7} flexDirection="column">
           {step.toolCalls.map((call, i) => (
-            <Text key={i} dimColor>
+            <Text key={i} color={PALETTE.dim}>
               Tool: {call.tool}({JSON.stringify(call.args)})
-              {call.result ? ` → ${call.result}` : ""}
+              {call.result ? ` ${ICONS.arrow} ${call.result}` : ""}
             </Text>
           ))}
         </Box>
