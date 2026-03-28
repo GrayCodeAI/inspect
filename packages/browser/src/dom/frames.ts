@@ -5,6 +5,9 @@
 import type { Page, Frame } from "playwright";
 import type { FrameInfo, DOMNode } from "@inspect/shared";
 import { DOMCapture } from "./capture.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/dom/frames");
 
 /**
  * Discovers all frames in a page (including nested iframes), builds a frame
@@ -163,8 +166,8 @@ export class FrameRegistry {
         });
 
         results.set(frameId, nodes as DOMNode[]);
-      } catch {
-        // Frame may have been detached or navigated — skip it
+      } catch (error) {
+        logger.debug("Frame may have been detached, skipping", { frameId, error });
         results.set(frameId, []);
       }
     }

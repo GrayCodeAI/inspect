@@ -13,6 +13,9 @@ import {
   type LLMContentPart,
   type LLMToolCall,
 } from "./base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/provider-deepseek");
 
 /** DeepSeek uses an OpenAI-compatible API with some extensions */
 interface DeepSeekResponse {
@@ -140,7 +143,8 @@ export class DeepSeekProvider extends LLMProvider {
       let delta: DeepSeekStreamDelta;
       try {
         delta = JSON.parse(line);
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse DeepSeek stream chunk", { err: error instanceof Error ? error.message : String(error) });
         continue;
       }
 
@@ -331,7 +335,8 @@ export class DeepSeekProvider extends LLMProvider {
   private safeParseJSON(str: string): Record<string, unknown> {
     try {
       return JSON.parse(str);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse DeepSeek tool call arguments", { err: error instanceof Error ? error.message : String(error) });
       return {};
     }
   }

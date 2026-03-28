@@ -4,8 +4,10 @@
 
 import * as zlib from "node:zlib";
 import { promisify } from "node:util";
+import { createLogger } from "@inspect/observability";
 
 const inflateRaw = promisify(zlib.inflateRaw);
+const logger = createLogger("data/excel");
 
 /** Excel parse result */
 export interface ExcelParseResult {
@@ -301,8 +303,8 @@ export class ExcelParser {
             continue;
           }
           files.set(fileName, content);
-        } catch {
-          // Skip files that can't be decompressed
+        } catch (error) {
+          logger.debug("Failed to decompress ZIP entry, skipping", { fileName, error });
         }
       }
 

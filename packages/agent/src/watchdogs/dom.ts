@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { Watchdog, WatchdogEvent } from "./manager.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/watchdog-dom");
 
 /** A tracked DOM mutation */
 export interface DOMMutation {
@@ -134,8 +137,8 @@ export class DOMWatchdog implements Watchdog {
       `);
 
       this.observerInstalled = true;
-    } catch {
-      // Page might not be ready
+    } catch (error) {
+      logger.debug("Failed to install DOM observer, page may not be ready", { err: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -190,7 +193,8 @@ export class DOMWatchdog implements Watchdog {
       }
 
       return mutations;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to collect DOM mutations", { err: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -241,8 +245,8 @@ export class DOMWatchdog implements Watchdog {
           }
         })()
       `);
-    } catch {
-      // Page might be gone
+    } catch (error) {
+      logger.debug("Failed to remove DOM observer, page may be gone", { err: error instanceof Error ? error.message : String(error) });
     }
 
     this.observerInstalled = false;

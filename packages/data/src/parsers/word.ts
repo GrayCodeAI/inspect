@@ -4,8 +4,10 @@
 
 import * as zlib from "node:zlib";
 import { promisify } from "node:util";
+import { createLogger } from "@inspect/observability";
 
 const inflateRaw = promisify(zlib.inflateRaw);
+const logger = createLogger("data/word");
 
 /** DOCX parse result */
 export interface WordParseResult {
@@ -220,8 +222,8 @@ export class WordParser {
             continue;
           }
           files.set(fileName, content);
-        } catch {
-          // Skip corrupt entries
+        } catch (error) {
+          logger.debug("Failed to decompress DOCX ZIP entry, skipping", { fileName, error });
         }
       }
 

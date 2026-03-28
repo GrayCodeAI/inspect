@@ -2,6 +2,10 @@
 // @inspect/data - JSON Schema Extractor
 // ============================================================================
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/json-schema-extractor");
+
 /** JSON Schema definition */
 export interface JSONSchemaDefinition {
   type?: string;
@@ -313,7 +317,8 @@ Return ONLY valid JSON.`;
         try {
           new URL(value);
           return null;
-        } catch {
+        } catch (error) {
+          logger.debug("URL format validation failed", { value, error });
           return "invalid URL format";
         }
       case "date":
@@ -346,21 +351,22 @@ Return ONLY valid JSON.`;
   private parseJSON(text: string): unknown | null {
     try {
       return JSON.parse(text);
-    } catch {
+    } catch (error) {
+      logger.debug("Direct JSON parse failed, trying fallback extraction", { error });
       const match = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
       if (match) {
         try {
           return JSON.parse(match[1]);
-        } catch {
-          // Fall through
+        } catch (error) {
+          logger.debug("Failed to parse JSON from code fence", { error });
         }
       }
       const objMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (objMatch) {
         try {
           return JSON.parse(objMatch[1]);
-        } catch {
-          // Fall through
+        } catch (error) {
+          logger.debug("Failed to parse extracted JSON object/array", { error });
         }
       }
       return null;

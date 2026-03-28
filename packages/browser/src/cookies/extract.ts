@@ -2,13 +2,17 @@
 // CookieExtractor - Extract cookies from locally installed browsers
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readdirSync, copyFileSync, unlinkSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readdir, copyFile, unlink } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
 import { execSync } from "node:child_process";
 import type { CookieData, CookieParam } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
 import { BROWSER_CONFIGS, findBrowserConfig, resolveBrowserPath } from "./browsers.js";
+
+const logger = createLogger("browser/cookies");
 
 /**
  * Extracts cookies from locally installed browsers.
@@ -97,7 +101,8 @@ export class CookieExtractor {
       const versionResponse = await fetch(`${httpUrl}/json/version`);
       const version = (await versionResponse.json()) as { webSocketDebuggerUrl?: string };
       wsUrl = version.webSocketDebuggerUrl ?? targets[0].webSocketDebuggerUrl;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to get browser WebSocket URL, using target URL", { error });
       wsUrl = targets[0].webSocketDebuggerUrl;
     }
 
@@ -367,7 +372,7 @@ export class CookieExtractor {
       for (const pattern of patterns) {
         const globPattern = pattern.replace("*", "");
         try {
-          const entries = readdirSync(basePath);
+          const entries = await readdir(basePath);
           for (const entry of entries) {
             if (entry.startsWith(globPattern) || entry === pattern) {
               const candidate = join(basePath, entry, config.cookieFile);
@@ -377,7 +382,8 @@ export class CookieExtractor {
               }
             }
           }
-        } catch {
+        } catch (error) {
+          logger.debug("Failed to read profile directory", { basePath, error });
           continue;
         }
         if (foundPath) break;
@@ -412,7 +418,7 @@ export class CookieExtractor {
       const patterns = profilePattern.split("|");
 
       try {
-        const entries = readdirSync(basePath);
+        const entries = await readdir(basePath);
         for (const pattern of patterns) {
           const suffix = pattern.replace("*", "");
           for (const entry of entries) {
@@ -426,8 +432,8 @@ export class CookieExtractor {
           }
           if (cookiePath) break;
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        logger.debug("Failed to read Firefox profiles directory", { basePath, error });
       }
     }
 
@@ -453,7 +459,7 @@ export class CookieExtractor {
 
     // Safari uses a binary cookie format — use python or a dedicated parser
     // For now, return empty and log a warning
-    console.warn("Safari binary cookie parsing requires additional tooling. Use CDP extraction instead.");
+    logger.warn("Safari binary cookie parsing requires additional tooling — use CDP extraction instead");
     return [];
   }
 
@@ -471,13 +477,13 @@ export class CookieExtractor {
     const tempPath = join(tmpdir(), `inspect_cookies_${randomBytes(4).toString("hex")}.sqlite`);
 
     try {
-      copyFileSync(dbPath, tempPath);
+      await copyFile(dbPath, tempPath);
 
       // Also copy WAL and SHM files if they exist (Chromium)
       const walPath = `${dbPath}-wal`;
       const shmPath = `${dbPath}-shm`;
-      if (existsSync(walPath)) copyFileSync(walPath, `${tempPath}-wal`);
-      if (existsSync(shmPath)) copyFileSync(shmPath, `${tempPath}-shm`);
+      if (existsSync(walPath)) await copyFile(walPath, `${tempPath}-wal`);
+      if (existsSync(shmPath)) await copyFile(shmPath, `${tempPath}-shm`);
 
       const query = format === "chromium"
         ? this.buildChromiumQuery(domain)
@@ -498,9 +504,9 @@ export class CookieExtractor {
       );
     } finally {
       // Cleanup temp files
-      try { unlinkSync(tempPath); } catch { /* ignore */ }
-      try { unlinkSync(`${tempPath}-wal`); } catch { /* ignore */ }
-      try { unlinkSync(`${tempPath}-shm`); } catch { /* ignore */ }
+      await unlink(tempPath).catch(() => {});
+      await unlink(`${tempPath}-wal`).catch(() => {});
+      await unlink(`${tempPath}-shm`).catch(() => {});
     }
   }
 

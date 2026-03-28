@@ -5,6 +5,9 @@
 import type { SecurityReport, SecurityAlert, SecurityRisk } from "@inspect/shared";
 import { createTimer } from "@inspect/shared";
 import { spawn } from "node:child_process";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/nuclei");
 
 /** Nuclei scan options */
 export interface NucleiOptions {
@@ -236,7 +239,7 @@ export class NucleiScanner {
 
       // Handle timeout
       setTimeout(() => {
-        try { proc.kill("SIGTERM"); } catch {}
+        try { proc.kill("SIGTERM"); } catch (error) { logger.debug("Failed to kill nuclei process on timeout", { error }); }
         reject(new Error(`nuclei scan timed out after ${timeout}ms`));
       }, timeout);
     });
@@ -253,8 +256,8 @@ export class NucleiScanner {
       try {
         const entry = JSON.parse(line) as NucleiJsonEntry;
         entries.push(entry);
-      } catch {
-        // Skip malformed lines
+      } catch (error) {
+        logger.debug("Failed to parse nuclei JSONL line, skipping", { error });
       }
     }
 

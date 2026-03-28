@@ -10,6 +10,9 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/plugins");
 
 export interface InspectPlugin {
   /** Plugin name (unique identifier) */
@@ -167,19 +170,19 @@ export class PluginLoader {
       const plugin: InspectPlugin = mod.default ?? mod;
 
       if (!plugin.name) {
-        console.warn(`Plugin at ${filePath} missing 'name', skipping.`);
+        logger.warn("Plugin missing 'name', skipping.", { filePath });
         return null;
       }
 
       if (this.plugins.has(plugin.name)) {
-        console.warn(`Plugin '${plugin.name}' already loaded, skipping duplicate.`);
+        logger.warn("Plugin already loaded, skipping duplicate.", { pluginName: plugin.name });
         return null;
       }
 
       this.plugins.set(plugin.name, plugin);
       return plugin;
     } catch (err) {
-      console.warn(`Failed to load plugin from ${filePath}: ${err instanceof Error ? err.message : err}`);
+      logger.warn("Failed to load plugin", { filePath, error: err instanceof Error ? err.message : String(err) });
       return null;
     }
   }

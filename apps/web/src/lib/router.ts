@@ -19,7 +19,7 @@ export function navigateTo(path: string): void {
 export function startRouter(): void {
   const handleRoute = async () => {
     const hash = window.location.hash.slice(1) || "/";
-    const page = hash.split("/")[1] || "dashboard";
+    const page = hash.split("/")[1] || "landing";
 
     // Skip re-render only if the full hash is unchanged
     if (hash === currentHash) return;
@@ -31,6 +31,9 @@ export function startRouter(): void {
       const linkPage = (link as HTMLElement).dataset.page;
       link.classList.toggle("active", linkPage === page);
     });
+
+    // Toggle landing mode (hide sidebar for landing page)
+    document.body.classList.toggle("landing-mode", page === "landing");
 
     // Render page
     const container = document.getElementById("page-container");
@@ -45,7 +48,8 @@ export function startRouter(): void {
         container.innerHTML = `<div class="empty-state"><h3>Error</h3><p>${err instanceof Error ? err.message : "Failed to load page"}</p></div>`;
       }
     } else {
-      container.innerHTML = '<div class="empty-state"><h3>Page Not Found</h3><p>This page does not exist.</p></div>';
+      container.innerHTML =
+        '<div class="empty-state"><h3>Page Not Found</h3><p>This page does not exist.</p></div>';
     }
   };
 

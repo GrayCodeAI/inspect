@@ -11,6 +11,9 @@ import {
   type BrowserType,
 } from "playwright";
 import type { BrowserConfig } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/cross-browser");
 
 /** Supported browser engine */
 export type BrowserEngine = "chromium" | "firefox" | "webkit";
@@ -141,12 +144,12 @@ export class CrossBrowserManager {
   async closeAll(): Promise<void> {
     for (const [id, context] of this.contexts) {
       await context.close().catch((err) => {
-        console.warn(`[browser] Failed to close context ${id}:`, err?.message);
+        logger.warn("Failed to close context", { engine: id, err: err?.message });
       });
     }
     for (const [id, browser] of this.browsers) {
       await browser.close().catch((err) => {
-        console.warn(`[browser] Failed to close browser ${id}:`, err?.message);
+        logger.warn("Failed to close browser", { engine: id, err: err?.message });
       });
     }
     this.contexts.clear();

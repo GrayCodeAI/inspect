@@ -8,6 +8,9 @@ import type {
   TestStep,
   PageSnapshot,
 } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("sdk/agent");
 import type { LLMClient, PageInterface } from "./act.js";
 import { ActHandler, type ActResult } from "./act.js";
 import { ExtractHandler, type ExtractResult } from "./extract.js";
@@ -528,8 +531,8 @@ Rules:
         extractedData: parsed.extractedData ?? undefined,
         summary: parsed.summary ? String(parsed.summary) : undefined,
       };
-    } catch {
-      // If JSON parsing fails, try to extract thought from plain text
+    } catch (error) {
+      logger.debug("Failed to parse agent plan JSON, using plain text", { error });
       return {
         thought: content.slice(0, 200),
         action: null,
@@ -545,8 +548,8 @@ Rules:
     if (options?.onEvent) {
       try {
         options.onEvent(event);
-      } catch {
-        // Don't let event handler errors break the agent
+      } catch (error) {
+        logger.debug("Agent event handler threw an error", { eventType: event.type, error });
       }
     }
   }

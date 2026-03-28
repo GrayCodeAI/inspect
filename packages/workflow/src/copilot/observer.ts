@@ -3,6 +3,9 @@
 // ============================================================================
 
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/observer");
 import type {
   WorkflowBlock,
   WorkflowBlockType,
@@ -375,7 +378,8 @@ export class ActionObserver {
     try {
       const parsed = new URL(url);
       return parsed.hostname + (parsed.pathname !== "/" ? parsed.pathname : "");
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse URL for shortening", { url, error });
       return this.truncate(url, 40);
     }
   }

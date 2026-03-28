@@ -4,6 +4,9 @@
 
 import * as crypto from "node:crypto";
 import * as https from "node:https";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/s3");
 
 /** S3 configuration */
 export interface S3Config {
@@ -174,7 +177,8 @@ export class S3Storage {
         ),
         contentType: response.headers["content-type"],
       };
-    } catch {
+    } catch (error) {
+      logger.debug("S3 HEAD request failed, object may not exist", { key, error });
       return { exists: false };
     }
   }

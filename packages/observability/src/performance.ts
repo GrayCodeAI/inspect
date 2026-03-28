@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { PerformanceMetric, MetricRating } from "@inspect/shared";
+import { createLogger } from "./logging.js";
+
+const logger = createLogger("observability/performance");
 
 /** Web vital metric name */
 export type WebVitalName = "FCP" | "LCP" | "CLS" | "INP" | "TTFB";
@@ -137,8 +140,8 @@ export class PerformanceMetrics {
       try {
         await page.evaluate(WEB_VITALS_INJECTION_SCRIPT);
         this.injectedPages.add(page);
-      } catch {
-        // Page might be in a state where injection fails
+      } catch (error) {
+        logger.debug("Web vitals injection failed", { error });
       }
     }
 
@@ -149,7 +152,8 @@ export class PerformanceMetrics {
     let rawMetrics: Record<string, number>;
     try {
       rawMetrics = await page.evaluate(WEB_VITALS_RETRIEVAL_SCRIPT) as Record<string, number>;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to retrieve web vitals metrics", { error });
       return [];
     }
 
@@ -229,8 +233,8 @@ export class PerformanceMetrics {
           displayValue: formatMetricValue(timing.fcp, "FCP"),
         });
       }
-    } catch {
-      // Performance API might not be available
+    } catch (error) {
+      logger.debug("Performance API not available", { error });
     }
 
     return results;

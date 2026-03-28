@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { ChangeSnapshot, ChangeDiff, ChangeTrackingConfig } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/tracker");
 
 /**
  * Creates content snapshots for change detection.
@@ -188,7 +191,7 @@ export class ChangeTracker {
         const snap = await this.snapshot(url);
         results.set(url, snap);
       } catch (error) {
-        console.error(`Failed to snapshot ${url}:`, error);
+        logger.error("Failed to snapshot URL", { url, error });
       }
     }
     return results;

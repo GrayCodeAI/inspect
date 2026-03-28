@@ -3,6 +3,9 @@
 // ============================================================================
 
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/executor");
 import type {
   WorkflowDefinition,
   WorkflowBlock,
@@ -528,7 +531,8 @@ export class WorkflowExecutor {
           return this.validateAgainstSchema(parsed, schema);
         }
         return parsed;
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse source as JSON in extraction", { error });
         return { raw: source, instruction };
       }
     }
@@ -575,7 +579,8 @@ export class WorkflowExecutor {
         sandbox.result = runInNewContext(`Boolean(${condition})`, sandbox, {
           timeout: 5_000,
         });
-      } catch {
+      } catch (error) {
+        logger.debug("Validation condition evaluation error", { condition, error });
         throw new Error(`Validation condition evaluation failed: ${condition}`);
       }
       if (!sandbox.result) {
@@ -643,8 +648,8 @@ export class WorkflowExecutor {
             if (contentType.includes("application/json")) {
               try {
                 parsedBody = JSON.parse(rawBody);
-              } catch {
-                // Keep as string
+              } catch (error) {
+                logger.debug("Failed to parse HTTP response as JSON", { error });
               }
             }
 
@@ -785,8 +790,8 @@ export class WorkflowExecutor {
         const text = buffer.toString("utf-8");
         try {
           return JSON.parse(text);
-        } catch {
-          // Try stripping comments
+        } catch (error) {
+          logger.debug("JSON parse failed, trying comment stripping", { error });
           const cleaned = text.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
           return JSON.parse(cleaned);
         }
@@ -830,8 +835,8 @@ export class WorkflowExecutor {
           if (sandbox.result) {
             return { waited: Date.now() - start, conditionMet: true };
           }
-        } catch {
-          // condition not met yet
+        } catch (error) {
+          logger.debug("Wait condition evaluation not met yet", { condition, error });
         }
         await new Promise((r) => setTimeout(r, pollInterval));
       }

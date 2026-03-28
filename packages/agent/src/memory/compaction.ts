@@ -4,6 +4,9 @@
 
 import type { LLMMessage } from "../providers/base.js";
 import type { LLMProvider } from "../providers/base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/compaction");
 
 /** Compaction options */
 export interface CompactionOptions {
@@ -189,8 +192,8 @@ Be concise but don't lose critical information. Output a structured summary.`,
         temperature: 0,
       });
       return response.content;
-    } catch {
-      // Fall back to local extraction
+    } catch (error) {
+      logger.warn("LLM summary generation failed, falling back to local extraction", { err: error instanceof Error ? error.message : String(error) });
       return this.extractKeyInfo(messages);
     }
   }

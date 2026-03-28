@@ -6,6 +6,9 @@
 // ============================================================================
 
 import type { LLMProvider, LLMMessage, LLMContentPart } from "../providers/base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/nl-assert");
 
 export interface AssertionContext {
   /** ARIA tree or markdown representation of the page */
@@ -91,8 +94,8 @@ export class NLAssert {
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
         tokenUsage,
       };
-    } catch {
-      // If JSON parsing fails, try to extract pass/fail from text
+    } catch (error) {
+      logger.warn("Failed to parse assertion result JSON", { err: error instanceof Error ? error.message : String(error) });
       const text = response.content.toLowerCase();
       const passed = text.includes("true") || text.includes("passed");
 
@@ -149,8 +152,8 @@ export class NLAssert {
         evidence: Array.isArray(r.evidence) ? r.evidence : [],
         tokenUsage: perTokenCost,
       }));
-    } catch {
-      // Fallback: verify individually
+    } catch (error) {
+      logger.warn("Failed to parse batch assertion results, falling back to individual verification", { err: error instanceof Error ? error.message : String(error) });
       return Promise.all(assertions.map((a) => this.verify(a, context)));
     }
   }

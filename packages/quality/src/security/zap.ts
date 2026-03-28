@@ -4,6 +4,9 @@
 
 import type { SecurityAlert, SecurityReport, SecurityRisk } from "@inspect/shared";
 import { createTimer, sleep } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/zap");
 
 /** ZAP scan options */
 export interface ZAPOptions {
@@ -243,8 +246,8 @@ export class ZAPScanner {
 
     try {
       await this.zapGet("/JSON/ascan/action/addScanPolicy/", { scanPolicyName: policyName });
-    } catch {
-      // Policy may already exist
+    } catch (error) {
+      logger.debug("Failed to add ZAP scan policy, may already exist", { policyName, error });
     }
 
     if (options.scanStrength) {

@@ -3,6 +3,9 @@
 // ============================================================================
 
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/generator");
 import type {
   WorkflowDefinition,
   WorkflowBlock,
@@ -241,7 +244,8 @@ Respond with ONLY a valid JSON object with this structure:
     try {
       // Try direct JSON parse
       parsed = JSON.parse(response);
-    } catch {
+    } catch (error) {
+      logger.debug("Direct JSON parse of LLM response failed, trying fallback extraction", { error });
       // Try to find JSON block in the response
       const jsonMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
       if (jsonMatch) {
@@ -379,8 +383,8 @@ Respond with a JSON array.`;
           confidence: Math.min(1, Math.max(0, Number(s.confidence ?? 0.5))),
         }));
       }
-    } catch {
-      // Fall through to rule-based suggestions
+    } catch (error) {
+      logger.debug("LLM suggestion failed, falling back to rules", { error });
     }
 
     return this.ruleSuggestNextBlock(currentBlocks);

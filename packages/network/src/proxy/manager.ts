@@ -4,6 +4,9 @@
 
 import type { ProxyConfig } from "@inspect/shared";
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("network/proxy");
 
 /** Internal proxy entry with health tracking */
 export interface ProxyEntry {
@@ -278,7 +281,8 @@ function parseProxyUrl(
     const url = new URL(normalized);
     const port = url.port ? parseInt(url.port, 10) : url.protocol === "https:" ? 443 : 1080;
     return { hostname: url.hostname, port };
-  } catch {
+  } catch (error) {
+    logger.debug("Failed to parse proxy URL", { server, error });
     return null;
   }
 }

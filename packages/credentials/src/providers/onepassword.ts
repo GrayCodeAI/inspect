@@ -4,6 +4,9 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("credentials/onepassword");
 
 const execFileAsync = promisify(execFile);
 
@@ -146,7 +149,8 @@ export class OnePasswordIntegration {
     try {
       const parsed = JSON.parse(result);
       return parsed.value ?? result;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse 1Password field JSON, using raw value", { error });
       return result.trim();
     }
   }
@@ -181,8 +185,8 @@ export class OnePasswordIntegration {
     let totp: string | undefined;
     try {
       totp = await this.getTOTP(item, vault);
-    } catch {
-      // TOTP may not be configured
+    } catch (error) {
+      logger.debug("TOTP not configured for this item", { item, error });
     }
 
     return {
@@ -246,8 +250,8 @@ export class OnePasswordIntegration {
       try {
         const value = await this.resolveReference(ref);
         result = result.replace(ref, value);
-      } catch {
-        // Leave unresolvable references as-is
+      } catch (error) {
+        logger.debug("Failed to resolve 1Password reference", { ref, error });
       }
     }
     return result;

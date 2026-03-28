@@ -13,6 +13,9 @@ import {
   type LLMContentPart,
   type LLMToolCall,
 } from "./base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/provider-openai");
 
 /** OpenAI chat completion response */
 interface OpenAIResponse {
@@ -159,7 +162,8 @@ export class OpenAIProvider extends LLMProvider {
       let delta: OpenAIStreamDelta;
       try {
         delta = JSON.parse(line);
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse OpenAI stream chunk", { err: error instanceof Error ? error.message : String(error) });
         continue;
       }
 
@@ -421,7 +425,8 @@ export class OpenAIProvider extends LLMProvider {
   private safeParseJSON(str: string): Record<string, unknown> {
     try {
       return JSON.parse(str);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse OpenAI tool call arguments", { err: error instanceof Error ? error.message : String(error) });
       return {};
     }
   }

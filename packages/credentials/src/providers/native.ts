@@ -5,6 +5,9 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("credentials/native");
 
 /** Stored credential entry in the native store */
 export interface NativeCredentialEntry {
@@ -90,7 +93,8 @@ export class NativeCredentialStore {
     try {
       const decrypted = this.decrypt(entry.data);
       return JSON.parse(decrypted);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to decrypt credential", { service, account, error });
       return null;
     }
   }
@@ -217,7 +221,8 @@ export class NativeCredentialStore {
       const key = crypto.randomBytes(32).toString("hex");
       fs.writeFileSync(keyPath, key, { mode: 0o600 });
       return key;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to load or create key file, using ephemeral key", { error });
       return crypto.randomBytes(32).toString("hex");
     }
   }
@@ -233,8 +238,8 @@ export class NativeCredentialStore {
       for (const entry of entries) {
         this.entries.set(entry.id, entry);
       }
-    } catch {
-      // Start fresh if load fails
+    } catch (error) {
+      logger.warn("Failed to load credential store, starting fresh", { error });
     }
   }
 
@@ -252,7 +257,7 @@ export class NativeCredentialStore {
       );
       fs.writeFileSync(this.filePath, data, { mode: 0o600 });
     } catch (error) {
-      console.error("Failed to save native credential store:", error);
+      logger.error("Failed to save native credential store", { error });
     }
   }
 }

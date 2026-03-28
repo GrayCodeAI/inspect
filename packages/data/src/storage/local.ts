@@ -6,6 +6,9 @@ import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/local-storage");
 
 /** Local storage file metadata */
 export interface LocalFileMetadata {
@@ -172,7 +175,8 @@ export class LocalStorage {
         } else {
           break;
         }
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to clean up empty directory during delete", { dir, error });
         break;
       }
     }

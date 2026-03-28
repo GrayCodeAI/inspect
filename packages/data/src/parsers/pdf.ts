@@ -3,6 +3,9 @@
 // ============================================================================
 
 import * as zlib from "node:zlib";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/pdf");
 
 /** PDF parse result */
 export interface PDFParseResult {
@@ -171,8 +174,8 @@ export class PDFParser {
       try {
         const decompressed = zlib.inflateSync(streamData);
         streams.push(decompressed.toString("latin1"));
-      } catch {
-        // Not compressed or different compression
+      } catch (error) {
+        logger.debug("Failed to decompress PDF stream, using raw data", { error });
         streams.push(streamData.toString("latin1"));
       }
 

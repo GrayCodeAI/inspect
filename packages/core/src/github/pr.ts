@@ -1,7 +1,9 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
+import { createLogger } from "@inspect/observability";
 
 const execFile = promisify(execFileCb);
+const logger = createLogger("core/github-pr");
 
 /**
  * Safely execute a gh CLI command with arguments as an array.
@@ -115,7 +117,8 @@ export class GitHubPR {
         { maxBuffer: 10 * 1024 * 1024 },
       );
       raw = stdout;
-    } catch {
+    } catch (error) {
+      logger.debug("gh api diff failed, falling back to curl", { err: error instanceof Error ? error.message : String(error) });
       // Fallback to curl with argument array (no shell interpolation)
       const curlArgs = ["-sL", "-H", "Accept: application/vnd.github.v3.diff"];
       if (this.token) {
@@ -164,7 +167,8 @@ export class GitHubPR {
         "--jq", ".[].filename",
       ]);
       return stdout.trim().split("\n").filter(Boolean);
-    } catch {
+    } catch (error) {
+      logger.debug("gh api files list failed, falling back to diff parse", { err: error instanceof Error ? error.message : String(error) });
       // Fallback: parse from diff
       const diff = await this.getPRDiff(pr);
       return diff.files;
@@ -227,12 +231,13 @@ export class GitHubPR {
           const envUrl = statusRaw.trim();
           if (envUrl && envUrl !== "null") return envUrl;
         }
-      } catch {
-        // Deployment API not available
+      } catch (error) {
+        logger.debug("Deployment API not available", { err: error instanceof Error ? error.message : String(error) });
       }
 
       return null;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to get preview URL", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }

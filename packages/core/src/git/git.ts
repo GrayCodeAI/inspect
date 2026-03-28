@@ -1,4 +1,7 @@
 import simpleGit, { type SimpleGit, type StatusResult } from "simple-git";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/git");
 
 /**
  * GitManager provides all git-related operations for the Inspect platform.
@@ -61,8 +64,8 @@ export class GitManager {
       const mainBranch = await this.getMainBranch();
       try {
         return await this.git.diff([`${mainBranch}...HEAD`]);
-      } catch {
-        // Fallback if main branch doesn't exist or no common ancestor
+      } catch (error) {
+        logger.debug("Branch diff failed, falling back to working tree diff", { mainBranch, err: error instanceof Error ? error.message : String(error) });
         return await this.git.diff();
       }
     }
@@ -91,7 +94,8 @@ export class GitManager {
           return `${e.hash} ${e.message} (${e.date})`;
         }
       );
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to get recent commits", { err: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -103,7 +107,8 @@ export class GitManager {
     try {
       const branch = await this.git.revparse(["--abbrev-ref", "HEAD"]);
       return branch.trim();
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to get current branch", { err: error instanceof Error ? error.message : String(error) });
       return "unknown";
     }
   }
@@ -134,11 +139,12 @@ export class GitManager {
           "refs/remotes/origin/HEAD",
         ]);
         return remote.trim().replace("refs/remotes/origin/", "");
-      } catch {
-        // Last resort
+      } catch (error) {
+        logger.debug("Failed to resolve remote HEAD", { err: error instanceof Error ? error.message : String(error) });
         return "main";
       }
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to detect main branch", { err: error instanceof Error ? error.message : String(error) });
       return "main";
     }
   }
@@ -157,7 +163,8 @@ export class GitManager {
     try {
       await this.git.revparse(["--is-inside-work-tree"]);
       return true;
-    } catch {
+    } catch (error) {
+      logger.debug("Not a git repository", { cwd: this.cwd, err: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -192,8 +199,8 @@ export class GitManager {
         .trim()
         .split("\n")
         .filter(Boolean);
-    } catch {
-      // Fallback: just return unstaged
+    } catch (error) {
+      logger.debug("Branch diff --name-only failed, falling back to unstaged", { err: error instanceof Error ? error.message : String(error) });
       return this.getUnstagedFiles();
     }
   }
@@ -209,7 +216,8 @@ export class GitManager {
         .trim()
         .split("\n")
         .filter(Boolean);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to get commit files", { sha, err: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }

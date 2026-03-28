@@ -4,6 +4,9 @@
 
 import { randomBytes } from "node:crypto";
 import type { OTelSpan } from "@inspect/shared";
+import { createLogger } from "./logging.js";
+
+const logger = createLogger("observability/tracing");
 
 /** Span status codes */
 export type SpanStatus = "ok" | "error" | "unset";
@@ -305,8 +308,8 @@ export class Tracer {
           this.exportBuffer.unshift(...spans);
         }
       }
-    } catch {
-      // On network failure, put spans back if buffer isn't too large
+    } catch (error) {
+      logger.debug("Failed to export spans, re-buffering", { error });
       if (this.exportBuffer.length < 500) {
         this.exportBuffer.unshift(...spans);
       }

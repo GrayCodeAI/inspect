@@ -4,6 +4,9 @@
 
 import type { WorkflowBlock } from "@inspect/shared";
 import { WorkflowContext } from "../engine/context.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/blocks/extract");
 
 /** JSON Schema definition for extraction */
 export interface ExtractionSchema {
@@ -156,8 +159,8 @@ export class DataExtractionBlock {
         return this.mapToSchema(parsed, schema);
       }
       return parsed;
-    } catch {
-      // Not JSON - try to extract structured data from text
+    } catch (error) {
+      logger.debug("Source is not JSON, trying text extraction", { error });
     }
 
     // Try to extract key-value pairs from text
@@ -256,7 +259,8 @@ export class DataExtractionBlock {
         if (typeof value === "string") {
           try {
             return JSON.parse(value);
-          } catch {
+          } catch (error) {
+            logger.debug("Failed to parse string as JSON for object coercion", { error });
             return value;
           }
         }

@@ -2,6 +2,10 @@
 // @inspect/data - Link Extractor
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/link-extractor");
+
 /** Extracted link info */
 export interface ExtractedLink {
   url: string;
@@ -41,7 +45,8 @@ export class LinkExtractor {
         } else {
           resolvedUrl = new URL(href, baseUrl).href.split("#")[0];
         }
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to resolve URL, skipping link", { href, baseUrl, error });
         continue;
       }
 

@@ -4,6 +4,9 @@
 
 import type { LLMProvider, LLMMessage } from "../providers/base.js";
 import type { ActionCache, CachedAction } from "./store.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/cache-healing");
 
 /** Element description used for semantic matching */
 export interface ElementDescription {
@@ -325,8 +328,8 @@ Return ONLY the JSON object, nothing else.`,
           method: "vision",
         };
       }
-    } catch {
-      // Vision fallback failed
+    } catch (error) {
+      logger.warn("Vision-based healing failed", { err: error instanceof Error ? error.message : String(error) });
     }
 
     return null;

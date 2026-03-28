@@ -1,8 +1,10 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import type { PRInfo } from "./pr.js";
+import { createLogger } from "@inspect/observability";
 
 const execFile = promisify(execFileCb);
+const logger = createLogger("core/github-comments");
 
 /**
  * Safely execute a gh CLI command with arguments as an array.
@@ -179,7 +181,8 @@ export class PRComments {
       ]);
       const id = parseInt(stdout.trim(), 10);
       return isNaN(id) ? null : id;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to find existing comment", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }

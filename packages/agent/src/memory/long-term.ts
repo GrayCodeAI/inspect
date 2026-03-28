@@ -4,6 +4,9 @@
 
 import { mkdir, readFile, writeFile, readdir, access, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/long-term-memory");
 
 /** A learned pattern from past agent actions */
 export interface LearnedPattern {
@@ -91,7 +94,8 @@ export class LongTermMemory {
     const filePath = this.entryPath(key);
     try {
       await access(filePath);
-    } catch {
+    } catch (error) {
+      logger.debug("Memory entry not found on disk", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
 
@@ -102,7 +106,8 @@ export class LongTermMemory {
       data.updatedAt = Date.now();
       this.cache.set(key, data);
       return data.value;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to read memory entry", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -187,7 +192,8 @@ export class LongTermMemory {
       return files
         .filter((f) => f.endsWith(".json") && f !== "patterns.json")
         .map((f) => f.replace(".json", ""));
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to list memory keys", { err: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -201,7 +207,8 @@ export class LongTermMemory {
     try {
       await unlink(filePath);
       return true;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to delete memory entry", { err: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -211,7 +218,8 @@ export class LongTermMemory {
   private async ensureDir(): Promise<void> {
     try {
       await access(this.memoryDir);
-    } catch {
+    } catch (error) {
+      logger.debug("Memory directory not found, creating it", { err: error instanceof Error ? error.message : String(error) });
       await mkdir(this.memoryDir, { recursive: true });
     }
   }
@@ -225,15 +233,16 @@ export class LongTermMemory {
   private async persistEntry(key: string, entry: MemoryEntry): Promise<void> {
     try {
       await writeFile(this.entryPath(key), JSON.stringify(entry, null, 2));
-    } catch {
-      // Non-critical - memory is still in cache
+    } catch (error) {
+      logger.warn("Failed to persist memory entry", { err: error instanceof Error ? error.message : String(error) });
     }
   }
 
   private async loadPatterns(): Promise<void> {
     try {
       await access(this.patternsFile);
-    } catch {
+    } catch (error) {
+      logger.debug("Patterns file not found, starting fresh", { err: error instanceof Error ? error.message : String(error) });
       return;
     }
 
@@ -244,8 +253,8 @@ export class LongTermMemory {
         const key = this.hashPattern(pattern.action, pattern.context);
         this.patterns.set(key, pattern);
       }
-    } catch {
-      // Start fresh if file is corrupted
+    } catch (error) {
+      logger.warn("Failed to load patterns, starting fresh", { err: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -253,8 +262,8 @@ export class LongTermMemory {
     try {
       const data = Array.from(this.patterns.values());
       await writeFile(this.patternsFile, JSON.stringify(data, null, 2));
-    } catch {
-      // Non-critical
+    } catch (error) {
+      logger.warn("Failed to save patterns", { err: error instanceof Error ? error.message : String(error) });
     }
   }
 

@@ -4,7 +4,10 @@
 
 import { createInterface } from "node:readline";
 import type { MCPToolResult, CookieParam, BrowserConfig } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
 import { BrowserManager } from "../playwright/browser.js";
+
+const logger = createLogger("browser/mcp");
 import { PageManager } from "../playwright/page.js";
 import { AriaSnapshotBuilder } from "../aria/snapshot.js";
 import { ScreenshotCapture } from "../vision/screenshot.js";
@@ -554,7 +557,7 @@ export class MCPServer {
   private async toolClose(): Promise<MCPToolResult> {
     if (this.pageManager) {
       await this.pageManager.close().catch((err) => {
-        console.warn("[mcp] Failed to close page:", err?.message);
+        logger.warn("Failed to close page", { err: err?.message });
       });
       this.pageManager = null;
     }
@@ -585,12 +588,12 @@ export class MCPServer {
   private async cleanup(): Promise<void> {
     if (this.pageManager) {
       await this.pageManager.close().catch((err) => {
-        console.warn("[mcp] Failed to close page during cleanup:", err?.message);
+        logger.warn("Failed to close page during cleanup", { err: err?.message });
       });
       this.pageManager = null;
     }
     await this.browserManager.closeBrowser().catch((err) => {
-      console.warn("[mcp] Failed to close browser during cleanup:", err?.message);
+      logger.warn("Failed to close browser during cleanup", { err: err?.message });
     });
   }
 }

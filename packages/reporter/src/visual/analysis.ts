@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { VisualDiffResult, MaskRegion } from "./diff.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("reporter/visual-analysis");
 
 /** LLM provider interface (minimal subset needed for analysis) */
 export interface AnalysisLLM {
@@ -227,7 +230,8 @@ export class AIAnalysis {
         suggestedAction: parsed.suggestedAction ?? "review",
         rawResponse: raw,
       };
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse LLM analysis response", { error });
       return this.fallbackAnalysis(diff, raw);
     }
   }

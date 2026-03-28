@@ -8,6 +8,9 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("api/webhooks");
 import type { WebhookConfig } from "@inspect/shared";
 import { RetryPolicy, type RetryResult } from "./retry.js";
 
@@ -47,11 +50,7 @@ export class WebhookManager {
   private persistDir: string;
   private maxDeliveryHistory: number;
 
-  constructor(options?: {
-    basePath?: string;
-    maxRetries?: number;
-    maxDeliveryHistory?: number;
-  }) {
+  constructor(options?: { basePath?: string; maxRetries?: number; maxDeliveryHistory?: number }) {
     const basePath = options?.basePath ?? process.cwd();
     this.persistDir = path.join(basePath, ".inspect", "webhooks");
     this.maxDeliveryHistory = options?.maxDeliveryHistory ?? 100;
@@ -111,10 +110,7 @@ export class WebhookManager {
    * Trigger a webhook event. Sends to all registered webhooks
    * that are subscribed to the event.
    */
-  async trigger(
-    event: string,
-    data: unknown,
-  ): Promise<WebhookDelivery[]> {
+  async trigger(event: string, data: unknown): Promise<WebhookDelivery[]> {
     const deliveries: WebhookDelivery[] = [];
 
     for (const webhook of this.webhooks.values()) {
@@ -206,19 +202,13 @@ export class WebhookManager {
     // Build signature if secret is configured
     let signature: string | undefined;
     if (webhook.secret) {
-      signature = crypto
-        .createHmac("sha256", webhook.secret)
-        .update(payload)
-        .digest("hex");
+      signature = crypto.createHmac("sha256", webhook.secret).update(payload).digest("hex");
     }
 
-    const result: RetryResult = await this.retryPolicy.execute(
-      async () => {
-        delivery.attempts++;
-        return this.sendWebhook(webhook.url, payload, signature);
-      },
-      webhook.maxRetries,
-    );
+    const result: RetryResult = await this.retryPolicy.execute(async () => {
+      delivery.attempts++;
+      return this.sendWebhook(webhook.url, payload, signature);
+    }, webhook.maxRetries);
 
     if (result.success) {
       delivery.status = "success";
@@ -238,7 +228,7 @@ export class WebhookManager {
         webhookId: webhook.id,
         event,
         data,
-        error: result.error ?? 'Unknown error',
+        error: result.error ?? "Unknown error",
         attempts: delivery.attempts,
         timestamp: Date.now(),
       });
@@ -291,19 +281,13 @@ export class WebhookManager {
             if (statusCode >= 200 && statusCode < 300) {
               resolve({ statusCode, response });
             } else {
-              reject(
-                new Error(
-                  `Webhook responded with ${statusCode}: ${response.slice(0, 200)}`,
-                ),
-              );
+              reject(new Error(`Webhook responded with ${statusCode}: ${response.slice(0, 200)}`));
             }
           });
         },
       );
 
-      req.on("error", (err) =>
-        reject(new Error(`Webhook delivery failed: ${err.message}`)),
-      );
+      req.on("error", (err) => reject(new Error(`Webhook delivery failed: ${err.message}`)));
       req.on("timeout", () => {
         req.destroy();
         reject(new Error("Webhook delivery timed out"));
@@ -317,16 +301,12 @@ export class WebhookManager {
   private persistWebhook(webhook: WebhookRegistration): void {
     try {
       const filePath = path.join(this.persistDir, `${webhook.id}.json`);
-      fs.writeFileSync(
-        filePath,
-        JSON.stringify(webhook, null, 2),
-        "utf-8",
-      );
+      fs.writeFileSync(filePath, JSON.stringify(webhook, null, 2), "utf-8");
     } catch (error) {
-      console.error(
-        `[WebhookManager] Failed to persist webhook ${webhook.id}:`,
-        error instanceof Error ? error.message : error,
-      );
+      logger.error("Failed to persist webhook", {
+        webhookId: webhook.id,
+        error: error instanceof Error ? error.message : error,
+      });
     }
   }
 
@@ -336,8 +316,8 @@ export class WebhookManager {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-    } catch {
-      // Ignore
+    } catch (error) {
+      logger.debug("Failed to remove webhook file", { id, error });
     }
   }
 
@@ -348,18 +328,15 @@ export class WebhookManager {
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
         try {
-          const data = fs.readFileSync(
-            path.join(this.persistDir, file),
-            "utf-8",
-          );
+          const data = fs.readFileSync(path.join(this.persistDir, file), "utf-8");
           const webhook = JSON.parse(data) as WebhookRegistration;
           this.webhooks.set(webhook.id, webhook);
-        } catch {
-          // Skip corrupt files
+        } catch (error) {
+          logger.debug("Skipping corrupt webhook file", { file, error });
         }
       }
-    } catch {
-      // Directory may not exist
+    } catch (error) {
+      logger.debug("Failed to load webhooks directory", { error });
     }
   }
 
@@ -368,10 +345,7 @@ export class WebhookManager {
       const sorted = Array.from(this.deliveries.entries()).sort(
         (a, b) => a[1].createdAt - b[1].createdAt,
       );
-      const toRemove = sorted.slice(
-        0,
-        this.deliveries.size - this.maxDeliveryHistory,
-      );
+      const toRemove = sorted.slice(0, this.deliveries.size - this.maxDeliveryHistory);
       for (const [key] of toRemove) {
         this.deliveries.delete(key);
       }

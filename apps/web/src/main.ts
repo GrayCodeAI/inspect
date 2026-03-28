@@ -4,6 +4,7 @@
 
 import { registerPage, startRouter } from "./lib/router.js";
 import { getHealth } from "./lib/api.js";
+import { renderLanding } from "./pages/landing.js";
 import { renderDashboard } from "./pages/dashboard.js";
 import { renderTasks } from "./pages/tasks.js";
 import { renderWorkflows } from "./pages/workflows.js";
@@ -19,6 +20,7 @@ import { renderPerformance } from "./pages/performance.js";
 import { renderLiveDashboard } from "./pages/live-dashboard.js";
 
 // Register all pages
+registerPage("landing", renderLanding);
 registerPage("dashboard", renderDashboard);
 registerPage("tasks", renderTasks);
 registerPage("workflows", renderWorkflows);

@@ -3,9 +3,13 @@
 // generates reports, and posts results to GitHub PRs
 // ============================================================================
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import type { PRInfo } from "../github/pr.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/visual-regression");
 
 /** Configuration for visual regression testing */
 export interface VisualRegressionConfig {
@@ -54,11 +58,17 @@ export interface VisualRegressionReport {
 export class VisualRegression {
   private config: VisualRegressionConfig;
   private results: VisualComparisonResult[] = [];
+  private dirsReady = false;
 
   constructor(config: VisualRegressionConfig) {
     this.config = config;
-    mkdirSync(config.baselineDir, { recursive: true });
-    mkdirSync(config.outputDir, { recursive: true });
+  }
+
+  private async ensureDirectories(): Promise<void> {
+    if (this.dirsReady) return;
+    await mkdir(this.config.baselineDir, { recursive: true });
+    await mkdir(this.config.outputDir, { recursive: true });
+    this.dirsReady = true;
   }
 
   /**
@@ -70,18 +80,19 @@ export class VisualRegression {
     screenshotBuffer: Buffer,
     options?: { url?: string; viewport?: { width: number; height: number } },
   ): Promise<VisualComparisonResult> {
+    await this.ensureDirectories();
     const { VisualDiff } = await import("@inspect/visual");
 
     const baselinePath = join(this.config.baselineDir, `${name}.png`);
     const currentPath = join(this.config.outputDir, `${name}.current.png`);
 
     // Save current screenshot
-    writeFileSync(currentPath, screenshotBuffer);
+    await writeFile(currentPath, screenshotBuffer);
 
     // Check for baseline
     if (!existsSync(baselinePath)) {
       if (this.config.updateBaselines) {
-        writeFileSync(baselinePath, screenshotBuffer);
+        await writeFile(baselinePath, screenshotBuffer);
         const result: VisualComparisonResult = {
           name,
           matched: true,
@@ -110,7 +121,7 @@ export class VisualRegression {
     }
 
     // Load baseline and compare
-    const baselineBuffer = readFileSync(baselinePath);
+    const baselineBuffer = await readFile(baselinePath);
     const diff = new VisualDiff();
 
     // Decode PNG dimensions from header (basic approach — width/height at offset 16)
@@ -142,7 +153,7 @@ export class VisualRegression {
 
     // Auto-update baseline if matching
     if (this.config.updateBaselines && diffResult.matched) {
-      writeFileSync(baselinePath, screenshotBuffer);
+      await writeFile(baselinePath, screenshotBuffer);
     }
 
     return result;
@@ -152,6 +163,7 @@ export class VisualRegression {
    * Generate the full report, including HTML slider report.
    */
   async generateReport(): Promise<VisualRegressionReport> {
+    await this.ensureDirectories();
     const passed = this.results.filter((r) => r.matched).length;
     const failed = this.results.filter((r) => !r.matched).length;
     const newBaselines = this.results.filter(
@@ -166,26 +178,31 @@ export class VisualRegression {
         const { SliderReport } = await import("@inspect/visual");
         const report = new SliderReport();
 
-        const entries = this.results
-          .filter((r) => r.baselinePath !== "(no baseline)")
-          .map((r) => ({
+        const filtered = this.results.filter(
+          (r) => r.baselinePath !== "(no baseline)",
+        );
+        const entries = await Promise.all(
+          filtered.map(async (r) => ({
             label: r.name,
             viewport: r.viewport ?? { width: 1280, height: 720 },
             matched: r.matched,
             mismatchPercentage: r.mismatchPercentage,
-            referenceImage: safeReadBase64(r.baselinePath),
-            testImage: safeReadBase64(r.currentPath),
+            referenceImage: await safeReadBase64(r.baselinePath),
+            testImage: await safeReadBase64(r.currentPath),
             diffImage: r.diffImage,
             url: r.url,
             timestamp: Date.now(),
-          }));
+          })),
+        );
 
         if (entries.length > 0) {
           const html = report.generate(entries);
           reportPath = join(this.config.outputDir, "visual-report.html");
-          writeFileSync(reportPath, html, "utf-8");
+          await writeFile(reportPath, html, "utf-8");
         }
-      } catch { /* slider report generation is optional */ }
+      } catch (error) {
+        logger.debug("Slider report generation failed (optional)", { err: error instanceof Error ? error.message : String(error) });
+      }
     }
 
     return {
@@ -256,19 +273,22 @@ export class VisualRegression {
           : `${report.failed} screenshot(s) differ`,
         context: "inspect/visual-regression",
       });
-    } catch { /* status check is optional */ }
+    } catch (error) {
+      logger.debug("GitHub status check failed (optional)", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 /** Read a PNG file as base64 data URI, or return empty string on error */
-function safeReadBase64(filePath: string): string {
+async function safeReadBase64(filePath: string): Promise<string> {
   try {
     if (!existsSync(filePath) || filePath === "(no baseline)") return "";
-    const buf = readFileSync(filePath);
+    const buf = await readFile(filePath);
     return `data:image/png;base64,${buf.toString("base64")}`;
-  } catch {
+  } catch (error) {
+    logger.debug("Failed to read image for data URL", { filePath, err: error instanceof Error ? error.message : String(error) });
     return "";
   }
 }

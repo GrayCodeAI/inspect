@@ -23,7 +23,8 @@
     "@inspect/agent": "workspace:*",
     "@inspect/core": "workspace:*",
     "@inspect/data": "workspace:*",
-    "@inspect/quality": "workspace:*"
+    "@inspect/quality": "workspace:*",
+    "@inspect/observability": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

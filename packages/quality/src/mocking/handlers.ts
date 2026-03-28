@@ -2,6 +2,10 @@
 // @inspect/quality - Mock Handlers (MSW-inspired)
 // ============================================================================
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/mock-handlers");
+
 /** Mock request representation */
 export interface MockRequest {
   url: string;
@@ -234,7 +238,8 @@ export function matchUrl(pattern: string, url: string): { matched: boolean; para
   try {
     const parsed = new URL(url);
     urlPath = parsed.pathname;
-  } catch {
+  } catch (error) {
+    logger.debug("Failed to parse URL for matching, using raw value", { url, error });
     urlPath = url;
   }
 
@@ -272,7 +277,8 @@ export function parseQuery(url: string): Record<string, string> {
       query[key] = value;
     }
     return query;
-  } catch {
+  } catch (error) {
+    logger.debug("Failed to parse query parameters from URL", { url, error });
     return {};
   }
 }

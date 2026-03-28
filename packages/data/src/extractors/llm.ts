@@ -2,6 +2,10 @@
 // @inspect/data - LLM Extractor (Free-form Extraction)
 // ============================================================================
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/llm-extractor");
+
 /** LLM interface */
 export interface LLMProvider {
   complete(prompt: string, systemPrompt?: string): Promise<string>;
@@ -248,7 +252,8 @@ export class LLMExtractor {
         // Try to parse JSON
         try {
           return JSON.parse(response);
-        } catch {
+        } catch (error) {
+          logger.debug("Direct JSON parse of LLM response failed, trying fallback extraction", { error });
           // Try extracting from code fences
           const fenceMatch = response.match(
             /```(?:json)?\s*\n?([\s\S]*?)\n?```/,
@@ -256,8 +261,8 @@ export class LLMExtractor {
           if (fenceMatch) {
             try {
               return JSON.parse(fenceMatch[1]);
-            } catch {
-              // Fall through
+            } catch (error) {
+              logger.debug("Failed to parse JSON from code fence", { error });
             }
           }
           // Try finding JSON in the response
@@ -265,8 +270,8 @@ export class LLMExtractor {
           if (jsonMatch) {
             try {
               return JSON.parse(jsonMatch[1]);
-            } catch {
-              // Fall through
+            } catch (error) {
+              logger.debug("Failed to parse extracted JSON object/array", { error });
             }
           }
           return response;

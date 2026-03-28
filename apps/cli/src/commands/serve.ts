@@ -154,19 +154,99 @@ async function startServer(options: ServeOptions): Promise<void> {
   registerMetricsEndpoint(server, metrics);
 
   // OpenAPI docs endpoint
-  server.get("/api/docs", async (_req: APIRequest, res: APIResponse) => {
-    try {
-      const { readFileSync } = await import("node:fs");
-      const { fileURLToPath } = await import("node:url");
-      const { join, dirname } = await import("node:path");
-      const __dirname = dirname(fileURLToPath(import.meta.url));
-      const specPath = join(__dirname, "..", "..", "packages", "api", "src", "openapi.json");
-      const spec = JSON.parse(readFileSync(specPath, "utf-8"));
-      res.json(spec);
-    } catch {
+  let openApiSpec: object | null = null;
+  let webDistDir: string | null = null;
+  try {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { join, dirname } = await import("node:path");
+    // Resolve from CLI dist -> project root -> packages/api/dist/openapi.json
+    const cliDir = dirname(fileURLToPath(import.meta.url));
+    const candidates = [
+      join(cliDir, "..", "..", "..", "packages", "api", "dist", "openapi.json"),
+      join(cliDir, "..", "..", "..", "..", "packages", "api", "dist", "openapi.json"),
+    ];
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        openApiSpec = JSON.parse(readFileSync(candidate, "utf-8"));
+        break;
+      }
+    }
+
+    // Find web dist directory
+    const webCandidates = [
+      join(cliDir, "..", "..", "..", "apps", "web", "dist"),
+      join(cliDir, "..", "..", "..", "..", "apps", "web", "dist"),
+    ];
+    for (const candidate of webCandidates) {
+      if (existsSync(join(candidate, "index.html"))) {
+        webDistDir = candidate;
+        break;
+      }
+    }
+  } catch {
+    // Spec not available
+  }
+  server.get("/api/docs", (_req: APIRequest, res: APIResponse) => {
+    if (openApiSpec) {
+      res.json(openApiSpec);
+    } else {
       res.status(501).json({ error: "OpenAPI spec not available" });
     }
   });
+
+  // Serve web dashboard UI (SPA)
+  if (webDistDir) {
+    const { readFileSync, existsSync, statSync } = await import("node:fs");
+    const { join, extname } = await import("node:path");
+
+    const MIME: Record<string, string> = {
+      ".html": "text/html; charset=utf-8",
+      ".js": "application/javascript; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".json": "application/json",
+      ".svg": "image/svg+xml",
+      ".png": "image/png",
+      ".ico": "image/x-icon",
+      ".woff": "font/woff",
+      ".woff2": "font/woff2",
+    };
+
+    server.get("/", (_req: APIRequest, res: APIResponse) => {
+      res.header("Content-Type", "text/html; charset=utf-8");
+      res.send(readFileSync(join(webDistDir!, "index.html"), "utf-8"));
+    });
+
+    server.get("/assets/*", (req: APIRequest, res: APIResponse) => {
+      const filePath = join(webDistDir!, req.path);
+      if (existsSync(filePath) && statSync(filePath).isFile()) {
+        const ext = extname(filePath);
+        res.header("Content-Type", MIME[ext] ?? "application/octet-stream");
+        res.header("Cache-Control", "public, max-age=31536000, immutable");
+        res.send(readFileSync(filePath, "utf-8"));
+      } else {
+        res.status(404).send("Not found");
+      }
+    });
+
+    // Serve index.html for SPA root
+    server.get("/", (_req: APIRequest, res: APIResponse) => {
+      res.header("Content-Type", "text/html; charset=utf-8");
+      res.header("Cache-Control", "no-cache");
+      res.send(readFileSync(join(webDistDir!, "index.html"), "utf-8"));
+    });
+
+    // SPA fallback — serve index.html for any non-API route
+    server.setFallback((req: APIRequest, res: APIResponse) => {
+      if (req.method === "GET" && !req.path.startsWith("/api/")) {
+        res.header("Content-Type", "text/html; charset=utf-8");
+        res.header("Cache-Control", "no-cache");
+        res.send(readFileSync(join(webDistDir!, "index.html"), "utf-8"));
+      } else {
+        res.status(404).json({ error: "Not found", path: req.path });
+      }
+    });
+  }
 
   // Start the server
   await server.start(port, host);

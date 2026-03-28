@@ -9,6 +9,9 @@ import type {
   CrawlProgressEvent,
   CrawlCheckpoint,
 } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/crawler");
 
 /** Progress callback type */
 export type CrawlProgressCallback = (event: CrawlProgressEvent) => void;
@@ -185,7 +188,8 @@ export class WebCrawler {
         const startDomain = new URL(this.config.startUrl).hostname;
         const pageDomain = new URL(url).hostname;
         if (startDomain !== pageDomain) return;
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse domain for URL comparison", { url, error });
         return;
       }
     }
@@ -275,7 +279,8 @@ export class WebCrawler {
 
       const content = await response.text();
       return this.parseSitemap(content);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to fetch sitemap", { baseUrl, error });
       return [];
     }
   }
@@ -309,7 +314,8 @@ export class WebCrawler {
 
       const content = await response.text();
       return this.parseRobotsTxt(content);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to fetch robots.txt, allowing all", { baseUrl, error });
       return { isAllowed: () => true };
     }
   }
@@ -335,7 +341,8 @@ export class WebCrawler {
         try {
           const path = new URL(url).pathname;
           return !disallowed.some((d) => path.startsWith(d));
-        } catch {
+        } catch (error) {
+          logger.debug("Failed to parse URL for robots.txt check", { url, error });
           return true;
         }
       },
@@ -358,8 +365,8 @@ export class WebCrawler {
         if (clean && !links.includes(clean)) {
           links.push(clean);
         }
-      } catch {
-        // Skip invalid URLs
+      } catch (error) {
+        logger.debug("Failed to resolve link URL, skipping", { error });
       }
     }
 

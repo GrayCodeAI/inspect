@@ -6,8 +6,12 @@
 // Inspired by Browser Use's injected_agent_state and session resume.
 // ============================================================================
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/checkpoint");
 
 export interface CheckpointData {
   /** Unique run ID */
@@ -58,37 +62,42 @@ export class CheckpointManager {
   /**
    * Save a checkpoint after a step completes.
    */
-  save(data: CheckpointData): void {
+  async save(data: CheckpointData): Promise<void> {
     try {
-      if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
-      writeFileSync(
+      if (!existsSync(this.dir)) await mkdir(this.dir, { recursive: true });
+      await writeFile(
         join(this.dir, `${data.runId}.json`),
         JSON.stringify(data, null, 2),
       );
-    } catch {}
+    } catch (error) {
+      logger.warn("Failed to save checkpoint", { runId: data.runId, err: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   /**
    * Load the most recent incomplete checkpoint.
    */
-  getIncomplete(): CheckpointData | null {
+  async getIncomplete(): Promise<CheckpointData | null> {
     try {
       if (!existsSync(this.dir)) return null;
-      const files = readdirSync(this.dir).filter((f) => f.endsWith(".json"));
+      const files = (await readdir(this.dir)).filter((f) => f.endsWith(".json"));
 
       let latest: CheckpointData | null = null;
       for (const file of files) {
         try {
-          const data = JSON.parse(readFileSync(join(this.dir, file), "utf-8")) as CheckpointData;
+          const data = JSON.parse(await readFile(join(this.dir, file), "utf-8")) as CheckpointData;
           if (data.status === "in-progress") {
             if (!latest || data.savedAt > latest.savedAt) {
               latest = data;
             }
           }
-        } catch {}
+        } catch (error) {
+          logger.debug("Failed to read checkpoint file", { file, err: error instanceof Error ? error.message : String(error) });
+        }
       }
       return latest;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to scan checkpoints directory", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -96,12 +105,13 @@ export class CheckpointManager {
   /**
    * Load a specific checkpoint by run ID.
    */
-  get(runId: string): CheckpointData | null {
+  async get(runId: string): Promise<CheckpointData | null> {
     const path = join(this.dir, `${runId}.json`);
     try {
       if (!existsSync(path)) return null;
-      return JSON.parse(readFileSync(path, "utf-8")) as CheckpointData;
-    } catch {
+      return JSON.parse(await readFile(path, "utf-8")) as CheckpointData;
+    } catch (error) {
+      logger.debug("Failed to read checkpoint", { runId, err: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -109,77 +119,97 @@ export class CheckpointManager {
   /**
    * Mark a checkpoint as completed.
    */
-  markCompleted(runId: string): void {
-    const data = this.get(runId);
+  async markCompleted(runId: string): Promise<void> {
+    const data = await this.get(runId);
     if (data) {
       data.status = "completed";
-      this.save(data);
+      await this.save(data);
     }
   }
 
   /**
    * Mark a checkpoint as failed.
    */
-  markFailed(runId: string): void {
-    const data = this.get(runId);
+  async markFailed(runId: string): Promise<void> {
+    const data = await this.get(runId);
     if (data) {
       data.status = "failed";
-      this.save(data);
+      await this.save(data);
     }
   }
 
   /**
    * Mark as abandoned (user cancelled or timeout).
    */
-  markAbandoned(runId: string): void {
-    const data = this.get(runId);
+  async markAbandoned(runId: string): Promise<void> {
+    const data = await this.get(runId);
     if (data) {
       data.status = "abandoned";
-      this.save(data);
+      await this.save(data);
     }
   }
 
   /**
    * Clean up old checkpoints (keep last N).
    */
-  cleanup(keep = 10): void {
+  async cleanup(keep = 10): Promise<void> {
     try {
       if (!existsSync(this.dir)) return;
-      const files = readdirSync(this.dir)
-        .filter((f) => f.endsWith(".json"))
-        .map((f) => {
+      const fileNames = (await readdir(this.dir)).filter((f) => f.endsWith(".json"));
+
+      const parsed = await Promise.all(
+        fileNames.map(async (f) => {
           try {
-            const data = JSON.parse(readFileSync(join(this.dir, f), "utf-8")) as CheckpointData;
+            const data = JSON.parse(await readFile(join(this.dir, f), "utf-8")) as CheckpointData;
             return { file: f, savedAt: data.savedAt, status: data.status };
-          } catch { return null; }
-        })
+          } catch (error) {
+            logger.debug("Failed to parse checkpoint for cleanup", { file: f, err: error instanceof Error ? error.message : String(error) });
+            return null;
+          }
+        }),
+      );
+
+      const files = parsed
         .filter(Boolean)
         .sort((a, b) => b!.savedAt - a!.savedAt) as Array<{ file: string; savedAt: number; status: string }>;
 
       // Keep `keep` most recent, delete the rest (but only completed/failed/abandoned)
       for (const item of files.slice(keep)) {
         if (item.status !== "in-progress") {
-          try { unlinkSync(join(this.dir, item.file)); } catch {}
+          try { await unlink(join(this.dir, item.file)); } catch (error) {
+            logger.debug("Failed to delete old checkpoint", { file: item.file, err: error instanceof Error ? error.message : String(error) });
+          }
         }
       }
-    } catch {}
+    } catch (error) {
+      logger.warn("Checkpoint cleanup failed", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   /**
    * List all checkpoints.
    */
-  list(): Array<{ runId: string; url: string; status: string; stepIndex: number; savedAt: number }> {
+  async list(): Promise<Array<{ runId: string; url: string; status: string; stepIndex: number; savedAt: number }>> {
     try {
       if (!existsSync(this.dir)) return [];
-      return readdirSync(this.dir)
-        .filter((f) => f.endsWith(".json"))
-        .map((f) => {
+      const fileNames = (await readdir(this.dir)).filter((f) => f.endsWith(".json"));
+
+      const parsed = await Promise.all(
+        fileNames.map(async (f) => {
           try {
-            const data = JSON.parse(readFileSync(join(this.dir, f), "utf-8")) as CheckpointData;
+            const data = JSON.parse(await readFile(join(this.dir, f), "utf-8")) as CheckpointData;
             return { runId: data.runId, url: data.url, status: data.status, stepIndex: data.stepIndex, savedAt: data.savedAt };
-          } catch { return null; }
-        })
-        .filter(Boolean) as any[];
-    } catch { return []; }
+          } catch (error) {
+            logger.debug("Failed to parse checkpoint for listing", { file: f, err: error instanceof Error ? error.message : String(error) });
+            return null;
+          }
+        }),
+      );
+
+      return parsed.filter(Boolean) as Array<{ runId: string; url: string; status: string; stepIndex: number; savedAt: number }>;
+    } catch (error) {
+      logger.debug("Failed to list checkpoints", { err: error instanceof Error ? error.message : String(error) });
+      return [];
+    }
   }
 }

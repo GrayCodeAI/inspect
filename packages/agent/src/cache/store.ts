@@ -5,6 +5,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, readdir, unlink, access } from "node:fs/promises";
 import { join } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/cache-store");
 
 /** A cached action result */
 export interface CachedAction {
@@ -124,7 +127,8 @@ export class ActionCache {
     const filePath = this.entryPath(key);
     try {
       await access(filePath);
-    } catch {
+    } catch (error) {
+      logger.debug("Cache entry not found on disk", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
 
@@ -141,7 +145,8 @@ export class ActionCache {
       this.inMemory.set(key, data);
       await this.persistEntry(key, data);
       return data;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to read cache entry from disk", { err: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -211,8 +216,8 @@ export class ActionCache {
     try {
       const files = await readdir(this.cacheDir);
       diskEntries = files.filter((f) => f.endsWith(".json")).length;
-    } catch {
-      // Directory might not exist
+    } catch (error) {
+      logger.debug("Failed to read cache directory for stats", { err: error instanceof Error ? error.message : String(error) });
     }
 
     return {
@@ -235,8 +240,8 @@ export class ActionCache {
           .filter((f) => f.endsWith(".json"))
           .map((f) => unlink(join(this.cacheDir, f)).catch(() => {})),
       );
-    } catch {
-      // Ignore cleanup errors
+    } catch (error) {
+      logger.debug("Failed to clear cache directory", { err: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -245,7 +250,8 @@ export class ActionCache {
   private async ensureDir(): Promise<void> {
     try {
       await access(this.cacheDir);
-    } catch {
+    } catch (error) {
+      logger.debug("Cache directory not found, creating it", { err: error instanceof Error ? error.message : String(error) });
       await mkdir(this.cacheDir, { recursive: true });
     }
   }
@@ -257,8 +263,8 @@ export class ActionCache {
   private async persistEntry(key: string, entry: CachedAction): Promise<void> {
     try {
       await writeFile(this.entryPath(key), JSON.stringify(entry, null, 2));
-    } catch {
-      // Non-critical
+    } catch (error) {
+      logger.warn("Failed to persist cache entry", { err: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -276,7 +282,8 @@ export class ActionCache {
       parsed.searchParams.sort();
       // Normalize to pathname + sorted query
       return `${parsed.origin}${parsed.pathname}${parsed.search}`;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to normalize URL, using raw value", { err: error instanceof Error ? error.message : String(error) });
       return url;
     }
   }

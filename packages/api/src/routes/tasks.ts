@@ -5,6 +5,9 @@
 import { generateId, CreateTaskSchema, validateBody } from "@inspect/shared";
 import type { Task, TaskStatus, TaskDefinition } from "@inspect/shared";
 import type { APIServer, APIRequest, APIResponse } from "../server.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("api/tasks");
 
 /**
  * Register task routes on the API server.
@@ -48,10 +51,12 @@ export function registerTaskRoutes(server: APIServer, taskStore: TaskStore): voi
 
     // Start task execution asynchronously
     taskStore.execute(task.id).catch((err) => {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error("Task execution failed", { taskId: task.id, error: errMsg });
       const stored = taskStore.get(task.id);
       if (stored) {
         stored.status = "failed";
-        stored.error = err instanceof Error ? err.message : String(err);
+        stored.error = errMsg;
         stored.completedAt = Date.now();
       }
     });

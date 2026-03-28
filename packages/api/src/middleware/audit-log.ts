@@ -5,6 +5,9 @@
 import { appendFileSync, mkdirSync, existsSync } from "node:fs";
 import * as path from "node:path";
 import type { Middleware, APIRequest, APIResponse } from "../server.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("api/audit-log");
 
 /** Audit log entry */
 export interface AuditLogEntry {
@@ -165,8 +168,8 @@ export class AuditLogger {
     if (this.config.onEntry) {
       try {
         this.config.onEntry(entry);
-      } catch {
-        // Don't let audit callback failures affect request handling
+      } catch (error) {
+        logger.warn("Audit log callback failed", { error });
       }
     }
   }

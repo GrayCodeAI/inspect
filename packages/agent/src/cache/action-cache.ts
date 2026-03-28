@@ -7,8 +7,12 @@
 // ============================================================================
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { join, dirname } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/action-cache");
 
 export interface CachedAction {
   /** Hash key for this cache entry */
@@ -61,7 +65,8 @@ const DEFAULT_MAX = 1000;
  * Usage:
  * ```ts
  * const cache = new ActionCache();
- * const cached = cache.get("Click the login button", "https://example.com/login");
+ * await cache.ready;
+ * const cached = await cache.get("Click the login button", "https://example.com/login");
  * if (cached) {
  *   // Replay without LLM
  *   await executeAction(cached.action);
@@ -69,13 +74,14 @@ const DEFAULT_MAX = 1000;
  *   // LLM decides action
  *   const action = await llm.decide(...);
  *   await executeAction(action);
- *   cache.set("Click the login button", "https://example.com/login", action);
+ *   await cache.set("Click the login button", "https://example.com/login", action);
  * }
  * ```
  */
 export class ActionCache {
   private config: Required<ActionCacheConfig>;
   private memoryCache = new Map<string, CachedAction>();
+  readonly ready: Promise<void>;
 
   constructor(config: ActionCacheConfig = {}) {
     this.config = {
@@ -86,7 +92,9 @@ export class ActionCache {
     };
 
     if (this.config.enabled) {
-      this.loadFromDisk();
+      this.ready = this.loadFromDisk();
+    } else {
+      this.ready = Promise.resolve();
     }
   }
 
@@ -102,8 +110,10 @@ export class ActionCache {
    * Look up a cached action.
    * Returns null if not found or expired.
    */
-  get(instruction: string, url: string, context?: string): CachedAction | null {
+  async get(instruction: string, url: string, context?: string): Promise<CachedAction | null> {
     if (!this.config.enabled) return null;
+
+    await this.ready;
 
     const key = ActionCache.key(instruction, url, context);
     const entry = this.memoryCache.get(key);
@@ -113,7 +123,7 @@ export class ActionCache {
     // Check TTL
     if (Date.now() - entry.cachedAt > entry.ttlMs) {
       this.memoryCache.delete(key);
-      this.deleteFromDisk(key);
+      await this.deleteFromDisk(key);
       return null;
     }
 
@@ -123,14 +133,16 @@ export class ActionCache {
   /**
    * Store a successful action in cache.
    */
-  set(
+  async set(
     instruction: string,
     url: string,
     action: CachedAction["action"],
     snapshotFingerprint?: string,
     context?: string,
-  ): void {
+  ): Promise<void> {
     if (!this.config.enabled) return;
+
+    await this.ready;
 
     const key = ActionCache.key(instruction, url, context);
 
@@ -146,61 +158,63 @@ export class ActionCache {
     };
 
     this.memoryCache.set(key, entry);
-    this.saveToDisk(entry);
+    await this.saveToDisk(entry);
 
     // Enforce max entries
     if (this.memoryCache.size > this.config.maxEntries) {
-      this.evictOldest();
+      await this.evictOldest();
     }
   }
 
   /**
    * Record a successful replay (increments counter).
    */
-  recordReplay(key: string): void {
+  async recordReplay(key: string): Promise<void> {
     const entry = this.memoryCache.get(key);
     if (entry) {
       entry.replayCount++;
       entry.lastReplayedAt = Date.now();
-      this.saveToDisk(entry);
+      await this.saveToDisk(entry);
     }
   }
 
   /**
    * Invalidate a cache entry.
    */
-  invalidate(instruction: string, url: string, context?: string): void {
+  async invalidate(instruction: string, url: string, context?: string): Promise<void> {
     const key = ActionCache.key(instruction, url, context);
     this.memoryCache.delete(key);
-    this.deleteFromDisk(key);
+    await this.deleteFromDisk(key);
   }
 
   /**
    * Invalidate all entries for a URL.
    */
-  invalidateUrl(url: string): void {
+  async invalidateUrl(url: string): Promise<void> {
     const pathname = new URL(url).pathname;
+    const deletes: Promise<void>[] = [];
     for (const [key, entry] of this.memoryCache) {
       if (new URL(entry.url).pathname === pathname) {
         this.memoryCache.delete(key);
-        this.deleteFromDisk(key);
+        deletes.push(this.deleteFromDisk(key));
       }
     }
+    await Promise.all(deletes);
   }
 
   /**
    * Clear entire cache.
    */
-  clear(): void {
+  async clear(): Promise<void> {
     this.memoryCache.clear();
     try {
       if (existsSync(this.config.cacheDir)) {
-        const files = readdirSync(this.config.cacheDir);
-        for (const f of files) {
-          unlinkSync(join(this.config.cacheDir, f));
-        }
+        const files = await readdir(this.config.cacheDir);
+        await Promise.all(files.map((f) => unlink(join(this.config.cacheDir, f))));
       }
-    } catch {}
+    } catch (error) {
+      logger.warn("Failed to clear action cache", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   /**
@@ -220,42 +234,50 @@ export class ActionCache {
 
   // ── Persistence ──────────────────────────────────────────────────────────
 
-  private loadFromDisk(): void {
+  private async loadFromDisk(): Promise<void> {
     try {
       if (!existsSync(this.config.cacheDir)) return;
-      const files = readdirSync(this.config.cacheDir).filter((f) => f.endsWith(".json"));
+      const files = (await readdir(this.config.cacheDir)).filter((f) => f.endsWith(".json"));
 
       for (const file of files) {
         try {
-          const data = JSON.parse(readFileSync(join(this.config.cacheDir, file), "utf-8")) as CachedAction;
+          const data = JSON.parse(await readFile(join(this.config.cacheDir, file), "utf-8")) as CachedAction;
           // Skip expired
           if (Date.now() - data.cachedAt > data.ttlMs) continue;
           this.memoryCache.set(data.key, data);
-        } catch {}
+        } catch (error) {
+          logger.debug("Failed to parse action cache entry", { err: error instanceof Error ? error.message : String(error) });
+        }
       }
-    } catch {}
+    } catch (error) {
+      logger.debug("Failed to load action cache from disk", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 
-  private saveToDisk(entry: CachedAction): void {
+  private async saveToDisk(entry: CachedAction): Promise<void> {
     try {
       if (!existsSync(this.config.cacheDir)) {
-        mkdirSync(this.config.cacheDir, { recursive: true });
+        await mkdir(this.config.cacheDir, { recursive: true });
       }
-      writeFileSync(
+      await writeFile(
         join(this.config.cacheDir, `${entry.key}.json`),
         JSON.stringify(entry, null, 2),
       );
-    } catch {}
+    } catch (error) {
+      logger.warn("Failed to save action cache entry", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 
-  private deleteFromDisk(key: string): void {
+  private async deleteFromDisk(key: string): Promise<void> {
     try {
       const path = join(this.config.cacheDir, `${key}.json`);
-      if (existsSync(path)) unlinkSync(path);
-    } catch {}
+      if (existsSync(path)) await unlink(path);
+    } catch (error) {
+      logger.debug("Failed to delete action cache entry", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 
-  private evictOldest(): void {
+  private async evictOldest(): Promise<void> {
     let oldest: { key: string; cachedAt: number } | null = null;
     for (const [key, entry] of this.memoryCache) {
       if (!oldest || entry.cachedAt < oldest.cachedAt) {
@@ -264,7 +286,7 @@ export class ActionCache {
     }
     if (oldest) {
       this.memoryCache.delete(oldest.key);
-      this.deleteFromDisk(oldest.key);
+      await this.deleteFromDisk(oldest.key);
     }
   }
 }

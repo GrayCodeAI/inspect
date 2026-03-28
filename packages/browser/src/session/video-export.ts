@@ -11,6 +11,9 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync, unlinkSync } from "
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import type { RRWebEvent } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/video-export");
 
 export interface VideoExportOptions {
   /** Output file path. Extension determines format (.webm). */
@@ -135,14 +138,16 @@ export class VideoExporter {
     } finally {
       if (browser) {
         await browser.close().catch((err) => {
-          console.warn("[browser] Failed to close browser during video export:", err?.message);
+          logger.warn("Failed to close browser during video export", { err: err?.message });
         });
       }
 
       // Cleanup temp files
       try {
         unlinkSync(htmlPath);
-      } catch {}
+      } catch (error) {
+        logger.debug("Failed to clean up temp HTML file", { htmlPath, error });
+      }
     }
   }
 

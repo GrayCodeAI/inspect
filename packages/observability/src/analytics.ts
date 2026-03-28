@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { randomUUID } from "node:crypto";
+import { createLogger } from "./logging.js";
+
+const logger = createLogger("observability/analytics");
 import type { AnalyticsEvent, AnalyticsEventCategory } from "@inspect/shared";
 
 /** Predefined event types */
@@ -141,8 +144,8 @@ export class PostHogProvider implements AnalyticsProvider {
         body,
         signal: AbortSignal.timeout(10_000),
       });
-    } catch {
-      // Silently fail
+    } catch (error) {
+      logger.debug("Failed to send analytics event", { error });
     }
   }
 

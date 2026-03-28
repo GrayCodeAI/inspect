@@ -2,6 +2,10 @@
 // @inspect/agent - Watchdog Manager
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/watchdog-manager");
+
 /** Watchdog event types corresponding to the 14 watchdog categories */
 export type WatchdogType =
   | "captcha"
@@ -220,8 +224,8 @@ export class WatchdogManager {
         if (result instanceof Promise) {
           result.catch(() => {}); // Don't let callback errors propagate
         }
-      } catch {
-        // Don't let callback errors break the watchdog
+      } catch (error) {
+        logger.warn("Watchdog callback failed", { err: error instanceof Error ? error.message : String(error) });
       }
     }
   }

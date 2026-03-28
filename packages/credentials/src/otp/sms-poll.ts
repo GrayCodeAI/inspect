@@ -4,6 +4,9 @@
 
 import * as http from "node:http";
 import * as https from "node:https";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("credentials/sms-poll");
 
 /** SMS polling configuration */
 export interface SMSPollerConfig {
@@ -105,10 +108,9 @@ export class SMSPoller {
         const result = await this.checkForOTP();
         if (result) return result;
       } catch (error) {
-        console.error(
-          "SMS poll error:",
-          error instanceof Error ? error.message : error,
-        );
+        logger.error("SMS poll error", {
+          error: error instanceof Error ? error.message : error,
+        });
       }
 
       await new Promise((r) => setTimeout(r, this.config.pollInterval));

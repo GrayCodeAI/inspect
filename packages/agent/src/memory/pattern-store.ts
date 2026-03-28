@@ -8,6 +8,9 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/pattern-store");
 
 export interface LearnedPattern {
   /** Domain this pattern applies to */
@@ -122,7 +125,8 @@ export class PatternStore {
       if (existsSync(this.filePath)) {
         this.patterns = JSON.parse(readFileSync(this.filePath, "utf-8"));
       }
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to load patterns from disk", { err: error instanceof Error ? error.message : String(error) });
       this.patterns = [];
     }
   }
@@ -132,6 +136,8 @@ export class PatternStore {
       const dir = join(this.filePath, "..");
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       writeFileSync(this.filePath, JSON.stringify(this.patterns, null, 2));
-    } catch {}
+    } catch (error) {
+      logger.warn("Failed to save pattern store", { err: error instanceof Error ? error.message : String(error) });
+    }
   }
 }

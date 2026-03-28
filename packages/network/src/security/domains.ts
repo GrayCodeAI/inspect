@@ -2,6 +2,10 @@
 // @inspect/network - Domain Security & URL Validation
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("network/domains");
+
 /**
  * Default blocked hosts that should never be accessed.
  * Includes localhost, loopback, metadata endpoints, and link-local addresses.
@@ -116,7 +120,8 @@ export class DomainSecurity {
     let parsed: URL;
     try {
       parsed = new URL(urlStr);
-    } catch {
+    } catch (error) {
+      logger.debug("Invalid URL format", { urlStr, error });
       return { valid: false, reason: "Invalid URL format" };
     }
 

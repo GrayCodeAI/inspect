@@ -18,6 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@inspect/observability": "workspace:*",
     "@inspect/shared": "workspace:*"
   },
   "devDependencies": {

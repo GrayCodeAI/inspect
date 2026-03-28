@@ -2,9 +2,13 @@
 // @inspect/browser - Browser Profile Manager
 // ──────────────────────────────────────────────────────────────────────────────
 
-import * as fs from "node:fs";
+import { existsSync } from "node:fs";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/profiles");
 
 /** Browser profile definition */
 export interface BrowserProfile {
@@ -58,14 +62,20 @@ export class ProfileManager {
 
   constructor(config: ProfileManagerConfig) {
     this.config = config;
-    this.ensureDirectory();
-    this.loadProfiles();
+  }
+
+  /**
+   * Initialize the profile manager (must be called after construction).
+   */
+  async init(): Promise<void> {
+    await this.ensureDirectory();
+    await this.loadProfiles();
   }
 
   /**
    * Create a new browser profile.
    */
-  create(name: string, options?: { description?: string; tags?: string[] }): BrowserProfile {
+  async create(name: string, options?: { description?: string; tags?: string[] }): Promise<BrowserProfile> {
     const id = crypto.randomUUID();
     const dataDir = path.join(this.config.profilesDir, id);
 
@@ -79,9 +89,9 @@ export class ProfileManager {
       tags: options?.tags,
     };
 
-    fs.mkdirSync(dataDir, { recursive: true });
+    await mkdir(dataDir, { recursive: true });
     this.profiles.set(id, profile);
-    this.saveProfiles();
+    await this.saveProfiles();
 
     return profile;
   }
@@ -113,7 +123,7 @@ export class ProfileManager {
   /**
    * Set a profile as the default.
    */
-  setDefault(id: string): boolean {
+  async setDefault(id: string): Promise<boolean> {
     const profile = this.profiles.get(id);
     if (!profile) return false;
 
@@ -121,44 +131,44 @@ export class ProfileManager {
       p.isDefault = p.id === id;
     }
 
-    this.saveProfiles();
+    await this.saveProfiles();
     return true;
   }
 
   /**
    * Delete a profile.
    */
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     const profile = this.profiles.get(id);
     if (!profile) return false;
 
     // Remove data directory
-    if (fs.existsSync(profile.dataDir)) {
-      fs.rmSync(profile.dataDir, { recursive: true, force: true });
+    if (existsSync(profile.dataDir)) {
+      await rm(profile.dataDir, { recursive: true, force: true });
     }
 
     this.profiles.delete(id);
-    this.saveProfiles();
+    await this.saveProfiles();
     return true;
   }
 
   /**
    * Export a profile to a JSON file.
    */
-  export(id: string, outputPath: string): boolean {
+  async export(id: string, outputPath: string): Promise<boolean> {
     const profile = this.profiles.get(id);
     if (!profile) return false;
 
     const data = JSON.stringify(profile, null, 2);
-    fs.writeFileSync(outputPath, data, "utf-8");
+    await writeFile(outputPath, data, "utf-8");
     return true;
   }
 
   /**
    * Import a profile from a JSON file.
    */
-  import(inputPath: string): BrowserProfile {
-    const data = fs.readFileSync(inputPath, "utf-8");
+  async import(inputPath: string): Promise<BrowserProfile> {
+    const data = await readFile(inputPath, "utf-8");
     const profile = JSON.parse(data) as BrowserProfile;
 
     // Generate new ID to avoid conflicts
@@ -167,9 +177,9 @@ export class ProfileManager {
     profile.createdAt = Date.now();
     profile.isDefault = false;
 
-    fs.mkdirSync(profile.dataDir, { recursive: true });
+    await mkdir(profile.dataDir, { recursive: true });
     this.profiles.set(profile.id, profile);
-    this.saveProfiles();
+    await this.saveProfiles();
 
     return profile;
   }
@@ -177,11 +187,11 @@ export class ProfileManager {
   /**
    * Update last used timestamp.
    */
-  touch(id: string): void {
+  async touch(id: string): Promise<void> {
     const profile = this.profiles.get(id);
     if (profile) {
       profile.lastUsedAt = Date.now();
-      this.saveProfiles();
+      await this.saveProfiles();
     }
   }
 
@@ -242,30 +252,30 @@ export class ProfileManager {
 
   // ── Private methods ──────────────────────────────────────────────────
 
-  private ensureDirectory(): void {
-    if (!fs.existsSync(this.config.profilesDir)) {
-      fs.mkdirSync(this.config.profilesDir, { recursive: true });
+  private async ensureDirectory(): Promise<void> {
+    if (!existsSync(this.config.profilesDir)) {
+      await mkdir(this.config.profilesDir, { recursive: true });
     }
   }
 
-  private loadProfiles(): void {
+  private async loadProfiles(): Promise<void> {
     const manifestPath = path.join(this.config.profilesDir, "profiles.json");
-    if (!fs.existsSync(manifestPath)) return;
+    if (!existsSync(manifestPath)) return;
 
     try {
-      const data = fs.readFileSync(manifestPath, "utf-8");
+      const data = await readFile(manifestPath, "utf-8");
       const profiles = JSON.parse(data) as BrowserProfile[];
       for (const profile of profiles) {
         this.profiles.set(profile.id, profile);
       }
-    } catch {
-      // Ignore corrupted manifest
+    } catch (error) {
+      logger.warn("Failed to load profiles manifest", { error });
     }
   }
 
-  private saveProfiles(): void {
+  private async saveProfiles(): Promise<void> {
     const manifestPath = path.join(this.config.profilesDir, "profiles.json");
     const data = JSON.stringify(Array.from(this.profiles.values()), null, 2);
-    fs.writeFileSync(manifestPath, data, "utf-8");
+    await writeFile(manifestPath, data, "utf-8");
   }
 }

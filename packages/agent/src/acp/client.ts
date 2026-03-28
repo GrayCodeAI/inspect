@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { LLMToolDefinition } from "../providers/base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/acp-client");
 
 /** ACP connection configuration */
 export interface ACPConfig {
@@ -93,7 +96,8 @@ export class ACPClient {
     try {
       const response = await this.request("GET", "/auth/verify");
       return response.ok;
-    } catch {
+    } catch (error) {
+      logger.warn("ACP auth verification failed", { err: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -181,7 +185,8 @@ export class ACPClient {
             let event: ACPEvent;
             try {
               event = JSON.parse(data);
-            } catch {
+            } catch (error) {
+              logger.debug("Failed to parse ACP stream event", { err: error instanceof Error ? error.message : String(error) });
               continue;
             }
 
@@ -265,8 +270,8 @@ export class ACPClient {
     if (this.sessionId) {
       try {
         await this.request("DELETE", `/sessions/${this.sessionId}`);
-      } catch {
-        // Best-effort cleanup
+      } catch (error) {
+        logger.debug("Failed to close ACP session", { err: error instanceof Error ? error.message : String(error) });
       }
       this.sessionId = null;
     }
@@ -282,8 +287,8 @@ export class ACPClient {
     for (const handler of typeHandlers) {
       try {
         handler(event);
-      } catch {
-        // Don't let handler errors break the stream
+      } catch (error) {
+        logger.warn("ACP event handler failed", { err: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -292,8 +297,8 @@ export class ACPClient {
     for (const handler of anyHandlers) {
       try {
         handler(event);
-      } catch {
-        // Don't let handler errors break the stream
+      } catch (error) {
+        logger.warn("ACP wildcard event handler failed", { err: error instanceof Error ? error.message : String(error) });
       }
     }
   }

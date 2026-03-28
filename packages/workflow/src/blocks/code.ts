@@ -5,6 +5,9 @@
 import { createContext, runInNewContext, type Context } from "node:vm";
 import type { WorkflowBlock } from "@inspect/shared";
 import { WorkflowContext } from "../engine/context.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/blocks/code");
 
 /** Result of a code block execution */
 export interface CodeBlockResult {
@@ -228,7 +231,8 @@ export class CodeBlock {
     if (arg === null) return "null";
     try {
       return JSON.stringify(arg, null, 2);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to stringify log argument", { error });
       return String(arg);
     }
   }

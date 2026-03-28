@@ -2,6 +2,10 @@
 // @inspect/data - JSON Parser (with Error Recovery)
 // ============================================================================
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/json");
+
 /** JSON parse options */
 export interface JSONParseOptions {
   /** Strip single-line comments (// ...) */
@@ -63,8 +67,8 @@ export class JSONParser {
       const data = JSON.parse(text, opts.reviver);
       this.checkDepth(data, opts.maxDepth);
       return { data, success: true, warnings, recovered: false };
-    } catch {
-      // Fall through to recovery
+    } catch (error) {
+      logger.debug("Direct JSON parse failed, attempting recovery", { error });
     }
 
     // Apply recovery transformations
@@ -388,7 +392,8 @@ export class JSONParser {
           const candidate = trimmed.substring(start, i + 1);
           try {
             return JSON.parse(candidate);
-          } catch {
+          } catch (error) {
+            logger.debug("Aggressive JSON recovery failed on candidate", { error });
             return null;
           }
         }

@@ -7,6 +7,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { generateId } from "@inspect/shared";
 import type { CredentialConfig, CredentialProviderType, CredentialType } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("credentials/vault");
 
 /** Options for creating a credential */
 export interface CreateCredentialOptions {
@@ -40,7 +43,9 @@ const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
 const SALT_LENGTH = 32;
-const PBKDF2_ITERATIONS = 100_000;
+const PBKDF2_ITERATIONS = 600_000;
+/** Legacy iteration count for backward-compatible decryption of pre-upgrade vaults */
+const PBKDF2_ITERATIONS_LEGACY = 100_000;
 
 /**
  * CredentialVault provides encrypted credential storage with CRUD operations.
@@ -294,6 +299,7 @@ export class CredentialVault {
 
   /**
    * Decrypt data using AES-256-GCM.
+   * Tries current iteration count first, falls back to legacy for pre-upgrade vaults.
    * Format: Salt (32) + IV (16) + Tag (16) + Encrypted data
    */
   decrypt(data: Buffer): string {
@@ -306,7 +312,23 @@ export class CredentialVault {
     const tag = data.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
     const encrypted = data.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
 
-    const { key } = this.deriveKey(this.rawKey, salt);
+    // Try current iteration count first
+    try {
+      return this.decryptWithIterations(salt, iv, tag, encrypted, PBKDF2_ITERATIONS);
+    } catch (error) {
+      logger.debug("Current PBKDF2 iterations failed, trying legacy", { error });
+      return this.decryptWithIterations(salt, iv, tag, encrypted, PBKDF2_ITERATIONS_LEGACY);
+    }
+  }
+
+  private decryptWithIterations(
+    salt: Buffer,
+    iv: Buffer,
+    tag: Buffer,
+    encrypted: Buffer,
+    iterations: number,
+  ): string {
+    const { key } = this.deriveKey(this.rawKey, salt, iterations);
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(tag);
 
@@ -320,13 +342,13 @@ export class CredentialVault {
    * Derive a 256-bit key from a passphrase using PBKDF2.
    * Uses a random salt that is stored alongside the encrypted data.
    */
-  private deriveKey(passphrase: string, salt?: Buffer): { key: Buffer; salt: Buffer } {
+  private deriveKey(passphrase: string, salt?: Buffer, iterations?: number): { key: Buffer; salt: Buffer } {
     const keySalt = salt ?? crypto.randomBytes(SALT_LENGTH);
 
     const key = crypto.pbkdf2Sync(
       passphrase,
       keySalt,
-      PBKDF2_ITERATIONS,
+      iterations ?? PBKDF2_ITERATIONS,
       KEY_LENGTH,
       "sha512",
     );
@@ -342,14 +364,15 @@ export class CredentialVault {
       if (fs.existsSync(keyPath)) {
         return fs.readFileSync(keyPath, "utf-8").trim();
       }
-    } catch {
-      // Ignore read errors
+    } catch (error) {
+      logger.debug("Failed to read key file", { keyPath, error });
     }
     return null;
   }
 
   /**
    * Load credentials from encrypted storage.
+   * Transparently upgrades legacy vaults encrypted with weaker PBKDF2 iterations.
    */
   private load(): void {
     try {
@@ -359,6 +382,7 @@ export class CredentialVault {
       }
 
       const encryptedData = fs.readFileSync(this.storagePath);
+      const needsUpgrade = this.isLegacyEncryption(encryptedData);
       const json = this.decrypt(encryptedData);
       const creds = JSON.parse(json) as CredentialConfig[];
 
@@ -367,12 +391,37 @@ export class CredentialVault {
         this.credentials.set(cred.id, cred);
       }
       this.loaded = true;
+
+      // Auto-upgrade: re-encrypt with current iteration count
+      if (needsUpgrade) {
+        this.save();
+      }
     } catch (error) {
-      console.error(
-        "Failed to load credentials:",
-        error instanceof Error ? error.message : error,
-      );
+      logger.error("Failed to load credentials", {
+        error: error instanceof Error ? error.message : error,
+      });
       this.loaded = true;
+    }
+  }
+
+  /**
+   * Check if encrypted data was produced with legacy (weaker) iterations.
+   * Returns true if decryption succeeds only with legacy iterations.
+   */
+  private isLegacyEncryption(data: Buffer): boolean {
+    if (data.length < SALT_LENGTH + IV_LENGTH + TAG_LENGTH) return false;
+
+    const salt = data.subarray(0, SALT_LENGTH);
+    const iv = data.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+    const tag = data.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+    const encrypted = data.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+
+    try {
+      this.decryptWithIterations(salt, iv, tag, encrypted, PBKDF2_ITERATIONS);
+      return false; // Current iterations work — not legacy
+    } catch (error) {
+      logger.debug("Current iteration decryption failed, vault uses legacy encryption", { error });
+      return true;
     }
   }
 
@@ -386,10 +435,9 @@ export class CredentialVault {
       const encrypted = this.encrypt(json);
       fs.writeFileSync(this.storagePath, encrypted, { mode: 0o600 });
     } catch (error) {
-      console.error(
-        "Failed to save credentials:",
-        error instanceof Error ? error.message : error,
-      );
+      logger.error("Failed to save credentials", {
+        error: error instanceof Error ? error.message : error,
+      });
     }
   }
 

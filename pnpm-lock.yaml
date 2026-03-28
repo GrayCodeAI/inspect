@@ -124,6 +124,9 @@ importers:
 
   packages/agent:
     dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -153,6 +156,9 @@ importers:
 
   packages/browser:
     dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -203,6 +209,9 @@ importers:
 
   packages/credentials:
     dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -216,6 +225,9 @@ importers:
 
   packages/data:
     dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -232,6 +244,9 @@ importers:
 
   packages/network:
     dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -261,6 +276,9 @@ importers:
       '@inspect/browser':
         specifier: workspace:*
         version: link:../browser
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -299,6 +317,9 @@ importers:
       '@inspect/data':
         specifier: workspace:*
         version: link:../data
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/quality':
         specifier: workspace:*
         version: link:../quality
@@ -338,6 +359,9 @@ importers:
 
   packages/visual:
     dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -354,6 +378,9 @@ importers:
       '@inspect/data':
         specifier: workspace:*
         version: link:../data
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/quality':
         specifier: workspace:*
         version: link:../quality

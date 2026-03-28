@@ -21,7 +21,8 @@
     "@inspect/shared": "workspace:*",
     "@inspect/data": "workspace:*",
     "@inspect/quality": "workspace:*",
-    "node-cron": "^3.0.0"
+    "node-cron": "^3.0.0",
+    "@inspect/observability": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

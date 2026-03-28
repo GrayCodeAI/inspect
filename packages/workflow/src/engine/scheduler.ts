@@ -5,6 +5,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/scheduler");
 
 /** Scheduled workflow entry */
 export interface ScheduledWorkflow {
@@ -227,8 +230,8 @@ export class WorkflowScheduler {
       try {
         // @ts-ignore - node-cron has no type declarations
         this.cronModule = await import("node-cron");
-      } catch {
-        // Fallback: provide a minimal cron implementation
+      } catch (error) {
+        logger.debug("node-cron not available, using fallback", { error });
         this.cronModule = this.createFallbackCron();
       }
     }
@@ -257,10 +260,10 @@ export class WorkflowScheduler {
           if (this.callback) {
             Promise.resolve(this.callback(entry.workflowId, entry.id)).catch(
               (err) => {
-                console.error(
-                  `Schedule ${entry.id} callback failed:`,
-                  err,
-                );
+                logger.error("Schedule callback failed", {
+                  scheduleId: entry.id,
+                  error: err,
+                });
               },
             );
           }
@@ -270,7 +273,7 @@ export class WorkflowScheduler {
 
       this.cronTasks.set(entry.id, task);
     } catch (err) {
-      console.error(`Failed to start cron task for ${entry.id}:`, err);
+      logger.error("Failed to start cron task", { scheduleId: entry.id, error: err });
     }
   }
 
@@ -320,7 +323,7 @@ export class WorkflowScheduler {
       const filePath = path.join(this.schedulesDir, `${entry.id}.json`);
       fs.writeFileSync(filePath, JSON.stringify(entry, null, 2), "utf-8");
     } catch (err) {
-      console.error(`Failed to persist schedule ${entry.id}:`, err);
+      logger.error("Failed to persist schedule", { scheduleId: entry.id, error: err });
     }
   }
 
@@ -333,8 +336,8 @@ export class WorkflowScheduler {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-    } catch {
-      // Ignore cleanup errors
+    } catch (error) {
+      logger.debug("Failed to remove schedule file", { id, error });
     }
   }
 
@@ -353,12 +356,12 @@ export class WorkflowScheduler {
           const data = fs.readFileSync(filePath, "utf-8");
           const entry = JSON.parse(data) as ScheduledWorkflow;
           this.schedules.set(entry.id, entry);
-        } catch {
-          // Skip corrupt files
+        } catch (error) {
+          logger.debug("Skipping corrupt schedule file", { file, error });
         }
       }
-    } catch {
-      // Directory may not exist yet
+    } catch (error) {
+      logger.debug("Failed to load schedules directory", { error });
     }
   }
 
@@ -368,8 +371,8 @@ export class WorkflowScheduler {
   private ensureDir(dir: string): void {
     try {
       fs.mkdirSync(dir, { recursive: true });
-    } catch {
-      // May already exist
+    } catch (error) {
+      logger.debug("Failed to create directory", { dir, error });
     }
   }
 

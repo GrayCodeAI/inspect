@@ -4,6 +4,9 @@
 
 import type { PageSnapshot, TokenMetrics } from "@inspect/shared";
 import type { LLMClient, PageInterface } from "./act.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("sdk/observe");
 
 /** A suggested action based on page analysis */
 export interface ActionSuggestion {
@@ -275,10 +278,9 @@ export class ObserveHandler {
 
       return suggestions;
     } catch (error) {
-      console.warn(
-        "[ObserveHandler] Failed to parse action suggestions from LLM response:",
-        error instanceof Error ? error.message : error,
-      );
+      logger.warn("Failed to parse action suggestions from LLM response", {
+        error: error instanceof Error ? error.message : error,
+      });
       return [];
     }
   }

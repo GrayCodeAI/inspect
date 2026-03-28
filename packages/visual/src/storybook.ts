@@ -3,6 +3,9 @@
 // ============================================================================
 
 import { sleep } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("visual/storybook");
 
 /** Page-like interface */
 interface PageHandle {
@@ -94,7 +97,10 @@ export class StorybookCapture {
         results.set(story.id, screenshot);
       } catch (error) {
         // Skip stories that fail to render
-        console.warn(`Failed to capture story "${story.id}": ${error instanceof Error ? error.message : String(error)}`);
+        logger.warn("Failed to capture story", {
+          storyId: story.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -170,8 +176,8 @@ export class StorybookCapture {
             importPath: entry.importPath,
           }));
       }
-    } catch {
-      // index.json not available, try stories.json
+    } catch (error) {
+      logger.debug("index.json not available, trying stories.json", { error });
     }
 
     // Try stories.json (older Storybook versions)
@@ -194,8 +200,8 @@ export class StorybookCapture {
           importPath: story.importPath,
         }));
       }
-    } catch {
-      // stories.json not available
+    } catch (error) {
+      logger.debug("stories.json not available", { error });
     }
 
     // Fallback: navigate to Storybook and use the client-side API

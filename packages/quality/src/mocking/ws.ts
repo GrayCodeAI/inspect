@@ -11,6 +11,9 @@ import type {
   WsRecording,
   WsDirection,
 } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/ws-mock");
 
 /** WebSocket message handler function */
 export type WsMessageHandlerFn = (conn: WsConnection, message: WsMessage) => void | Promise<void>;
@@ -171,7 +174,8 @@ export class WsMessageMatcher {
         const text = typeof msg.data === "string" ? msg.data : msg.data.toString();
         const json = JSON.parse(text) as Record<string, unknown>;
         return json[field] === value;
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse WebSocket message as JSON for field matching", { field, error });
         return false;
       }
     };

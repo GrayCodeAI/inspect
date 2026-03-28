@@ -6,6 +6,9 @@ import type { LighthouseReport, LighthouseScore } from "@inspect/shared";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/lighthouse-history");
 
 /** Historical score entry */
 export interface ScoreEntry {
@@ -181,8 +184,8 @@ export class ScoreHistory {
     const filePath = join(this.dataDir, `${key}.json`);
     try {
       await writeFile(filePath, "[]", "utf-8");
-    } catch {
-      // File may not exist
+    } catch (error) {
+      logger.warn("Failed to clear score history file", { filePath, error });
     }
   }
 
@@ -202,13 +205,14 @@ export class ScoreHistory {
             if (entries.length > 0) {
               urls.push(entries[0].url);
             }
-          } catch {
-            // Skip corrupt files
+          } catch (error) {
+            logger.debug("Failed to read score history file, skipping", { file, error });
           }
         }
       }
       return urls;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to list tracked URL directory", { dataDir: this.dataDir, error });
       return [];
     }
   }
@@ -221,7 +225,8 @@ export class ScoreHistory {
     try {
       const content = await readFile(filePath, "utf-8");
       return JSON.parse(content) as ScoreEntry[];
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to load score history file", { filePath, error });
       return [];
     }
   }

@@ -1,7 +1,13 @@
 import type { DeviceConfig } from "../devices/presets.js";
 import type { AgentRouter } from "@inspect/agent";
+import { LoopDetector, type LoopNudge } from "@inspect/agent";
+import { ContextCompactor } from "@inspect/agent";
+import { SensitiveDataMasker } from "@inspect/agent";
 import { RecoveryManager } from "./recovery.js";
 import type { RecoveryExecutors } from "./recovery.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/executor");
 
 export interface ExecutionConfig {
   instruction: string;
@@ -18,6 +24,7 @@ export interface ExecutionConfig {
   mockFile?: string;
   faultProfile?: string;
   credentialId?: string;
+  sensitiveData?: Record<string, string>;
   maxSteps: number;
   timeoutMs: number;
   stepTimeoutMs: number;
@@ -93,6 +100,9 @@ export class TestExecutor {
   private startTime = 0;
   private recoveryManager: RecoveryManager;
   private maxStepRetries: number;
+  private loopDetector: LoopDetector;
+  private compactor: ContextCompactor;
+  private masker: SensitiveDataMasker | null;
 
   constructor(config: ExecutionConfig, deps?: ExecutorDependencies) {
     this.config = config;
@@ -100,6 +110,11 @@ export class TestExecutor {
     this.abortController = new AbortController();
     this.recoveryManager = new RecoveryManager(3);
     this.maxStepRetries = 2;
+    this.loopDetector = new LoopDetector();
+    this.compactor = new ContextCompactor({ threshold: 80_000, keepLast: 10 });
+    this.masker = config.sensitiveData
+      ? new SensitiveDataMasker(config.sensitiveData)
+      : null;
   }
 
   /**
@@ -167,6 +182,33 @@ export class TestExecutor {
         const stepResult = await this.executeStep(step);
         results.push(stepResult);
 
+        // Record action for loop detection
+        const primaryToolCall = stepResult.toolCalls[0];
+        if (primaryToolCall) {
+          this.loopDetector.record({
+            type: primaryToolCall.tool,
+            ref: primaryToolCall.args?.ref as string | undefined,
+            value: primaryToolCall.args?.value as string | undefined,
+            url: this.config.url ?? "",
+          });
+        }
+
+        // Check for loops — inject nudge if detected
+        const detection = this.loopDetector.detectLoop();
+        if (detection.detected) {
+          const nudge = this.loopDetector.getNudge();
+          logger.warn("Loop detected in agent execution", {
+            loopType: detection.loopType,
+            confidence: detection.confidence,
+            severity: nudge.severity,
+          });
+          if (nudge.severity === "critical") {
+            return this.buildResult("fail", results, `Agent stuck in loop: ${nudge.message}`);
+          }
+          // For info/warning nudges, the nudge message would be injected
+          // into the next LLM prompt context when generatePlan is connected
+        }
+
         this.emitProgress({
           phase: "executing",
           currentStep: stepIndex,
@@ -218,10 +260,7 @@ export class TestExecutor {
    * @throws {Error} In production, this should be connected to an LLM provider.
    */
   private async generatePlan(): Promise<StepPlan[]> {
-    console.warn(
-      "[TestExecutor] generatePlan() is using placeholder implementation. " +
-      "Connect an LLM provider for real test plan generation.",
-    );
+    logger.warn("generatePlan() is using placeholder implementation. Connect an LLM provider for real test plan generation.");
 
     const plans: StepPlan[] = [
       {

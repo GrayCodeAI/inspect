@@ -5,6 +5,9 @@
 import { readFile } from "node:fs/promises";
 import type { MockHandler, MockRequest, MockResponse } from "./handlers.js";
 import { rest, response } from "./handlers.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/mock-generators");
 
 /** HAR Archive format (simplified) */
 interface HARData {
@@ -137,7 +140,8 @@ export class MockGenerator {
       let body: unknown;
       try {
         body = JSON.parse(responseBody);
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse HAR response body as JSON, using raw string", { path, error });
         body = responseBody;
       }
 

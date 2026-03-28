@@ -87,6 +87,7 @@ export class APIServer {
   private server: http.Server | null = null;
   private routes: Route[] = [];
   private middlewares: Middleware[] = [];
+  private fallbackHandler: RouteHandler | null = null;
   private config: Required<APIServerConfig>;
 
   constructor(config?: APIServerConfig) {
@@ -166,6 +167,13 @@ export class APIServer {
    */
   use(middleware: Middleware): void {
     this.middlewares.push(middleware);
+  }
+
+  /**
+   * Set a fallback handler for unmatched routes.
+   */
+  setFallback(handler: RouteHandler): void {
+    this.fallbackHandler = handler;
   }
 
   /**
@@ -465,11 +473,15 @@ export class APIServer {
     }
 
     // No route matched
-    res.status(404).json({
-      error: "Not found",
-      path: req.path,
-      method: req.method,
-    });
+    if (this.fallbackHandler) {
+      await this.fallbackHandler(req, res);
+    } else {
+      res.status(404).json({
+        error: "Not found",
+        path: req.path,
+        method: req.method,
+      });
+    }
   }
 
   /**
@@ -494,7 +506,8 @@ export class APIServer {
       if (contentType.includes("application/json")) {
         try {
           body = JSON.parse(rawBody);
-        } catch {
+        } catch (error) {
+          log.debug("Failed to parse JSON body, using raw string", { error });
           body = rawBody;
         }
       } else if (contentType.includes("application/x-www-form-urlencoded")) {
@@ -625,17 +638,19 @@ export class APIServer {
 
   /**
    * Compile a route path pattern into a RegExp.
-   * Supports :param syntax.
+   * Supports :param syntax and * wildcard for path segments.
    */
   private compilePath(path: string): {
     pattern: RegExp;
     paramNames: string[];
   } {
     const paramNames: string[] = [];
-    const pattern = path.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_match, name: string) => {
+    let pattern = path.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_match, name: string) => {
       paramNames.push(name);
       return "([^/]+)";
     });
+    // Convert * wildcard to regex (matches any remaining path segments)
+    pattern = pattern.replace(/\*/g, "(.*)");
     return {
       pattern: new RegExp(`^${pattern}$`),
       paramNames,

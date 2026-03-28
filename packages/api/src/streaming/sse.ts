@@ -5,6 +5,9 @@
 import type { ServerResponse } from "node:http";
 import { generateId } from "@inspect/shared";
 import type { SSEEvent } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("api/sse");
 
 /** Connected SSE client */
 export interface SSEClient {
@@ -93,8 +96,8 @@ export class SSEManager {
       if (!client.response.writableEnded) {
         client.response.end();
       }
-    } catch {
-      // Ignore errors on cleanup
+    } catch (error) {
+      logger.debug("SSE client cleanup error", { clientId: id, err: error instanceof Error ? error.message : String(error) });
     }
 
     this.clients.delete(id);
@@ -249,7 +252,8 @@ export class SSEManager {
       client.lastEventAt = Date.now();
       client.eventCount++;
       return true;
-    } catch {
+    } catch (error) {
+      logger.debug("SSE write failed, removing client", { clientId: client.id, err: error instanceof Error ? error.message : String(error) });
       this.clients.delete(client.id);
       return false;
     }
@@ -268,7 +272,8 @@ export class SSEManager {
           continue;
         }
         client.response.write(`: keepalive ${Date.now()}\n\n`);
-      } catch {
+      } catch (error) {
+        logger.debug("SSE keepalive failed, marking client dead", { clientId: id, err: error instanceof Error ? error.message : String(error) });
         deadClients.push(id);
       }
     }

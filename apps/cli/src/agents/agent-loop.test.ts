@@ -14,50 +14,54 @@ import { SpeculativePlanner, RunCache } from "@inspect/core";
 // ---------------------------------------------------------------------------
 
 describe("ActionCache wiring", () => {
-  it("caches action by instruction+url hash", () => {
+  it("caches action by instruction+url hash", async () => {
     const cache = new ActCache({ enabled: true });
+    await cache.ready;
     const key = ActCache.key("click Play", "https://example.com");
     expect(key).toBeTypeOf("string");
     expect(key.length).toBeGreaterThan(0);
 
-    cache.set("click Play", "https://example.com", {
+    await cache.set("click Play", "https://example.com", {
       type: "click",
       target: "Play",
       description: 'Click "Play"',
     });
 
-    const hit = cache.get("click Play", "https://example.com");
+    const hit = await cache.get("click Play", "https://example.com");
     expect(hit).not.toBeNull();
     expect(hit!.action.type).toBe("click");
     expect(hit!.action.target).toBe("Play");
   });
 
-  it("returns null on cache miss", () => {
+  it("returns null on cache miss", async () => {
     const cache = new ActCache({ enabled: true });
-    const hit = cache.get("nonexistent", "https://example.com");
+    await cache.ready;
+    const hit = await cache.get("nonexistent", "https://example.com");
     expect(hit).toBeNull();
   });
 
-  it("tracks replay count", () => {
+  it("tracks replay count", async () => {
     const cache = new ActCache({ enabled: true });
+    await cache.ready;
     const key = ActCache.key("click Submit", "https://example.com");
 
-    cache.set("click Submit", "https://example.com", {
+    await cache.set("click Submit", "https://example.com", {
       type: "click",
       target: "Submit",
     });
 
-    cache.recordReplay(key);
-    cache.recordReplay(key);
+    await cache.recordReplay(key);
+    await cache.recordReplay(key);
 
-    const entry = cache.get("click Submit", "https://example.com");
+    const entry = await cache.get("click Submit", "https://example.com");
     expect(entry!.replayCount).toBe(2);
   });
 
-  it("skips caching when disabled", () => {
+  it("skips caching when disabled", async () => {
     const cache = new ActCache({ enabled: false });
-    cache.set("click X", "https://example.com", { type: "click" });
-    const hit = cache.get("click X", "https://example.com");
+    await cache.ready;
+    await cache.set("click X", "https://example.com", { type: "click" });
+    const hit = await cache.get("click X", "https://example.com");
     expect(hit).toBeNull();
   });
 });

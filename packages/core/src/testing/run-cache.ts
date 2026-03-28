@@ -8,7 +8,8 @@
 // ============================================================================
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
 export interface CachedStep {
@@ -107,14 +108,14 @@ export class RunCache {
   /**
    * Save a successful test run.
    */
-  save(
+  async save(
     url: string,
     instruction: string,
     device: string,
     steps: CachedStep[],
     durationMs: number,
     tokenCount: number,
-  ): void {
+  ): Promise<void> {
     if (!this.config.enabled) return;
     // Only cache passing runs
     const allPassed = steps.every((s) => s.status === "pass" || s.status === "skipped");
@@ -135,17 +136,17 @@ export class RunCache {
     };
 
     try {
-      if (!existsSync(this.config.cacheDir)) mkdirSync(this.config.cacheDir, { recursive: true });
-      writeFileSync(join(this.config.cacheDir, `${key}.json`), JSON.stringify(run, null, 2));
+      if (!existsSync(this.config.cacheDir)) await mkdir(this.config.cacheDir, { recursive: true });
+      await writeFile(join(this.config.cacheDir, `${key}.json`), JSON.stringify(run, null, 2));
     } catch {}
 
-    this.enforceMaxRuns();
+    await this.enforceMaxRuns();
   }
 
   /**
    * Get a cached run if available.
    */
-  get(url: string, instruction: string, device: string): CachedTestRun | null {
+  async get(url: string, instruction: string, device: string): Promise<CachedTestRun | null> {
     if (!this.config.enabled) return null;
 
     const key = RunCache.key(url, instruction, device);
@@ -153,11 +154,11 @@ export class RunCache {
 
     try {
       if (!existsSync(path)) return null;
-      const data = JSON.parse(readFileSync(path, "utf-8")) as CachedTestRun;
+      const data = JSON.parse(await readFile(path, "utf-8")) as CachedTestRun;
 
       // Check TTL
       if (Date.now() - data.cachedAt > this.config.ttlMs) {
-        unlinkSync(path);
+        await unlink(path);
         return null;
       }
 
@@ -170,64 +171,64 @@ export class RunCache {
   /**
    * Record a successful replay.
    */
-  recordReplay(key: string): void {
+  async recordReplay(key: string): Promise<void> {
     const path = join(this.config.cacheDir, `${key}.json`);
     try {
       if (!existsSync(path)) return;
-      const data = JSON.parse(readFileSync(path, "utf-8")) as CachedTestRun;
+      const data = JSON.parse(await readFile(path, "utf-8")) as CachedTestRun;
       data.replayCount++;
-      writeFileSync(path, JSON.stringify(data, null, 2));
+      await writeFile(path, JSON.stringify(data, null, 2));
     } catch {}
   }
 
   /**
    * List all cached runs.
    */
-  list(): Array<{ key: string; url: string; instruction: string; device: string; cachedAt: number; replayCount: number }> {
+  async list(): Promise<Array<{ key: string; url: string; instruction: string; device: string; cachedAt: number; replayCount: number }>> {
     if (!existsSync(this.config.cacheDir)) return [];
     try {
-      return readdirSync(this.config.cacheDir)
-        .filter((f) => f.endsWith(".json"))
-        .map((f) => {
+      const files = (await readdir(this.config.cacheDir)).filter((f) => f.endsWith(".json"));
+      const results = await Promise.all(
+        files.map(async (f) => {
           try {
-            const data = JSON.parse(readFileSync(join(this.config.cacheDir, f), "utf-8")) as CachedTestRun;
+            const data = JSON.parse(await readFile(join(this.config.cacheDir, f), "utf-8")) as CachedTestRun;
             return { key: data.key, url: data.url, instruction: data.instruction, device: data.device, cachedAt: data.cachedAt, replayCount: data.replayCount };
           } catch { return null; }
-        })
-        .filter(Boolean) as any[];
+        }),
+      );
+      return results.filter(Boolean) as Array<{ key: string; url: string; instruction: string; device: string; cachedAt: number; replayCount: number }>;
     } catch { return []; }
   }
 
   /**
    * Clear all cached runs.
    */
-  clear(): void {
+  async clear(): Promise<void> {
     try {
       if (!existsSync(this.config.cacheDir)) return;
-      for (const f of readdirSync(this.config.cacheDir)) {
-        unlinkSync(join(this.config.cacheDir, f));
-      }
+      const files = await readdir(this.config.cacheDir);
+      await Promise.all(files.map((f) => unlink(join(this.config.cacheDir, f))));
     } catch {}
   }
 
-  private enforceMaxRuns(): void {
+  private async enforceMaxRuns(): Promise<void> {
     try {
       if (!existsSync(this.config.cacheDir)) return;
-      const files = readdirSync(this.config.cacheDir).filter((f) => f.endsWith(".json"));
+      const files = (await readdir(this.config.cacheDir)).filter((f) => f.endsWith(".json"));
       if (files.length <= this.config.maxRuns) return;
 
       // Sort by modification time, delete oldest
-      const withTime = files.map((f) => {
-        try {
-          const data = JSON.parse(readFileSync(join(this.config.cacheDir, f), "utf-8")) as CachedTestRun;
-          return { file: f, cachedAt: data.cachedAt };
-        } catch { return { file: f, cachedAt: 0 }; }
-      }).sort((a, b) => a.cachedAt - b.cachedAt);
+      const withTime = (await Promise.all(
+        files.map(async (f) => {
+          try {
+            const data = JSON.parse(await readFile(join(this.config.cacheDir, f), "utf-8")) as CachedTestRun;
+            return { file: f, cachedAt: data.cachedAt };
+          } catch { return { file: f, cachedAt: 0 }; }
+        }),
+      )).sort((a, b) => a.cachedAt - b.cachedAt);
 
       const toDelete = withTime.slice(0, files.length - this.config.maxRuns);
-      for (const { file } of toDelete) {
-        unlinkSync(join(this.config.cacheDir, file));
-      }
+      await Promise.all(toDelete.map(({ file }) => unlink(join(this.config.cacheDir, file))));
     } catch {}
   }
 }

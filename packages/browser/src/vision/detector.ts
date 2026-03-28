@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { VisionAction, VisionDetectionRequest } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/vision");
 
 /**
  * LLM client interface for vision-based action detection.
@@ -90,7 +93,8 @@ export class OpenAIVisionClient implements VisionLLMClient {
         description: a.description,
         elementLabel: a.elementLabel,
       }));
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse OpenAI vision actions response", { error });
       return [];
     }
   }
@@ -158,7 +162,8 @@ export class GeminiVisionClient implements VisionLLMClient {
         description: a.description,
         elementLabel: a.elementLabel,
       }));
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse Gemini vision actions response", { error });
       return [];
     }
   }

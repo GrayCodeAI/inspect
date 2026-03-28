@@ -6,6 +6,9 @@ import type { Page, Request, Response } from "playwright";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { HARArchive, HAREntry } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/session/har");
 
 /**
  * Records all network traffic from a Playwright page as a HAR archive.
@@ -125,8 +128,8 @@ export class HARRecorder {
           entry.response.content.size = body.length;
           entry.response.bodySize = body.length;
         }
-      } catch {
-        // Body may not be available for redirects, WebSocket upgrades, etc.
+      } catch (error) {
+        logger.debug("Failed to capture response body", { error });
       }
 
       entry.timings = {

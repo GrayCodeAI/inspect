@@ -4,6 +4,9 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("api/json-store");
 
 /**
  * Generic JSON file-based persistent store.
@@ -78,11 +81,11 @@ export class JsonStore<T extends { id: string }> {
       try {
         const { copyFileSync } = require("node:fs") as typeof import("node:fs");
         copyFileSync(this.filePath, backupPath);
-      } catch { /* ignore backup failure */ }
-      console.warn(
-        `[JsonStore] Failed to load ${this.filePath}, starting fresh. ` +
-        `Corrupt file backed up to ${backupPath}`,
-      );
+      } catch (backupError) { logger.debug("Failed to backup corrupt store file", { backupError }); }
+      logger.warn("Failed to load store, starting fresh", {
+        filePath: this.filePath,
+        backupPath,
+      });
     }
   }
 
@@ -112,7 +115,7 @@ export class JsonStore<T extends { id: string }> {
       const { renameSync } = require("node:fs") as typeof import("node:fs");
       renameSync(tmpPath, this.filePath);
     } catch (err) {
-      console.error(`[JsonStore] Failed to save ${this.filePath}:`, err);
+      logger.error("Failed to save store", { filePath: this.filePath, error: err });
     }
   }
 }

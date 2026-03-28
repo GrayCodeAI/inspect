@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@inspect/shared": "workspace:*",
-    "@inspect/browser": "workspace:*"
+    "@inspect/browser": "workspace:*",
+    "@inspect/observability": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

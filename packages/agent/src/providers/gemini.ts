@@ -14,6 +14,9 @@ import {
   type LLMContentPart,
   type LLMToolCall,
 } from "./base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/provider-gemini");
 
 /** Gemini content types */
 interface GeminiContent {
@@ -454,7 +457,8 @@ export class GeminiProvider extends LLMProvider {
         if (data === "[DONE]") continue;
         try {
           parsed.push(JSON.parse(data));
-        } catch {
+        } catch (error) {
+          logger.debug("Failed to parse Gemini stream chunk", { err: error instanceof Error ? error.message : String(error) });
           unprocessed.push(line);
         }
       } else if (trimmed) {

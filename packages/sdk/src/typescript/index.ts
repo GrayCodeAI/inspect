@@ -42,6 +42,9 @@ import {
   type AgentStep,
   type AgentStreamEvent,
 } from "./agent.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("sdk");
 
 // ── Re-exports ──────────────────────────────────────────────────────────────
 
@@ -243,14 +246,12 @@ export class Inspect {
       this.browserManager = manager;
       this.browserContext = await manager.launchBrowser(this.browserConfig);
       this.page = await this.createPageInterface(manager);
-    } catch {
-      // Browser module may not be available - use a stub
-      // This allows the SDK to work in testing/planning modes without a browser
+    } catch (error) {
+      logger.debug("Browser module not available", { error });
       if (this.config.verbose) {
-        console.warn(
-          "[inspect] @inspect/browser not available. Browser operations will fail. " +
-            "Install @inspect/browser for full functionality.",
-        );
+        logger.warn("@inspect/browser not available — browser operations will fail", {
+          hint: "Install @inspect/browser for full functionality",
+        });
       }
     }
 
@@ -480,8 +481,8 @@ export class Inspect {
           await manager.close();
         }
       }
-    } catch {
-      // Ignore cleanup errors
+    } catch (error) {
+      logger.debug("Browser cleanup error during close", { error });
     }
 
     this.browserManager = null;
@@ -601,7 +602,7 @@ export class Inspect {
     return {
       status: () => server.getStatus() as unknown as Record<string, unknown>,
       addFault: (type: string, attributes: Record<string, unknown>) => {
-        server.addToxic({ type: type as any, name: `sdk-${type}`, attributes });
+        server.addToxic({ type: type as unknown as import("@inspect/shared").ToxicType, name: `sdk-${type}`, attributes });
       },
       stop: async () => {
         await server.stop();
@@ -1073,8 +1074,8 @@ function createPageWrapper(rawPage: unknown): PageInterface {
         if (Array.isArray(accessibleTree)) {
           elements = accessibleTree as PageSnapshot["elements"];
         }
-      } catch {
-        // Fallback to empty elements
+      } catch (error) {
+        logger.debug("Failed to get page elements snapshot", { error });
       }
 
       // Capture screenshot
@@ -1082,8 +1083,8 @@ function createPageWrapper(rawPage: unknown): PageInterface {
       try {
         const buffer = await page.screenshot({ type: "png" });
         screenshot = buffer.toString("base64");
-      } catch {
-        // Screenshot may fail in some contexts
+      } catch (error) {
+        logger.debug("Screenshot capture failed", { error });
       }
 
       return {
@@ -1128,7 +1129,8 @@ function createPageWrapper(rawPage: unknown): PageInterface {
       try {
         const locator = page.locator(`[data-ref="${ref}"]`);
         await locator.scrollIntoViewIfNeeded();
-      } catch {
+      } catch (error) {
+        logger.debug("Locator scroll failed, using evaluate fallback", { ref, error });
         await page.evaluate(
           `document.querySelector('[data-ref="${ref}"]')?.scrollIntoView({ behavior: 'smooth' })`,
         );

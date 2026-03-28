@@ -2,6 +2,10 @@
 // @inspect/browser - Lightpanda Browser Backend Adapter
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/backends/lightpanda");
+
 /** Lightpanda-specific configuration */
 export interface LightpandaConfig {
   /** Lightpanda binary path or URL */
@@ -69,7 +73,8 @@ export class LightpandaBackend implements BrowserBackend {
 
       clearTimeout(timeoutId);
       return response.ok;
-    } catch {
+    } catch (error) {
+      logger.debug("Lightpanda not available", { error });
       return false;
     }
   }
@@ -118,7 +123,8 @@ export class LightpandaBackend implements BrowserBackend {
 
       if (!response.ok) return null;
       return (await response.json()) as LightpandaVersion;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to get Lightpanda version", { error });
       return null;
     }
   }
@@ -147,7 +153,8 @@ export class ChromiumBackend implements BrowserBackend {
         stdio: "ignore",
       });
       return true;
-    } catch {
+    } catch (error) {
+      logger.debug("Chromium not available", { error });
       return false;
     }
   }

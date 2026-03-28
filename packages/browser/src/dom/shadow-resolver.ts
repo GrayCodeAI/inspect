@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { ElementSnapshot, BoundingBox } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/dom/shadow-resolver");
 
 /** Shadow root info */
 export interface ShadowRootInfo {
@@ -159,7 +162,8 @@ export class ShadowDomResolver {
           return check(document.body);
         })()
       `)) as boolean;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to check for shadow DOM", { error });
       return false;
     }
   }

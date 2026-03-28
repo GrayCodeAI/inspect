@@ -7,6 +7,9 @@
 // ============================================================================
 
 import type { Page } from "playwright";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/actions/drag-drop");
 
 export interface DragDropOptions {
   /** Duration of drag in ms. Default: 500 */
@@ -103,7 +106,7 @@ export class DragDrop {
       };
     } catch (err) {
       // Ensure mouse is released on error
-      try { await page.mouse.up(); } catch {}
+      try { await page.mouse.up(); } catch (releaseError) { logger.debug("Failed to release mouse after drag error", { releaseError }); }
       return {
         success: false,
         from: { x: Math.round(fromX), y: Math.round(fromY) },

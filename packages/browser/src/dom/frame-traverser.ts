@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { FrameInfo, ElementSnapshot, BoundingBox } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/dom/frame-traverser");
 
 /** Frame traversal options */
 export interface FrameTraversalOptions {
@@ -159,8 +162,8 @@ export class FrameTraverser {
         const elements = await this.collectElementsFromFrame(frame, frameId, timeout);
         elementsByFrame.set(frameId, elements);
       }
-    } catch {
-      // Frame access denied or not available
+    } catch (error) {
+      logger.debug("Frame access denied or not available", { error });
     }
   }
 
@@ -221,7 +224,8 @@ export class FrameTraverser {
       `);
 
       return (elements as ElementSnapshot[]) ?? [];
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to collect elements from frame", { frameId, error });
       return [];
     }
   }

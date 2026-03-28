@@ -2,6 +2,7 @@
 // @inspect/agent - Anthropic Claude Provider
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
 import {
   LLMProvider,
   LLMError,
@@ -14,6 +15,8 @@ import {
   type LLMContentPart,
   type LLMToolCall,
 } from "./base.js";
+
+const logger = createLogger("agent/claude-provider");
 
 /** Anthropic API content block types */
 interface AnthropicTextBlock {
@@ -165,7 +168,8 @@ export class ClaudeProvider extends LLMProvider {
       let event: AnthropicStreamEvent;
       try {
         event = JSON.parse(line);
-      } catch {
+      } catch (error) {
+        logger.debug("Skipping unparseable SSE line", { line: line.slice(0, 100), err: error instanceof Error ? error.message : String(error) });
         continue;
       }
 
@@ -214,8 +218,8 @@ export class ClaudeProvider extends LLMProvider {
             let parsedArgs: Record<string, unknown> = {};
             try {
               parsedArgs = JSON.parse(toolCallArgs || "{}");
-            } catch {
-              // Malformed tool call args
+            } catch (error) {
+              logger.warn("Malformed tool call args from model", { toolCallName, err: error instanceof Error ? error.message : String(error) });
             }
             toolCalls.push({
               id: toolCallId,

@@ -14,6 +14,9 @@ import {
   type LLMContentPart,
   type LLMToolCall,
 } from "./base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/provider-ollama");
 
 /** Ollama chat API response */
 interface OllamaChatResponse {
@@ -193,7 +196,8 @@ export class OllamaProvider extends LLMProvider {
           let chunk: OllamaStreamChunk;
           try {
             chunk = JSON.parse(line);
-          } catch {
+          } catch (error) {
+            logger.debug("Failed to parse Ollama stream chunk", { err: error instanceof Error ? error.message : String(error) });
             continue;
           }
 
@@ -274,7 +278,8 @@ export class OllamaProvider extends LLMProvider {
       } finally {
         clearTimeout(timer);
       }
-    } catch {
+    } catch (error) {
+      logger.debug("Ollama server not reachable", { err: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }

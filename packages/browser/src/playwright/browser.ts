@@ -10,6 +10,9 @@ import {
   type LaunchOptions,
 } from "playwright";
 import type { BrowserConfig, CookieParam, ViewportConfig } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/playwright");
 
 /**
  * Manages Playwright browser lifecycle: launch, context creation, page management,
@@ -107,13 +110,13 @@ export class BrowserManager {
   async closeBrowser(): Promise<void> {
     if (this.context) {
       await this.context.close().catch((err) => {
-        console.warn("[browser] Failed to close context:", err?.message);
+        logger.warn("Failed to close context", { err: err?.message });
       });
       this.context = null;
     }
     if (this.browser) {
       await this.browser.close().catch((err) => {
-        console.warn("[browser] Failed to close browser:", err?.message);
+        logger.warn("Failed to close browser", { err: err?.message });
       });
       this.browser = null;
     }
@@ -164,8 +167,8 @@ export class BrowserManager {
     let storageState: string | { cookies: CookieParam[]; origins: unknown[] };
     try {
       storageState = JSON.parse(stateOrPath);
-    } catch {
-      // It's a file path
+    } catch (error) {
+      logger.debug("Storage state is not JSON, treating as file path", { error });
       storageState = stateOrPath;
     }
     this.context = await this.browser.newContext({

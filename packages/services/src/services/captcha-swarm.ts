@@ -2,6 +2,10 @@
 // packages/services/src/services/captcha-swarm.ts - CAPTCHA Solving & Multi-Agent Swarm
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("services/captcha-swarm");
+
 /** CAPTCHA type */
 export type CaptchaType =
   | "recaptcha_v2"
@@ -99,8 +103,8 @@ export class CaptchaSwarmService {
         if (result.success) {
           return { ...result, solveTimeMs: Date.now() - start, provider: provider.name };
         }
-      } catch {
-        // Try next provider
+      } catch (error) {
+        logger.debug("CAPTCHA provider failed, trying next", { provider: provider.name, error });
       }
     }
 

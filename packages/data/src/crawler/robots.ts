@@ -2,6 +2,10 @@
 // @inspect/data - Robots.txt Parser
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/robots");
+
 /** Parsed robots.txt rule */
 export interface RobotsRule {
   userAgent: string;
@@ -124,7 +128,8 @@ export class RobotsParser {
   private getPath(url: string): string {
     try {
       return new URL(url).pathname;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse URL, using raw value", { url, error });
       return url;
     }
   }

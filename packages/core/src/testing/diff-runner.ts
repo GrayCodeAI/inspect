@@ -187,7 +187,7 @@ export class DiffRunner {
 
   private async getChangedFiles(config: DiffTestConfig): Promise<string[]> {
     try {
-      return await this.gitManager.getChangedFiles(config.scope as any);
+      return await this.gitManager.getChangedFiles(config.scope);
     } catch {
       return [];
     }

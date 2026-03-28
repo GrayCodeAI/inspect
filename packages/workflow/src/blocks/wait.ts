@@ -5,6 +5,9 @@
 import { runInNewContext } from "node:vm";
 import type { WorkflowBlock } from "@inspect/shared";
 import { WorkflowContext } from "../engine/context.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/blocks/wait");
 
 /** Wait block result */
 export interface WaitResult {
@@ -99,7 +102,8 @@ export class WaitBlock {
         timeout: 5_000,
       });
       return Boolean(sandbox.__result);
-    } catch {
+    } catch (error) {
+      logger.debug("Condition evaluation failed", { condition, error });
       return false;
     }
   }

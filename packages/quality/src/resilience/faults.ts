@@ -5,6 +5,9 @@
 import type { NetworkFault, NetworkFaultConfig } from "@inspect/shared";
 import { generateId } from "@inspect/shared";
 import { createToxic, type Toxic } from "./toxics.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/faults");
 
 /** Page-like interface with route() method */
 interface PageHandle {
@@ -139,8 +142,8 @@ export class FaultInjector {
     if (this.page && this.routeHandler) {
       try {
         await this.page.unroute("**/*", this.routeHandler);
-      } catch {
-        // Page may already be closed
+      } catch (error) {
+        logger.debug("Failed to unroute fault injector, page may already be closed", { error });
       }
     }
 
@@ -231,8 +234,8 @@ export class FaultInjector {
         const faultStats = this.stats.perFault.get(id);
         if (faultStats) faultStats.applied++;
         return; // Only apply first matching fault
-      } catch {
-        // If toxic application fails, continue to next fault or passthrough
+      } catch (error) {
+        logger.debug("Toxic application failed, continuing to next fault or passthrough", { id, url, error });
       }
     }
 

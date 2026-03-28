@@ -2,6 +2,10 @@
 // packages/services/src/services/nuclei-multi.ts - Nuclei Multi-Protocol Scanner
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("services/nuclei-multi");
+
 /** Nuclei protocol type */
 export type NucleiProtocol =
   | "http"
@@ -162,8 +166,8 @@ export class NucleiMultiService {
       try {
         const templateResults = await this.executeTemplate(target, template);
         results.push(...templateResults);
-      } catch {
-        // Template execution failed, skip
+      } catch (error) {
+        logger.debug("Template execution failed, skipping", { templateId: template.id, error });
       }
     }
 
@@ -359,8 +363,8 @@ export class NucleiMultiService {
               timestamp: Date.now(),
             });
           }
-        } catch {
-          /* DNS lookup failed */
+        } catch (error) {
+          logger.debug("DNS lookup failed", { domain, error });
         }
       }
     }
@@ -380,8 +384,8 @@ export class NucleiMultiService {
               timestamp: Date.now(),
             });
           }
-        } catch {
-          /* TCP probe failed */
+        } catch (error) {
+          logger.debug("TCP probe failed", { target, error });
         }
       }
     }
@@ -409,8 +413,8 @@ export class NucleiMultiService {
                 timestamp: Date.now(),
               });
             }
-          } catch {
-            /* HTTP request failed */
+          } catch (error) {
+            logger.debug("HTTP request failed during scan", { target, error });
           }
         }
       }
@@ -427,8 +431,8 @@ export class NucleiMultiService {
       if (data["Answer"] && Array.isArray(data["Answer"])) {
         return (data["Answer"] as Array<Record<string, string>>).map((a) => a["data"]).join(" ");
       }
-    } catch {
-      /* DNS resolution failed */
+    } catch (error) {
+      logger.debug("DNS resolution failed", { domain, error });
     }
     return null;
   }
@@ -439,8 +443,8 @@ export class NucleiMultiService {
       setTimeout(() => controller.abort(), 5000);
       const response = await fetch(`http://${host}`, { signal: controller.signal });
       return await response.text();
-    } catch {
-      /* TCP probe failed */
+    } catch (error) {
+      logger.debug("TCP probe via HTTP fallback failed", { host, error });
     }
     return null;
   }

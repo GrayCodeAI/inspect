@@ -2,6 +2,10 @@
 // packages/services/src/services/graphql-mock.ts - Deep GraphQL Mocking Service (MSW-inspired)
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("services/graphql-mock");
+
 /** GraphQL operation type */
 export type GraphQLOperationType = "query" | "mutation" | "subscription";
 
@@ -133,7 +137,8 @@ export class GraphQLMockService {
         headers,
         url,
       };
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse GraphQL request body", { error });
       return null;
     }
 

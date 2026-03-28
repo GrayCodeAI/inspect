@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/git");
 
 const FINGERPRINT_DIR = ".inspect";
 const FINGERPRINT_FILE = "fingerprint.json";
@@ -100,10 +103,7 @@ export class Fingerprint {
       const content = readFileSync(filepath, "utf-8");
       return JSON.parse(content) as FingerprintData;
     } catch (error) {
-      console.warn(
-        `[Fingerprint] Failed to load fingerprint from ${filepath}:`,
-        error instanceof Error ? error.message : error,
-      );
+      logger.warn("Failed to load fingerprint", { filepath, error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }

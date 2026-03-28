@@ -5,6 +5,9 @@
 import { readFile, writeFile, mkdir, readdir, unlink, copyFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("visual/approval");
 
 /** Approval status for a visual diff */
 export type ApprovalStatus = "pending" | "approved" | "rejected";
@@ -265,7 +268,8 @@ export class ApprovalWorkflow {
     try {
       const content = await readFile(this.statePath, "utf-8");
       return JSON.parse(content) as ApprovalState;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to load approval state, starting fresh", { error });
       return { entries: {}, lastUpdated: Date.now() };
     }
   }

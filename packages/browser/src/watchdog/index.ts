@@ -10,6 +10,9 @@
 // ============================================================================
 
 import type { Page } from "playwright";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("browser/watchdog");
 
 export interface WatchdogOptions {
   /** Auto-dismiss cookie consent. Default: true */
@@ -65,7 +68,9 @@ export class BrowserWatchdog {
         try {
           await newPage.close();
           this.events.push({ type: "popup", action: "dismissed", details: newPage.url(), timestamp: Date.now() });
-        } catch {}
+        } catch (error) {
+          logger.debug("Failed to close popup page", { error });
+        }
       });
     }
 
@@ -104,8 +109,8 @@ export class BrowserWatchdog {
       if (this.options.overlays) {
         await this.dismissOverlays();
       }
-    } catch {
-      // Non-critical — page might have navigated
+    } catch (error) {
+      logger.debug("Watchdog check failed, page may have navigated", { error });
     }
   }
 

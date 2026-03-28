@@ -2,6 +2,10 @@
 // @inspect/agent - Email OTP Poller
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/email-poll");
+
 /** Email polling configuration */
 export interface EmailPollConfig {
   /** Email service type */
@@ -108,7 +112,7 @@ export class EmailPoller {
         }
       } catch (error) {
         // Log but continue polling
-        console.warn(`Email poll error: ${error}`);
+        logger.warn("Email poll error", { error });
       }
 
       await new Promise((resolve) => setTimeout(resolve, pollInterval));

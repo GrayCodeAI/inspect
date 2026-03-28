@@ -4,6 +4,9 @@
 
 import type { ChaosReport, GremlinSpecies, FPSDrop } from "@inspect/shared";
 import { createTimer, sleep } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/gremlins");
 import {
   DEFAULT_GREMLIN_COUNT,
   DEFAULT_GREMLIN_DELAY,
@@ -167,8 +170,8 @@ export class ChaosEngine {
             timestamp: err.timestamp,
           });
         }
-      } catch {
-        // Page may have navigated away or crashed
+      } catch (error) {
+        logger.debug("Failed to collect monitor results, page may have navigated away or crashed", { error });
       }
     }
 

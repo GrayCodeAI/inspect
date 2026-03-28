@@ -6,6 +6,9 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { WorkflowBlock } from "@inspect/shared";
 import { WorkflowContext } from "../engine/context.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/blocks/file-parser");
 
 /** Parsed file result */
 export interface FileParseResult {
@@ -228,7 +231,8 @@ export class FileParserBlock {
   private parseJSON(text: string): unknown {
     try {
       return JSON.parse(text);
-    } catch {
+    } catch (error) {
+      logger.debug("Direct JSON parse failed, trying cleanup", { error });
       // Try stripping comments and trailing commas
       const cleaned = text
         .replace(/\/\/.*$/gm, "")

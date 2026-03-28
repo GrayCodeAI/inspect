@@ -3,6 +3,9 @@
 // ============================================================================
 
 import type { z, ZodType, ZodError } from "zod";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("data/zod-extractor");
 
 /** LLM interface for extraction */
 export interface ExtractorLLM {
@@ -127,7 +130,8 @@ Respond with ONLY the JSON data.`;
       if (!def) return "A valid JSON object";
 
       return this.describeZodDef(def, 0);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to describe Zod schema, using generic description", { error });
       return "A valid JSON object matching the expected structure";
     }
   }
@@ -256,8 +260,8 @@ Respond with ONLY the JSON data.`;
     // Try direct parse
     try {
       return JSON.parse(text);
-    } catch {
-      // Fall through
+    } catch (error) {
+      logger.debug("Direct JSON parse failed, trying fallback extraction", { error });
     }
 
     // Try extracting from code fences
@@ -265,8 +269,8 @@ Respond with ONLY the JSON data.`;
     if (fenceMatch) {
       try {
         return JSON.parse(fenceMatch[1]);
-      } catch {
-        // Fall through
+      } catch (error) {
+        logger.debug("Failed to parse JSON from code fence", { error });
       }
     }
 
@@ -275,8 +279,8 @@ Respond with ONLY the JSON data.`;
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[1]);
-      } catch {
-        // Fall through
+      } catch (error) {
+        logger.debug("Failed to parse extracted JSON object/array", { error });
       }
     }
 

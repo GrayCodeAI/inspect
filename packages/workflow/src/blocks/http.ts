@@ -6,6 +6,9 @@ import * as http from "node:http";
 import * as https from "node:https";
 import type { WorkflowBlock } from "@inspect/shared";
 import { WorkflowContext } from "../engine/context.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("workflow/blocks/http");
 
 /** HTTP response result */
 export interface HTTPResponse {
@@ -66,7 +69,8 @@ export class HTTPRequestBlock {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(url);
-    } catch {
+    } catch (error) {
+      logger.debug("Invalid URL provided to HTTP block", { url, error });
       throw new Error(`Invalid URL: ${url}`);
     }
 
@@ -229,8 +233,8 @@ export class HTTPRequestBlock {
             if (contentType.includes("application/json")) {
               try {
                 parsedBody = JSON.parse(rawBody);
-              } catch {
-                // Keep as string
+              } catch (error) {
+                logger.debug("Failed to parse JSON response body", { error });
               }
             }
           }

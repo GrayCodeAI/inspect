@@ -7,6 +7,9 @@
 // ============================================================================
 
 import type { LLMProvider, LLMMessage } from "../providers/base.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/judge");
 
 export interface JudgeInput {
   /** The original task/instruction */
@@ -104,7 +107,8 @@ export class JudgeLLM {
         evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
         suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
       };
-    } catch {
+    } catch (error) {
+      logger.warn("Failed to parse judge verdict JSON", { err: error instanceof Error ? error.message : String(error) });
       const text = response.content.toLowerCase();
       return {
         success: text.includes("success") && !text.includes("not success"),

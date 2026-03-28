@@ -6,6 +6,9 @@ import * as crypto from "node:crypto";
 import type { IncomingMessage, Server as HTTPServer } from "node:http";
 import type { Socket } from "node:net";
 import { generateId } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("api/websocket");
 
 /** WebSocket client */
 export interface WSClient {
@@ -366,11 +369,11 @@ export class WebSocketManager {
             Promise.resolve(
               this.messageHandler(client.id, message),
             ).catch((err) => {
-              console.error("WebSocket message handler error:", err);
+              logger.error("WebSocket message handler error", { error: err });
             });
           }
-        } catch {
-          // Non-JSON message
+        } catch (error) {
+          logger.debug("Non-JSON WebSocket message received", { error });
           if (this.messageHandler) {
             Promise.resolve(
               this.messageHandler(client.id, {
@@ -378,7 +381,7 @@ export class WebSocketManager {
                 data: text,
               }),
             ).catch((err) => {
-              console.error("WebSocket message handler error:", err);
+              logger.error("WebSocket message handler error", { error: err });
             });
           }
         }
@@ -444,7 +447,8 @@ export class WebSocketManager {
 
       socket.write(Buffer.concat([header, payload]));
       return true;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to send WebSocket frame", { error });
       return false;
     }
   }

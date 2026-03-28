@@ -9,8 +9,9 @@ const testDir = join(tmpdir(), `inspect-cache-test-${Date.now()}`);
 describe("ActionCache", () => {
   let cache: ActionCache;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     cache = new ActionCache({ cacheDir: testDir, ttlMs: 60_000 });
+    await cache.ready;
   });
 
   afterEach(() => {
@@ -36,107 +37,110 @@ describe("ActionCache", () => {
     expect(key1).toBe(key2);
   });
 
-  it("stores and retrieves cached actions", () => {
-    cache.set("Click login", "https://example.com/login", { type: "click", target: "Login" });
-    const result = cache.get("Click login", "https://example.com/login");
+  it("stores and retrieves cached actions", async () => {
+    await cache.set("Click login", "https://example.com/login", { type: "click", target: "Login" });
+    const result = await cache.get("Click login", "https://example.com/login");
     expect(result).not.toBeNull();
     expect(result!.action.type).toBe("click");
     expect(result!.action.target).toBe("Login");
   });
 
-  it("returns null for cache miss", () => {
-    const result = cache.get("Click something", "https://example.com");
+  it("returns null for cache miss", async () => {
+    const result = await cache.get("Click something", "https://example.com");
     expect(result).toBeNull();
   });
 
-  it("returns null for expired entries", () => {
+  it("returns null for expired entries", async () => {
     const shortCache = new ActionCache({ cacheDir: testDir, ttlMs: 1 });
-    shortCache.set("Click login", "https://example.com/login", { type: "click" });
+    await shortCache.ready;
+    await shortCache.set("Click login", "https://example.com/login", { type: "click" });
 
     // Wait for expiry
     const start = Date.now();
     while (Date.now() - start < 5) {} // busy wait 5ms
 
-    const result = shortCache.get("Click login", "https://example.com/login");
+    const result = await shortCache.get("Click login", "https://example.com/login");
     expect(result).toBeNull();
   });
 
-  it("records replay count", () => {
-    cache.set("Click login", "https://example.com/login", { type: "click" });
+  it("records replay count", async () => {
+    await cache.set("Click login", "https://example.com/login", { type: "click" });
     const key = ActionCache.key("Click login", "https://example.com/login");
 
-    cache.recordReplay(key);
-    cache.recordReplay(key);
+    await cache.recordReplay(key);
+    await cache.recordReplay(key);
 
-    const result = cache.get("Click login", "https://example.com/login");
+    const result = await cache.get("Click login", "https://example.com/login");
     expect(result!.replayCount).toBe(2);
     expect(result!.lastReplayedAt).toBeDefined();
   });
 
-  it("invalidates specific entry", () => {
-    cache.set("Click login", "https://example.com/login", { type: "click" });
-    cache.invalidate("Click login", "https://example.com/login");
-    expect(cache.get("Click login", "https://example.com/login")).toBeNull();
+  it("invalidates specific entry", async () => {
+    await cache.set("Click login", "https://example.com/login", { type: "click" });
+    await cache.invalidate("Click login", "https://example.com/login");
+    expect(await cache.get("Click login", "https://example.com/login")).toBeNull();
   });
 
-  it("invalidates all entries for a URL", () => {
-    cache.set("Click login", "https://example.com/login", { type: "click" });
-    cache.set("Fill email", "https://example.com/login", { type: "type", value: "test" });
-    cache.set("Click home", "https://example.com/home", { type: "click" });
+  it("invalidates all entries for a URL", async () => {
+    await cache.set("Click login", "https://example.com/login", { type: "click" });
+    await cache.set("Fill email", "https://example.com/login", { type: "type", value: "test" });
+    await cache.set("Click home", "https://example.com/home", { type: "click" });
 
-    cache.invalidateUrl("https://example.com/login");
+    await cache.invalidateUrl("https://example.com/login");
 
-    expect(cache.get("Click login", "https://example.com/login")).toBeNull();
-    expect(cache.get("Fill email", "https://example.com/login")).toBeNull();
-    expect(cache.get("Click home", "https://example.com/home")).not.toBeNull();
+    expect(await cache.get("Click login", "https://example.com/login")).toBeNull();
+    expect(await cache.get("Fill email", "https://example.com/login")).toBeNull();
+    expect(await cache.get("Click home", "https://example.com/home")).not.toBeNull();
   });
 
-  it("clears entire cache", () => {
-    cache.set("A", "https://a.com/x", { type: "click" });
-    cache.set("B", "https://b.com/x", { type: "click" });
-    cache.clear();
+  it("clears entire cache", async () => {
+    await cache.set("A", "https://a.com/x", { type: "click" });
+    await cache.set("B", "https://b.com/x", { type: "click" });
+    await cache.clear();
     expect(cache.getStats().size).toBe(0);
   });
 
-  it("persists to disk and reloads", () => {
-    cache.set("Click login", "https://example.com/login", { type: "click", target: "btn" });
+  it("persists to disk and reloads", async () => {
+    await cache.set("Click login", "https://example.com/login", { type: "click", target: "btn" });
 
     // Create new cache instance from same dir
     const cache2 = new ActionCache({ cacheDir: testDir, ttlMs: 60_000 });
-    const result = cache2.get("Click login", "https://example.com/login");
+    await cache2.ready;
+    const result = await cache2.get("Click login", "https://example.com/login");
     expect(result).not.toBeNull();
     expect(result!.action.target).toBe("btn");
   });
 
-  it("reports stats", () => {
-    cache.set("A", "https://a.com/x", { type: "click" });
-    cache.set("B", "https://b.com/x", { type: "click" });
+  it("reports stats", async () => {
+    await cache.set("A", "https://a.com/x", { type: "click" });
+    await cache.set("B", "https://b.com/x", { type: "click" });
     const key = ActionCache.key("A", "https://a.com/x");
-    cache.recordReplay(key);
+    await cache.recordReplay(key);
 
     const stats = cache.getStats();
     expect(stats.size).toBe(2);
     expect(stats.totalReplays).toBe(1);
   });
 
-  it("disabled cache returns null", () => {
+  it("disabled cache returns null", async () => {
     const disabled = new ActionCache({ enabled: false });
-    disabled.set("A", "https://a.com/x", { type: "click" });
-    expect(disabled.get("A", "https://a.com/x")).toBeNull();
+    await disabled.set("A", "https://a.com/x", { type: "click" });
+    expect(await disabled.get("A", "https://a.com/x")).toBeNull();
   });
 
-  it("evicts oldest when max entries reached", () => {
+  it("evicts oldest when max entries reached", async () => {
     const smallCache = new ActionCache({ cacheDir: testDir, maxEntries: 2, ttlMs: 60_000 });
-    smallCache.set("A", "https://a.com/x", { type: "click" });
-    smallCache.set("B", "https://b.com/x", { type: "click" });
-    smallCache.set("C", "https://c.com/x", { type: "click" }); // should evict A
+    await smallCache.ready;
+    await smallCache.set("A", "https://a.com/x", { type: "click" });
+    await smallCache.set("B", "https://b.com/x", { type: "click" });
+    await smallCache.set("C", "https://c.com/x", { type: "click" }); // should evict A
 
     expect(smallCache.getStats().size).toBeLessThanOrEqual(2);
   });
 
-  it("stores snapshot fingerprint", () => {
-    cache.set("Click login", "https://example.com/login", { type: "click" }, "fp-abc123");
-    const result = cache.get("Click login", "https://example.com/login");
+  it("stores snapshot fingerprint", async () => {
+    await cache.set("Click login", "https://example.com/login", { type: "click" }, "fp-abc123");
+    const result = await cache.get("Click login", "https://example.com/login");
     expect(result!.snapshotFingerprint).toBe("fp-abc123");
   });
 });

@@ -5,6 +5,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("services/lightpanda-manager");
 
 /** Lightpanda release info */
 export interface LightpandaRelease {
@@ -164,7 +167,8 @@ export class LightpandaManager {
       const response = await fetch(`${endpoint}/json/version`, { signal: controller.signal });
       clearTimeout(timeoutId);
       return response.ok;
-    } catch {
+    } catch (error) {
+      logger.debug("CDP endpoint check failed", { endpoint, error });
       return false;
     }
   }

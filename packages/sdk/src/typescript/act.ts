@@ -8,6 +8,9 @@ import type {
   TokenMetrics,
   AgentAction,
 } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("sdk/act");
 
 /** Options for the act operation */
 export interface ActOptions {
@@ -160,9 +163,8 @@ export class ActHandler {
             tokenUsage,
             durationMs: Math.round(performance.now() - startTime),
           };
-        } catch {
-          // Cache hit but action failed - element may have moved
-          // Fall through to LLM-based resolution
+        } catch (error) {
+          logger.debug("Cached action failed, falling back to LLM", { error });
         }
       }
     }
@@ -322,7 +324,8 @@ Respond ONLY with the JSON object, no other text.`;
         description: parsed.description ?? `${parsed.type} on ${parsed.ref ?? "page"}`,
         timestamp: Date.now(),
       };
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse LLM action response", { error });
       throw new Error(`Failed to parse LLM action response: ${content.slice(0, 200)}`);
     }
   }
@@ -390,7 +393,8 @@ Respond ONLY with the JSON object, no other text.`;
     try {
       const parsed = new URL(url);
       return `${parsed.origin}${parsed.pathname}::${instruction}`;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse URL for cache key", { url, error });
       return `${url}::${instruction}`;
     }
   }

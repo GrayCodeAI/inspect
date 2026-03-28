@@ -2,6 +2,10 @@
 // @inspect/network - Sensitive Data Masking
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("network/masking");
+
 /** A named masking pattern */
 export interface MaskingPattern {
   /** Pattern name (e.g. "ssn", "credit_card") */
@@ -122,10 +126,10 @@ export class SensitiveDataMasker {
     if (!isPng) {
       // For non-PNG formats, we cannot manipulate pixel data directly.
       // Log a warning so callers know masking was not applied.
-      console.warn(
-        "[SensitiveDataMasker] Screenshot is not PNG format — pixel masking was not applied. " +
-        `${regions.length} region(s) remain unmasked. Convert to PNG before masking for full coverage.`,
-      );
+      logger.warn("Screenshot is not PNG format — pixel masking was not applied", {
+        unmaskedRegions: regions.length,
+        hint: "Convert to PNG before masking for full coverage",
+      });
       return { buffer, maskedRegions: regions };
     }
 
@@ -145,8 +149,8 @@ export class SensitiveDataMasker {
     try {
       const maskedBuffer = applyMasksToPng(result, dimensions, regions);
       return { buffer: maskedBuffer, maskedRegions: regions };
-    } catch {
-      // If PNG manipulation fails, return original with metadata
+    } catch (error) {
+      logger.debug("PNG pixel masking failed, returning original", { error });
       return { buffer, maskedRegions: regions };
     }
   }
@@ -313,7 +317,8 @@ function applyMasksToPng(
   let rawData: Buffer;
   try {
     rawData = inflateSync(compressedData);
-  } catch {
+  } catch (error) {
+    logger.debug("Failed to inflate PNG IDAT data", { error });
     return buffer;
   }
 

@@ -5,6 +5,9 @@
 import type { A11yReport } from "@inspect/shared";
 import { mapConcurrent, createTimer } from "@inspect/shared";
 import { AccessibilityAuditor, type A11yAuditOptions } from "./auditor.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/sitemap-auditor");
 
 /** Page-like interface for navigation */
 interface PageHandle {
@@ -188,8 +191,8 @@ export class SitemapAuditor {
       try {
         const nestedUrls = await SitemapAuditor.parseSitemapXml(nestedUrl);
         urls.push(...nestedUrls);
-      } catch {
-        // Skip failed nested sitemaps
+      } catch (error) {
+        logger.debug("Failed to fetch nested sitemap, skipping", { nestedUrl, error });
       }
     }
 

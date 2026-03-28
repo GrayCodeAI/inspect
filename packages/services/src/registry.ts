@@ -2,6 +2,10 @@
 // packages/services/src/registry.ts - Service Registry for Microservice Architecture
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("services/registry");
+
 /** Service health status */
 export type ServiceHealth = "healthy" | "degraded" | "unhealthy" | "unknown";
 
@@ -160,8 +164,8 @@ export class ServiceRegistry {
     for (const handler of handlers) {
       try {
         handler(event);
-      } catch {
-        // Don't let handler errors break the bus
+      } catch (error) {
+        logger.warn("Service event handler threw an error", { eventType: event.type, error });
       }
     }
   }

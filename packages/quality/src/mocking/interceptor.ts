@@ -8,6 +8,9 @@ import type {
   MockResponse,
 } from "./handlers.js";
 import { matchUrl, parseQuery, parseGraphQLOperation, isPassthrough } from "./handlers.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/interceptor");
 
 /** Page-like interface with route() method (Playwright compatible) */
 interface PageHandle {
@@ -113,8 +116,8 @@ export class NetworkInterceptor {
     if (this.page && this.routeHandlerFn) {
       try {
         await this.page.unroute("**/*", this.routeHandlerFn);
-      } catch {
-        // May fail if page is already closed
+      } catch (error) {
+        logger.debug("Failed to unroute interceptor, page may already be closed", { error });
       }
     }
     this.active = false;
@@ -258,7 +261,8 @@ export class NetworkInterceptor {
     if (!postData) return undefined;
     try {
       return JSON.parse(postData);
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse request body as JSON, using raw string", { error });
       return postData;
     }
   }

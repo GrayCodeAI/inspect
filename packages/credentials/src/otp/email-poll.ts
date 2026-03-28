@@ -4,6 +4,9 @@
 
 import * as net from "node:net";
 import * as tls from "node:tls";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("credentials/email-poll");
 
 /** Email polling configuration */
 export interface EmailPollerConfig {
@@ -95,10 +98,9 @@ export class EmailPoller {
         const result = await this.checkForOTP();
         if (result) return result;
       } catch (error) {
-        console.error(
-          "Email poll error:",
-          error instanceof Error ? error.message : error,
-        );
+        logger.error("Email poll error", {
+          error: error instanceof Error ? error.message : error,
+        });
       }
 
       // Wait before next poll
@@ -343,7 +345,8 @@ export class EmailPoller {
       const body = headerEnd !== -1 ? raw.substring(headerEnd + 2) : raw;
 
       return { from, subject, body, date };
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse email data", { error });
       return null;
     }
   }

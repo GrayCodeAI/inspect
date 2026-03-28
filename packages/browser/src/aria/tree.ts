@@ -4,7 +4,10 @@
 
 import type { Page } from "playwright";
 import type { ElementSnapshot, HybridNode, DOMNode } from "@inspect/shared";
+import { createLogger } from "@inspect/observability";
 import { RefManager } from "./refs.js";
+
+const logger = createLogger("browser/aria");
 
 /** Raw node from Playwright's accessibility snapshot */
 interface AXNode {
@@ -61,7 +64,7 @@ export class AriaTree {
       return this.processNode(snapshot as AXNode);
     } finally {
       await cdp.detach().catch((err) => {
-        console.warn("[browser] Failed to detach CDP session:", err?.message);
+        logger.warn("Failed to detach CDP session", { err: err?.message });
       });
     }
   }

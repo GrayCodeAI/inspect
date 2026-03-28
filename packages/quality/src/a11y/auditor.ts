@@ -11,6 +11,9 @@ import type {
 } from "@inspect/shared";
 import { createTimer, generateId } from "@inspect/shared";
 import { ALL_A11Y_RULES, type A11yRuleDefinition } from "./rules.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/a11y");
 
 /** Page-like interface (Playwright Page compatible) */
 interface PageHandle {
@@ -224,8 +227,8 @@ export class AccessibilityAuditor {
             }
           })()
         `);
-      } catch {
-        // Silently continue without locale
+      } catch (error) {
+        logger.debug("Failed to load axe-core locale, continuing without it", { locale, error });
       }
     }
   }

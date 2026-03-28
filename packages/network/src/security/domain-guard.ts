@@ -7,6 +7,10 @@
 // Inspired by Browser Use's allowed_domains and Playwright MCP's network config.
 // ============================================================================
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("network/domain-guard");
+
 export interface DomainGuardConfig {
   /** Allowed domains (wildcards supported). Empty = allow all */
   allowedDomains?: string[];
@@ -79,7 +83,8 @@ export class DomainGuard {
 
       this.recordBlocked(url, domain, "not in allowed domains");
       return false;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to parse URL for domain guard check", { url, error });
       return false;
     }
   }

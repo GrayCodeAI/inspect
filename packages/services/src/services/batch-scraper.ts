@@ -2,6 +2,10 @@
 // packages/services/src/services/batch-scraper.ts - Firecrawl Batch & Media Service
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("services/batch-scraper");
+
 /** Batch scrape job */
 export interface BatchScrapeJob {
   id: string;
@@ -278,8 +282,8 @@ export class BatchScraper {
       try {
         const url = new URL(match[1], baseUrl).href;
         if (!links.includes(url)) links.push(url);
-      } catch {
-        /* skip */
+      } catch (error) {
+        logger.debug("Failed to parse link URL", { error });
       }
     }
     return links;
@@ -292,8 +296,8 @@ export class BatchScraper {
         const url = new URL(match[1], baseUrl).href;
         const altMatch = match[0].match(/alt\s*=\s*["']([^"']*)["']/i);
         media.push({ type: "image", url, alt: altMatch?.[1] });
-      } catch {
-        /* skip */
+      } catch (error) {
+        logger.debug("Failed to parse media URL", { error });
       }
     }
     return media;

@@ -11,6 +11,9 @@ import type {
 } from "@inspect/shared";
 import { createTimer } from "@inspect/shared";
 import { spawn, type ChildProcess } from "node:child_process";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("quality/lighthouse-auditor");
 
 /** Lighthouse audit options */
 export interface LighthouseOptions {
@@ -189,8 +192,8 @@ export class LighthouseAuditor {
       kill: () => {
         try {
           chromeProcess.kill("SIGTERM");
-        } catch {
-          // Process may already be dead
+        } catch (error) {
+          logger.debug("Failed to kill Chrome process, may already be dead", { error });
         }
       },
     };
@@ -205,8 +208,8 @@ export class LighthouseAuditor {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/json/version`);
         if (response.ok) return;
-      } catch {
-        // Not ready yet
+      } catch (error) {
+        logger.debug("Chrome debugger not ready yet, retrying", { port, error });
       }
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
@@ -249,7 +252,8 @@ export class LighthouseAuditor {
       // @ts-ignore - lighthouse may not be installed; dynamic import
       const mod = await import("lighthouse");
       return mod.default ?? mod;
-    } catch {
+    } catch (error) {
+      logger.debug("Failed to import lighthouse module", { error });
       throw new Error(
         "Lighthouse is not installed. Install it with: npm install lighthouse"
       );
@@ -330,7 +334,7 @@ export class LighthouseAuditor {
       id: sp.id,
       title: sp.title,
       descriptions: sp.descriptions ?? {},
-    })) as any[];
+    })) as Array<{ id: string; title: string; descriptions: Record<string, string> }>;
 
     return {
       scores,

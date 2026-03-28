@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { Watchdog, WatchdogEvent } from "./manager.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("agent/watchdog-captcha");
 
 /** Known CAPTCHA provider indicators */
 const CAPTCHA_INDICATORS = {
@@ -162,8 +165,8 @@ export class CaptchaWatchdog implements Watchdog {
           suggestedAction: "pause_for_human_intervention",
         };
       }
-    } catch {
-      // Page might be navigating or closed
+    } catch (error) {
+      logger.debug("Failed to check for CAPTCHA, page may be navigating", { err: error instanceof Error ? error.message : String(error) });
     }
 
     return null;

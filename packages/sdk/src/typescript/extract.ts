@@ -4,6 +4,9 @@
 
 import type { PageSnapshot, TokenMetrics } from "@inspect/shared";
 import type { LLMClient, PageInterface } from "./act.js";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("sdk/extract");
 
 /** Zod-like schema interface for validation */
 export interface SchemaLike {
@@ -275,16 +278,15 @@ export class ExtractHandler {
       if (match) {
         try {
           return JSON.parse(match[0]);
-        } catch {
-          // Fall through to warning
+        } catch (error) {
+          logger.debug("Failed to parse extracted JSON match", { error });
         }
       }
 
-      console.warn(
-        "[ExtractHandler] Failed to parse JSON from LLM response:",
-        parseError instanceof Error ? parseError.message : parseError,
-        `(response preview: ${jsonStr.slice(0, 100)}...)`,
-      );
+      logger.warn("Failed to parse JSON from LLM response", {
+        error: parseError instanceof Error ? parseError.message : parseError,
+        responsePreview: `${jsonStr.slice(0, 100)}...`,
+      });
       return null;
     }
   }

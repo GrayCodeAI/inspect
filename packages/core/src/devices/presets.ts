@@ -1,3 +1,7 @@
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("core/devices");
+
 /**
  * Full device configuration for browser emulation.
  */
@@ -265,14 +269,12 @@ export function resolveDevices(input: string): DeviceConfig[] {
       result.push(preset);
     } else if (!preset) {
       const available = Object.keys(DevicePresets).join(", ");
-      console.warn(
-        `[DevicePresets] Unknown device "${token}". Available presets: ${available}`,
-      );
+      logger.warn("Unknown device preset", { token, available });
     }
   }
 
   if (result.length === 0) {
-    console.warn("[DevicePresets] No valid devices matched. Defaulting to desktop-chrome.");
+    logger.warn("No valid devices matched. Defaulting to desktop-chrome.");
     result.push(DevicePresets["desktop-chrome"]);
   }
 

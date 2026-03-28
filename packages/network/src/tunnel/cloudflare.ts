@@ -3,6 +3,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { createLogger } from "@inspect/observability";
+
+const logger = createLogger("network/cloudflare");
 
 /** Active tunnel information */
 export interface TunnelInfo {
@@ -253,16 +256,16 @@ export class TunnelManager {
           if (!child.killed) {
             child.kill("SIGKILL");
           }
-        } catch {
-          // Process already dead
+        } catch (error) {
+          logger.debug("Force kill failed, process already dead", { error });
         }
       }, 3000);
 
       child.on("exit", () => {
         clearTimeout(forceKillTimer);
       });
-    } catch {
-      // Process may already be dead
+    } catch (error) {
+      logger.debug("Process kill failed, may already be dead", { error });
     }
   }
 
@@ -276,8 +279,8 @@ export class TunnelManager {
           if (!tunnel.process.killed) {
             tunnel.process.kill("SIGKILL");
           }
-        } catch {
-          // Ignore cleanup errors
+        } catch (error) {
+          logger.debug("Tunnel cleanup kill failed", { error });
         }
       }
     };
@@ -293,7 +296,7 @@ export class TunnelManager {
     });
     process.on("uncaughtException", (err) => {
       cleanup();
-      console.error("Uncaught exception:", err);
+      logger.error("Uncaught exception", { error: err });
       process.exit(1);
     });
   }
