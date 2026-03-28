@@ -6,6 +6,8 @@ import type { Page, Locator } from "playwright";
 import type { ElementSnapshot, SnapshotStats } from "@inspect/shared";
 import { AriaTree } from "./tree.js";
 import { RefManager } from "./refs.js";
+import { HybridTree } from "../dom/hybrid.js";
+import { DOMCapture } from "../dom/capture.js";
 
 /**
  * Builds a complete ARIA accessibility snapshot of a page with:
@@ -36,6 +38,38 @@ export class AriaSnapshotBuilder {
     this.lastTree = this.compact(rawTree);
     this.lastFormatted = this.ariaTree.format(this.lastTree);
     return this.lastTree;
+  }
+
+  /**
+   * Build a hybrid tree that merges ARIA + DOM for richer context.
+   * Use this when mode="hybrid" for Stagehand-style dual-source snapshots.
+   */
+  async buildHybridTree(page: Page): Promise<{ tree: any[]; formatted: string }> {
+    // Build ARIA tree
+    this.refManager.clear();
+    const ariaTree = await this.ariaTree.build(page);
+    this.lastTree = this.compact(ariaTree);
+
+    // Capture DOM tree
+    const domCapture = new DOMCapture();
+    const domTree = await domCapture.captureDOM(page);
+
+    // Merge using HybridTree
+    const hybridTree = new HybridTree();
+    const merged = hybridTree.merge(this.lastTree, domTree);
+
+    // Format for LLM consumption
+    const lines: string[] = [];
+    for (const node of merged) {
+      const tag = node.tagName ? `(${node.tagName})` : "";
+      const name = node.name ? ` "${node.name}"` : "";
+      const interactive = node.interactive ? " [interactive]" : "";
+      lines.push(`[${node.ref}] ${node.role}${tag}${name}${interactive}`);
+    }
+    const formatted = lines.join("\n");
+
+    this.lastFormatted = formatted;
+    return { tree: merged, formatted };
   }
 
   /**

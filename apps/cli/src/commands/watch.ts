@@ -9,6 +9,7 @@ interface WatchOptions {
   devices?: string;
   browser?: string;
   pattern?: string;
+  prioritize?: boolean;
 }
 
 async function runWatch(options: WatchOptions): Promise<void> {
@@ -30,13 +31,38 @@ async function runWatch(options: WatchOptions): Promise<void> {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let isRunning = false;
   let runCount = 0;
+  const changedFilesSinceLastRun: Set<string> = new Set();
 
   const runTest = async () => {
     if (isRunning) return;
     isRunning = true;
     runCount++;
 
+    const changedFiles = [...changedFilesSinceLastRun];
+    changedFilesSinceLastRun.clear();
+
     console.log(chalk.blue(`\n--- Run #${runCount} (${new Date().toLocaleTimeString()}) ---\n`));
+
+    if (changedFiles.length > 0) {
+      console.log(chalk.dim(`Changed files: ${changedFiles.slice(0, 5).join(", ")}${changedFiles.length > 5 ? ` (+${changedFiles.length - 5} more)` : ""}`));
+    }
+
+    // Smart prioritization if enabled
+    if (options.prioritize && changedFiles.length > 0) {
+      try {
+        const { TestPrioritizer } = await import("@inspect/core");
+        const prioritizer = new TestPrioritizer();
+        const result = prioritizer.prioritize({
+          tests: [{ id: "current", name: instruction, coveredFiles: changedFiles }],
+          changedFiles,
+        });
+        if (result.ranked.length > 0) {
+          console.log(chalk.dim(`Priority score: ${result.ranked[0].score} (${result.ranked[0].reason})`));
+        }
+      } catch {
+        // Prioritization is best-effort
+      }
+    }
 
     try {
       const { runTest: executeTest } = await import("./test.js");
@@ -71,6 +97,9 @@ async function runWatch(options: WatchOptions): Promise<void> {
         if (!filename) return;
         const ext = extname(filename);
         if (![".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte", ".css", ".html"].includes(ext)) return;
+
+        // Track changed files for prioritization
+        changedFilesSinceLastRun.add(filename);
 
         // Debounce — wait 500ms after last change
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -115,6 +144,7 @@ export function registerWatchCommand(program: Command): void {
     .option("--devices <devices>", "Device presets", "desktop-chrome")
     .option("--browser <browser>", "Browser", "chromium")
     .option("--pattern <glob>", "File glob pattern to watch", "src/**/*.{ts,tsx,js,jsx}")
+    .option("--prioritize", "Use smart test prioritization based on changed files")
     .addHelpText("after", `
 Examples:
   $ inspect watch -m "test the login page"

@@ -101,7 +101,7 @@ export async function runPerformanceAudit(
   } else if (score >= 50) {
     onProgress("warn", `  ⚠ Performance: ${score}/100`);
   } else {
-    onProgress("fail", `  ✗ Performance: ${score}/100`);
+    onProgress("fail", `Performance: ${score}/100`);
   }
 
   if (metrics.lcp > 2500) {

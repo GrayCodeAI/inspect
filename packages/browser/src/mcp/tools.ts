@@ -298,6 +298,43 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
     },
   },
 
+  // ── Page to Markdown ───────────────────────────────────────────────────
+  {
+    name: "browser_markdown",
+    description: "Convert the current page to clean Markdown. Preserves headings, links, lists, tables, and form elements. Interactive elements are annotated with ref IDs.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        includeRefs: {
+          type: "boolean",
+          description: "Annotate interactive elements with ref IDs (default: true)",
+          default: true,
+        },
+        includeImages: {
+          type: "boolean",
+          description: "Include image markdown tags (default: true)",
+          default: true,
+        },
+        includeHidden: {
+          type: "boolean",
+          description: "Include hidden/invisible elements (default: false)",
+          default: false,
+        },
+        maxLength: {
+          type: "number",
+          description: "Maximum content length in characters (default: 50000)",
+          default: 50000,
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+
   // ── Close ──────────────────────────────────────────────────────────────
   {
     name: "browser_close",

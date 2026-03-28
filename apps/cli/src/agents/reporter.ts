@@ -189,43 +189,69 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
     chalk.hex(scoreColor)("\u2588".repeat(barFilled)) +
     chalk.hex(PALETTE.border)("\u2591".repeat(W - barFilled));
 
-  const line = chalk.hex(PALETTE.subtle)("\u2500".repeat(50));
+  const bW = 52;
+  const top = chalk.hex(PALETTE.subtle)(`\u256d${ "\u2500".repeat(bW) }\u256e`);
+  const bot = chalk.hex(PALETTE.subtle)(`\u2570${ "\u2500".repeat(bW) }\u256f`);
+  const mid = chalk.hex(PALETTE.subtle)(`\u251c${ "\u2500".repeat(bW) }\u2524`);
+  const v = chalk.hex(PALETTE.subtle)("\u2502");
+
+  const pad = (s: string, width: number) => {
+    // Pad accounting for ANSI codes (visible length)
+    const vis = s.replace(/\x1b\[[0-9;]*m/g, "");
+    return s + " ".repeat(Math.max(0, width - vis.length));
+  };
+
+  const row = (content: string) => `${v} ${pad(content, bW - 1)}${v}`;
+  const emptyRow = `${v}${" ".repeat(bW)}${v}`;
 
   // Build the entire report as one string so the Repl renders it as a single block
   const L: string[] = [];
 
-  // Header
-  L.push(`  ${chalk.hex(PALETTE.brand).bold(`${ICONS.gem} Inspect Test Report`)}`);
-  L.push(`  ${line}`);
+  L.push(top);
+  L.push(row(chalk.hex(PALETTE.brand).bold(`${ICONS.gem} Inspect Test Report`)));
+  L.push(mid);
 
   // Metadata
-  L.push(`  ${chalk.hex(PALETTE.dim)("URL")}       ${chalk.hex(PALETTE.cyan)(report.url)}`);
-  L.push(`  ${chalk.hex(PALETTE.dim)("Title")}     ${chalk.hex(PALETTE.text)(report.title.slice(0, 50))}`);
-  L.push(`  ${chalk.hex(PALETTE.dim)("Duration")}  ${chalk.hex(PALETTE.amber)(`${(report.summary.duration / 1000).toFixed(1)}s`)}`);
+  L.push(row(`${chalk.hex(PALETTE.dim)("URL")}       ${chalk.hex(PALETTE.cyan)(report.url)}`));
+  L.push(row(`${chalk.hex(PALETTE.dim)("Title")}     ${chalk.hex(PALETTE.text)(report.title.slice(0, 40))}`));
+  L.push(row(`${chalk.hex(PALETTE.dim)("Duration")}  ${chalk.hex(PALETTE.amber)(`${(report.summary.duration / 1000).toFixed(1)}s`)}`));
+  L.push(row(`${chalk.hex(PALETTE.dim)("Score")}     ${chalk.hex(scoreColor).bold(`${scoreVal}/100`)} ${chalk.hex(PALETTE.dim)(scoreLabel)}`));
+  L.push(row(`          ${bar}`));
 
-  // Score
-  L.push(`  ${chalk.hex(PALETTE.dim)("Score")}     ${chalk.hex(scoreColor).bold(`${scoreVal}/100`)} ${chalk.hex(PALETTE.dim)(scoreLabel)}`);
-  L.push(`            ${bar}`);
-  L.push("");
+  L.push(mid);
 
   // Steps
-  L.push(`  ${chalk.hex(PALETTE.text).bold("Steps")}`);
+  L.push(row(chalk.hex(PALETTE.text).bold("Steps")));
   for (const step of report.results) {
     if (step.status === "pass") {
-      L.push(`  ${chalk.hex(PALETTE.green)(ICONS.pass)} ${chalk.hex(PALETTE.text)(step.description)}`);
+      L.push(row(`${chalk.hex(PALETTE.green)(ICONS.pass)} ${chalk.hex(PALETTE.text)(step.description)}`));
     } else if (step.status === "fail") {
-      L.push(`  ${chalk.hex(PALETTE.red)(ICONS.fail)} ${chalk.hex(PALETTE.red)(step.description)}`);
+      L.push(row(`${chalk.hex(PALETTE.red)(ICONS.fail)} ${chalk.hex(PALETTE.red)(step.description)}`));
       if (step.error) {
-        L.push(`    ${chalk.hex(PALETTE.redDim)(ICONS.arrow)} ${chalk.hex(PALETTE.red)(step.error.slice(0, 60))}`);
+        // Word-wrap error to ~45 chars per line
+        const words = step.error.split(" ");
+        let line = "";
+        for (const word of words) {
+          if (line.length + word.length + 1 > 45 && line.length > 0) {
+            L.push(row(`  ${chalk.hex(PALETTE.redDim)(line)}`));
+            line = word;
+          } else {
+            line = line ? `${line} ${word}` : word;
+          }
+        }
+        if (line) {
+          L.push(row(`  ${chalk.hex(PALETTE.redDim)(`${ICONS.arrow} ${line}`)}`));
+        }
       }
     } else {
-      L.push(`  ${chalk.hex(PALETTE.muted)(ICONS.pending)} ${chalk.hex(PALETTE.dim)(step.description)}`);
+      L.push(row(`${chalk.hex(PALETTE.muted)(ICONS.pending)} ${chalk.hex(PALETTE.dim)(step.description)}`));
     }
   }
-  L.push("");
+
+  L.push(mid);
 
   // Quality Scores
-  L.push(`  ${chalk.hex(PALETTE.text).bold("Quality")}`);
+  L.push(row(chalk.hex(PALETTE.text).bold("Quality")));
 
   const addScoreRow = (label: string, labelColor: string, score: number, extra?: string) => {
     const sc = score >= 90 ? PALETTE.green : score >= 70 ? PALETTE.yellow : PALETTE.red;
@@ -233,7 +259,7 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
       chalk.hex(sc)("\u2588".repeat(Math.round(score / 10))) +
       chalk.hex(PALETTE.border)("\u2591".repeat(10 - Math.round(score / 10)));
     const extraStr = extra ? chalk.hex(PALETTE.dim)(` ${extra}`) : "";
-    L.push(`  ${chalk.hex(labelColor)(label.padEnd(16))} ${chalk.hex(sc).bold(`${score}`.padStart(3))}/100 ${miniBar}${extraStr}`);
+    L.push(row(`${chalk.hex(labelColor)(label.padEnd(16))} ${chalk.hex(sc).bold(`${score}`.padStart(3))}/100 ${miniBar}${extraStr}`));
   };
 
   const totalA11yIssues = report.a11y.reduce((sum, r) => sum + r.issues.length, 0);
@@ -262,23 +288,22 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
     addScoreRow("SEO", PALETTE.indigo, report.seo.score, `${report.seo.issues.length} issues`);
   }
 
-  // Summary
-  L.push("");
-  L.push(`  ${line}`);
+  L.push(mid);
 
+  // Summary
   const passed = report.summary.passed;
   const failed = report.summary.failed;
   const total = report.summary.total;
-  let summaryParts = `  ${chalk.hex(PALETTE.green).bold(`${ICONS.pass} ${passed} passed`)}`;
+  let summaryParts = `${chalk.hex(PALETTE.green).bold(`${ICONS.pass} ${passed} passed`)}`;
   if (failed > 0) summaryParts += `  ${chalk.hex(PALETTE.red).bold(`${ICONS.fail} ${failed} failed`)}`;
   summaryParts += `  ${chalk.hex(PALETTE.dim)(`of ${total} steps`)}`;
-  L.push(summaryParts);
+  L.push(row(summaryParts));
 
   if (report.cost) {
-    L.push(`  ${chalk.hex(PALETTE.amber)(`${ICONS.lightning} ${report.cost.tokens.toLocaleString()} tokens`)} ${chalk.hex(PALETTE.dim)(`(~$${report.cost.estimatedCost.toFixed(4)})`)}`);
+    L.push(row(`${chalk.hex(PALETTE.amber)(`${ICONS.lightning} ${report.cost.tokens.toLocaleString()} tokens`)} ${chalk.hex(PALETTE.dim)(`(~$${report.cost.estimatedCost.toFixed(4)})`)}`));
   }
 
-  L.push(`  ${line}`);
+  L.push(bot);
 
   // Send as one block
   onProgress("done", L.join("\n"));

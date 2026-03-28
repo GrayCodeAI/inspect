@@ -77,6 +77,7 @@ export {
 
 // Cache
 export { ActionCache, type ActionCacheConfig, type CachedAction } from "./cache/store.js";
+export { ActionCache as ActCache, type ActionCacheConfig as ActCacheConfig, type CachedAction as CachedActionEntry } from "./cache/action-cache.js";
 export {
   SelfHealer,
   type HealResult,
@@ -116,6 +117,8 @@ export {
   type LoopDetection,
   type LoopNudge,
 } from "./loop/detector.js";
+export { ActionLoopDetector } from "./loop/action-loop.js";
+export type { LoopDetectorConfig as ActionLoopConfig, LoopNudge as ActionLoopNudge } from "./loop/action-loop.js";
 
 // Tools
 export {
@@ -140,3 +143,39 @@ export {
   type DecoratedMethod,
 } from "./tools/decorators.js";
 export { ToolValidator, type ValidationError, type ValidationResult } from "./tools/validator.js";
+export { NLAssert, type AssertionContext, type AssertionResult } from "./tools/nl-assert.js";
+
+// Rate limiting
+export { RateLimiter, RATE_LIMIT_PRESETS } from "./providers/rate-limiter.js";
+export type { RateLimitConfig } from "./providers/rate-limiter.js";
+
+// Fallback LLM
+export { FallbackManager } from "./providers/fallback.js";
+export type { FallbackConfig, LLMCallFn } from "./providers/fallback.js";
+
+// Token tracking
+export { TokenTracker } from "./tools/token-tracker.js";
+export type { TokenBudget, TokenUsageEntry, TokenSummary } from "./tools/token-tracker.js";
+
+// Sensitive data masking
+export { SensitiveDataMasker } from "./tools/sensitive-masker.js";
+
+// Judge LLM
+export { JudgeLLM } from "./tools/judge.js";
+export type { JudgeInput, JudgeVerdict } from "./tools/judge.js";
+
+// User-defined tools
+export { UserToolRegistry, defineTool } from "./tools/user-tools.js";
+export type { UserToolDefinition } from "./tools/user-tools.js";
+
+// Message compaction
+export { MessageCompactor } from "./memory/compactor.js";
+export type { CompactorConfig } from "./memory/compactor.js";
+
+// Stall detection + replan
+export { StallDetector } from "./loop/replan.js";
+export type { ReplanConfig, ReplanResult } from "./loop/replan.js";
+
+// Cross-session learning
+export { PatternStore } from "./memory/pattern-store.js";
+export type { LearnedPattern as StoredPattern } from "./memory/pattern-store.js";

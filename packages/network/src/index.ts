@@ -21,5 +21,9 @@ export type { MaskingPattern, MaskRegion } from "./security/masking.js";
 export { TunnelManager } from "./tunnel/cloudflare.js";
 export type { TunnelInfo, TunnelOptions } from "./tunnel/cloudflare.js";
 
+// Domain guard
+export { DomainGuard } from "./security/domain-guard.js";
+export type { DomainGuardConfig, BlockedRequest } from "./security/domain-guard.js";
+
 // Stealth browsing
 export { StealthEngine } from "./stealth/stealth.js";

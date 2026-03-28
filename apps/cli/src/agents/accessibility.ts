@@ -713,7 +713,7 @@ export async function checkAccessibility(
 
   // Keyboard nav summary
   if (keyboardNav.traps.length > 0) {
-    onProgress("fail", `  ✗ Keyboard: Focus trap detected`);
+    onProgress("fail", `Keyboard: Focus trap detected`);
   } else if (keyboardNav.missingIndicators.length > 0) {
     onProgress("warn", `  ⚠ Keyboard: ${keyboardNav.missingIndicators.length} elements missing focus indicators`);
   } else {

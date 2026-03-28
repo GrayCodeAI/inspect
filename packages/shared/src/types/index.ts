@@ -16,3 +16,4 @@ export * from "./crawler.js";
 export * from "./websocket.js";
 export * from "./stealth.js";
 export * from "./proxy.js";
+export * from "./dashboard.js";

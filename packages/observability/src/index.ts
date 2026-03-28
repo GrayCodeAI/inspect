@@ -42,6 +42,13 @@ export type {
   PageLike,
 } from "./performance.js";
 
+// Notifications (Slack, Discord)
+export { Notifier } from "./notifications.js";
+export type {
+  NotificationConfig,
+  TestNotification,
+} from "./notifications.js";
+
 // Structured Logging
 export { Logger, createLogger } from "./logging.js";
 export type {

@@ -54,7 +54,7 @@ export async function runResponsiveAudit(
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      onProgress("fail", `    ✗ ${vp.label}: ${message}`);
+      onProgress("fail", `${vp.label}: ${message}`);
       viewportResults.push({
         width: vp.width,
         height: vp.height,
@@ -99,7 +99,7 @@ export async function runResponsiveAudit(
   } else if (score >= 60) {
     onProgress("warn", `  ⚠ Responsive score: ${score}/100`);
   } else {
-    onProgress("fail", `  ✗ Responsive score: ${score}/100`);
+    onProgress("fail", `Responsive score: ${score}/100`);
   }
 
   onProgress("done", `Responsive audit complete — ${viewportResults.length} viewports tested`);

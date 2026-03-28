@@ -97,3 +97,51 @@ export const getPerfResults = () =>
     url: string;
     timestamp: number;
   }>("/audits/performance").catch(() => null);
+
+// Dashboard — live multi-agent monitoring
+export const getDashboardSnapshot = () =>
+  request<{
+    runs: Array<{
+      runId: string;
+      testName: string;
+      device: string;
+      browser: string;
+      agent: string;
+      status: string;
+      phase: string;
+      currentStep: number;
+      totalSteps: number;
+      tokenCount: number;
+      elapsed: number;
+      screenshot?: string;
+      agentActivity?: { type: string; target?: string; description: string; timestamp: number };
+      logs: Array<{ runId: string; level: string; message: string; timestamp: number }>;
+      startedAt: number;
+      completedAt?: number;
+    }>;
+    summary: { totalRuns: number; completed: number; passed: number; failed: number; running: number; queued: number; elapsed: number };
+  }>("/dashboard");
+
+export const spawnDashboardRun = (config: {
+  instruction: string;
+  url?: string;
+  agent?: string;
+  devices: string[];
+  browser?: string;
+  headed?: boolean;
+  a11y?: boolean;
+  lighthouse?: boolean;
+}) =>
+  request<{ runIds: string[]; count: number }>("/dashboard/run", {
+    method: "POST",
+    body: JSON.stringify(config),
+  });
+
+export const cancelDashboardRun = (runId: string) =>
+  request<{ cancelled: boolean }>(`/dashboard/run/${runId}/cancel`, { method: "POST" });
+
+export const cancelAllDashboardRuns = () =>
+  request<{ cancelled: boolean }>("/dashboard/cancel-all", { method: "POST" });
+
+export const clearDashboardCompleted = () =>
+  request<{ cleared: boolean }>("/dashboard/clear", { method: "POST" });

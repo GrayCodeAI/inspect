@@ -187,16 +187,11 @@ function useSpinner(active: boolean): { char: string; color: string; verb: strin
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     if (!active) return;
+    // Pick one verb per request — no cycling
     setStateIdx(Math.floor(Math.random() * SPINNER_STATES.length));
     setFrame(0);
     const frameTimer = setInterval(() => setFrame((f) => (f + 1) % 4), 100);
-    const verbTimer = setInterval(() => {
-      setStateIdx(Math.floor(Math.random() * SPINNER_STATES.length));
-    }, 3000);
-    return () => {
-      clearInterval(frameTimer);
-      clearInterval(verbTimer);
-    };
+    return () => clearInterval(frameTimer);
   }, [active]);
   if (!active) return { char: "", color: "#f97316", verb: "" };
   const state = SPINNER_STATES[stateIdx];
@@ -822,32 +817,32 @@ export function Repl(): React.ReactElement {
 
   const idRef = React.useRef(1);
   const tokenRef = React.useRef(0);
-  const lastActionStartRef = React.useRef<number>(Date.now());
+  const testStartRef = React.useRef<number>(0);
 
   const CRUNCHES = [
-    { sym: "\u273b", verb: "Crunched", color: "#64748b" },
-    { sym: "\u2726", verb: "Computed", color: "#6b7280" },
-    { sym: "\u2738", verb: "Synthesized", color: "#71717a" },
-    { sym: "\u2727", verb: "Processed", color: "#737373" },
-    { sym: "\u2739", verb: "Analyzed", color: "#78716c" },
-    { sym: "\u273a", verb: "Resolved", color: "#6b7280" },
-    { sym: "\u273c", verb: "Delivered", color: "#78716c" },
-    { sym: "\u273d", verb: "Generated", color: "#71717a" },
-    { sym: "\u2743", verb: "Rendered", color: "#737373" },
-    { sym: "\u2744", verb: "Completed", color: "#6b7280" },
-    { sym: "\u2748", verb: "Assembled", color: "#71717a" },
-    { sym: "\u2749", verb: "Evaluated", color: "#737373" },
-    { sym: "\u274a", verb: "Finalized", color: "#6b7280" },
-    { sym: "\u274b", verb: "Decoded", color: "#78716c" },
-    { sym: "\u2756", verb: "Formatted", color: "#64748b" },
-    { sym: "\u2728", verb: "Polished", color: "#71717a" },
-    { sym: "\u2764", verb: "Crafted", color: "#737373" },
-    { sym: "\u2605", verb: "Built", color: "#6b7280" },
-    { sym: "\u274d", verb: "Parsed", color: "#78716c" },
-    { sym: "\u274c", verb: "Handled", color: "#71717a" },
+    { sym: "\u25c7", verb: "Crunched", color: "#9b5a7a" },
+    { sym: "\u25cb", verb: "Computed", color: "#4a7ab0" },
+    { sym: "\u25a1", verb: "Synthesized", color: "#7a6a9e" },
+    { sym: "\u25b3", verb: "Processed", color: "#2a8a6a" },
+    { sym: "\u25bd", verb: "Analyzed", color: "#a08820" },
+    { sym: "\u25b7", verb: "Resolved", color: "#24907a" },
+    { sym: "\u25c1", verb: "Delivered", color: "#a86a2a" },
+    { sym: "\u2299", verb: "Generated", color: "#8a60b0" },
+    { sym: "\u2295", verb: "Rendered", color: "#1a90a0" },
+    { sym: "\u2296", verb: "Completed", color: "#3a8a50" },
+    { sym: "\u25ce", verb: "Assembled", color: "#9a5aaa" },
+    { sym: "\u25a1", verb: "Evaluated", color: "#2a7aaa" },
+    { sym: "\u25c8", verb: "Finalized", color: "#a85a5a" },
+    { sym: "\u2219", verb: "Decoded", color: "#6a8a28" },
+    { sym: "\u25ab", verb: "Formatted", color: "#606aa0" },
+    { sym: "\u25cc", verb: "Polished", color: "#a08a20" },
+    { sym: "\u2218", verb: "Crafted", color: "#a85a6a" },
+    { sym: "\u229b", verb: "Built", color: "#a88050" },
+    { sym: "\u2298", verb: "Parsed", color: "#4a90a0" },
+    { sym: "\u229c", verb: "Handled", color: "#5a9a6a" },
   ];
 
-  const formatElapsed = (secs: number): string => {
+  const formatDuration = (secs: number): string => {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     const s = Math.floor(secs % 60);
@@ -867,21 +862,7 @@ export function Repl(): React.ReactElement {
     text = text.replace(/Current time:\s*[^\n]*/gi, "").trim();
     // Also strip any standalone environment tags
     text = text.replace(/<\/?environment[_\s]*[Dd]etails>/gi, "").trim();
-    // Append crunch line to result/cmd messages
-    let finalText = text;
-    if (
-      (kind === "result" || kind === "cmd") &&
-      !text.startsWith("TOKENS:") &&
-      !text.startsWith("TIER_BANNER:") &&
-      !text.startsWith("PROGRESS_BAR:") &&
-      text.trim().length > 0
-    ) {
-      const elapsed = (Date.now() - lastActionStartRef.current) / 1000;
-      const c = CRUNCHES[Math.floor(Math.random() * CRUNCHES.length)];
-      finalText = text + "\n\n\n" + `  ${c.sym} ${c.verb} in ${formatElapsed(elapsed)}`;
-      lastActionStartRef.current = Date.now();
-    }
-    setMsgs((p) => [...p, { id: msgId, kind, text: finalText }]);
+    setMsgs((p) => [...p, { id: msgId, kind, text }]);
 
     // Detect structured TOKENS message from orchestrator
     if (text.startsWith("TOKENS:")) {
@@ -896,9 +877,9 @@ export function Repl(): React.ReactElement {
       return;
     }
 
-    // Estimate ~4 chars per token for chat/info messages
-    const tokens = Math.ceil(text.length / 4);
-    if (tokens > 0) {
+    // Only update token count for actual LLM responses (result kind), not every message
+    if (kind === "result" && text.length > 0 && !text.startsWith("CRUNCH:")) {
+      const tokens = Math.ceil(text.length / 4);
       tokenRef.current += tokens;
       setTotalTokens(tokenRef.current);
       setTotalCost((prev) => prev + tokens * 0.000005);
@@ -966,6 +947,7 @@ export function Repl(): React.ReactElement {
 
     if (testUrl) {
       setBusy(true);
+      testStartRef.current = Date.now();
       try {
         const { runFullTest } = await import("../agents/orchestrator.js");
         // Use headed if display available, headless otherwise
@@ -1018,6 +1000,8 @@ export function Repl(): React.ReactElement {
               /^\d+ (serious|moderate|minor)$/, // "3 serious" count lines
               /^Crawled \d+ pages?,/, // duplicate of pass line
               /^Framework hydration complete/, // merge with SPA detected
+              /^Console errors?:\s*\d+/i, // console error counts — shown in report
+              /^\u26A0\s*Console errors/i, // ⚠ Console errors variant
             ];
             let lastLine = "";
             const seenViewportIssues = new Map<string, number>(); // collapse same issues
@@ -1083,6 +1067,10 @@ export function Repl(): React.ReactElement {
             };
           })(),
         });
+        // Total time with random verb — shown once at completion
+        const totalSecs = (Date.now() - testStartRef.current) / 1000;
+        const c = CRUNCHES[Math.floor(Math.random() * CRUNCHES.length)];
+        push("result", `CRUNCH:${c.color}:${c.sym} ${c.verb} in ${formatDuration(totalSecs)}`);
       } catch (err: any) {
         push("error", `Agent test failed: ${err.message}`);
         push("info", "Make sure browsers are installed: /install");
@@ -1093,9 +1081,12 @@ export function Repl(): React.ReactElement {
 
     // Otherwise chat with AI
     setBusy(true);
+    const chatStart = Date.now();
     const out = await callLLM(t);
     setBusy(false);
-    push("result", out);
+    const chatSecs = (Date.now() - chatStart) / 1000;
+    const c = CRUNCHES[Math.floor(Math.random() * CRUNCHES.length)];
+    push("result", out + `\n\n\nCRUNCH:${c.color}:${c.sym} ${c.verb} in ${formatDuration(chatSecs)}`);
   }, [input, push, exit, hist]);
 
   const ctrlCRef = React.useRef(0);
@@ -1608,11 +1599,16 @@ export function Repl(): React.ReactElement {
               );
             case "user":
               return (
-                <Box key={m.id} paddingX={2} marginTop={1}>
-                  <Text color="#f97316" bold>
-                    {"\u25c6"}{" "}
-                  </Text>
-                  <Text color="#e2e8f0">{m.text}</Text>
+                <Box key={m.id} flexDirection="column">
+                  <Box paddingX={2}>
+                    <Text color="#334155">{"\u2500".repeat(Math.min(60, process.stdout.columns - 4 || 76))}</Text>
+                  </Box>
+                  <Box paddingX={2} marginTop={1}>
+                    <Text color="#f97316" bold>
+                      {"\u25c6"}{" "}
+                    </Text>
+                    <Text color="#e2e8f0">{m.text}</Text>
+                  </Box>
                 </Box>
               );
             case "result":
@@ -1624,6 +1620,10 @@ export function Repl(): React.ReactElement {
                     .split("\n")
                     .filter((line) => !/<\/?environment/i.test(line) && !/Current time:/.test(line))
                     .map((line, i) => {
+                      // Preserve blank lines as spacing
+                      if (line.trim() === "") {
+                        return <Text key={i}>{" "}</Text>;
+                      }
                       // Color result lines based on content
                       if (line.includes("\u2713") || line.includes("✓")) {
                         return (
@@ -1643,9 +1643,17 @@ export function Repl(): React.ReactElement {
                           </Text>
                         );
                       }
-                      // Dim crunch line and any envDetails leftovers
+                      // Colored crunch timing line (CRUNCH:color:text)
+                      const crunchMatch = line.match(/^\s*CRUNCH:(#[0-9a-fA-F]+):(.+)$/);
+                      if (crunchMatch) {
+                        return (
+                          <Text key={i} color={crunchMatch[1]}>
+                            {crunchMatch[2]}
+                          </Text>
+                        );
+                      }
+                      // Dim envDetails leftovers
                       if (
-                        /^\s+[\u2700-\u27bf\u2600-\u26ff]/.test(line) ||
                         /<environment/i.test(line) ||
                         /Current time:/.test(line)
                       ) {

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import type { ExecutionResult, StepResult } from "../orchestrator/executor.js";
+import type { GeneratedTestSuite, GeneratedTest, GeneratedStep } from "../testing/generator.js";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 
@@ -104,6 +105,115 @@ export function exportPlaywrightTest(
 
   writeFileSync(outputPath, code, "utf-8");
   return outputPath;
+}
+
+// ── Export from GeneratedTestSuite ──────────────────────────────────────
+
+/**
+ * Generate a Playwright test file from a GeneratedTestSuite (from TestGenerator).
+ * Produces a complete .spec.ts with describe/it blocks for each test.
+ */
+export function generatePlaywrightFromSuite(
+  suite: GeneratedTestSuite,
+  options: PlaywrightExportOptions = {},
+): string {
+  const lines: string[] = [];
+  const testName = options.testName ?? suite.title;
+
+  lines.push(`import { test, expect } from "@playwright/test";`);
+  lines.push("");
+  lines.push(`// Auto-generated from Inspect TestGenerator`);
+  lines.push(`// URL: ${suite.url}`);
+  lines.push(`// Page type: ${suite.pageType}`);
+  lines.push("");
+  lines.push(`test.describe("${escapeString(testName)}", () => {`);
+
+  if (suite.url) {
+    lines.push(`  test.beforeEach(async ({ page }) => {`);
+    lines.push(`    await page.goto("${escapeString(suite.url)}");`);
+    lines.push(`    await page.waitForLoadState("domcontentloaded");`);
+    lines.push(`  });`);
+    lines.push("");
+  }
+
+  for (const test of suite.tests) {
+    lines.push(`  test("${escapeString(test.name)}", async ({ page }) => {`);
+
+    if (options.includeComments !== false) {
+      lines.push(`    // ${test.description}`);
+      lines.push(`    // Category: ${test.category} | Priority: ${test.priority}`);
+    }
+
+    for (const step of test.steps) {
+      const code = generatedStepToPlaywright(step);
+      if (code) {
+        lines.push(`    ${code}`);
+      }
+    }
+
+    // Add assertions as expect comments/placeholders
+    if (options.includeAssertions !== false && test.assertions.length > 0) {
+      lines.push("");
+      lines.push(`    // Assertions:`);
+      for (const assertion of test.assertions) {
+        lines.push(`    // TODO: ${assertion}`);
+      }
+    }
+
+    lines.push(`  });`);
+    lines.push("");
+  }
+
+  lines.push(`});`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/**
+ * Export a GeneratedTestSuite to a .spec.ts file on disk.
+ */
+export function exportPlaywrightFromSuite(
+  suite: GeneratedTestSuite,
+  options: PlaywrightExportOptions = {},
+): string {
+  const code = generatePlaywrightFromSuite(suite, options);
+
+  const outputPath = options.outputPath
+    ?? join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(suite.title)}.spec.ts`);
+
+  const dir = dirname(outputPath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  writeFileSync(outputPath, code, "utf-8");
+  return outputPath;
+}
+
+function generatedStepToPlaywright(step: GeneratedStep): string | null {
+  switch (step.action) {
+    case "navigate":
+      return step.target ? `await page.goto("${escapeString(step.target)}");` : null;
+    case "click":
+      return step.target
+        ? `await page.getByRole("button", { name: "${escapeString(step.target)}" }).or(page.getByText("${escapeString(step.target)}")).first().click();`
+        : `// click: ${step.description}`;
+    case "type":
+      return step.target && step.value
+        ? `await page.getByLabel("${escapeString(step.target)}").or(page.getByPlaceholder("${escapeString(step.target)}")).fill("${escapeString(step.value)}");`
+        : `// type: ${step.description}`;
+    case "select":
+      return step.target && step.value
+        ? `await page.getByLabel("${escapeString(step.target)}").selectOption("${escapeString(step.value)}");`
+        : `// select: ${step.description}`;
+    case "scroll":
+      return `await page.mouse.wheel(0, 300);`;
+    case "wait":
+      return `await page.waitForLoadState("networkidle");`;
+    case "verify":
+      return `// Verify: ${step.description}`;
+    default:
+      return `// ${step.action}: ${step.description}`;
+  }
 }
 
 // ── Tool call → Playwright code ─────────────────────────────────────────

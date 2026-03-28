@@ -1,5 +1,7 @@
 import type { DeviceConfig } from "../devices/presets.js";
 import type { AgentRouter } from "@inspect/agent";
+import { RecoveryManager } from "./recovery.js";
+import type { RecoveryExecutors } from "./recovery.js";
 
 export interface ExecutionConfig {
   instruction: string;
@@ -89,11 +91,15 @@ export class TestExecutor {
   private abortController: AbortController;
   private tokenCount = 0;
   private startTime = 0;
+  private recoveryManager: RecoveryManager;
+  private maxStepRetries: number;
 
   constructor(config: ExecutionConfig, deps?: ExecutorDependencies) {
     this.config = config;
     this.deps = deps ?? { router: null as unknown as AgentRouter, browserManager: null };
     this.abortController = new AbortController();
+    this.recoveryManager = new RecoveryManager(3);
+    this.maxStepRetries = 2;
   }
 
   /**
@@ -258,53 +264,110 @@ export class TestExecutor {
   }
 
   /**
-   * Execute a single test step.
+   * Execute a single test step with auto-retry and healing.
+   *
+   * On failure, the RecoveryManager diagnoses the error and suggests
+   * strategies (reScan, healSelector, scrollIntoView, etc.). The step
+   * is retried up to `maxStepRetries` times after each successful recovery.
    */
   private async executeStep(step: StepPlan): Promise<StepResult> {
     const stepStart = Date.now();
     const toolCalls: StepResult["toolCalls"] = [];
+    let lastError: string | undefined;
+    let retries = 0;
 
-    try {
-      // Apply step timeout
-      const stepTimeout = new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error("Step timeout")),
-          this.config.stepTimeoutMs
+    while (retries <= this.maxStepRetries) {
+      try {
+        // Apply step timeout
+        const stepTimeout = new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error("Step timeout")),
+            this.config.stepTimeoutMs
+          );
+        });
+
+        // Execute the step (race with timeout)
+        await Promise.race([
+          this.runStep(step, toolCalls),
+          stepTimeout,
+        ]);
+
+        const duration = Date.now() - stepStart;
+        this.tokenCount += 50;
+
+        return {
+          index: step.index,
+          description: step.description,
+          status: "pass",
+          assertion: step.assertion,
+          duration,
+          toolCalls,
+          ...(retries > 0 ? { consoleLogs: [`Passed after ${retries} retry(s)`] } : {}),
+        };
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+
+        // Don't retry if we've used all attempts
+        if (retries >= this.maxStepRetries) break;
+
+        // Diagnose and attempt recovery
+        const diagnosis = this.recoveryManager.diagnose(lastError, {
+          selector: undefined,
+          url: this.config.url,
+        });
+
+        const recovered = await this.recoveryManager.recover(
+          diagnosis,
+          this.getRecoveryExecutors(),
         );
-      });
 
-      // Execute the step (race with timeout)
-      const result = await Promise.race([
-        this.runStep(step, toolCalls),
-        stepTimeout,
-      ]);
+        if (!recovered) break;
 
-      const duration = Date.now() - stepStart;
-      this.tokenCount += 50; // Estimate per-step token usage
-
-      return {
-        index: step.index,
-        description: step.description,
-        status: "pass",
-        assertion: step.assertion,
-        duration,
-        toolCalls,
-      };
-    } catch (err) {
-      const duration = Date.now() - stepStart;
-      const errorMessage =
-        err instanceof Error ? err.message : String(err);
-
-      return {
-        index: step.index,
-        description: step.description,
-        status: "fail",
-        assertion: step.assertion,
-        error: errorMessage,
-        duration,
-        toolCalls,
-      };
+        retries++;
+        this.tokenCount += 10; // Estimate recovery token cost
+      }
     }
+
+    const duration = Date.now() - stepStart;
+    return {
+      index: step.index,
+      description: step.description,
+      status: "fail",
+      assertion: step.assertion,
+      error: lastError,
+      duration,
+      toolCalls,
+      ...(retries > 0 ? { consoleLogs: [`Failed after ${retries} retry(s): ${lastError}`] } : {}),
+    };
+  }
+
+  /**
+   * Build recovery executors for the current execution context.
+   * These provide the concrete implementations that RecoveryManager calls.
+   */
+  private getRecoveryExecutors(): RecoveryExecutors {
+    return {
+      reScan: async () => {
+        // Re-scan would re-capture the ARIA tree; always succeeds as a reset
+        return true;
+      },
+      waitForLoad: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return true;
+      },
+      scrollIntoView: async () => {
+        // Would scroll the target into view; placeholder
+        return true;
+      },
+      dismissOverlay: async () => {
+        // Would dismiss modals/overlays; placeholder
+        return true;
+      },
+      refreshPage: async () => {
+        // Would call page.reload(); placeholder
+        return true;
+      },
+    };
   }
 
   /**

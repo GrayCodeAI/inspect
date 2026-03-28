@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export interface InspectConfig {
   url?: string;
@@ -13,6 +14,25 @@ export interface InspectConfig {
   timeouts?: { test?: number; step?: number; navigation?: number };
   maxSteps?: number;
   reporting?: { format?: string; output?: string; prComment?: boolean };
+  /** Slack webhook URL for notifications */
+  slackWebhookUrl?: string;
+  /** Discord webhook URL for notifications */
+  discordWebhookUrl?: string;
+  /** Only notify on failure */
+  notifyOnFailureOnly?: boolean;
+  /** Test prioritization weights */
+  prioritization?: {
+    flakiness?: number;
+    failureRecency?: number;
+    changeOverlap?: number;
+    speed?: number;
+    reliability?: number;
+  };
+  /** Cross-browser testing config */
+  crossBrowser?: {
+    browsers?: Array<"chromium" | "firefox" | "webkit">;
+    parallel?: boolean;
+  };
 }
 
 const CONFIG_FILES = [
@@ -24,8 +44,8 @@ const CONFIG_FILES = [
 ];
 
 /**
- * Load the inspect config file from the project root.
- * Searches for known config file names and returns parsed config.
+ * Load the inspect config file from the project root (sync, JSON only).
+ * For TS/JS configs, use loadConfigAsync().
  */
 export function loadConfig(cwd?: string): InspectConfig | null {
   const dir = cwd ?? process.cwd();
@@ -39,10 +59,54 @@ export function loadConfig(cwd?: string): InspectConfig | null {
         const content = readFileSync(filePath, "utf-8");
         return JSON.parse(content) as InspectConfig;
       }
-      // For .ts/.js files, we can't easily import them at runtime
-      // without a bundler. Return a marker that config exists.
+      // TS/JS files need async loading — return marker
       return {} as InspectConfig;
     } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Load the inspect config file with full TS/JS support via dynamic import.
+ *
+ * For `.ts` files, this relies on the Node.js loader (e.g., tsx, ts-node)
+ * being available. For `.js` files, uses native ESM import.
+ */
+export async function loadConfigAsync(cwd?: string): Promise<InspectConfig | null> {
+  const dir = cwd ?? process.cwd();
+
+  for (const file of CONFIG_FILES) {
+    const filePath = resolve(dir, file);
+    if (!existsSync(filePath)) continue;
+
+    try {
+      if (file.endsWith(".json") || file === ".inspectrc") {
+        const content = readFileSync(filePath, "utf-8");
+        return JSON.parse(content) as InspectConfig;
+      }
+
+      if (file.endsWith(".ts") || file.endsWith(".js")) {
+        // Use file:// URL for cross-platform ESM import
+        const fileUrl = pathToFileURL(filePath).href;
+
+        // Add cache-busting query to avoid stale module cache
+        const mod = await import(`${fileUrl}?t=${Date.now()}`);
+
+        // Support both `export default` and `module.exports`
+        const config = mod.default ?? mod;
+
+        // If it's a function (defineConfig pattern), call it
+        if (typeof config === "function") {
+          return config() as InspectConfig;
+        }
+
+        return config as InspectConfig;
+      }
+    } catch {
+      // Config file exists but failed to load — return null
       return null;
     }
   }

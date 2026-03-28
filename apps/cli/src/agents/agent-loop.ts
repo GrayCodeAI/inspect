@@ -9,8 +9,11 @@
 // ============================================================================
 
 import type { Page } from "@inspect/browser";
+import { AnnotatedScreenshot, DOMDiff } from "@inspect/browser";
 import type { TestStep, TestPlan, LLMCall, ProgressCallback, ValidationResult } from "./types.js";
 import { detectPageType } from "./planner.js";
+import { ActionLoopDetector, ActCache } from "@inspect/agent";
+import type { SpeculativePlanner } from "@inspect/core";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -176,12 +179,14 @@ export async function runAgentLoop(opts: {
   AriaSnapshotBuilder: any;
   networkMonitor: any;
   consoleMonitor: any;
+  specPlanner?: SpeculativePlanner;
 }): Promise<AgentLoopResult> {
   const {
     page, llm, onProgress, maxSteps,
     executeStep, validateStep,
     screenshotDir, AriaSnapshotBuilder,
     networkMonitor, consoleMonitor,
+    specPlanner,
   } = opts;
 
   let snapshotText = opts.snapshot;
@@ -189,6 +194,10 @@ export async function runAgentLoop(opts: {
   const history: ActionHistoryEntry[] = [];
   const results: TestStep[] = [];
   let stepId = 1;
+
+  // --- Feature integrations (Browser Use / Stagehand / Shortest patterns) ---
+  const loopDetector = new ActionLoopDetector({ windowSize: 10, threshold: 3, maxNudges: 2 });
+  const actionCache = new ActCache({ enabled: true });
 
   // Always start with a screenshot
   const { join } = await import("node:path");
@@ -211,38 +220,70 @@ export async function runAgentLoop(opts: {
     const currentUrl = page.url();
     const currentTitle = await page.title().catch(() => opts.title);
 
-    // Ask the agent what to do next
-    const prompt = buildAgentPrompt(currentUrl, currentTitle, snapshotText, history, spaRoutes);
-
-    let agentResponse: string;
-    try {
-      agentResponse = await llm([{ role: "user", content: prompt }]);
-    } catch (err: unknown) {
-      onProgress("warn", `Agent LLM call failed: ${err instanceof Error ? err.message : String(err)}`);
+    // --- Loop detection: check before next action ---
+    const loopCheck = loopDetector.check();
+    if (loopCheck.forceStop) {
+      onProgress("warn", "Loop detected — agent is stuck, stopping");
       break;
     }
 
-    const action = parseAgentAction(agentResponse);
+    // --- Speculative Planning (Skyvern pattern): try pre-computed prompt ---
+    let prompt: string;
+    const specPlan = specPlanner?.get(results.length, currentUrl);
+    if (specPlan) {
+      prompt = specPlan.prompt;
+    } else {
+      prompt = buildAgentPrompt(currentUrl, currentTitle, snapshotText, history, spaRoutes);
+    }
+    if (loopCheck.detected && loopCheck.message) {
+      prompt += `\n\nWARNING: ${loopCheck.message}`;
+    }
 
-    if (!action) {
-      onProgress("warn", "Agent returned unparseable response, retrying...");
-      // One retry with corrective prompt
+    // --- Cache lookup: skip LLM if we have a cached action for this state ---
+    const cacheInstruction = `${currentUrl}|${snapshotText.slice(0, 200)}`;
+    const cached = actionCache.get(cacheInstruction, currentUrl);
+    let action: AgentAction | null = null;
+
+    if (cached) {
+      action = {
+        action: cached.action.type,
+        target: cached.action.target,
+        value: cached.action.value,
+        reasoning: "(cached — replaying previous action)",
+      };
+      actionCache.recordReplay(ActCache.key(cacheInstruction, currentUrl));
+    } else {
+      // Ask the agent what to do next
+      let agentResponse: string;
       try {
-        const retryResp = await llm([{
-          role: "user",
-          content: `Your response was not valid JSON. Return ONLY: {"action": "...", "target": "...", "assertion": "..."}\n\nFix this:\n${agentResponse.slice(0, 500)}`,
-        }]);
-        const retryAction = parseAgentAction(retryResp);
-        if (!retryAction) {
-          onProgress("warn", "Agent response still unparseable — stopping");
-          break;
-        }
-        Object.assign(action ?? {}, retryAction);
-        if (!action) break;
-      } catch {
+        agentResponse = await llm([{ role: "user", content: prompt }]);
+      } catch (err: unknown) {
+        onProgress("warn", `Agent LLM call failed: ${err instanceof Error ? err.message : String(err)}`);
         break;
       }
-    }
+
+      action = parseAgentAction(agentResponse);
+
+      if (!action) {
+        onProgress("warn", "Agent returned unparseable response, retrying...");
+        // One retry with corrective prompt
+        try {
+          const retryResp = await llm([{
+            role: "user",
+            content: `Your response was not valid JSON. Return ONLY: {"action": "...", "target": "...", "assertion": "..."}\n\nFix this:\n${agentResponse.slice(0, 500)}`,
+          }]);
+          const retryAction = parseAgentAction(retryResp);
+          if (!retryAction) {
+            onProgress("warn", "Agent response still unparseable — stopping");
+            break;
+          }
+          Object.assign(action ?? {}, retryAction);
+          if (!action) break;
+        } catch {
+          break;
+        }
+      }
+    } // end cache else
 
     // Agent says it's done testing
     if (action.action === "done") {
@@ -276,10 +317,44 @@ export async function runAgentLoop(opts: {
     networkMonitor.failures.length = 0;
     const prevConsoleErrors = [...consoleMonitor.errors];
 
+    // --- Two-Step Actions (Stagehand pattern): DOMDiff for select/dropdown ---
+    const isTwoStep = action.action === "select" || action.action === "hover";
+    const domDiff = new DOMDiff();
+    if (isTwoStep) {
+      try { await domDiff.captureBefore(page); } catch { /* non-critical */ }
+    }
+
     // Execute the step
     step.status = "running";
     const result = await executeStep(step, page, snapshotText, llm, onProgress);
     results.push(result);
+
+    // --- Two-Step: capture diff and let LLM pick from new options ---
+    if (isTwoStep && result.status === "pass") {
+      try {
+        await page.waitForTimeout(300);
+        const diff = await domDiff.captureAfter(page);
+        if (diff.added.length > 0) {
+          const optionsList = diff.added
+            .filter(el => el.role === "option" || el.tagName === "option" || el.tagName === "li" || el.tagName === "a")
+            .map(el => el.text)
+            .filter(Boolean)
+            .join(", ");
+          if (optionsList) {
+            // Inject diff context into next iteration's history
+            history.push({
+              step: results.length,
+              action: "dom_diff",
+              target: undefined,
+              result: "pass",
+              pageChanged: true,
+              url: page.url(),
+              summary: `Dropdown opened — options: ${optionsList.slice(0, 200)}`,
+            });
+          }
+        }
+      } catch { /* non-critical */ }
+    }
 
     // Wait for page to settle
     await page.waitForTimeout(500);
@@ -295,6 +370,29 @@ export async function runAgentLoop(opts: {
 
     const newConsoleErrors = consoleMonitor.errors.filter((e: string) => !prevConsoleErrors.includes(e));
     const pageChanged = snapshotChangedSignificantly(beforeSnapshot, snapshotText);
+
+    // --- Vision+DOM Fusion (Skyvern pattern): on failure, capture annotated context ---
+    if (result.status === "fail") {
+      try {
+        const annotator = new AnnotatedScreenshot({ maxElements: 20 });
+        const annotated = await annotator.capture(page);
+        // Inject vision context into next prompt via history
+        const elSummary = annotated.elements
+          .map(el => `[${el.id}] ${el.tagName}${el.role ? `(${el.role})` : ""} "${el.text?.slice(0, 40) ?? ""}"`)
+          .join("\n  ");
+        if (elSummary) {
+          history.push({
+            step: results.length,
+            action: "vision_scan",
+            target: undefined,
+            result: "pass",
+            pageChanged: false,
+            url: page.url(),
+            summary: `Visual scan found ${annotated.elements.length} interactive elements:\n  ${elSummary}`,
+          });
+        }
+      } catch { /* vision is non-critical fallback */ }
+    }
 
     // Validate
     if (result.status === "pass" && step.assertion) {
@@ -326,6 +424,27 @@ export async function runAgentLoop(opts: {
         ? (step.assertion ? "verified" : "ok")
         : (result.error ?? "failed"),
     });
+
+    // --- Loop detection: record action ---
+    loopDetector.record(step.action, step.target ?? "", page.url());
+
+    // --- Speculative Planning: pre-build next step's prompt while we can ---
+    if (specPlanner && result.status === "pass") {
+      const nextUrl = page.url();
+      const nextTitle = await page.title().catch(() => opts.title);
+      const nextPrompt = buildAgentPrompt(nextUrl, nextTitle, snapshotText, history, spaRoutes);
+      specPlanner.precompute(results.length + 1, snapshotText, nextPrompt, nextUrl);
+    }
+
+    // --- Cache: store successful actions for future replay ---
+    if (result.status === "pass" && !cached) {
+      actionCache.set(cacheInstruction, currentUrl, {
+        type: step.action,
+        target: step.target,
+        value: step.value,
+        description: step.description,
+      });
+    }
 
     // Track consecutive failures
     if (result.status === "fail") {

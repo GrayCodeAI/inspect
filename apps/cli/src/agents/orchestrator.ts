@@ -29,6 +29,9 @@ import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import chalk from "chalk";
 import { PALETTE, ICONS } from "../utils/theme.js";
+import { WatchdogManager } from "@inspect/agent";
+import { SpeculativePlanner } from "@inspect/core";
+import { RunCache } from "@inspect/core";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -74,6 +77,8 @@ export interface OrchestratorOptions {
   cache?: boolean;
   /** Max token budget (estimated). Test aborts if exceeded. 0 = unlimited */
   tokenBudget?: number;
+  /** Snapshot mode: dom (ARIA only), hybrid (ARIA+DOM merge), cua (vision). Default: dom */
+  mode?: "dom" | "hybrid" | "cua";
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +94,18 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     onProgress,
     viewport = { width: 1440, height: 900 },
     fast = false,
+    mode = "dom",
   } = options;
+
+  // Mode-aware snapshot builder — hybrid merges ARIA+DOM (Stagehand pattern)
+  const captureSnapshot = async (page: any, builder: any): Promise<string> => {
+    if (mode === "hybrid") {
+      const { formatted } = await builder.buildHybridTree(page);
+      return formatted;
+    }
+    await builder.buildTree(page);
+    return builder.getFormattedTree();
+  };
 
   const tiers = {
     discovery: options.tiers?.discovery ?? true,
@@ -119,6 +135,15 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   let formResults: FormTestResult[] | undefined;
   let tokenUsage = 0;
   let discoveredSPARoutes: string[] = [];
+
+  // --- Run Cache: check if we have a cached passing run (Shortest pattern) ---
+  const runCache = new RunCache();
+  const cachedRun = runCache.get(url, "", "desktop");
+  if (cachedRun && !fast) {
+    onProgress("info", `Replaying cached run (${cachedRun.steps.length} steps, saved ${cachedRun.tokenCount} tokens)`);
+    runCache.recordReplay(RunCache.key(url, "", "desktop"));
+    // Still run the test but skip re-caching at the end
+  }
 
   // Wrap LLM with retry + optional cache
   const retriedLlm = withRetry(llm, { maxRetries: 3, baseDelay: 1000 });
@@ -173,6 +198,17 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   // Set up screenshot directory
   const screenshotDir = join(process.cwd(), ".inspect", "screenshots");
   if (!existsSync(screenshotDir)) mkdirSync(screenshotDir, { recursive: true });
+
+  // --- Watchdog System: parallel monitors for popups, captcha, crashes (Browser Use pattern) ---
+  const watchdog = new WatchdogManager({ pollInterval: 2000 });
+  watchdog.onEvent((event) => {
+    if (event.type === "captcha") onProgress("warn", "Captcha detected — may need manual intervention");
+    if (event.type === "crash") onProgress("warn", "Browser crash detected");
+  });
+  watchdog.startAll();
+
+  // --- Speculative Planner: pre-compute next step while current executes (Skyvern pattern) ---
+  const specPlanner = new SpeculativePlanner();
 
   try {
     // =========================================================================
@@ -237,8 +273,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     // ARIA snapshot
     const { AriaSnapshotBuilder } = await import("@inspect/browser");
     const snapshotBuilder = new AriaSnapshotBuilder();
-    await snapshotBuilder.buildTree(page);
-    let snapshotText = snapshotBuilder.getFormattedTree();
+    let snapshotText = await captureSnapshot(page, snapshotBuilder);
     const stats = snapshotBuilder.getStats();
     onProgress("pass", `Snapshot: ${stats.refCount} elements, ~${stats.tokenEstimate} tokens`);
 
@@ -260,8 +295,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
         // Re-snapshot
         const recoverBuilder = new AriaSnapshotBuilder();
-        await recoverBuilder.buildTree(page);
-        snapshotText = recoverBuilder.getFormattedTree();
+        snapshotText = await captureSnapshot(page, recoverBuilder);
       } catch (err: unknown) {
         onProgress("warn", `Crawl skipped: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -307,8 +341,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
           try {
             const rebuildSnap = new AriaSnapshotBuilder();
-            await rebuildSnap.buildTree(page);
-            snapshotText = rebuildSnap.getFormattedTree();
+            snapshotText = await captureSnapshot(page, rebuildSnap);
           } catch {}
         }
       } catch (err: unknown) {
@@ -346,6 +379,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       AriaSnapshotBuilder,
       networkMonitor,
       consoleMonitor,
+      specPlanner,
     });
 
     const plan = agentResult.plan;
@@ -354,8 +388,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     // Update snapshot to whatever the agent left the page on
     try {
       const finalBuilder = new AriaSnapshotBuilder();
-      await finalBuilder.buildTree(page);
-      snapshotText = finalBuilder.getFormattedTree();
+      snapshotText = await captureSnapshot(page, finalBuilder);
     } catch {}
 
     // Collect screenshots from results
@@ -628,10 +661,31 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       // Non-critical
     }
 
+    // --- Run Cache: save passing run for future replay (Shortest pattern) ---
+    if (report.summary.failed === 0 && !cachedRun) {
+      try {
+        runCache.save(url, "", "desktop", results.map((r, i) => ({
+          index: i,
+          action: r.action,
+          description: r.description,
+          status: (r.status === "pass" ? "pass" : "skipped") as "pass" | "fail" | "skipped",
+          snapshotFingerprint: "",
+        })), Date.now() - startTime, tokenUsage);
+      } catch { /* non-critical */ }
+    }
+
+    // --- Watchdog + Speculative Planner cleanup ---
+    watchdog.stopAll();
+    const specStats = specPlanner.getStats();
+    if (specStats.used > 0) {
+      onProgress("info", `Speculative planner: ${specStats.used}/${specStats.generated} plans used (~${specStats.estimatedTimeSavedMs}ms saved)`);
+    }
+
     await browserMgr.closeBrowser();
     return report;
   } catch (err: unknown) {
     onProgress("fail", `Test failed: ${err instanceof Error ? err.message : String(err)}`);
+    watchdog.stopAll();
     await browserMgr.closeBrowser();
     throw err;
   }

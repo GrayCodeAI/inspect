@@ -23,6 +23,22 @@ export {
   type JSONReporterOptions,
 } from "./formats/json.js";
 
+export {
+  GitHubActionsReporter,
+  type GitHubActionsReporterOptions,
+  type ActionsTestSuite,
+  type ActionsTestResult,
+  type ActionsTestStep,
+} from "./formats/github-actions.js";
+
+// Report aggregation
+export {
+  ReportAggregator,
+  type AggregatedRun,
+  type AggregatedStep,
+  type AggregatedReport,
+} from "./formats/aggregator.js";
+
 // GitHub integration
 export {
   GitHubCommentFormatter,

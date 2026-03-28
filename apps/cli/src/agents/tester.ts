@@ -189,7 +189,22 @@ export async function executeStep(
   step.status = "fail";
   step.error = lastError?.message ?? "Unknown error";
   step.retries = maxAttempts - 1;
-  onProgress("fail", `  ✗ ${step.error}`);
+  onProgress("fail", step.error);
+
+  // Auto-screenshot on failure
+  try {
+    const { existsSync: fsExists, mkdirSync: fsMkdir } = await import("node:fs");
+    const { join: pathJoin } = await import("node:path");
+    const screenshotDir = pathJoin(process.cwd(), ".inspect", "screenshots");
+    if (!fsExists(screenshotDir)) fsMkdir(screenshotDir, { recursive: true });
+    const failScreenshot = pathJoin(screenshotDir, `fail-step-${step.id}-${Date.now()}.png`);
+    await page.screenshot({ path: failScreenshot, fullPage: false });
+    step.screenshot = failScreenshot;
+    onProgress("info", `Failure screenshot: ${failScreenshot.replace(process.cwd(), ".")}`);
+  } catch {
+    // Screenshot capture failed — non-critical
+  }
+
   step.duration = Date.now() - startTime;
   return step;
 }

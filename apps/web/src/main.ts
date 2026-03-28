@@ -16,6 +16,7 @@ import { renderModels } from "./pages/models.js";
 import { renderSettings } from "./pages/settings.js";
 import { renderA11y } from "./pages/a11y.js";
 import { renderPerformance } from "./pages/performance.js";
+import { renderLiveDashboard } from "./pages/live-dashboard.js";
 
 // Register all pages
 registerPage("dashboard", renderDashboard);
@@ -30,6 +31,7 @@ registerPage("models", renderModels);
 registerPage("settings", renderSettings);
 registerPage("a11y", renderA11y);
 registerPage("performance", renderPerformance);
+registerPage("live", renderLiveDashboard);
 
 // Start the router
 startRouter();

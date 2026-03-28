@@ -15,6 +15,12 @@ export type { SchedulerConfig, ScheduledRun } from "./orchestrator/scheduler.js"
 export { RecoveryManager } from "./orchestrator/recovery.js";
 export type { FailureType, RecoveryStrategy, DiagnosisResult } from "./orchestrator/recovery.js";
 
+export { SpeculativePlanner } from "./orchestrator/speculative.js";
+export type { SpeculativePlan, SpeculativeStats } from "./orchestrator/speculative.js";
+
+export { CheckpointManager } from "./orchestrator/checkpoint.js";
+export type { CheckpointData, CheckpointStep } from "./orchestrator/checkpoint.js";
+
 export { GitManager } from "./git/git.js";
 
 export { Fingerprint } from "./git/fingerprint.js";
@@ -36,13 +42,102 @@ export type { DeviceRunResult } from "./devices/pool.js";
 
 export { VisualRegression } from "./visual/regression.js";
 
-export { generatePlaywrightTest, exportPlaywrightTest } from "./export/playwright.js";
+export { generatePlaywrightTest, exportPlaywrightTest, generatePlaywrightFromSuite, exportPlaywrightFromSuite } from "./export/playwright.js";
 export type { PlaywrightExportOptions } from "./export/playwright.js";
 export type {
   VisualRegressionConfig,
   VisualComparisonResult,
   VisualRegressionReport,
 } from "./visual/regression.js";
+
+// Dashboard orchestrator
+export { DashboardOrchestrator } from "./orchestrator/dashboard.js";
+
+// Test run caching
+export { RunCache } from "./testing/run-cache.js";
+export type { CachedTestRun, CachedStep, RunCacheConfig } from "./testing/run-cache.js";
+
+// Error classification
+export {
+  ErrorClassifier,
+  type ErrorCategory,
+  type ClassifiedError,
+} from "./testing/error-classifier.js";
+
+// Plugin system
+export {
+  PluginLoader,
+  definePlugin,
+  type InspectPlugin,
+  type PluginContext,
+  type PluginTool,
+  type PluginAssertion,
+} from "./plugins/loader.js";
+
+// Diff-based testing
+export {
+  DiffRunner,
+  type DiffTestConfig,
+  type CoverageMapEntry,
+  type DiffAnalysis,
+  type ChangeCategory,
+} from "./testing/diff-runner.js";
+
+// Retry policies
+export {
+  RetryExecutor,
+  RETRY_PRESETS,
+  type RetryPolicy,
+  type RetryStrategy,
+  type RetryResult,
+  type RetryAttempt,
+} from "./testing/retry.js";
+
+// Test tagging & filtering
+export {
+  TagExpression,
+  TestFilter,
+  type TaggedTest,
+} from "./testing/tags.js";
+
+// Benchmark tracking
+export {
+  BenchmarkTracker,
+  type BenchmarkEntry,
+  type BenchmarkTrend,
+  type BenchmarkReport,
+} from "./testing/benchmark.js";
+
+// Test prioritization
+export {
+  TestPrioritizer,
+  type TestEntry,
+  type PrioritizationInput,
+  type PrioritizationWeights,
+  type PrioritizedTest,
+  type PrioritizationResult,
+} from "./testing/prioritizer.js";
+
+// Cross-browser comparison
+export {
+  CrossBrowserComparator,
+  type CrossBrowserConfig,
+  type BrowserRunResult,
+  type CrossBrowserDiff,
+  type StepDiff,
+  type PerformanceComparison,
+} from "./testing/cross-browser.js";
+
+// Test generation
+export {
+  TestGenerator,
+  type PageAnalysis,
+  type GeneratedTest,
+  type GeneratedTestSuite,
+  type GeneratedStep,
+  type TestCategory,
+  type PageType,
+} from "./testing/generator.js";
 
 // Flakiness detection
 export {

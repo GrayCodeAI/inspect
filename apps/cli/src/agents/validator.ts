@@ -326,9 +326,9 @@ Respond with JSON: {"valid": true/false, "details": "what changed or why it fail
     };
 
     if (result.valid) {
-      onProgress("pass", `  ✓ Validated: ${result.details.slice(0, 80)}`);
+      onProgress("pass", `\u2713 Validated: ${result.details.slice(0, 80)}`);
     } else {
-      onProgress("fail", `  ✗ Validation: ${result.details.slice(0, 80)}`);
+      onProgress("fail", `Validation: ${result.details.slice(0, 80)}`);
       step.status = "fail";
       step.error = result.details;
     }

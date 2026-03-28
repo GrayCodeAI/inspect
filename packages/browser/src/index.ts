@@ -21,8 +21,14 @@ export { RefManager } from "./aria/refs.js";
 export { DOMCapture } from "./dom/capture.js";
 export { HybridTree } from "./dom/hybrid.js";
 export { FrameRegistry } from "./dom/frames.js";
+export { PageToMarkdown } from "./dom/page-to-markdown.js";
+export type { PageToMarkdownOptions } from "./dom/page-to-markdown.js";
+export { DOMDiff } from "./dom/dom-diff.js";
+export type { DOMDiffResult, DiffElement } from "./dom/dom-diff.js";
+export { DOMSettler } from "./dom/dom-settler.js";
+export type { DOMSettlerOptions } from "./dom/dom-settler.js";
 
-// Vision / screenshot
+// Vision / screenshot + annotated
 export { ScreenshotCapture } from "./vision/screenshot.js";
 export {
   VisionDetector,
@@ -30,6 +36,8 @@ export {
   GeminiVisionClient,
   type VisionLLMClient,
 } from "./vision/detector.js";
+export { AnnotatedScreenshot } from "./vision/annotated-screenshot.js";
+export type { AnnotatedScreenshotOptions, AnnotatedScreenshotResult, AnnotatedElement } from "./vision/annotated-screenshot.js";
 
 // Cookie extraction
 export {
@@ -43,6 +51,8 @@ export { CookieExtractor } from "./cookies/extract.js";
 // Session recording
 export { SessionRecorder } from "./session/recorder.js";
 export { HARRecorder } from "./session/har.js";
+export { VideoExporter } from "./session/video-export.js";
+export type { VideoExportOptions, VideoExportResult } from "./session/video-export.js";
 
 // MCP server
 export { MCPServer } from "./mcp/server.js";
@@ -75,6 +85,28 @@ export {
   type LightpandaConfig,
   type BrowserBackend,
 } from "./backends/lightpanda.js";
+
+// Mobile gestures
+export {
+  GestureSimulator,
+  type GestureOptions,
+  type SwipeOptions,
+  type GestureResult,
+} from "./mobile/gestures.js";
+
+// Watchdog system
+export { BrowserWatchdog } from "./watchdog/index.js";
+export type { WatchdogOptions, WatchdogEvent } from "./watchdog/index.js";
+
+// Actions
+export { FileUploadTester } from "./actions/file-upload.js";
+export type { FileUploadResult } from "./actions/file-upload.js";
+export { DragDrop } from "./actions/drag-drop.js";
+export type { DragDropOptions, DragDropResult } from "./actions/drag-drop.js";
+
+// Network interception
+export { NetworkInterceptor } from "./network/interceptor.js";
+export type { MockRoute, BlockRule } from "./network/interceptor.js";
 
 // Re-export shared types for convenience
 export type {
