@@ -503,11 +503,17 @@ async function callLLM(instruction: string): Promise<string> {
     }
 
     // Strip <environmentDetails>/<environment_details> from LLM response
-    return result
-      .replace(/<environment[_\s]*[Dd]etails>[\s\S]*?<\/environment[_\s]*[Dd]etails>/gi, "")
-      .replace(/<\/?environment[_\s]*[Dd]etails>/gi, "")
-      .replace(/Current time:\s*[^\n]*/gi, "")
+    // Aggressive: truncate everything after the opening tag
+    result = result
+      .replace(/[\s\S]*<environment[_\s]*[Dd]etails>/i, "")
+      .replace(/<\/environment[_\s]*[Dd]etails>/gi, "")
       .trim();
+    // If tag is still there (different format), remove everything from <environment onward
+    const envIdx = result.search(/<environment/i);
+    if (envIdx !== -1) {
+      result = result.slice(0, envIdx).trim();
+    }
+    return result;
   } catch (e: any) {
     if (e.name === "AbortError") return "Request timed out (30s). Try again.";
     return `Error: ${e.message}`;
@@ -848,11 +854,13 @@ export function Repl(): React.ReactElement {
 
   const push = useCallback((kind: MsgKind, rawText: string) => {
     const msgId = idRef.current++;
-    // Strip <environmentDetails>/<environment_details> blocks and leftovers
-    let text = rawText
-      .replace(/<environment[_\s]*[Dd]etails>[\s\S]*?<\/environment[_\s]*[Dd]etails>/gi, "")
-      .replace(/Current time:\s*[^\n]*/gi, "")
-      .trim();
+    // Strip <environment_details>/<environmentDetails> aggressively
+    let text = rawText;
+    const envIdx = text.search(/<environment/i);
+    if (envIdx !== -1) {
+      text = text.slice(0, envIdx).trim();
+    }
+    text = text.replace(/Current time:\s*[^\n]*/gi, "").trim();
     // Also strip any standalone environment tags
     text = text.replace(/<\/?environment[_\s]*[Dd]etails>/gi, "").trim();
     // Append crunch line to result/cmd messages
