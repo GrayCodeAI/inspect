@@ -3,8 +3,16 @@
 // ============================================================================
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  unlinkSync,
+} from "node:fs";
 import { join } from "node:path";
+import { RetryExecutor } from "@inspect/core";
 import type { LLMCall } from "./types.js";
 
 const CACHE_DIR = join(process.cwd(), ".inspect", "cache");
@@ -14,7 +22,7 @@ function ensureCacheDir(): void {
 }
 
 function hashPrompt(messages: Array<{ role: string; content: string }>): string {
-  const raw = messages.map(m => `${m.role}:${m.content}`).join("\n");
+  const raw = messages.map((m) => `${m.role}:${m.content}`).join("\n");
   return createHash("sha256").update(raw).digest("hex").slice(0, 16);
 }
 
@@ -23,60 +31,50 @@ function getCachePath(hash: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Retry wrapper
+// Retry wrapper (uses RetryExecutor from @inspect/core)
 // ---------------------------------------------------------------------------
 
-/** HTTP status codes that warrant a retry */
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 529]);
-
-function isRetryableError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message.toLowerCase();
-  // Rate limit or server error patterns
-  if (msg.includes("rate limit") || msg.includes("too many requests")) return true;
-  if (msg.includes("internal server error") || msg.includes("bad gateway")) return true;
-  if (msg.includes("service unavailable") || msg.includes("overloaded")) return true;
-  if (msg.includes("timeout") || msg.includes("econnreset") || msg.includes("econnrefused")) return true;
-  // Check for status code in message
-  for (const status of RETRYABLE_STATUS) {
-    if (msg.includes(String(status))) return true;
-  }
-  return false;
-}
+/** Error patterns that warrant a retry */
+const RETRYABLE_PATTERNS = [
+  "rate limit",
+  "too many requests",
+  "429",
+  "internal server error",
+  "bad gateway",
+  "500",
+  "502",
+  "service unavailable",
+  "overloaded",
+  "503",
+  "529",
+  "timeout",
+  "econnreset",
+  "econnrefused",
+];
 
 /**
  * Wrap an LLMCall with exponential backoff retry.
- * Retries on 429, 500, 502, 503, timeouts, and connection errors.
+ * Delegates to RetryExecutor from @inspect/core.
  */
 export function withRetry(
   llm: LLMCall,
   options?: { maxRetries?: number; baseDelay?: number },
 ): LLMCall {
-  const maxRetries = options?.maxRetries ?? 3;
-  const baseDelay = options?.baseDelay ?? 1000;
+  const executor = new RetryExecutor({
+    maxRetries: options?.maxRetries ?? 3,
+    strategy: "exponential",
+    baseDelayMs: options?.baseDelay ?? 1000,
+    maxDelayMs: 30_000,
+    jitter: 0.25,
+    retryOn: RETRYABLE_PATTERNS,
+  });
 
   return async (messages) => {
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await llm(messages);
-      } catch (err: unknown) {
-        lastError = err as Error;
-
-        if (attempt >= maxRetries || !isRetryableError(err)) {
-          throw err;
-        }
-
-        // Exponential backoff: 1s, 2s, 4s
-        const delay = baseDelay * Math.pow(2, attempt);
-        // Add jitter: ±25%
-        const jitter = delay * 0.25 * (Math.random() * 2 - 1);
-        await new Promise(r => setTimeout(r, delay + jitter));
-      }
+    const result = await executor.execute(() => llm(messages));
+    if (result.success) {
+      return result.result!;
     }
-
-    throw lastError ?? new Error("LLM call failed after retries");
+    throw new Error(result.error ?? "LLM call failed after retries");
   };
 }
 
@@ -103,7 +101,10 @@ export function withCache(llm: LLMCall, options?: { enabled?: boolean; ttl?: num
     // Check cache
     if (existsSync(cachePath)) {
       try {
-        const cached = JSON.parse(readFileSync(cachePath, "utf-8")) as { response: string; timestamp: number };
+        const cached = JSON.parse(readFileSync(cachePath, "utf-8")) as {
+          response: string;
+          timestamp: number;
+        };
         if (Date.now() - cached.timestamp < ttl) {
           return cached.response;
         }
@@ -130,7 +131,9 @@ export function clearCache(): void {
   if (!existsSync(CACHE_DIR)) return;
   for (const file of readdirSync(CACHE_DIR)) {
     if (file.startsWith("llm-")) {
-      try { unlinkSync(join(CACHE_DIR, file)); } catch {}
+      try {
+        unlinkSync(join(CACHE_DIR, file));
+      } catch {}
     }
   }
 }

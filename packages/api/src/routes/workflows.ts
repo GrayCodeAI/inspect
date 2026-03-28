@@ -2,12 +2,13 @@
 // @inspect/api - Workflow Routes
 // ============================================================================
 
-import { generateId } from "@inspect/shared";
-import type {
-  WorkflowDefinition,
-  WorkflowRun,
-  WorkflowStatus,
+import {
+  generateId,
+  CreateWorkflowSchema,
+  UpdateWorkflowSchema,
+  validateBody,
 } from "@inspect/shared";
+import type { WorkflowDefinition, WorkflowRun, WorkflowStatus } from "@inspect/shared";
 import type { APIServer, APIRequest, APIResponse } from "../server.js";
 
 /** Workflow store interface */
@@ -37,61 +38,31 @@ export interface WorkflowStore {
  * POST   /api/workflows/runs/:id/cancel   - Cancel a run
  * POST   /api/workflows/runs/:id/continue - Continue paused run
  */
-export function registerWorkflowRoutes(
-  server: APIServer,
-  store: WorkflowStore,
-): void {
+export function registerWorkflowRoutes(server: APIServer, store: WorkflowStore): void {
   // POST /api/workflows - Create a workflow
   server.post("/api/workflows", (req: APIRequest, res: APIResponse) => {
-    const body = req.body as Record<string, unknown> | null;
-    if (!body || typeof body !== "object") {
-      res.status(400).json({ error: "Request body must be a JSON object" });
+    const validation = validateBody(CreateWorkflowSchema, req.body);
+    if (!validation.success) {
+      res.status(400).json({ error: validation.error });
       return;
     }
 
-    if (!body.name || typeof body.name !== "string" || !body.name.toString().trim()) {
-      res.status(400).json({ error: "Missing or empty required field: name" });
-      return;
-    }
-
-    // Validate status if provided
-    const validStatuses = ["draft", "active", "paused", "archived"];
-    if (body.status && !validStatuses.includes(String(body.status))) {
-      res.status(400).json({
-        error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
-      });
-      return;
-    }
-
-    // Validate blocks is an array if provided
-    if (body.blocks !== undefined && !Array.isArray(body.blocks)) {
-      res.status(400).json({ error: "blocks must be an array" });
-      return;
-    }
-
-    // Validate tags is an array of strings if provided
-    if (body.tags !== undefined) {
-      if (!Array.isArray(body.tags) || !body.tags.every((t: unknown) => typeof t === "string")) {
-        res.status(400).json({ error: "tags must be an array of strings" });
-        return;
-      }
-    }
-
+    const { data } = validation;
     const now = Date.now();
     const workflow: WorkflowDefinition = {
       id: generateId(),
-      name: String(body.name).trim(),
-      description: body.description ? String(body.description) : undefined,
+      name: data.name,
+      description: data.description,
       version: 1,
-      status: (body.status as WorkflowStatus) ?? "draft",
-      blocks: Array.isArray(body.blocks) ? body.blocks as WorkflowDefinition["blocks"] : [],
-      parameters: body.parameters as WorkflowDefinition["parameters"],
-      cronSchedule: body.cronSchedule as string | undefined,
+      status: data.status,
+      blocks: data.blocks as WorkflowDefinition["blocks"],
+      parameters: data.parameters as WorkflowDefinition["parameters"],
+      cronSchedule: data.cronSchedule,
       templateEngine: "handlebars",
-      strictMode: (body.strictMode as boolean) ?? false,
+      strictMode: data.strictMode,
       createdAt: now,
       updatedAt: now,
-      tags: body.tags as string[] | undefined,
+      tags: data.tags,
     };
 
     store.setWorkflow(workflow.id, workflow);
@@ -103,9 +74,7 @@ export function registerWorkflowRoutes(
     const workflows = store.listWorkflows();
     const status = req.query.status as WorkflowStatus | undefined;
 
-    const filtered = status
-      ? workflows.filter((w) => w.status === status)
-      : workflows;
+    const filtered = status ? workflows.filter((w) => w.status === status) : workflows;
 
     res.json({
       workflows: filtered.map((w) => ({
@@ -141,20 +110,22 @@ export function registerWorkflowRoutes(
       return;
     }
 
-    const body = req.body as Record<string, unknown> | null;
-    if (!body) {
-      res.status(400).json({ error: "Request body required" });
+    const validation = validateBody(UpdateWorkflowSchema, req.body);
+    if (!validation.success) {
+      res.status(400).json({ error: validation.error });
       return;
     }
 
-    if (body.name !== undefined) workflow.name = String(body.name);
-    if (body.description !== undefined) workflow.description = String(body.description);
-    if (body.status !== undefined) workflow.status = body.status as WorkflowStatus;
-    if (body.blocks !== undefined) workflow.blocks = body.blocks as WorkflowDefinition["blocks"];
-    if (body.parameters !== undefined) workflow.parameters = body.parameters as WorkflowDefinition["parameters"];
-    if (body.cronSchedule !== undefined) workflow.cronSchedule = body.cronSchedule as string;
-    if (body.tags !== undefined) workflow.tags = body.tags as string[];
-    if (body.strictMode !== undefined) workflow.strictMode = body.strictMode as boolean;
+    const { data } = validation;
+    if (data.name !== undefined) workflow.name = data.name;
+    if (data.description !== undefined) workflow.description = data.description;
+    if (data.status !== undefined) workflow.status = data.status;
+    if (data.blocks !== undefined) workflow.blocks = data.blocks as WorkflowDefinition["blocks"];
+    if (data.parameters !== undefined)
+      workflow.parameters = data.parameters as WorkflowDefinition["parameters"];
+    if (data.cronSchedule !== undefined) workflow.cronSchedule = data.cronSchedule;
+    if (data.tags !== undefined) workflow.tags = data.tags;
+    if (data.strictMode !== undefined) workflow.strictMode = data.strictMode;
 
     workflow.version += 1;
     workflow.updatedAt = Date.now();
@@ -174,82 +145,70 @@ export function registerWorkflowRoutes(
   });
 
   // POST /api/workflows/:id/run - Run a workflow
-  server.post(
-    "/api/workflows/:id/run",
-    async (req: APIRequest, res: APIResponse) => {
-      const workflow = store.getWorkflow(req.params.id);
-      if (!workflow) {
-        res.status(404).json({ error: "Workflow not found" });
-        return;
-      }
+  server.post("/api/workflows/:id/run", async (req: APIRequest, res: APIResponse) => {
+    const workflow = store.getWorkflow(req.params.id);
+    if (!workflow) {
+      res.status(404).json({ error: "Workflow not found" });
+      return;
+    }
 
-      if (workflow.status !== "active" && workflow.status !== "draft") {
-        res.status(400).json({
-          error: `Cannot run workflow in '${workflow.status}' state`,
-        });
-        return;
-      }
+    if (workflow.status !== "active" && workflow.status !== "draft") {
+      res.status(400).json({
+        error: `Cannot run workflow in '${workflow.status}' state`,
+      });
+      return;
+    }
 
-      const params = (req.body as Record<string, unknown>) ?? {};
+    const params = (req.body as Record<string, unknown>) ?? {};
 
-      try {
-        const run = await store.executeWorkflow(req.params.id, params);
-        res.status(202).json({
-          runId: run.id,
-          workflowId: run.workflowId,
-          status: run.status,
-          startedAt: run.startedAt,
-        });
-      } catch (error) {
-        res.status(500).json({
-          error: error instanceof Error ? error.message : "Execution failed",
-        });
-      }
-    },
-  );
+    try {
+      const run = await store.executeWorkflow(req.params.id, params);
+      res.status(202).json({
+        runId: run.id,
+        workflowId: run.workflowId,
+        status: run.status,
+        startedAt: run.startedAt,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Execution failed",
+      });
+    }
+  });
 
   // GET /api/workflows/runs/:id - Get run status
-  server.get(
-    "/api/workflows/runs/:id",
-    (req: APIRequest, res: APIResponse) => {
-      const run = store.getRun(req.params.id);
-      if (!run) {
-        res.status(404).json({ error: "Workflow run not found" });
-        return;
-      }
-      res.json(run);
-    },
-  );
+  server.get("/api/workflows/runs/:id", (req: APIRequest, res: APIResponse) => {
+    const run = store.getRun(req.params.id);
+    if (!run) {
+      res.status(404).json({ error: "Workflow run not found" });
+      return;
+    }
+    res.json(run);
+  });
 
   // POST /api/workflows/runs/:id/cancel - Cancel a run
-  server.post(
-    "/api/workflows/runs/:id/cancel",
-    (req: APIRequest, res: APIResponse) => {
-      const run = store.getRun(req.params.id);
-      if (!run) {
-        res.status(404).json({ error: "Workflow run not found" });
-        return;
-      }
-      store.cancelRun(req.params.id);
-      res.json({ runId: run.id, status: "cancelled" });
-    },
-  );
+  server.post("/api/workflows/runs/:id/cancel", (req: APIRequest, res: APIResponse) => {
+    const run = store.getRun(req.params.id);
+    if (!run) {
+      res.status(404).json({ error: "Workflow run not found" });
+      return;
+    }
+    store.cancelRun(req.params.id);
+    res.json({ runId: run.id, status: "cancelled" });
+  });
 
   // POST /api/workflows/runs/:id/continue - Continue paused run
-  server.post(
-    "/api/workflows/runs/:id/continue",
-    (req: APIRequest, res: APIResponse) => {
-      const run = store.getRun(req.params.id);
-      if (!run) {
-        res.status(404).json({ error: "Workflow run not found" });
-        return;
-      }
-      if (run.status !== "paused_for_input") {
-        res.status(400).json({ error: "Run is not paused for input" });
-        return;
-      }
-      store.continueRun(req.params.id, req.body);
-      res.json({ runId: run.id, status: "running" });
-    },
-  );
+  server.post("/api/workflows/runs/:id/continue", (req: APIRequest, res: APIResponse) => {
+    const run = store.getRun(req.params.id);
+    if (!run) {
+      res.status(404).json({ error: "Workflow run not found" });
+      return;
+    }
+    if (run.status !== "paused_for_input") {
+      res.status(400).json({ error: "Run is not paused for input" });
+      return;
+    }
+    store.continueRun(req.params.id, req.body);
+    res.json({ runId: run.id, status: "running" });
+  });
 }

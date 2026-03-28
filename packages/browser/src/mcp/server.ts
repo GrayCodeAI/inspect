@@ -8,6 +8,7 @@ import { BrowserManager } from "../playwright/browser.js";
 import { PageManager } from "../playwright/page.js";
 import { AriaSnapshotBuilder } from "../aria/snapshot.js";
 import { ScreenshotCapture } from "../vision/screenshot.js";
+import { PageToMarkdown } from "../dom/page-to-markdown.js";
 import { BROWSER_TOOLS } from "./tools.js";
 
 // ── JSON-RPC Types ─────────────────────────────────────────────────────────
@@ -160,10 +161,7 @@ export class MCPServer {
 
   // ── Tool execution ───────────────────────────────────────────────────────
 
-  private async executeTool(
-    name: string,
-    args: Record<string, unknown>,
-  ): Promise<MCPToolResult> {
+  private async executeTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
     try {
       switch (name) {
         case "browser_open":
@@ -190,6 +188,8 @@ export class MCPServer {
           return await this.toolPerformanceMetrics();
         case "browser_cookies":
           return await this.toolCookies(args);
+        case "browser_markdown":
+          return await this.toolMarkdown(args);
         case "browser_close":
           return await this.toolClose();
         default:
@@ -234,7 +234,8 @@ export class MCPServer {
   private async toolNavigate(args: Record<string, unknown>): Promise<MCPToolResult> {
     this.ensurePage();
     const url = args["url"] as string;
-    const waitUntil = (args["waitUntil"] as "load" | "domcontentloaded" | "networkidle" | "commit") ?? "load";
+    const waitUntil =
+      (args["waitUntil"] as "load" | "domcontentloaded" | "networkidle" | "commit") ?? "load";
 
     await this.pageManager!.navigate(url, waitUntil);
     const title = await this.pageManager!.getTitle();
@@ -348,7 +349,12 @@ export class MCPServer {
       return { content: [{ type: "text", text: `Clicked at (${args["x"]}, ${args["y"]})` }] };
     }
 
-    return { content: [{ type: "text", text: "No target specified. Provide ref, selector, or x/y coordinates." }], isError: true };
+    return {
+      content: [
+        { type: "text", text: "No target specified. Provide ref, selector, or x/y coordinates." },
+      ],
+      isError: true,
+    };
   }
 
   private async toolType(args: Record<string, unknown>): Promise<MCPToolResult> {
@@ -402,9 +408,7 @@ export class MCPServer {
     const limit = (args["limit"] as number) ?? 50;
 
     const messages = this.pageManager!.getConsoleMessages(filter).slice(-limit);
-    const formatted = messages
-      .map((m) => `[${m.type.toUpperCase()}] ${m.text}`)
-      .join("\n");
+    const formatted = messages.map((m) => `[${m.type.toUpperCase()}] ${m.text}`).join("\n");
 
     return {
       content: [{ type: "text", text: formatted || "(No console messages)" }],
@@ -458,7 +462,10 @@ export class MCPServer {
 
         // Resources
         totalResources: resources.length,
-        totalResourceSize: resources.reduce((sum, r) => sum + ((r as PerformanceResourceTiming).transferSize || 0), 0),
+        totalResourceSize: resources.reduce(
+          (sum, r) => sum + ((r as PerformanceResourceTiming).transferSize || 0),
+          0,
+        ),
 
         // DOM stats
         domNodes: document.querySelectorAll("*").length,
@@ -526,9 +533,29 @@ export class MCPServer {
     }
   }
 
+  private async toolMarkdown(args: Record<string, unknown>): Promise<MCPToolResult> {
+    this.ensurePage();
+    const page = this.pageManager!.getPage();
+
+    const converter = new PageToMarkdown({
+      includeRefs: (args["includeRefs"] as boolean) ?? true,
+      includeImages: (args["includeImages"] as boolean) ?? true,
+      includeHidden: (args["includeHidden"] as boolean) ?? false,
+      maxLength: (args["maxLength"] as number) ?? 50000,
+    });
+
+    const result = await converter.convert(page);
+
+    return {
+      content: [{ type: "text", text: result.markdown }],
+    };
+  }
+
   private async toolClose(): Promise<MCPToolResult> {
     if (this.pageManager) {
-      await this.pageManager.close().catch(() => {});
+      await this.pageManager.close().catch((err) => {
+        console.warn("[mcp] Failed to close page:", err?.message);
+      });
       this.pageManager = null;
     }
     await this.browserManager.closeBrowser();
@@ -557,9 +584,13 @@ export class MCPServer {
 
   private async cleanup(): Promise<void> {
     if (this.pageManager) {
-      await this.pageManager.close().catch(() => {});
+      await this.pageManager.close().catch((err) => {
+        console.warn("[mcp] Failed to close page during cleanup:", err?.message);
+      });
       this.pageManager = null;
     }
-    await this.browserManager.closeBrowser().catch(() => {});
+    await this.browserManager.closeBrowser().catch((err) => {
+      console.warn("[mcp] Failed to close browser during cleanup:", err?.message);
+    });
   }
 }

@@ -139,11 +139,15 @@ export class CrossBrowserManager {
    * Close all browsers.
    */
   async closeAll(): Promise<void> {
-    for (const [, context] of this.contexts) {
-      await context.close().catch(() => {});
+    for (const [id, context] of this.contexts) {
+      await context.close().catch((err) => {
+        console.warn(`[browser] Failed to close context ${id}:`, err?.message);
+      });
     }
-    for (const [, browser] of this.browsers) {
-      await browser.close().catch(() => {});
+    for (const [id, browser] of this.browsers) {
+      await browser.close().catch((err) => {
+        console.warn(`[browser] Failed to close browser ${id}:`, err?.message);
+      });
     }
     this.contexts.clear();
     this.browsers.clear();

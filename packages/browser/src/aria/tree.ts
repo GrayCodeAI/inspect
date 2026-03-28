@@ -53,27 +53,37 @@ export class AriaTree {
     // Use CDP to get accessibility tree (page.accessibility was removed in newer Playwright)
     const cdp = await page.context().newCDPSession(page);
     try {
-      const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+      const { nodes } = await cdp.send("Accessibility.getFullAXTree");
       const snapshot = this.cdpNodesToAXTree(nodes);
       if (!snapshot) return [];
 
       this.refManager.clear();
       return this.processNode(snapshot as AXNode);
     } finally {
-      await cdp.detach().catch(() => {});
+      await cdp.detach().catch((err) => {
+        console.warn("[browser] Failed to detach CDP session:", err?.message);
+      });
     }
   }
 
   /**
    * Convert CDP Accessibility nodes into the legacy AXNode tree format.
    */
-  private cdpNodesToAXTree(nodes: Array<{ nodeId: string; role?: { value?: string }; name?: { value?: string }; childIds?: string[]; parentId?: string }>): AXNode | null {
+  private cdpNodesToAXTree(
+    nodes: Array<{
+      nodeId: string;
+      role?: { value?: string };
+      name?: { value?: string };
+      childIds?: string[];
+      parentId?: string;
+    }>,
+  ): AXNode | null {
     if (!nodes || nodes.length === 0) return null;
     const map = new Map<string, AXNode>();
     for (const node of nodes) {
       map.set(node.nodeId, {
-        role: node.role?.value ?? '',
-        name: node.name?.value ?? '',
+        role: node.role?.value ?? "",
+        name: node.name?.value ?? "",
         children: [],
       });
     }
@@ -130,7 +140,10 @@ export class AriaTree {
   /**
    * Filter tree nodes by a predicate.
    */
-  filter(tree: ElementSnapshot[], predicate: (node: ElementSnapshot) => boolean): ElementSnapshot[] {
+  filter(
+    tree: ElementSnapshot[],
+    predicate: (node: ElementSnapshot) => boolean,
+  ): ElementSnapshot[] {
     const result: ElementSnapshot[] = [];
 
     for (const node of tree) {

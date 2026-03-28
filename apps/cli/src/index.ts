@@ -1,5 +1,20 @@
 #!/usr/bin/env node
 
+// ── Global Error Handlers ───────────────────────────────────────────────────
+process.on("unhandledRejection", (reason) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  console.error(`[FATAL] Unhandled promise rejection: ${message}`);
+  if (stack) console.error(stack);
+  process.exit(1);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error(`[FATAL] Uncaught exception: ${error.message}`);
+  console.error(error.stack);
+  process.exit(1);
+});
+
 import { Command } from "commander";
 import chalk from "chalk";
 import { render } from "ink";

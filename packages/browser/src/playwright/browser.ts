@@ -2,7 +2,13 @@
 // BrowserManager - Launch, configure, and manage Playwright browser instances
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { chromium, type Browser, type BrowserContext, type Page, type LaunchOptions } from "playwright";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+  type LaunchOptions,
+} from "playwright";
 import type { BrowserConfig, CookieParam, ViewportConfig } from "@inspect/shared";
 
 /**
@@ -100,11 +106,15 @@ export class BrowserManager {
    */
   async closeBrowser(): Promise<void> {
     if (this.context) {
-      await this.context.close().catch(() => {});
+      await this.context.close().catch((err) => {
+        console.warn("[browser] Failed to close context:", err?.message);
+      });
       this.context = null;
     }
     if (this.browser) {
-      await this.browser.close().catch(() => {});
+      await this.browser.close().catch((err) => {
+        console.warn("[browser] Failed to close browser:", err?.message);
+      });
       this.browser = null;
     }
   }
@@ -142,7 +152,9 @@ export class BrowserManager {
    */
   async importStorageState(stateOrPath: string): Promise<void> {
     if (!this.browser) {
-      throw new Error("Cannot import storage state on persistent context. Use storageStatePath in config.");
+      throw new Error(
+        "Cannot import storage state on persistent context. Use storageStatePath in config.",
+      );
     }
     // Close existing context
     if (this.context) {

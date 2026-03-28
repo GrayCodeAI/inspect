@@ -30,7 +30,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GOOGLE_AI_KEY=${GOOGLE_AI_KEY:-}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-      - INSPECT_JWT_SECRET=${INSPECT_JWT_SECRET:-inspect-dev-secret}
+      - INSPECT_JWT_SECRET=${INSPECT_JWT_SECRET}
       - INSPECT_CORS_ORIGIN=${INSPECT_CORS_ORIGIN:-http://localhost:5173}
       - INSPECT_LOG_LEVEL=${INSPECT_LOG_LEVEL:-info}
       - INSPECT_TELEMETRY=${INSPECT_TELEMETRY:-false}
@@ -39,7 +39,13 @@ services:
       - inspect-reports:/app/.inspect/reports
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
