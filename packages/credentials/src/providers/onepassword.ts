@@ -49,11 +49,7 @@ export class OnePasswordIntegration {
   private serviceAccountToken: string | null;
   private account: string | null;
 
-  constructor(options?: {
-    opPath?: string;
-    serviceAccountToken?: string;
-    account?: string;
-  }) {
+  constructor(options?: { opPath?: string; serviceAccountToken?: string; account?: string }) {
     this.opPath = options?.opPath ?? "op";
     this.serviceAccountToken =
       options?.serviceAccountToken ??
@@ -79,22 +75,14 @@ export class OnePasswordIntegration {
    * List available vaults.
    */
   async listVaults(): Promise<OnePasswordVault[]> {
-    const result = await this.exec([
-      "vault",
-      "list",
-      "--format",
-      "json",
-    ]);
+    const result = await this.exec(["vault", "list", "--format", "json"]);
     return JSON.parse(result);
   }
 
   /**
    * Get a specific item by ID or title.
    */
-  async getItem(
-    identifier: string,
-    vault?: string,
-  ): Promise<OnePasswordItem> {
+  async getItem(identifier: string, vault?: string): Promise<OnePasswordItem> {
     const args = ["item", "get", identifier, "--format", "json"];
     if (vault) {
       args.push("--vault", vault);
@@ -128,20 +116,8 @@ export class OnePasswordIntegration {
   /**
    * Get a specific field value from an item.
    */
-  async getField(
-    item: string,
-    field: string,
-    vault?: string,
-  ): Promise<string> {
-    const args = [
-      "item",
-      "get",
-      item,
-      "--fields",
-      field,
-      "--format",
-      "json",
-    ];
+  async getField(item: string, field: string, vault?: string): Promise<string> {
+    const args = ["item", "get", item, "--fields", field, "--format", "json"];
     if (vault) {
       args.push("--vault", vault);
     }
@@ -170,14 +146,10 @@ export class OnePasswordIntegration {
     if (!fullItem.fields) return null;
 
     const username = fullItem.fields.find(
-      (f) =>
-        f.purpose === "USERNAME" ||
-        f.label.toLowerCase() === "username",
+      (f) => f.purpose === "USERNAME" || f.label.toLowerCase() === "username",
     );
     const password = fullItem.fields.find(
-      (f) =>
-        f.purpose === "PASSWORD" ||
-        f.label.toLowerCase() === "password",
+      (f) => f.purpose === "PASSWORD" || f.label.toLowerCase() === "password",
     );
 
     if (!username && !password) return null;
@@ -210,10 +182,7 @@ export class OnePasswordIntegration {
   /**
    * Read a document/file from 1Password.
    */
-  async getDocument(
-    item: string,
-    vault?: string,
-  ): Promise<Buffer> {
+  async getDocument(item: string, vault?: string): Promise<Buffer> {
     const args = ["document", "get", item];
     if (vault) {
       args.push("--vault", vault);
@@ -274,9 +243,8 @@ export class OnePasswordIntegration {
       });
       return stdout.trim();
     } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(`1Password CLI error: ${msg}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`1Password CLI error: ${msg}`, { cause: error });
     }
   }
 
@@ -284,7 +252,7 @@ export class OnePasswordIntegration {
    * Build environment with service account token.
    */
   private buildEnv(): Record<string, string> {
-    const env: Record<string, string> = { ...process.env as Record<string, string> };
+    const env: Record<string, string> = { ...(process.env as Record<string, string>) };
     if (this.serviceAccountToken) {
       env.OP_SERVICE_ACCOUNT_TOKEN = this.serviceAccountToken;
     }

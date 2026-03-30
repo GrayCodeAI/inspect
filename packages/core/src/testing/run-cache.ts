@@ -138,7 +138,9 @@ export class RunCache {
     try {
       if (!existsSync(this.config.cacheDir)) await mkdir(this.config.cacheDir, { recursive: true });
       await writeFile(join(this.config.cacheDir, `${key}.json`), JSON.stringify(run, null, 2));
-    } catch {}
+    } catch {
+      /* write failed */
+    }
 
     await this.enforceMaxRuns();
   }
@@ -178,26 +180,57 @@ export class RunCache {
       const data = JSON.parse(await readFile(path, "utf-8")) as CachedTestRun;
       data.replayCount++;
       await writeFile(path, JSON.stringify(data, null, 2));
-    } catch {}
+    } catch {
+      /* write failed */
+    }
   }
 
   /**
    * List all cached runs.
    */
-  async list(): Promise<Array<{ key: string; url: string; instruction: string; device: string; cachedAt: number; replayCount: number }>> {
+  async list(): Promise<
+    Array<{
+      key: string;
+      url: string;
+      instruction: string;
+      device: string;
+      cachedAt: number;
+      replayCount: number;
+    }>
+  > {
     if (!existsSync(this.config.cacheDir)) return [];
     try {
       const files = (await readdir(this.config.cacheDir)).filter((f) => f.endsWith(".json"));
       const results = await Promise.all(
         files.map(async (f) => {
           try {
-            const data = JSON.parse(await readFile(join(this.config.cacheDir, f), "utf-8")) as CachedTestRun;
-            return { key: data.key, url: data.url, instruction: data.instruction, device: data.device, cachedAt: data.cachedAt, replayCount: data.replayCount };
-          } catch { return null; }
+            const data = JSON.parse(
+              await readFile(join(this.config.cacheDir, f), "utf-8"),
+            ) as CachedTestRun;
+            return {
+              key: data.key,
+              url: data.url,
+              instruction: data.instruction,
+              device: data.device,
+              cachedAt: data.cachedAt,
+              replayCount: data.replayCount,
+            };
+          } catch {
+            return null;
+          }
         }),
       );
-      return results.filter(Boolean) as Array<{ key: string; url: string; instruction: string; device: string; cachedAt: number; replayCount: number }>;
-    } catch { return []; }
+      return results.filter(Boolean) as Array<{
+        key: string;
+        url: string;
+        instruction: string;
+        device: string;
+        cachedAt: number;
+        replayCount: number;
+      }>;
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -208,7 +241,9 @@ export class RunCache {
       if (!existsSync(this.config.cacheDir)) return;
       const files = await readdir(this.config.cacheDir);
       await Promise.all(files.map((f) => unlink(join(this.config.cacheDir, f))));
-    } catch {}
+    } catch {
+      /* write failed */
+    }
   }
 
   private async enforceMaxRuns(): Promise<void> {
@@ -218,17 +253,25 @@ export class RunCache {
       if (files.length <= this.config.maxRuns) return;
 
       // Sort by modification time, delete oldest
-      const withTime = (await Promise.all(
-        files.map(async (f) => {
-          try {
-            const data = JSON.parse(await readFile(join(this.config.cacheDir, f), "utf-8")) as CachedTestRun;
-            return { file: f, cachedAt: data.cachedAt };
-          } catch { return { file: f, cachedAt: 0 }; }
-        }),
-      )).sort((a, b) => a.cachedAt - b.cachedAt);
+      const withTime = (
+        await Promise.all(
+          files.map(async (f) => {
+            try {
+              const data = JSON.parse(
+                await readFile(join(this.config.cacheDir, f), "utf-8"),
+              ) as CachedTestRun;
+              return { file: f, cachedAt: data.cachedAt };
+            } catch {
+              return { file: f, cachedAt: 0 };
+            }
+          }),
+        )
+      ).sort((a, b) => a.cachedAt - b.cachedAt);
 
       const toDelete = withTime.slice(0, files.length - this.config.maxRuns);
       await Promise.all(toDelete.map(({ file }) => unlink(join(this.config.cacheDir, file))));
-    } catch {}
+    } catch {
+      /* write failed */
+    }
   }
 }

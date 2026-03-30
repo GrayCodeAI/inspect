@@ -41,7 +41,7 @@ function formatTime(ts: number): string {
 }
 
 export function LogStream({ logs, maxLines = 8, filterRunId }: LogStreamProps): React.ReactElement {
-  let filtered = filterRunId ? logs.filter((l) => l.runId === filterRunId) : logs;
+  const filtered = filterRunId ? logs.filter((l) => l.runId === filterRunId) : logs;
   const visible = filtered.slice(-maxLines);
 
   return (

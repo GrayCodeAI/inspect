@@ -1,110 +1,93 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { ActionCache } from "./store.js";
+import { ActionCache } from "./action-cache.js";
 import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("ActionCache", () => {
+const testDir = join(tmpdir(), `inspect-cache-store-test-${Date.now()}`);
+
+describe("ActionCache (store - canonical)", () => {
   let cache: ActionCache;
-  const projectRoot = "/tmp/inspect-test-cache-" + Date.now();
 
   beforeEach(async () => {
-    cache = new ActionCache({ projectRoot, ttl: 60_000 });
-    await cache.init();
+    cache = new ActionCache({ cacheDir: testDir, ttlMs: 60_000 });
+    await cache.ready;
   });
 
   afterEach(() => {
     try {
-      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(testDir, { recursive: true, force: true });
     } catch {
-      // ignore
+      /* cleanup */
     }
   });
 
   describe("getKey", () => {
-    it("produces a 24-character hex string", () => {
-      const key = cache.getKey("click button", "https://example.com");
-      expect(key).toMatch(/^[0-9a-f]{24}$/);
+    it("produces a 16-character hex string", () => {
+      const key = ActionCache.key("click button", "https://example.com");
+      expect(key).toMatch(/^[0-9a-f]{16}$/);
     });
 
     it("produces consistent keys for the same input", () => {
-      const key1 = cache.getKey("click button", "https://example.com");
-      const key2 = cache.getKey("click button", "https://example.com");
+      const key1 = ActionCache.key("click button", "https://example.com");
+      const key2 = ActionCache.key("click button", "https://example.com");
       expect(key1).toBe(key2);
     });
 
     it("produces consistent keys regardless of instruction casing", () => {
-      const key1 = cache.getKey("Click Button", "https://example.com");
-      const key2 = cache.getKey("click button", "https://example.com");
+      const key1 = ActionCache.key("Click Button", "https://example.com");
+      const key2 = ActionCache.key("click button", "https://example.com");
       expect(key1).toBe(key2);
     });
 
     it("produces different keys for different instructions", () => {
-      const key1 = cache.getKey("click button", "https://example.com");
-      const key2 = cache.getKey("type text", "https://example.com");
+      const key1 = ActionCache.key("click button", "https://example.com");
+      const key2 = ActionCache.key("type text", "https://example.com");
       expect(key1).not.toBe(key2);
     });
 
     it("produces different keys for different URLs", () => {
-      const key1 = cache.getKey("click button", "https://example.com/page1");
-      const key2 = cache.getKey("click button", "https://example.com/page2");
+      const key1 = ActionCache.key("click button", "https://example.com/page1");
+      const key2 = ActionCache.key("click button", "https://example.com/page2");
       expect(key1).not.toBe(key2);
-    });
-
-    it("produces consistent keys with variables in sorted order", () => {
-      const key1 = cache.getKey("click", "https://example.com", { a: "1", b: "2" });
-      const key2 = cache.getKey("click", "https://example.com", { b: "2", a: "1" });
-      expect(key1).toBe(key2);
     });
   });
 
   describe("set and get", () => {
     it("roundtrips a cached action", async () => {
-      const key = cache.getKey("click submit", "https://example.com");
-      await cache.set(key, { type: "click", ref: "e5" }, {
-        instruction: "click submit",
-        url: "https://example.com",
-        selector: "#submit-btn",
-        success: true,
-      });
-
-      const result = await cache.get(key);
+      await cache.set("click submit", "https://example.com", { type: "click", target: "Login" });
+      const result = await cache.get("click submit", "https://example.com");
       expect(result).not.toBeNull();
       expect(result!.action.type).toBe("click");
-      expect(result!.action.ref).toBe("e5");
-      expect(result!.action.selector).toBe("#submit-btn");
+      expect(result!.action.target).toBe("Login");
       expect(result!.instruction).toBe("click submit");
-      expect(result!.success).toBe(true);
     });
 
     it("returns null for missing keys", async () => {
-      expect(await cache.get("nonexistent_key_abc123ab")).toBeNull();
+      expect(await cache.get("nonexistent", "https://example.com")).toBeNull();
     });
 
     it("increments hitCount on subsequent gets", async () => {
-      const key = cache.getKey("click", "https://example.com");
-      await cache.set(key, { type: "click" }, {
-        instruction: "click",
-        url: "https://example.com",
-      });
-
-      await cache.get(key);
-      await cache.get(key);
-      const result = await cache.get(key);
+      await cache.set("click", "https://example.com", { type: "click" });
+      await cache.get("click", "https://example.com");
+      await cache.get("click", "https://example.com");
+      const result = await cache.get("click", "https://example.com");
       expect(result!.hitCount).toBeGreaterThanOrEqual(3);
     });
   });
 
   describe("heal", () => {
     it("updates selector on an existing cache entry", async () => {
-      const key = cache.getKey("click submit", "https://example.com");
-      await cache.set(key, { type: "click", ref: "e5", selector: "#old-btn" }, {
-        instruction: "click submit",
-        url: "https://example.com",
+      await cache.set("click submit", "https://example.com", {
+        type: "click",
+        ref: "e5",
+        selector: "#old-btn",
       });
-
+      const key = ActionCache.key("click submit", "https://example.com");
       const healed = await cache.heal(key, "#new-btn", "e10");
       expect(healed).toBe(true);
 
-      const result = await cache.get(key);
+      const result = await cache.get("click submit", "https://example.com");
       expect(result!.action.selector).toBe("#new-btn");
       expect(result!.action.ref).toBe("e10");
       expect(result!.healCount).toBeGreaterThanOrEqual(1);
@@ -117,36 +100,27 @@ describe("ActionCache", () => {
 
   describe("enabled flag", () => {
     it("returns null for get when disabled", async () => {
-      const disabled = new ActionCache({ projectRoot, enabled: false });
-      const key = "somekey";
-      await disabled.set(key, { type: "click" }, {
-        instruction: "test",
-        url: "https://example.com",
-      });
-      expect(await disabled.get(key)).toBeNull();
+      const disabled = new ActionCache({ enabled: false });
+      await disabled.set("test", "https://example.com", { type: "click" });
+      expect(await disabled.get("test", "https://example.com")).toBeNull();
     });
   });
 
   describe("stats", () => {
-    it("reports correct memory entries", async () => {
-      const key1 = cache.getKey("action1", "https://example.com");
-      const key2 = cache.getKey("action2", "https://example.com");
-      await cache.set(key1, { type: "click" }, { instruction: "action1", url: "https://example.com" });
-      await cache.set(key2, { type: "type" }, { instruction: "action2", url: "https://example.com" });
-
-      const stats = await cache.stats();
-      expect(stats.memoryEntries).toBe(2);
-      expect(stats.totalEntries).toBeGreaterThanOrEqual(2);
+    it("reports correct cache size", async () => {
+      await cache.set("action1", "https://a.com/x", { type: "click" });
+      await cache.set("action2", "https://b.com/x", { type: "type" });
+      const stats = cache.getStats();
+      expect(stats.size).toBe(2);
     });
   });
 
   describe("clear", () => {
     it("removes all entries from memory", async () => {
-      const key = cache.getKey("action1", "https://example.com");
-      await cache.set(key, { type: "click" }, { instruction: "action1", url: "https://example.com" });
+      await cache.set("action1", "https://a.com/x", { type: "click" });
       await cache.clear();
-      const stats = await cache.stats();
-      expect(stats.memoryEntries).toBe(0);
+      const stats = cache.getStats();
+      expect(stats.size).toBe(0);
     });
   });
 });

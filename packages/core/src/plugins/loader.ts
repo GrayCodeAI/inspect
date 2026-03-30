@@ -93,7 +93,10 @@ export interface PluginTool {
 export interface PluginAssertion {
   name: string;
   description: string;
-  evaluate: (context: { pageContent: string; screenshot?: string }, ...args: unknown[]) => Promise<boolean>;
+  evaluate: (
+    context: { pageContent: string; screenshot?: string },
+    ...args: unknown[]
+  ) => Promise<boolean>;
 }
 
 /**
@@ -149,6 +152,20 @@ export class PluginLoader {
       }
     }
 
+    // 4. Load from node_modules/inspect-plugin-* (unscoped)
+    const nmDir = join(this.cwd, "node_modules");
+    if (existsSync(nmDir)) {
+      const dirs = readdirSync(nmDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory() && d.name.startsWith("inspect-plugin-"))
+        .map((d) => d.name);
+
+      for (const dir of dirs) {
+        const pkgPath = join(nmDir, dir);
+        const plugin = await this.loadPlugin(pkgPath);
+        if (plugin) loaded.push(plugin);
+      }
+    }
+
     // Initialize all plugins
     const context = this.createPluginContext();
     for (const plugin of loaded) {
@@ -182,7 +199,10 @@ export class PluginLoader {
       this.plugins.set(plugin.name, plugin);
       return plugin;
     } catch (err) {
-      logger.warn("Failed to load plugin", { filePath, error: err instanceof Error ? err.message : String(err) });
+      logger.warn("Failed to load plugin", {
+        filePath,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return null;
     }
   }

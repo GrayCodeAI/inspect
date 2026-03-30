@@ -29,12 +29,37 @@ export interface ExecutionConfig {
   timeoutMs: number;
   stepTimeoutMs: number;
   verbose: boolean;
+  /** Enable rrweb session recording during test execution */
+  recording?: boolean;
+  /** Directory to save recordings (default: .inspect/recordings) */
+  recordingDir?: string;
+  /** Enable adversarial testing mode */
+  adversarial?: boolean;
+  /** Adversarial testing intensity: basic (boundary tests), standard (+ injection), aggressive (+ race conditions) */
+  adversarialIntensity?: "basic" | "standard" | "aggressive";
 }
 
 export interface ExecutorDependencies {
   router: AgentRouter;
   browserManager: unknown;
   credentialVault?: unknown;
+  /** Custom plan generator — overrides the default placeholder */
+  planGenerator?: (config: ExecutionConfig) => Promise<StepPlan[]>;
+  /** Custom step executor — overrides the default placeholder */
+  stepExecutor?: (
+    step: StepPlan,
+    config: ExecutionConfig,
+    toolCalls: StepResult["toolCalls"],
+  ) => Promise<void>;
+  /** Custom recovery executors — overrides the default no-ops */
+  recoveryExecutors?: RecoveryExecutors;
+  /** Session recording hooks */
+  recording?: {
+    start: () => Promise<void>;
+    stop: () => Promise<unknown[]>;
+    save: (planId: string) => Promise<string>;
+    generateViewer: (outputPath: string) => Promise<string>;
+  };
 }
 
 export interface StepPlan {
@@ -42,6 +67,10 @@ export interface StepPlan {
   description: string;
   assertion?: string;
   type: "navigate" | "interact" | "verify" | "extract" | "wait";
+  /** Which area/component this step targets (for diff-aware and adversarial plans) */
+  targetArea?: string;
+  /** Why this step was generated */
+  rationale?: string;
 }
 
 export interface StepResult {
@@ -70,6 +99,29 @@ export interface ExecutionResult {
   device: string;
   timestamp: string;
   error?: string;
+  /** Path to session recording file (if recording was enabled) */
+  recordingPath?: string;
+  /** Path to replay viewer HTML (if recording was enabled) */
+  replayViewerPath?: string;
+  /** Adversarial findings (if adversarial mode was enabled) */
+  adversarialFindings?: AdversarialFinding[];
+}
+
+/** A finding from adversarial testing */
+export interface AdversarialFinding {
+  /** Severity of the finding */
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  /** Category of finding */
+  category: "security" | "functionality" | "ux" | "performance" | "accessibility";
+  /** What was tested */
+  instruction: string;
+  /** What was found */
+  finding: string;
+  /** Steps to reproduce */
+  steps: string[];
+  /** Expected vs actual behavior */
+  expected: string;
+  actual: string;
 }
 
 export interface ExecutionProgress {
@@ -112,9 +164,7 @@ export class TestExecutor {
     this.maxStepRetries = 2;
     this.loopDetector = new LoopDetector();
     this.compactor = new ContextCompactor({ threshold: 80_000, keepLast: 10 });
-    this.masker = config.sensitiveData
-      ? new SensitiveDataMasker(config.sensitiveData)
-      : null;
+    this.masker = config.sensitiveData ? new SensitiveDataMasker(config.sensitiveData) : null;
   }
 
   /**
@@ -139,6 +189,16 @@ export class TestExecutor {
     this.tokenCount = 0;
 
     try {
+      // Start session recording if enabled
+      if (this.config.recording && this.deps.recording) {
+        try {
+          await this.deps.recording.start();
+          logger.info("Session recording started");
+        } catch (err) {
+          logger.warn("Failed to start session recording", { error: String(err) });
+        }
+      }
+
       // Phase 1: Plan generation
       this.emitProgress({
         phase: "planning",
@@ -163,7 +223,9 @@ export class TestExecutor {
 
         // Check timeout
         if (this.elapsed() > this.config.timeoutMs) {
-          return this.buildResult("timeout", results, "Test timeout exceeded");
+          const result = this.buildResult("timeout", results, "Test timeout exceeded");
+          await this.finalizeRecording(result);
+          return result;
         }
 
         // Check max steps
@@ -203,7 +265,13 @@ export class TestExecutor {
             severity: nudge.severity,
           });
           if (nudge.severity === "critical") {
-            return this.buildResult("fail", results, `Agent stuck in loop: ${nudge.message}`);
+            const result = this.buildResult(
+              "fail",
+              results,
+              `Agent stuck in loop: ${nudge.message}`,
+            );
+            await this.finalizeRecording(result);
+            return result;
           }
           // For info/warning nudges, the nudge message would be injected
           // into the next LLM prompt context when generatePlan is connected
@@ -230,9 +298,7 @@ export class TestExecutor {
         elapsed: this.elapsed(),
       });
 
-      const overallStatus = results.every((r) => r.status === "pass")
-        ? "pass"
-        : "fail";
+      const overallStatus = results.every((r) => r.status === "pass") ? "pass" : "fail";
 
       // Phase 4: Done
       this.emitProgress({
@@ -243,24 +309,31 @@ export class TestExecutor {
         elapsed: this.elapsed(),
       });
 
-      return this.buildResult(overallStatus as "pass" | "fail", results);
+      const result = this.buildResult(overallStatus as "pass" | "fail", results);
+      await this.finalizeRecording(result);
+      return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return this.buildResult("error", [], message);
+      const result = this.buildResult("error", [], message);
+      await this.finalizeRecording(result);
+      return result;
     }
   }
 
   /**
    * Generate a test plan from the AI agent.
    *
-   * NOTE: This is a placeholder implementation that returns a static plan.
-   * The full implementation will send the prompt to the configured agent
-   * via ACP/API and parse the structured plan response.
-   *
-   * @throws {Error} In production, this should be connected to an LLM provider.
+   * Uses the injected `deps.planGenerator` if provided, otherwise falls back
+   * to a static placeholder plan.
    */
   private async generatePlan(): Promise<StepPlan[]> {
-    logger.warn("generatePlan() is using placeholder implementation. Connect an LLM provider for real test plan generation.");
+    if (this.deps.planGenerator) {
+      return this.deps.planGenerator(this.config);
+    }
+
+    logger.warn(
+      "generatePlan() is using placeholder implementation. Connect an LLM provider for real test plan generation.",
+    );
 
     const plans: StepPlan[] = [
       {
@@ -319,17 +392,11 @@ export class TestExecutor {
       try {
         // Apply step timeout
         const stepTimeout = new Promise<never>((_, reject) => {
-          setTimeout(
-            () => reject(new Error("Step timeout")),
-            this.config.stepTimeoutMs
-          );
+          setTimeout(() => reject(new Error("Step timeout")), this.config.stepTimeoutMs);
         });
 
         // Execute the step (race with timeout)
-        await Promise.race([
-          this.runStep(step, toolCalls),
-          stepTimeout,
-        ]);
+        await Promise.race([this.runStep(step, toolCalls), stepTimeout]);
 
         const duration = Date.now() - stepStart;
         this.tokenCount += 50;
@@ -382,28 +449,36 @@ export class TestExecutor {
 
   /**
    * Build recovery executors for the current execution context.
-   * These provide the concrete implementations that RecoveryManager calls.
+   * Uses injected executors if provided, otherwise falls back to defaults.
    */
   private getRecoveryExecutors(): RecoveryExecutors {
+    if (this.deps.recoveryExecutors) {
+      return this.deps.recoveryExecutors;
+    }
+
+    // Simulation-mode recovery executors
+    // Real implementations are injected via createExecutorAdapters()
     return {
       reScan: async () => {
-        // Re-scan would re-capture the ARIA tree; always succeeds as a reset
+        logger.info("Recovery: reScan (simulation mode — no-op)");
         return true;
       },
       waitForLoad: async () => {
+        logger.info("Recovery: waitForLoad (2s delay)");
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return true;
       },
       scrollIntoView: async () => {
-        // Would scroll the target into view; placeholder
+        logger.info("Recovery: scrollIntoView (simulation mode — no-op)");
         return true;
       },
       dismissOverlay: async () => {
-        // Would dismiss modals/overlays; placeholder
+        logger.info("Recovery: dismissOverlay (simulation mode — no-op)");
         return true;
       },
       refreshPage: async () => {
-        // Would call page.reload(); placeholder
+        logger.info("Recovery: refreshPage (simulation mode — no-op)");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         return true;
       },
     };
@@ -412,23 +487,27 @@ export class TestExecutor {
   /**
    * Run the actual step logic.
    *
-   * NOTE: This is a placeholder that records tool calls without executing
-   * real browser actions. The full implementation will dispatch to the
-   * browser automation layer and AI agent.
+   * Uses the injected `deps.stepExecutor` if provided, otherwise falls back
+   * to a placeholder that records tool calls without real browser actions.
    */
-  private async runStep(
-    step: StepPlan,
-    toolCalls: StepResult["toolCalls"]
-  ): Promise<void> {
+  private async runStep(step: StepPlan, toolCalls: StepResult["toolCalls"]): Promise<void> {
+    if (this.deps.stepExecutor) {
+      return this.deps.stepExecutor(step, this.config, toolCalls);
+    }
+
+    // Simulation mode — no browser connected
+    logger.warn(
+      `Step ${step.index}: Running in simulation mode (no browser). Use createExecutorAdapters() for real execution.`,
+    );
+
     switch (step.type) {
       case "navigate": {
         const url = this.config.url ?? "http://localhost:3000";
         const callStart = Date.now();
-        // Would call: await page.goto(url, { waitUntil: 'networkidle' });
         toolCalls.push({
           tool: "browser_navigate",
           args: { url },
-          result: { url, status: 200 },
+          result: { url, status: 200, simulated: true },
           duration: Date.now() - callStart,
         });
         break;
@@ -436,11 +515,10 @@ export class TestExecutor {
 
       case "wait": {
         const callStart = Date.now();
-        // Would call: await page.waitForLoadState('networkidle');
         toolCalls.push({
           tool: "browser_wait",
           args: { navigation: true, timeout: 10000 },
-          result: { ready: true },
+          result: { ready: true, simulated: true },
           duration: Date.now() - callStart,
         });
         break;
@@ -448,11 +526,10 @@ export class TestExecutor {
 
       case "interact": {
         const callStart = Date.now();
-        // Would dispatch to agent for interaction decision
         toolCalls.push({
           tool: "browser_snapshot",
           args: { mode: this.config.mode },
-          result: { elements: "..." },
+          result: { elements: "...", simulated: true },
           duration: Date.now() - callStart,
         });
         break;
@@ -460,11 +537,10 @@ export class TestExecutor {
 
       case "verify": {
         const callStart = Date.now();
-        // Would check console, network, DOM state
         toolCalls.push({
           tool: "browser_console",
           args: { level: "error" },
-          result: { logs: [] },
+          result: { logs: [], simulated: true },
           duration: Date.now() - callStart,
         });
         break;
@@ -496,7 +572,7 @@ export class TestExecutor {
   private buildResult(
     status: "pass" | "fail" | "error" | "timeout",
     steps: StepResult[],
-    error?: string
+    error?: string,
   ): ExecutionResult {
     return {
       status,
@@ -508,6 +584,32 @@ export class TestExecutor {
       timestamp: new Date().toISOString(),
       error,
     };
+  }
+
+  /**
+   * Finalize session recording: stop, save, and generate replay viewer.
+   */
+  private async finalizeRecording(result: ExecutionResult): Promise<void> {
+    if (!this.config.recording || !this.deps.recording) return;
+
+    try {
+      const events = await this.deps.recording.stop();
+      logger.info("Session recording stopped", { eventCount: (events as unknown[]).length });
+
+      if ((events as unknown[]).length > 0) {
+        const planId = `run-${Date.now()}`;
+        const recordingPath = await this.deps.recording.save(planId);
+        result.recordingPath = recordingPath;
+        logger.info("Session recording saved", { path: recordingPath });
+
+        const viewerPath = recordingPath.replace(/\.json$/, "-viewer.html");
+        await this.deps.recording.generateViewer(viewerPath);
+        result.replayViewerPath = viewerPath;
+        logger.info("Replay viewer generated", { path: viewerPath });
+      }
+    } catch (err) {
+      logger.warn("Failed to finalize session recording", { error: String(err) });
+    }
   }
 }
 

@@ -107,7 +107,7 @@ Return ONLY the test file content, no explanation.`;
     const elapsed = Date.now() - startTime;
 
     // Clean up the response
-    let generated = response.content
+    const generated = response.content
       .replace(/^```(?:yaml|typescript|json|ts|yml)?\n?/gm, "")
       .replace(/```$/gm, "")
       .trim();

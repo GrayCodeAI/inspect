@@ -93,13 +93,49 @@ export async function executeBenchmarkBlock(
   }
 
   try {
-    const results = tasks.map((task) => ({
-      taskId: task.id,
-      taskName: task.name,
-      success: true,
-      durationMs: Math.round(Math.random() * 100),
-      note: "Mock execution - connect agent for real benchmarks",
-    }));
+    // Use real agent executor if provided in context
+    const agentExecutor = _context.agentExecutor as
+      | ((
+          instruction: string,
+          url: string,
+          maxSteps: number,
+        ) => Promise<{ success: boolean; durationMs: number }>)
+      | undefined;
+
+    const results = await Promise.all(
+      tasks.map(async (task) => {
+        const taskStart = Date.now();
+        if (agentExecutor) {
+          try {
+            const result = await agentExecutor(task.goal, task.url, task.maxSteps);
+            return {
+              taskId: task.id,
+              taskName: task.name,
+              success: result.success,
+              durationMs: result.durationMs,
+            };
+          } catch (err) {
+            return {
+              taskId: task.id,
+              taskName: task.name,
+              success: false,
+              durationMs: Date.now() - taskStart,
+              error: err instanceof Error ? err.message : String(err),
+            };
+          }
+        }
+
+        // No agent executor — report as skipped
+        return {
+          taskId: task.id,
+          taskName: task.name,
+          success: false,
+          durationMs: 0,
+          skipped: true,
+          reason: "No agent executor registered",
+        };
+      }),
+    );
 
     const passed = results.filter((r) => r.success).length;
 

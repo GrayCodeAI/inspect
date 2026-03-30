@@ -12,11 +12,16 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Browser lifecycle ──────────────────────────────────────────────────
   {
     name: "browser_open",
-    description: "Launch a new browser instance with optional configuration. Supports headless/headed mode, viewport, proxy, stealth, and extensions.",
+    description:
+      "Launch a new browser instance with optional configuration. Supports headless/headed mode, viewport, proxy, stealth, and extensions.",
     inputSchema: {
       type: "object",
       properties: {
-        headless: { type: "boolean", description: "Run in headless mode (default: true)", default: true },
+        headless: {
+          type: "boolean",
+          description: "Run in headless mode (default: true)",
+          default: true,
+        },
         viewport: {
           type: "object",
           properties: {
@@ -37,7 +42,10 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
           },
           required: ["server"],
         },
-        userDataDir: { type: "string", description: "Path to user data directory for persistent profile" },
+        userDataDir: {
+          type: "string",
+          description: "Path to user data directory for persistent profile",
+        },
         executablePath: { type: "string", description: "Custom browser executable path" },
       },
     },
@@ -81,7 +89,10 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {
-        fullPage: { type: "boolean", description: "Capture the full scrollable page (default: false)" },
+        fullPage: {
+          type: "boolean",
+          description: "Capture the full scrollable page (default: false)",
+        },
         selector: { type: "string", description: "CSS selector of element to capture (optional)" },
       },
     },
@@ -96,7 +107,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── ARIA Snapshot ──────────────────────────────────────────────────────
   {
     name: "browser_snapshot",
-    description: "Get the ARIA accessibility tree snapshot of the current page. Returns a structured tree with ref IDs (e1, e2, ...) for each element. Use refs with click/type tools.",
+    description:
+      "Get the ARIA accessibility tree snapshot of the current page. Returns a structured tree with ref IDs (e1, e2, ...) for each element. Use refs with click/type tools.",
     inputSchema: {
       type: "object",
       properties: {
@@ -118,7 +130,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Annotated Screenshot ───────────────────────────────────────────────
   {
     name: "browser_annotated",
-    description: "Take a screenshot with numbered labels overlaid on interactive elements. Combines visual + ARIA data. Returns base64 image.",
+    description:
+      "Take a screenshot with numbered labels overlaid on interactive elements. Combines visual + ARIA data. Returns base64 image.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -134,7 +147,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Click ──────────────────────────────────────────────────────────────
   {
     name: "browser_click",
-    description: "Click an element on the page. Accepts a ref ID (e.g., 'e5') from a snapshot, a CSS selector, or x,y coordinates.",
+    description:
+      "Click an element on the page. Accepts a ref ID (e.g., 'e5') from a snapshot, a CSS selector, or x,y coordinates.",
     inputSchema: {
       type: "object",
       properties: {
@@ -157,14 +171,19 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Type ───────────────────────────────────────────────────────────────
   {
     name: "browser_type",
-    description: "Type text into an input field. First clicks the element to focus it, then types. Accepts ref ID, selector, or coordinates.",
+    description:
+      "Type text into an input field. First clicks the element to focus it, then types. Accepts ref ID, selector, or coordinates.",
     inputSchema: {
       type: "object",
       properties: {
         ref: { type: "string", description: "Element reference ID from snapshot (e.g., 'e3')" },
         selector: { type: "string", description: "CSS selector" },
         text: { type: "string", description: "Text to type" },
-        clearFirst: { type: "boolean", description: "Clear existing text before typing (default: true)", default: true },
+        clearFirst: {
+          type: "boolean",
+          description: "Clear existing text before typing (default: true)",
+          default: true,
+        },
         pressEnter: { type: "boolean", description: "Press Enter after typing" },
       },
       required: ["text"],
@@ -180,7 +199,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Playwright evaluate ────────────────────────────────────────────────
   {
     name: "browser_playwright",
-    description: "Execute arbitrary JavaScript in the browser page context. Returns the evaluation result. Use for complex interactions or data extraction not covered by other tools.",
+    description:
+      "Execute arbitrary JavaScript in the browser page context. Returns the evaluation result. Use for complex interactions or data extraction not covered by other tools.",
     inputSchema: {
       type: "object",
       properties: {
@@ -199,7 +219,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Console logs ───────────────────────────────────────────────────────
   {
     name: "browser_console_logs",
-    description: "Get console messages from the browser page. Includes log, warn, error, info messages.",
+    description:
+      "Get console messages from the browser page. Includes log, warn, error, info messages.",
     inputSchema: {
       type: "object",
       properties: {
@@ -222,14 +243,26 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Network requests ───────────────────────────────────────────────────
   {
     name: "browser_network_requests",
-    description: "Get network requests made by the page. Includes URL, method, status, headers, timing.",
+    description:
+      "Get network requests made by the page. Includes URL, method, status, headers, timing.",
     inputSchema: {
       type: "object",
       properties: {
         urlPattern: { type: "string", description: "Regex pattern to filter URLs" },
         resourceType: {
           type: "string",
-          enum: ["document", "stylesheet", "image", "media", "font", "script", "texttrack", "xhr", "fetch", "other"],
+          enum: [
+            "document",
+            "stylesheet",
+            "image",
+            "media",
+            "font",
+            "script",
+            "texttrack",
+            "xhr",
+            "fetch",
+            "other",
+          ],
           description: "Filter by resource type",
         },
         limit: { type: "number", description: "Maximum number of requests to return", default: 50 },
@@ -246,7 +279,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Performance metrics ────────────────────────────────────────────────
   {
     name: "browser_performance_metrics",
-    description: "Get page performance metrics: FCP, LCP, CLS, INP, TTFB, resource counts, DOM size.",
+    description:
+      "Get page performance metrics: FCP, LCP, CLS, INP, TTFB, resource counts, DOM size.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -301,7 +335,8 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
   // ── Page to Markdown ───────────────────────────────────────────────────
   {
     name: "browser_markdown",
-    description: "Convert the current page to clean Markdown. Preserves headings, links, lists, tables, and form elements. Interactive elements are annotated with ref IDs.",
+    description:
+      "Convert the current page to clean Markdown. Preserves headings, links, lists, tables, and form elements. Interactive elements are annotated with ref IDs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -353,15 +388,132 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
 ];
 
 /**
- * Get a tool definition by name.
+ * Quality and testing MCP tool definitions.
+ * These extend the browser tools with accessibility, performance, security, and testing capabilities.
  */
-export function getToolDefinition(name: string): MCPToolDefinition | undefined {
-  return BROWSER_TOOLS.find((t) => t.name === name);
+export const QUALITY_TOOLS: MCPToolDefinition[] = [
+  {
+    name: "a11y_audit",
+    description:
+      "Run an accessibility audit on the current page using axe-core. Checks WCAG 2.2 compliance.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        level: {
+          type: "string",
+          enum: ["A", "AA", "AAA"],
+          description: "WCAG conformance level to check",
+          default: "AA",
+        },
+        include: {
+          type: "array",
+          items: { type: "string" },
+          description: "CSS selectors to include in audit",
+        },
+      },
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+  {
+    name: "perf_audit",
+    description: "Run a performance audit measuring Core Web Vitals (LCP, CLS, INP, FCP, TTFB).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        duration: {
+          type: "number",
+          description: "Measurement duration in ms (default: 5000)",
+          default: 5000,
+        },
+      },
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+  {
+    name: "security_scan",
+    description:
+      "Run a security scan checking headers, CSP, mixed content, and common vulnerabilities.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        checks: {
+          type: "array",
+          items: { type: "string" },
+          description: "Specific checks to run (headers, csp, mixed-content, cookies)",
+        },
+      },
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+  {
+    name: "run_test",
+    description:
+      "Execute a test case with the Inspect agent. Provide a natural language instruction.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        instruction: { type: "string", description: "Natural language test instruction" },
+        url: { type: "string", description: "URL to test" },
+        maxSteps: { type: "number", description: "Maximum test steps", default: 25 },
+      },
+      required: ["instruction", "url"],
+    },
+    annotations: { readOnlyHint: false, openWorldHint: true },
+  },
+  {
+    name: "visual_diff",
+    description: "Compare two screenshots and return a visual diff report with pixel differences.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        baseline: { type: "string", description: "Path to baseline screenshot" },
+        current: { type: "string", description: "Path to current screenshot" },
+        threshold: {
+          type: "number",
+          description: "Pixel difference threshold (0-1)",
+          default: 0.1,
+        },
+      },
+      required: ["baseline", "current"],
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+  {
+    name: "extract_data",
+    description:
+      "Extract structured data from the current page using CSS selectors or LLM analysis.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        schema: { type: "object", description: "JSON schema describing the data to extract" },
+        selectors: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "CSS selectors for each field",
+        },
+      },
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+];
+
+/**
+ * Get all tool definitions (browser + quality).
+ */
+export function getAllToolDefinitions(): MCPToolDefinition[] {
+  return [...BROWSER_TOOLS, ...QUALITY_TOOLS];
 }
 
 /**
- * Get all tool names.
+ * Get a tool definition by name (searches both browser and quality tools).
+ */
+export function getToolDefinition(name: string): MCPToolDefinition | undefined {
+  return BROWSER_TOOLS.find((t) => t.name === name) ?? QUALITY_TOOLS.find((t) => t.name === name);
+}
+
+/**
+ * Get all tool names (browser + quality).
  */
 export function getToolNames(): string[] {
-  return BROWSER_TOOLS.map((t) => t.name);
+  return [...BROWSER_TOOLS, ...QUALITY_TOOLS].map((t) => t.name);
 }

@@ -3,14 +3,14 @@
 # =============================================================================
 #
 # Usage:
-#   docker compose up                    Start API server + dashboard
+#   docker compose up                    Start API server
 #   docker compose up -d                 Start in background
 #   docker compose run cli test ...      Run CLI commands
 #   docker compose run cli doctor        Check environment inside container
 #   docker compose down                  Stop everything
 #
 # With specific profiles:
-#   docker compose --profile full up     Start everything (API + dashboard + tunnel)
+#   docker compose --profile full up     Start everything (API + tunnel)
 #
 # Environment:
 #   Copy .env.example to .env and set your API keys before starting.
@@ -31,7 +31,6 @@ services:
       - GOOGLE_AI_KEY=${GOOGLE_AI_KEY:-}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - INSPECT_JWT_SECRET=${INSPECT_JWT_SECRET}
-      - INSPECT_CORS_ORIGIN=${INSPECT_CORS_ORIGIN:-http://localhost:5173}
       - INSPECT_LOG_LEVEL=${INSPECT_LOG_LEVEL:-info}
       - INSPECT_TELEMETRY=${INSPECT_TELEMETRY:-false}
     volumes:
@@ -50,20 +49,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-  # ── Web Dashboard ──────────────────────────────────────────────────────
-  dashboard:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dashboard
-    ports:
-      - "${DASHBOARD_PORT:-5173}:5173"
-    depends_on:
-      api:
-        condition: service_healthy
-    environment:
-      - VITE_API_URL=http://api:3000
-    restart: unless-stopped
 
   # ── CLI Runner ─────────────────────────────────────────────────────────
   # Use: docker compose run cli <command>

@@ -64,12 +64,7 @@ export class BitwardenIntegration {
    * @param method - 2FA method (optional): 0=authenticator, 1=email, 3=yubikey
    * @param code - 2FA code (optional)
    */
-  async login(
-    email: string,
-    password: string,
-    method?: number,
-    code?: string,
-  ): Promise<string> {
+  async login(email: string, password: string, method?: number, code?: string): Promise<string> {
     const args = ["login", email, password, "--raw"];
     if (method !== undefined) {
       args.push("--method", String(method));
@@ -85,21 +80,14 @@ export class BitwardenIntegration {
   /**
    * Login using API key (non-interactive).
    */
-  async loginApiKey(
-    clientId: string,
-    clientSecret: string,
-  ): Promise<string> {
+  async loginApiKey(clientId: string, clientSecret: string): Promise<string> {
     const env = {
       ...process.env,
       BW_CLIENTID: clientId,
       BW_CLIENTSECRET: clientSecret,
     };
 
-    const { stdout } = await execFileAsync(
-      this.bwPath,
-      ["login", "--apikey", "--raw"],
-      { env },
-    );
+    const { stdout } = await execFileAsync(this.bwPath, ["login", "--apikey", "--raw"], { env });
     this.sessionToken = stdout.trim();
     return this.sessionToken;
   }
@@ -108,11 +96,7 @@ export class BitwardenIntegration {
    * Unlock the vault with master password.
    */
   async unlock(password: string): Promise<string> {
-    this.sessionToken = await this.exec([
-      "unlock",
-      password,
-      "--raw",
-    ]);
+    this.sessionToken = await this.exec(["unlock", password, "--raw"]);
     return this.sessionToken;
   }
 
@@ -143,12 +127,7 @@ export class BitwardenIntegration {
    * Search for items by name.
    */
   async searchItems(query: string): Promise<BitwardenItem[]> {
-    const result = await this.exec([
-      "list",
-      "items",
-      "--search",
-      query,
-    ]);
+    const result = await this.exec(["list", "items", "--search", query]);
     return JSON.parse(result);
   }
 
@@ -183,16 +162,11 @@ export class BitwardenIntegration {
   /**
    * Get a specific field value from an item.
    */
-  async getField(
-    itemId: string,
-    fieldName: string,
-  ): Promise<string | null> {
+  async getField(itemId: string, fieldName: string): Promise<string | null> {
     const item = await this.getItem(itemId);
     if (!item.fields) return null;
 
-    const field = item.fields.find(
-      (f) => f.name.toLowerCase() === fieldName.toLowerCase(),
-    );
+    const field = item.fields.find((f) => f.name.toLowerCase() === fieldName.toLowerCase());
     return field?.value ?? null;
   }
 
@@ -250,7 +224,7 @@ export class BitwardenIntegration {
    * Execute a Bitwarden CLI command.
    */
   private async exec(args: string[]): Promise<string> {
-    const env: Record<string, string> = { ...process.env as Record<string, string> };
+    const env: Record<string, string> = { ...(process.env as Record<string, string>) };
     if (this.sessionToken) {
       env.BW_SESSION = this.sessionToken;
     }
@@ -262,9 +236,8 @@ export class BitwardenIntegration {
       });
       return stdout.trim();
     } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(`Bitwarden CLI error: ${msg}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Bitwarden CLI error: ${msg}`, { cause: error });
     }
   }
 }

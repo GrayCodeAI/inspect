@@ -287,4 +287,48 @@ export class BrowserManager {
       context.setDefaultTimeout(config.defaultTimeout);
     }
   }
+
+  /**
+   * Launch using the best available browser backend.
+   *
+   * Auto-detects Lightpanda (preferred) or falls back to Chromium.
+   * When Lightpanda is available, connects via CDP for maximum performance.
+   *
+   * @param config - Browser configuration
+   * @param preferredBackend - Force a specific backend ("lightpanda" | "chromium" | "auto")
+   * @returns The browser context
+   */
+  async launchWithBackend(
+    config: BrowserConfig,
+    preferredBackend: "lightpanda" | "chromium" | "auto" = "auto",
+  ): Promise<BrowserContext> {
+    const { BackendFactory } = await import("../backends/lightpanda.js");
+
+    let backend;
+    if (preferredBackend === "auto") {
+      backend = await BackendFactory.detect();
+    } else {
+      backend = BackendFactory.create(preferredBackend);
+    }
+
+    const available = await backend.isAvailable();
+    if (!available && preferredBackend !== "chromium") {
+      logger.warn(`${backend.name} not available, falling back to Chromium`);
+      backend = BackendFactory.create("chromium");
+    }
+
+    logger.info(`Using browser backend: ${backend.name}`);
+
+    if (backend.name === "lightpanda") {
+      const lp = backend as import("../backends/lightpanda.js").LightpandaBackend;
+      return this.launchBrowser({
+        ...config,
+        cdpEndpoint: lp.getCdpEndpoint(),
+        headless: true,
+      });
+    }
+
+    // Default: Chromium via Playwright
+    return this.launchBrowser(config);
+  }
 }

@@ -29,7 +29,7 @@ async function openBrowser(url: string | undefined, options: OpenOptions): Promi
       { label: "iPad Pro", value: "ipad-pro" },
       { label: "Pixel 8", value: "pixel-8" },
       { label: "Galaxy S24", value: "galaxy-s24" },
-      { label: "MacBook Pro 16\"", value: "macbook-pro-16" },
+      { label: 'MacBook Pro 16"', value: "macbook-pro-16" },
       { label: "Desktop Chrome", value: "desktop-chrome" },
     ]);
     if (deviceChoice) options.device = deviceChoice;
@@ -100,7 +100,9 @@ async function openBrowser(url: string | undefined, options: OpenOptions): Promi
           const cookies = await page.context().cookies();
           writeFileSync(options.saveStorage, JSON.stringify({ cookies }, null, 2));
           console.log(chalk.dim(`Storage saved to: ${options.saveStorage}`));
-        } catch {}
+        } catch {
+          /* save failed */
+        }
       }
 
       // Save HAR if requested
@@ -131,14 +133,17 @@ export function registerOpenCommand(program: Command): void {
     .option("--load-storage <file>", "Load cookies/storage from file")
     .option("--save-storage <file>", "Save cookies/storage on close")
     .option("--save-har <file>", "Save HAR network log on close")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect open https://example.com
   $ inspect open https://myapp.com -d iphone-15
   $ inspect open https://myapp.com --viewport 1920x1080
   $ inspect open --load-storage auth-state.json https://app.com/dashboard
   $ inspect open https://staging.app.com --save-har trace.har
-`)
+`,
+    )
     .action(async (url: string | undefined, opts: OpenOptions) => {
       try {
         await openBrowser(url, opts);

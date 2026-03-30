@@ -2,6 +2,16 @@
   "name": "@inspect/sdk",
   "version": "0.1.0",
   "private": true,
+  "description": "Inspect AI-powered browser testing SDK",
+  "keywords": [
+    "testing",
+    "browser",
+    "ai",
+    "automation",
+    "playwright",
+    "e2e",
+    "sdk"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,6 +20,15 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

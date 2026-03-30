@@ -11,7 +11,9 @@ function loadAliases(): Record<string, string> {
     if (existsSync(ALIASES_FILE)) {
       return JSON.parse(readFileSync(ALIASES_FILE, "utf-8"));
     }
-  } catch {}
+  } catch {
+    /* file not readable */
+  }
   return {};
 }
 
@@ -22,21 +24,22 @@ function saveAliases(aliases: Record<string, string>): void {
 }
 
 export function registerAliasCommand(program: Command): void {
-  const aliasCmd = program
-    .command("alias")
-    .description("Manage command aliases");
+  const aliasCmd = program.command("alias").description("Manage command aliases");
 
   aliasCmd
     .command("set")
     .description("Create or update an alias")
     .argument("<name>", "Alias name")
     .argument("<command>", "Command to alias (quote the full command)")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect alias set smoke "test -m 'smoke test' --preset quick"
   $ inspect alias set mobile "test --devices 'iphone-15,pixel-8' --mode hybrid"
   $ inspect alias set ci-full "test --preset ci --reporter junit --shard 1/3"
-`)
+`,
+    )
     .action((name: string, command: string) => {
       const aliases = loadAliases();
       aliases[name] = command;
@@ -89,7 +92,9 @@ Examples:
       const aliases = loadAliases();
       const cmd = aliases[name];
       if (!cmd) {
-        console.error(chalk.red(`Unknown alias: "${name}". Use "inspect alias list" to see available aliases.`));
+        console.error(
+          chalk.red(`Unknown alias: "${name}". Use "inspect alias list" to see available aliases.`),
+        );
         process.exit(1);
       }
       console.log(chalk.dim(`Running alias: ${name} → inspect ${cmd}\n`));

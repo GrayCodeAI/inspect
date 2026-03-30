@@ -444,7 +444,7 @@ export class GeminiProvider extends LLMProvider {
 
   private extractJSONChunks(buffer: string): { parsed: GeminiStreamChunk[]; remaining: string } {
     const parsed: GeminiStreamChunk[] = [];
-    let remaining = buffer;
+    const remaining = buffer;
 
     // SSE format: data: {...}\n\n
     const lines = remaining.split("\n");

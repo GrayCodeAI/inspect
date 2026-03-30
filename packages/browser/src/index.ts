@@ -37,7 +37,11 @@ export {
   type VisionLLMClient,
 } from "./vision/detector.js";
 export { AnnotatedScreenshot } from "./vision/annotated-screenshot.js";
-export type { AnnotatedScreenshotOptions, AnnotatedScreenshotResult, AnnotatedElement } from "./vision/annotated-screenshot.js";
+export type {
+  AnnotatedScreenshotOptions,
+  AnnotatedScreenshotResult,
+  AnnotatedElement,
+} from "./vision/annotated-screenshot.js";
 
 // Cookie extraction
 export {
@@ -57,6 +61,12 @@ export type { VideoExportOptions, VideoExportResult } from "./session/video-expo
 // MCP server
 export { MCPServer } from "./mcp/server.js";
 export { BROWSER_TOOLS, getToolDefinition, getToolNames } from "./mcp/tools.js";
+export {
+  createPageResources,
+  createPagePrompts,
+  type MCPResource,
+  type MCPPrompt,
+} from "./mcp/resources.js";
 
 // DOM traversal (iFrame and Shadow DOM)
 export {
@@ -107,6 +117,25 @@ export type { DragDropOptions, DragDropResult } from "./actions/drag-drop.js";
 // Network interception
 export { NetworkInterceptor } from "./network/interceptor.js";
 export type { MockRoute, BlockRule } from "./network/interceptor.js";
+
+// Cloud browser provider
+export {
+  CloudBrowserProvider,
+  CloudSessionPool,
+  type CloudBrowserConfig,
+  type CloudSession,
+  type PoolConfig,
+  type PoolHealth,
+} from "./cloud/provider.js";
+
+// Network interception and monitoring
+export {
+  NetworkMonitor,
+  type RecordedRequest,
+  type RecordedResponse,
+  type HARFile,
+  type MockRule,
+} from "./network/monitor.js";
 
 // Re-export shared types for convenience
 export type {

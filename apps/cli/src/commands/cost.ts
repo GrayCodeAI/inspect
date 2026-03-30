@@ -51,13 +51,21 @@ export function registerCostCommand(program: Command): void {
           const tokenStr = tokens.toLocaleString().padStart(10);
           const costStr = `$${cost.toFixed(4)}`.padStart(10);
 
-          console.log(`  ${chalk.dim(date.padEnd(22))} ${chalk.cyan(tokenStr)} ${chalk.green(costStr)}  ${chalk.dim(url)}`);
-        } catch {}
+          console.log(
+            `  ${chalk.dim(date.padEnd(22))} ${chalk.cyan(tokenStr)} ${chalk.green(costStr)}  ${chalk.dim(url)}`,
+          );
+        } catch {
+          /* skip invalid entry */
+        }
       }
 
       console.log(chalk.dim("  " + "\u2500".repeat(70)));
-      console.log(`  ${chalk.bold("Total")}${" ".repeat(16)} ${chalk.cyan(totalTokens.toLocaleString().padStart(10))} ${chalk.green(`$${totalCost.toFixed(4)}`.padStart(10))}  ${chalk.dim(`${totalRuns} runs`)}`);
-      console.log(`  ${chalk.dim("Avg per run")}${" ".repeat(10)} ${chalk.dim((totalRuns > 0 ? Math.round(totalTokens / totalRuns) : 0).toLocaleString().padStart(10))} ${chalk.dim(`$${(totalRuns > 0 ? totalCost / totalRuns : 0).toFixed(4)}`.padStart(10))}`);
+      console.log(
+        `  ${chalk.bold("Total")}${" ".repeat(16)} ${chalk.cyan(totalTokens.toLocaleString().padStart(10))} ${chalk.green(`$${totalCost.toFixed(4)}`.padStart(10))}  ${chalk.dim(`${totalRuns} runs`)}`,
+      );
+      console.log(
+        `  ${chalk.dim("Avg per run")}${" ".repeat(10)} ${chalk.dim((totalRuns > 0 ? Math.round(totalTokens / totalRuns) : 0).toLocaleString().padStart(10))} ${chalk.dim(`$${(totalRuns > 0 ? totalCost / totalRuns : 0).toFixed(4)}`.padStart(10))}`,
+      );
       console.log("");
     });
 }

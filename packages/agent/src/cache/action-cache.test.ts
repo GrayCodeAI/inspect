@@ -15,7 +15,11 @@ describe("ActionCache", () => {
   });
 
   afterEach(() => {
-    try { if (existsSync(testDir)) rmSync(testDir, { recursive: true }); } catch {}
+    try {
+      if (existsSync(testDir)) rmSync(testDir, { recursive: true });
+    } catch {
+      /* cleanup */
+    }
   });
 
   it("generates consistent cache keys", () => {
@@ -57,7 +61,9 @@ describe("ActionCache", () => {
 
     // Wait for expiry
     const start = Date.now();
-    while (Date.now() - start < 5) {} // busy wait 5ms
+    while (Date.now() - start < 5) {
+      /* busy wait */
+    } // busy wait 5ms
 
     const result = await shortCache.get("Click login", "https://example.com/login");
     expect(result).toBeNull();

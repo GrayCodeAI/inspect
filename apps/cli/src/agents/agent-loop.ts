@@ -12,7 +12,7 @@ import type { Page } from "@inspect/browser";
 import { AnnotatedScreenshot, DOMDiff } from "@inspect/browser";
 import type { TestStep, TestPlan, LLMCall, ProgressCallback, ValidationResult } from "./types.js";
 import { detectPageType } from "./planner.js";
-import { ActionLoopDetector, ActCache } from "@inspect/agent";
+import { ActionLoopDetector, ActionCache } from "@inspect/agent";
 import type { SpeculativePlanner } from "@inspect/core";
 
 // ---------------------------------------------------------------------------
@@ -90,20 +90,28 @@ function buildAgentPrompt(
   history: ActionHistoryEntry[],
   spaRoutes: string[],
 ): string {
-  const historyText = history.length > 0
-    ? history.map(h =>
-        `  ${h.step}. [${h.result}] ${h.action}${h.target ? ` "${h.target}"` : ""} → ${h.summary}${h.pageChanged ? " (page changed)" : ""}`,
-      ).join("\n")
-    : "  (none yet — this is the first action)";
+  const historyText =
+    history.length > 0
+      ? history
+          .map(
+            (h) =>
+              `  ${h.step}. [${h.result}] ${h.action}${h.target ? ` "${h.target}"` : ""} → ${h.summary}${h.pageChanged ? " (page changed)" : ""}`,
+          )
+          .join("\n")
+      : "  (none yet — this is the first action)";
 
-  const routeHint = spaRoutes.length > 0
-    ? `\nDiscovered SPA routes to explore:\n${spaRoutes.filter(r => !r.includes(":") && !r.includes("[")).slice(0, 10).map(r => `  - ${r}`).join("\n")}\n`
-    : "";
+  const routeHint =
+    spaRoutes.length > 0
+      ? `\nDiscovered SPA routes to explore:\n${spaRoutes
+          .filter((r) => !r.includes(":") && !r.includes("["))
+          .slice(0, 10)
+          .map((r) => `  - ${r}`)
+          .join("\n")}\n`
+      : "";
 
   // Trim snapshot to fit in context — keep the interactive elements
-  const trimmedSnapshot = snapshot.length > 6000
-    ? snapshot.slice(0, 6000) + "\n... (truncated)"
-    : snapshot;
+  const trimmedSnapshot =
+    snapshot.length > 6000 ? snapshot.slice(0, 6000) + "\n... (truncated)" : snapshot;
 
   return `You are an autonomous web testing agent. Your job is to thoroughly test this website by exploring all features — clicking buttons, filling forms, navigating pages, and verifying behavior.
 
@@ -151,13 +159,23 @@ RULES:
 
 function snapshotChangedSignificantly(before: string, after: string): boolean {
   if (before === after) return false;
-  const beforeLines = new Set(before.split("\n").map(l => l.trim()).filter(Boolean));
-  const afterLines = new Set(after.split("\n").map(l => l.trim()).filter(Boolean));
+  const beforeLines = new Set(
+    before
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean),
+  );
+  const afterLines = new Set(
+    after
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean),
+  );
   let newLines = 0;
   for (const line of afterLines) {
     if (!beforeLines.has(line)) newLines++;
   }
-  return afterLines.size > 0 && (newLines / afterLines.size) > 0.4;
+  return afterLines.size > 0 && newLines / afterLines.size > 0.4;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,10 +200,16 @@ export async function runAgentLoop(opts: {
   specPlanner?: SpeculativePlanner;
 }): Promise<AgentLoopResult> {
   const {
-    page, llm, onProgress, maxSteps,
-    executeStep, validateStep,
-    screenshotDir, AriaSnapshotBuilder,
-    networkMonitor, consoleMonitor,
+    page,
+    llm,
+    onProgress,
+    maxSteps,
+    executeStep,
+    validateStep,
+    screenshotDir,
+    AriaSnapshotBuilder,
+    networkMonitor,
+    consoleMonitor,
     specPlanner,
   } = opts;
 
@@ -197,14 +221,16 @@ export async function runAgentLoop(opts: {
 
   // --- Feature integrations (Browser Use / Stagehand / Shortest patterns) ---
   const loopDetector = new ActionLoopDetector({ windowSize: 10, threshold: 3, maxNudges: 2 });
-  const actionCache = new ActCache({ enabled: true });
+  const actionCache = new ActionCache({ enabled: true });
 
   // Always start with a screenshot
   const { join } = await import("node:path");
   const initialStep: TestStep = {
-    id: stepId++, action: "screenshot",
+    id: stepId++,
+    action: "screenshot",
     description: "Capture initial page state",
-    status: "pending", priority: 4,
+    status: "pending",
+    priority: 4,
   };
   const initialResult = await executeStep(initialStep, page, snapshotText, llm, onProgress);
   results.push(initialResult);
@@ -241,7 +267,7 @@ export async function runAgentLoop(opts: {
 
     // --- Cache lookup: skip LLM if we have a cached action for this state ---
     const cacheInstruction = `${currentUrl}|${snapshotText.slice(0, 200)}`;
-    const cached = actionCache.get(cacheInstruction, currentUrl);
+    const cached = await actionCache.get(cacheInstruction, currentUrl);
     let action: AgentAction | null = null;
 
     if (cached) {
@@ -251,14 +277,17 @@ export async function runAgentLoop(opts: {
         value: cached.action.value,
         reasoning: "(cached — replaying previous action)",
       };
-      actionCache.recordReplay(ActCache.key(cacheInstruction, currentUrl));
+      actionCache.recordReplay(ActionCache.key(cacheInstruction, currentUrl));
     } else {
       // Ask the agent what to do next
       let agentResponse: string;
       try {
         agentResponse = await llm([{ role: "user", content: prompt }]);
       } catch (err: unknown) {
-        onProgress("warn", `Agent LLM call failed: ${err instanceof Error ? err.message : String(err)}`);
+        onProgress(
+          "warn",
+          `Agent LLM call failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
         break;
       }
 
@@ -268,10 +297,12 @@ export async function runAgentLoop(opts: {
         onProgress("warn", "Agent returned unparseable response, retrying...");
         // One retry with corrective prompt
         try {
-          const retryResp = await llm([{
-            role: "user",
-            content: `Your response was not valid JSON. Return ONLY: {"action": "...", "target": "...", "assertion": "..."}\n\nFix this:\n${agentResponse.slice(0, 500)}`,
-          }]);
+          const retryResp = await llm([
+            {
+              role: "user",
+              content: `Your response was not valid JSON. Return ONLY: {"action": "...", "target": "...", "assertion": "..."}\n\nFix this:\n${agentResponse.slice(0, 500)}`,
+            },
+          ]);
           const retryAction = parseAgentAction(retryResp);
           if (!retryAction) {
             onProgress("warn", "Agent response still unparseable — stopping");
@@ -287,7 +318,10 @@ export async function runAgentLoop(opts: {
 
     // Agent says it's done testing
     if (action.action === "done") {
-      onProgress("info", `Agent completed testing: ${action.reasoning ?? "all major features covered"}`);
+      onProgress(
+        "info",
+        `Agent completed testing: ${action.reasoning ?? "all major features covered"}`,
+      );
       break;
     }
 
@@ -321,7 +355,11 @@ export async function runAgentLoop(opts: {
     const isTwoStep = action.action === "select" || action.action === "hover";
     const domDiff = new DOMDiff();
     if (isTwoStep) {
-      try { await domDiff.captureBefore(page); } catch { /* non-critical */ }
+      try {
+        await domDiff.captureBefore(page);
+      } catch {
+        /* non-critical */
+      }
     }
 
     // Execute the step
@@ -336,8 +374,14 @@ export async function runAgentLoop(opts: {
         const diff = await domDiff.captureAfter(page);
         if (diff.added.length > 0) {
           const optionsList = diff.added
-            .filter(el => el.role === "option" || el.tagName === "option" || el.tagName === "li" || el.tagName === "a")
-            .map(el => el.text)
+            .filter(
+              (el) =>
+                el.role === "option" ||
+                el.tagName === "option" ||
+                el.tagName === "li" ||
+                el.tagName === "a",
+            )
+            .map((el) => el.text)
             .filter(Boolean)
             .join(", ");
           if (optionsList) {
@@ -353,7 +397,9 @@ export async function runAgentLoop(opts: {
             });
           }
         }
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
     }
 
     // Wait for page to settle
@@ -368,7 +414,9 @@ export async function runAgentLoop(opts: {
       // Keep old snapshot if page is navigating
     }
 
-    const newConsoleErrors = consoleMonitor.errors.filter((e: string) => !prevConsoleErrors.includes(e));
+    const newConsoleErrors = consoleMonitor.errors.filter(
+      (e: string) => !prevConsoleErrors.includes(e),
+    );
     const pageChanged = snapshotChangedSignificantly(beforeSnapshot, snapshotText);
 
     // --- Vision+DOM Fusion (Skyvern pattern): on failure, capture annotated context ---
@@ -378,7 +426,10 @@ export async function runAgentLoop(opts: {
         const annotated = await annotator.capture(page);
         // Inject vision context into next prompt via history
         const elSummary = annotated.elements
-          .map(el => `[${el.id}] ${el.tagName}${el.role ? `(${el.role})` : ""} "${el.text?.slice(0, 40) ?? ""}"`)
+          .map(
+            (el) =>
+              `[${el.id}] ${el.tagName}${el.role ? `(${el.role})` : ""} "${el.text?.slice(0, 40) ?? ""}"`,
+          )
           .join("\n  ");
         if (elSummary) {
           history.push({
@@ -391,7 +442,9 @@ export async function runAgentLoop(opts: {
             summary: `Visual scan found ${annotated.elements.length} interactive elements:\n  ${elSummary}`,
           });
         }
-      } catch { /* vision is non-critical fallback */ }
+      } catch {
+        /* vision is non-critical fallback */
+      }
     }
 
     // Validate
@@ -420,9 +473,12 @@ export async function runAgentLoop(opts: {
       result: result.status as "pass" | "fail" | "skip",
       pageChanged,
       url: page.url(),
-      summary: result.status === "pass"
-        ? (step.assertion ? "verified" : "ok")
-        : (result.error ?? "failed"),
+      summary:
+        result.status === "pass"
+          ? step.assertion
+            ? "verified"
+            : "ok"
+          : (result.error ?? "failed"),
     });
 
     // --- Loop detection: record action ---

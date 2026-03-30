@@ -2,12 +2,7 @@
 // @inspect/sdk - Act Handler: Execute single natural-language actions
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type {
-  ElementSnapshot,
-  PageSnapshot,
-  TokenMetrics,
-  AgentAction,
-} from "@inspect/shared";
+import type { ElementSnapshot, PageSnapshot, TokenMetrics, AgentAction } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("sdk/act");
@@ -50,10 +45,13 @@ export interface ActResult {
 
 /** LLM client interface for sending messages */
 export interface LLMClient {
-  chat(messages: Array<{ role: string; content: string }>, options?: {
-    temperature?: number;
-    maxTokens?: number;
-  }): Promise<{
+  chat(
+    messages: Array<{ role: string; content: string }>,
+    options?: {
+      temperature?: number;
+      maxTokens?: number;
+    },
+  ): Promise<{
     content: string;
     usage: { promptTokens: number; completionTokens: number; totalTokens: number };
   }>;
@@ -61,8 +59,21 @@ export interface LLMClient {
 
 /** Cache interface for action caching */
 export interface ActionCacheInterface {
-  get(key: string): { action: AgentAction; elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string } } | undefined;
-  set(key: string, value: { action: AgentAction; elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string } }): void;
+  get(
+    key: string,
+  ):
+    | {
+        action: AgentAction;
+        elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string };
+      }
+    | undefined;
+  set(
+    key: string,
+    value: {
+      action: AgentAction;
+      elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string };
+    },
+  ): void;
 }
 
 /** Page interaction interface */
@@ -86,7 +97,9 @@ export interface PageInterface {
 export class ActHandler {
   private llm: LLMClient;
   private cache: ActionCacheInterface | undefined;
-  private defaultOptions: Required<Pick<ActOptions, "useCache" | "maxRetries" | "timeoutMs" | "selfHeal">>;
+  private defaultOptions: Required<
+    Pick<ActOptions, "useCache" | "maxRetries" | "timeoutMs" | "selfHeal">
+  >;
 
   constructor(
     llm: LLMClient,
@@ -174,10 +187,7 @@ export class ActHandler {
     for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
       try {
         const snapshot = await page.getSnapshot();
-        const { action, element, usage } = await this.resolveAction(
-          resolvedInstruction,
-          snapshot,
-        );
+        const { action, element, usage } = await this.resolveAction(resolvedInstruction, snapshot);
 
         tokenUsage = {
           promptTokens: tokenUsage.promptTokens + usage.promptTokens,
@@ -275,10 +285,10 @@ Respond with a JSON object:
 
 Respond ONLY with the JSON object, no other text.`;
 
-    const response = await this.llm.chat(
-      [{ role: "user", content: prompt }],
-      { temperature: 0, maxTokens: 256 },
-    );
+    const response = await this.llm.chat([{ role: "user", content: prompt }], {
+      temperature: 0,
+      maxTokens: 256,
+    });
 
     // Parse the action from LLM response
     const action = this.parseActionResponse(response.content);
@@ -326,17 +336,16 @@ Respond ONLY with the JSON object, no other text.`;
       };
     } catch (error) {
       logger.debug("Failed to parse LLM action response", { error });
-      throw new Error(`Failed to parse LLM action response: ${content.slice(0, 200)}`);
+      throw new Error(`Failed to parse LLM action response: ${content.slice(0, 200)}`, {
+        cause: error,
+      });
     }
   }
 
   /**
    * Execute a resolved action on the page.
    */
-  private async performAction(
-    page: PageInterface,
-    action: AgentAction,
-  ): Promise<void> {
+  private async performAction(page: PageInterface, action: AgentAction): Promise<void> {
     const ref = action.target;
 
     switch (action.type) {

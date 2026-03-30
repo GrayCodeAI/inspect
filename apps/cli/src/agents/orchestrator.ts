@@ -138,9 +138,12 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
 
   // --- Run Cache: check if we have a cached passing run (Shortest pattern) ---
   const runCache = new RunCache();
-  const cachedRun = runCache.get(url, "", "desktop");
+  const cachedRun = await runCache.get(url, "", "desktop");
   if (cachedRun && !fast) {
-    onProgress("info", `Replaying cached run (${cachedRun.steps.length} steps, saved ${cachedRun.tokenCount} tokens)`);
+    onProgress(
+      "info",
+      `Replaying cached run (${cachedRun.steps.length} steps, saved ${cachedRun.tokenCount} tokens)`,
+    );
     runCache.recordReplay(RunCache.key(url, "", "desktop"));
     // Still run the test but skip re-caching at the end
   }
@@ -202,7 +205,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   // --- Watchdog System: parallel monitors for popups, captcha, crashes (Browser Use pattern) ---
   const watchdog = new WatchdogManager({ pollInterval: 2000 });
   watchdog.onEvent((event) => {
-    if (event.type === "captcha") onProgress("warn", "Captcha detected — may need manual intervention");
+    if (event.type === "captcha")
+      onProgress("warn", "Captcha detected — may need manual intervention");
     if (event.type === "crash") onProgress("warn", "Browser crash detected");
   });
   watchdog.startAll();
@@ -644,7 +648,9 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           const failLines: string[] = [];
           failLines.push(`  ${chalk.hex(PALETTE.text).bold("Failure Analysis")}`);
           for (const issue of analysis.topIssues) {
-            failLines.push(`  ${chalk.hex(PALETTE.amber)(ICONS.arrow)} ${chalk.hex(PALETTE.text)(issue)}`);
+            failLines.push(
+              `  ${chalk.hex(PALETTE.amber)(ICONS.arrow)} ${chalk.hex(PALETTE.text)(issue)}`,
+            );
           }
           onProgress("done", failLines.join("\n"));
         }
@@ -664,21 +670,33 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     // --- Run Cache: save passing run for future replay (Shortest pattern) ---
     if (report.summary.failed === 0 && !cachedRun) {
       try {
-        runCache.save(url, "", "desktop", results.map((r, i) => ({
-          index: i,
-          action: r.action,
-          description: r.description,
-          status: (r.status === "pass" ? "pass" : "skipped") as "pass" | "fail" | "skipped",
-          snapshotFingerprint: "",
-        })), Date.now() - startTime, tokenUsage);
-      } catch { /* non-critical */ }
+        runCache.save(
+          url,
+          "",
+          "desktop",
+          results.map((r, i) => ({
+            index: i,
+            action: r.action,
+            description: r.description,
+            status: (r.status === "pass" ? "pass" : "skipped") as "pass" | "fail" | "skipped",
+            snapshotFingerprint: "",
+          })),
+          Date.now() - startTime,
+          tokenUsage,
+        );
+      } catch {
+        /* non-critical */
+      }
     }
 
     // --- Watchdog + Speculative Planner cleanup ---
     watchdog.stopAll();
     const specStats = specPlanner.getStats();
     if (specStats.used > 0) {
-      onProgress("info", `Speculative planner: ${specStats.used}/${specStats.generated} plans used (~${specStats.estimatedTimeSavedMs}ms saved)`);
+      onProgress(
+        "info",
+        `Speculative planner: ${specStats.used}/${specStats.generated} plans used (~${specStats.estimatedTimeSavedMs}ms saved)`,
+      );
     }
 
     await browserMgr.closeBrowser();

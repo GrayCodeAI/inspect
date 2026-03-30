@@ -588,7 +588,7 @@ async function scheduleWorkflow(
 
   // Try to use node-cron if available
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const cronModuleName = "node-cron";
     const cron: any = await import(cronModuleName);
     if (!cron.validate(schedule)) {

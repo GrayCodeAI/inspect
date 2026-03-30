@@ -98,7 +98,7 @@ export async function checkSecurityHeaders(
   page: any,
   url: string,
 ): Promise<SecurityHeaders> {
-  let responseHeaders: Record<string, string> = {};
+  const responseHeaders: Record<string, string> = {};
 
   try {
     const response = await page.goto(url, { waitUntil: "domcontentloaded" });

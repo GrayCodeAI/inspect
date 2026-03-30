@@ -24,14 +24,11 @@ async function startServer(options: ServeOptions): Promise<void> {
     registerSessionRoutes,
     registerSystemRoutes,
     registerAuditRoutes,
-    registerDashboardRoutes,
     createPersistentStores,
     RouteRateLimiter,
     MetricsCollector,
     registerMetricsEndpoint,
   } = await import("@inspect/api");
-
-  const { DashboardOrchestrator } = await import("@inspect/core");
 
   const isProduction = process.env.NODE_ENV === "production";
   const jwtSecret = process.env.INSPECT_JWT_SECRET;
@@ -63,7 +60,6 @@ async function startServer(options: ServeOptions): Promise<void> {
   // Per-endpoint rate limits (stricter on expensive endpoints)
   const routeLimiter = new RouteRateLimiter([
     { path: "/api/tasks", method: "POST", maxRequests: 20, windowMs: 60_000 },
-    { path: "/api/dashboard/run", method: "POST", maxRequests: 10, windowMs: 60_000 },
     { path: "/api/workflows", method: "POST", maxRequests: 15, windowMs: 60_000 },
     { path: "/api/credentials", method: "POST", maxRequests: 10, windowMs: 60_000 },
     { path: "/api/sessions", method: "POST", maxRequests: 10, windowMs: 60_000 },
@@ -73,12 +69,6 @@ async function startServer(options: ServeOptions): Promise<void> {
   // Streaming managers
   const sseManager = new SSEManager({ keepAliveMs: 30_000 });
   const wsManager = new WebSocketManager({ pingIntervalMs: 30_000 });
-
-  // Dashboard orchestrator (singleton for this server process)
-  const dashboardOrchestrator = new DashboardOrchestrator({
-    router: null as any,
-    browserManager: null,
-  });
 
   // Register system routes (health, version, models)
   registerSystemRoutes(server, {
@@ -147,15 +137,11 @@ async function startServer(options: ServeOptions): Promise<void> {
     res.json({ agents, total: agents.length });
   });
 
-  // Register dashboard routes (SSE + WebSocket + REST)
-  registerDashboardRoutes(server, dashboardOrchestrator, sseManager, wsManager);
-
   // Register metrics endpoint
   registerMetricsEndpoint(server, metrics);
 
   // OpenAPI docs endpoint
   let openApiSpec: object | null = null;
-  let webDistDir: string | null = null;
   try {
     const { readFileSync, existsSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
@@ -172,18 +158,6 @@ async function startServer(options: ServeOptions): Promise<void> {
         break;
       }
     }
-
-    // Find web dist directory
-    const webCandidates = [
-      join(cliDir, "..", "..", "..", "apps", "web", "dist"),
-      join(cliDir, "..", "..", "..", "..", "apps", "web", "dist"),
-    ];
-    for (const candidate of webCandidates) {
-      if (existsSync(join(candidate, "index.html"))) {
-        webDistDir = candidate;
-        break;
-      }
-    }
   } catch {
     // Spec not available
   }
@@ -194,59 +168,6 @@ async function startServer(options: ServeOptions): Promise<void> {
       res.status(501).json({ error: "OpenAPI spec not available" });
     }
   });
-
-  // Serve web dashboard UI (SPA)
-  if (webDistDir) {
-    const { readFileSync, existsSync, statSync } = await import("node:fs");
-    const { join, extname } = await import("node:path");
-
-    const MIME: Record<string, string> = {
-      ".html": "text/html; charset=utf-8",
-      ".js": "application/javascript; charset=utf-8",
-      ".css": "text/css; charset=utf-8",
-      ".json": "application/json",
-      ".svg": "image/svg+xml",
-      ".png": "image/png",
-      ".ico": "image/x-icon",
-      ".woff": "font/woff",
-      ".woff2": "font/woff2",
-    };
-
-    server.get("/", (_req: APIRequest, res: APIResponse) => {
-      res.header("Content-Type", "text/html; charset=utf-8");
-      res.send(readFileSync(join(webDistDir!, "index.html"), "utf-8"));
-    });
-
-    server.get("/assets/*", (req: APIRequest, res: APIResponse) => {
-      const filePath = join(webDistDir!, req.path);
-      if (existsSync(filePath) && statSync(filePath).isFile()) {
-        const ext = extname(filePath);
-        res.header("Content-Type", MIME[ext] ?? "application/octet-stream");
-        res.header("Cache-Control", "public, max-age=31536000, immutable");
-        res.send(readFileSync(filePath, "utf-8"));
-      } else {
-        res.status(404).send("Not found");
-      }
-    });
-
-    // Serve index.html for SPA root
-    server.get("/", (_req: APIRequest, res: APIResponse) => {
-      res.header("Content-Type", "text/html; charset=utf-8");
-      res.header("Cache-Control", "no-cache");
-      res.send(readFileSync(join(webDistDir!, "index.html"), "utf-8"));
-    });
-
-    // SPA fallback — serve index.html for any non-API route
-    server.setFallback((req: APIRequest, res: APIResponse) => {
-      if (req.method === "GET" && !req.path.startsWith("/api/")) {
-        res.header("Content-Type", "text/html; charset=utf-8");
-        res.header("Cache-Control", "no-cache");
-        res.send(readFileSync(join(webDistDir!, "index.html"), "utf-8"));
-      } else {
-        res.status(404).json({ error: "Not found", path: req.path });
-      }
-    });
-  }
 
   // Start the server
   await server.start(port, host);
@@ -275,10 +196,6 @@ async function startServer(options: ServeOptions): Promise<void> {
   console.log(chalk.dim(`    GET    /api/sessions             List sessions`));
   console.log(chalk.dim(`    GET    /api/devices              Device presets`));
   console.log(chalk.dim(`    GET    /api/agents               AI agents`));
-  console.log(chalk.dim(`    GET    /api/dashboard            Dashboard snapshot`));
-  console.log(chalk.dim(`    GET    /api/dashboard/stream     SSE event stream`));
-  console.log(chalk.dim(`    POST   /api/dashboard/run        Spawn test run`));
-  console.log(chalk.dim(`    POST   /api/dashboard/cancel-all Cancel all runs`));
   console.log(chalk.dim(`    GET    /api/docs                 OpenAPI specification`));
   console.log(chalk.dim(`    GET    /api/metrics              Prometheus metrics`));
   console.log(chalk.dim(`\n  Press Ctrl+C to stop\n`));

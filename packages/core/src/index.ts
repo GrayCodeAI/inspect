@@ -7,13 +7,21 @@ export type {
   ExecutionResult,
   ExecutionProgress,
   ExecutorDependencies,
+  StepPlan,
+  StepResult,
+  AdversarialFinding,
 } from "./orchestrator/executor.js";
 
 export { TestScheduler } from "./orchestrator/scheduler.js";
 export type { SchedulerConfig, ScheduledRun } from "./orchestrator/scheduler.js";
 
 export { RecoveryManager } from "./orchestrator/recovery.js";
-export type { FailureType, RecoveryStrategy, DiagnosisResult } from "./orchestrator/recovery.js";
+export type {
+  FailureType,
+  RecoveryStrategy,
+  DiagnosisResult,
+  RecoveryExecutors,
+} from "./orchestrator/recovery.js";
 
 export { SpeculativePlanner } from "./orchestrator/speculative.js";
 export type { SpeculativePlan, SpeculativeStats } from "./orchestrator/speculative.js";
@@ -34,7 +42,13 @@ export type { PRInfo, PRDiff } from "./github/pr.js";
 export { PRComments } from "./github/comments.js";
 export type { CommentPayload, StatusPayload } from "./github/comments.js";
 
-export { DevicePresets, getPreset, listPresets } from "./devices/presets.js";
+export {
+  DevicePresets,
+  getPreset,
+  listPresets,
+  resolveDevices,
+  getPresetsByCategory,
+} from "./devices/presets.js";
 export type { DeviceConfig } from "./devices/presets.js";
 
 export { DevicePool } from "./devices/pool.js";
@@ -42,7 +56,12 @@ export type { DeviceRunResult } from "./devices/pool.js";
 
 export { VisualRegression } from "./visual/regression.js";
 
-export { generatePlaywrightTest, exportPlaywrightTest, generatePlaywrightFromSuite, exportPlaywrightFromSuite } from "./export/playwright.js";
+export {
+  generatePlaywrightTest,
+  exportPlaywrightTest,
+  generatePlaywrightFromSuite,
+  exportPlaywrightFromSuite,
+} from "./export/playwright.js";
 export type { PlaywrightExportOptions } from "./export/playwright.js";
 export type {
   VisualRegressionConfig,
@@ -52,6 +71,15 @@ export type {
 
 // Dashboard orchestrator
 export { DashboardOrchestrator } from "./orchestrator/dashboard.js";
+
+// Agent tools and prompts
+export {
+  AGENT_TOOLS,
+  VISUAL_TOOLS,
+  NON_VISUAL_TOOLS,
+  CACHEABLE_TOOLS,
+} from "./orchestrator/tools.js";
+export { SYSTEM_PROMPT } from "./orchestrator/prompts.js";
 
 // Test run caching
 export { RunCache } from "./testing/run-cache.js";
@@ -83,6 +111,12 @@ export {
   type ChangeCategory,
 } from "./testing/diff-runner.js";
 
+// Diff-aware test plan generation
+export { DiffPlanGenerator, type DiffPlanGeneratorConfig } from "./testing/diff-plan-generator.js";
+
+// Adversarial testing
+export { AdversarialExecutor, type AdversarialConfig } from "./testing/adversarial-executor.js";
+
 // Retry policies
 export {
   RetryExecutor,
@@ -94,11 +128,7 @@ export {
 } from "./testing/retry.js";
 
 // Test tagging & filtering
-export {
-  TagExpression,
-  TestFilter,
-  type TaggedTest,
-} from "./testing/tags.js";
+export { TagExpression, TestFilter, type TaggedTest } from "./testing/tags.js";
 
 // Benchmark tracking
 export {
@@ -146,3 +176,21 @@ export {
   type FlakinessScore,
   type FlakinessReport,
 } from "./testing/flakiness.js";
+
+// Self-healing engine
+export {
+  SelfHealer,
+  HealingStrategy,
+  DOMDiffer,
+  type HealResult,
+  type HealCandidate,
+  type ElementDescription,
+  type SnapshotElement,
+  type HealingAttemptResult,
+  type DOMChange,
+  type DOMDiffResult,
+  mapMethodToStrategy,
+} from "./healing/index.js";
+
+// Self-healing + generation (additional exports not in testing/)
+export { type AnalyzedElement, type FormInfo } from "./generation/index.js";

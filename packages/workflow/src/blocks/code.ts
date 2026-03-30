@@ -41,10 +41,7 @@ export class CodeBlock {
    *
    * The code should set `result` or return a value from the async wrapper.
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<CodeBlockResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<CodeBlockResult> {
     const params = block.parameters;
     const code = context.render(String(params.code ?? ""));
     const timeout = (params.timeout as number) ?? this.defaultTimeout;
@@ -95,9 +92,9 @@ export class CodeBlock {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg.includes("Script execution timed out")) {
-        throw new Error(`Code execution timed out after ${timeout}ms`);
+        throw new Error(`Code execution timed out after ${timeout}ms`, { cause: error });
       }
-      throw new Error(`Code execution failed: ${msg}`);
+      throw new Error(`Code execution failed: ${msg}`, { cause: error });
     }
 
     const duration = Date.now() - startTime;
@@ -191,7 +188,9 @@ export class CodeBlock {
       },
       clearTimeout,
       setInterval: () => {
-        throw new Error("setInterval is not allowed in workflow code blocks. Use setTimeout instead.");
+        throw new Error(
+          "setInterval is not allowed in workflow code blocks. Use setTimeout instead.",
+        );
       },
       clearInterval,
 
@@ -210,8 +209,7 @@ export class CodeBlock {
       TextDecoder,
 
       // Utility helpers injected into sandbox
-      sleep: (ms: number): Promise<void> =>
-        new Promise((r) => setTimeout(r, Math.min(ms, 10_000))),
+      sleep: (ms: number): Promise<void> => new Promise((r) => setTimeout(r, Math.min(ms, 10_000))),
 
       // No access to:
       // - require / import (no module loading)
@@ -252,10 +250,7 @@ export class CodeBlock {
     result = result.replace(/type\s+\w+\s*=\s*[^;]+;/g, "");
 
     // Remove type annotations from variables (let x: string = ...)
-    result = result.replace(
-      /((?:let|const|var)\s+\w+)\s*:\s*[^=;,)]+\s*(=)/g,
-      "$1 $2",
-    );
+    result = result.replace(/((?:let|const|var)\s+\w+)\s*:\s*[^=;,)]+\s*(=)/g, "$1 $2");
 
     // Remove function parameter type annotations
     result = result.replace(

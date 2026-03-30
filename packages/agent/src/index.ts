@@ -76,8 +76,7 @@ export {
 } from "./memory/compaction.js";
 
 // Cache
-export { ActionCache, type ActionCacheConfig, type CachedAction } from "./cache/store.js";
-export { ActionCache as ActCache, type ActionCacheConfig as ActCacheConfig, type CachedAction as CachedActionEntry } from "./cache/action-cache.js";
+export { ActionCache, type ActionCacheConfig, type CachedAction } from "./cache/action-cache.js";
 export {
   SelfHealer,
   type HealResult,
@@ -118,7 +117,10 @@ export {
   type LoopNudge,
 } from "./loop/detector.js";
 export { ActionLoopDetector } from "./loop/action-loop.js";
-export type { LoopDetectorConfig as ActionLoopConfig, LoopNudge as ActionLoopNudge } from "./loop/action-loop.js";
+export type {
+  LoopDetectorConfig as ActionLoopConfig,
+  LoopNudge as ActionLoopNudge,
+} from "./loop/action-loop.js";
 
 // Tools
 export {
@@ -179,3 +181,32 @@ export type { ReplanConfig, ReplanResult } from "./loop/replan.js";
 // Cross-session learning
 export { PatternStore } from "./memory/pattern-store.js";
 export type { LearnedPattern as StoredPattern } from "./memory/pattern-store.js";
+
+// Agent Governance & Observability
+export {
+  AuditTrail,
+  AutonomyManager,
+  AutonomyLevel,
+  PermissionManager,
+  type AuditEntry,
+  type AuditAction,
+  type AuditFilter,
+  type ToolCall,
+  type TokenUsage,
+  type ComplianceReport,
+  type AutonomyConfig,
+  type AgentPermissions,
+} from "./governance/index.js";
+
+// Multi-Agent Orchestration
+export {
+  AgentGraph,
+  type AgentNode,
+  type AgentEdge,
+  type GraphState,
+  type GraphResult,
+  type GraphEvent,
+  type GraphEventType,
+  type SerializedGraph,
+  type GraphValidationResult,
+} from "./orchestration/index.js";

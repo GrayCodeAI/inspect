@@ -27,19 +27,13 @@ export interface ForLoopResult {
  * iteration's context.
  */
 export class ForLoopBlock {
-  private blockExecutor?: (
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ) => Promise<unknown>;
+  private blockExecutor?: (block: WorkflowBlock, context: WorkflowContext) => Promise<unknown>;
 
   /**
    * Register the block executor for running inner blocks.
    */
   setBlockExecutor(
-    executor: (
-      block: WorkflowBlock,
-      context: WorkflowContext,
-    ) => Promise<unknown>,
+    executor: (block: WorkflowBlock, context: WorkflowContext) => Promise<unknown>,
   ): void {
     this.blockExecutor = executor;
   }
@@ -58,10 +52,7 @@ export class ForLoopBlock {
    * - loopItem: current array element
    * - loopLength: total array length
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<ForLoopResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<ForLoopResult> {
     const params = block.parameters;
     const continueOnError = (params.continueOnError as boolean) ?? block.continueOnFailure ?? false;
     const maxIterations = params.maxIterations as number | undefined;
@@ -79,9 +70,7 @@ export class ForLoopBlock {
       }
       items = resolved;
     } else {
-      throw new Error(
-        "For-loop block requires 'items' parameter (array or context variable name)",
-      );
+      throw new Error("For-loop block requires 'items' parameter (array or context variable name)");
     }
 
     // Apply max iterations cap
@@ -134,14 +123,13 @@ export class ForLoopBlock {
         completed++;
       } catch (error) {
         failed++;
-        iterationResult.error =
-          error instanceof Error ? error.message : String(error);
+        iterationResult.error = error instanceof Error ? error.message : String(error);
 
         if (!continueOnError) {
           results.push(iterationResult);
-          throw new Error(
-            `For-loop iteration ${i} failed: ${iterationResult.error}`,
-          );
+          throw new Error(`For-loop iteration ${i} failed: ${iterationResult.error}`, {
+            cause: error,
+          });
         }
       }
 
@@ -149,7 +137,10 @@ export class ForLoopBlock {
     }
 
     // Store aggregated results in context
-    context.set("loopResults", results.map((r) => r.output));
+    context.set(
+      "loopResults",
+      results.map((r) => r.output),
+    );
 
     return {
       iterations: items.length,

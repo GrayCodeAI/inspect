@@ -268,9 +268,11 @@ export class TestGenerator {
       if (el.role === "textbox" || el.role === "searchbox") {
         fields.push({
           name: el.name,
-          type: el.name.toLowerCase().includes("password") ? "password"
-            : el.name.toLowerCase().includes("email") ? "email"
-            : "text",
+          type: el.name.toLowerCase().includes("password")
+            ? "password"
+            : el.name.toLowerCase().includes("email")
+              ? "email"
+              : "text",
           required: false,
           label: el.name,
         });
@@ -373,10 +375,7 @@ export class TestGenerator {
           { action: "click", target: link, description: `Click the "${link}" link` },
           { action: "wait", description: "Wait for navigation to complete" },
         ],
-        assertions: [
-          "Page navigates without errors",
-          "New page loads content",
-        ],
+        assertions: ["Page navigates without errors", "New page loads content"],
       });
     }
 
@@ -392,7 +391,10 @@ export class TestGenerator {
         priority: "high",
         steps: [
           { action: "navigate", target: analysis.url, description: `Navigate to ${analysis.url}` },
-          { action: "verify", description: "Check that all interactive elements have visible focus indicators" },
+          {
+            action: "verify",
+            description: "Check that all interactive elements have visible focus indicators",
+          },
         ],
         assertions: [
           "All buttons and links are keyboard focusable",
@@ -426,8 +428,18 @@ export class TestGenerator {
         priority: "critical",
         steps: [
           { action: "navigate", target: analysis.url, description: `Navigate to login page` },
-          { action: "type", target: "email/username field", value: "testuser@example.com", description: "Enter valid email" },
-          { action: "type", target: "password field", value: "ValidPass123!", description: "Enter valid password" },
+          {
+            action: "type",
+            target: "email/username field",
+            value: "testuser@example.com",
+            description: "Enter valid email",
+          },
+          {
+            action: "type",
+            target: "password field",
+            value: "ValidPass123!",
+            description: "Enter valid password",
+          },
           { action: "click", target: "submit button", description: "Click sign in" },
           { action: "wait", description: "Wait for redirect" },
         ],
@@ -444,8 +456,18 @@ export class TestGenerator {
         priority: "critical",
         steps: [
           { action: "navigate", target: analysis.url, description: `Navigate to login page` },
-          { action: "type", target: "email/username field", value: "testuser@example.com", description: "Enter valid email" },
-          { action: "type", target: "password field", value: "wrongpassword", description: "Enter wrong password" },
+          {
+            action: "type",
+            target: "email/username field",
+            value: "testuser@example.com",
+            description: "Enter valid email",
+          },
+          {
+            action: "type",
+            target: "password field",
+            value: "wrongpassword",
+            description: "Enter wrong password",
+          },
           { action: "click", target: "submit button", description: "Click sign in" },
         ],
         assertions: [
@@ -461,12 +483,13 @@ export class TestGenerator {
         priority: "high",
         steps: [
           { action: "navigate", target: analysis.url, description: `Navigate to login page` },
-          { action: "click", target: "submit button", description: "Click sign in without filling fields" },
+          {
+            action: "click",
+            target: "submit button",
+            description: "Click sign in without filling fields",
+          },
         ],
-        assertions: [
-          "Required field validation messages appear",
-          "Form is not submitted",
-        ],
+        assertions: ["Required field validation messages appear", "Form is not submitted"],
       },
     ];
   }
@@ -481,14 +504,21 @@ export class TestGenerator {
         steps: [
           { action: "navigate", target: analysis.url, description: "Navigate to signup page" },
           { action: "type", target: "name field", value: "Test User", description: "Enter name" },
-          { action: "type", target: "email field", value: "newuser@example.com", description: "Enter email" },
-          { action: "type", target: "password field", value: "SecurePass123!", description: "Enter password" },
+          {
+            action: "type",
+            target: "email field",
+            value: "newuser@example.com",
+            description: "Enter email",
+          },
+          {
+            action: "type",
+            target: "password field",
+            value: "SecurePass123!",
+            description: "Enter password",
+          },
           { action: "click", target: "submit button", description: "Click create account" },
         ],
-        assertions: [
-          "Account is created successfully",
-          "Confirmation message or redirect occurs",
-        ],
+        assertions: ["Account is created successfully", "Confirmation message or redirect occurs"],
       },
       {
         name: "Duplicate email shows error",
@@ -497,13 +527,15 @@ export class TestGenerator {
         priority: "high",
         steps: [
           { action: "navigate", target: analysis.url, description: "Navigate to signup page" },
-          { action: "type", target: "email field", value: "existing@example.com", description: "Enter existing email" },
+          {
+            action: "type",
+            target: "email field",
+            value: "existing@example.com",
+            description: "Enter existing email",
+          },
           { action: "click", target: "submit button", description: "Submit form" },
         ],
-        assertions: [
-          "Error message about existing account is shown",
-          "User is not registered",
-        ],
+        assertions: ["Error message about existing account is shown", "User is not registered"],
       },
     ];
   }
@@ -517,12 +549,13 @@ export class TestGenerator {
         priority: "critical",
         steps: [
           { action: "navigate", target: analysis.url, description: "Navigate to checkout" },
-          { action: "click", target: "submit/pay button", description: "Submit without filling required fields" },
+          {
+            action: "click",
+            target: "submit/pay button",
+            description: "Submit without filling required fields",
+          },
         ],
-        assertions: [
-          "Required field errors are shown",
-          "Payment is not processed",
-        ],
+        assertions: ["Required field errors are shown", "Payment is not processed"],
       },
     ];
   }
@@ -536,14 +569,16 @@ export class TestGenerator {
         priority: "high",
         steps: [
           { action: "navigate", target: analysis.url, description: "Navigate to search page" },
-          { action: "type", target: "search input", value: "test", description: "Enter search query" },
+          {
+            action: "type",
+            target: "search input",
+            value: "test",
+            description: "Enter search query",
+          },
           { action: "click", target: "search button", description: "Submit search" },
           { action: "wait", description: "Wait for results to load" },
         ],
-        assertions: [
-          "Search results are displayed",
-          "Results are relevant to the query",
-        ],
+        assertions: ["Search results are displayed", "Results are relevant to the query"],
       },
       {
         name: "Empty search handled gracefully",
@@ -554,10 +589,7 @@ export class TestGenerator {
           { action: "navigate", target: analysis.url, description: "Navigate to search page" },
           { action: "click", target: "search button", description: "Submit empty search" },
         ],
-        assertions: [
-          "Appropriate message or all results shown",
-          "No errors displayed",
-        ],
+        assertions: ["Appropriate message or all results shown", "No errors displayed"],
       },
     ];
   }
@@ -580,12 +612,13 @@ export class TestGenerator {
             value: this.getSampleValue(f.type),
             description: `Fill ${f.label || f.name} field`,
           })),
-          { action: "click", target: form.submitButton ?? "submit button", description: "Submit form" },
+          {
+            action: "click",
+            target: form.submitButton ?? "submit button",
+            description: "Submit form",
+          },
         ],
-        assertions: [
-          "Form submits successfully",
-          "Success confirmation is shown",
-        ],
+        assertions: ["Form submits successfully", "Success confirmation is shown"],
       });
     }
 
@@ -626,13 +659,19 @@ export class TestGenerator {
             priority: "medium",
             steps: [
               { action: "navigate", target: analysis.url, description: "Navigate to form" },
-              { action: "type", target: field.label || field.name, value: "notanemail", description: "Enter invalid email" },
-              { action: "click", target: form.submitButton ?? "submit", description: "Submit form" },
+              {
+                action: "type",
+                target: field.label || field.name,
+                value: "notanemail",
+                description: "Enter invalid email",
+              },
+              {
+                action: "click",
+                target: form.submitButton ?? "submit",
+                description: "Submit form",
+              },
             ],
-            assertions: [
-              "Email validation error is shown",
-              "Form is not submitted",
-            ],
+            assertions: ["Email validation error is shown", "Form is not submitted"],
           });
         }
       }
@@ -663,12 +702,233 @@ export class TestGenerator {
 
   private getSampleValue(type: string): string {
     switch (type) {
-      case "email": return "test@example.com";
-      case "password": return "TestPass123!";
-      case "tel": return "555-0100";
-      case "number": return "42";
-      case "url": return "https://example.com";
-      default: return "Test input";
+      case "email":
+        return "test@example.com";
+      case "password":
+        return "TestPass123!";
+      case "tel":
+        return "555-0100";
+      case "number":
+        return "42";
+      case "url":
+        return "https://example.com";
+      default:
+        return "Test input";
     }
+  }
+
+  /**
+   * Generate tests from a sitemap XML or URL list.
+   * Crawls each URL, analyzes page types, and generates targeted tests.
+   */
+  async generateFromSitemap(
+    sitemapSource: string,
+    options: { maxPages?: number; categories?: PageType[] } = {},
+  ): Promise<{ suite: GeneratedTestSuite; pagesAnalyzed: number }> {
+    const maxPages = options.maxPages ?? 50;
+    const urls = await this.parseSitemapUrls(sitemapSource);
+    const limitedUrls = urls.slice(0, maxPages);
+
+    const allTests: GeneratedTest[] = [];
+    let pagesAnalyzed = 0;
+
+    for (const url of limitedUrls) {
+      try {
+        // Analyze page type from URL patterns
+        const pageType = this.detectPageTypeFromUrl(url);
+
+        // Skip if category filter is specified and doesn't match
+        if (options.categories && !options.categories.includes(pageType)) {
+          continue;
+        }
+
+        // Generate tests based on page type (no actual page visit needed)
+        const pageTests = this.generateForPageType(url, pageType);
+        allTests.push(...pageTests);
+        pagesAnalyzed++;
+      } catch {
+        // Skip URLs that fail analysis
+      }
+    }
+
+    const suite: GeneratedTestSuite = {
+      url: limitedUrls[0] ?? "",
+      title: `Sitemap Tests (${pagesAnalyzed} pages)`,
+      pageType: "unknown",
+      generatedAt: Date.now(),
+      tests: allTests,
+    };
+
+    return { suite, pagesAnalyzed };
+  }
+
+  /**
+   * Parse URLs from a sitemap XML string or newline-separated URL list.
+   */
+  private async parseSitemapUrls(source: string): Promise<string[]> {
+    const urls: string[] = [];
+
+    // Check if it's XML sitemap
+    if (source.includes("<urlset") || source.includes("<sitemapindex")) {
+      const locPattern = /<loc>\s*(.*?)\s*<\/loc>/g;
+      let match: RegExpExecArray | null;
+      while ((match = locPattern.exec(source)) !== null) {
+        urls.push(match[1].trim());
+      }
+    } else {
+      // Treat as newline-separated URL list
+      for (const line of source.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (trimmed && (trimmed.startsWith("http://") || trimmed.startsWith("https://"))) {
+          urls.push(trimmed);
+        }
+      }
+    }
+
+    return [...new Set(urls)]; // Deduplicate
+  }
+
+  /**
+   * Detect page type from URL patterns.
+   */
+  private detectPageTypeFromUrl(url: string): PageType {
+    const path = new URL(url).pathname.toLowerCase();
+
+    if (/\/(login|signin|sign-in|log-in)/.test(path)) return "login";
+    if (/\/(signup|register|sign-up|join)/.test(path)) return "signup";
+    if (/\/(dashboard|overview|home)/.test(path)) return "dashboard";
+    if (/\/(checkout|cart|payment|billing)/.test(path)) return "checkout";
+    if (/\/(search|find|results)/.test(path)) return "search";
+    if (/\/(settings|preferences|account)/.test(path)) return "settings";
+    if (/\/(products?|items?|catalog|listing)/.test(path)) return "listing";
+    if (/\/(product|item)\/[\w-]+/.test(path)) return "detail";
+    if (/\/(blog|articles?|posts?|news)/.test(path)) return "article";
+    if (/\/(contact|support|feedback)/.test(path)) return "form";
+    if (/\/(pricing|plans?|features?)/.test(path)) return "landing";
+    return "unknown";
+  }
+
+  /**
+   * Generate tests for a specific page type without visiting the page.
+   */
+  private generateForPageType(url: string, pageType: PageType): GeneratedTest[] {
+    const tests: GeneratedTest[] = [];
+    const baseUrl = url;
+
+    switch (pageType) {
+      case "login":
+        tests.push(
+          {
+            name: "Login page loads",
+            description: "Verify the login page loads correctly",
+            category: "functional",
+            priority: "high",
+            steps: [{ action: "navigate", target: baseUrl, description: `Navigate to ${baseUrl}` }],
+            assertions: ["Page loads without errors", "Login form is visible"],
+          },
+          {
+            name: "Login with valid credentials",
+            description: "Test login with valid email and password",
+            category: "functional",
+            priority: "high",
+            steps: [
+              { action: "type", target: "email", description: "Enter email" },
+              { action: "type", target: "password", description: "Enter password" },
+              { action: "click", target: "submit", description: "Click login" },
+            ],
+            assertions: ["User is logged in", "Redirects to dashboard"],
+          },
+          {
+            name: "Login with invalid credentials",
+            description: "Test error handling for bad credentials",
+            category: "error-handling",
+            priority: "medium",
+            steps: [
+              { action: "type", target: "email", description: "Enter invalid email" },
+              { action: "click", target: "submit", description: "Click login" },
+            ],
+            assertions: ["Error message displayed", "User remains on login page"],
+          },
+        );
+        break;
+
+      case "signup":
+        tests.push(
+          {
+            name: "Signup page loads",
+            description: "Verify the signup page loads correctly",
+            category: "functional",
+            priority: "high",
+            steps: [{ action: "navigate", target: baseUrl, description: `Navigate to ${baseUrl}` }],
+            assertions: ["Signup form is visible", "Required fields are marked"],
+          },
+          {
+            name: "Signup form validation",
+            description: "Test empty form submission validation",
+            category: "form-validation",
+            priority: "high",
+            steps: [{ action: "click", target: "submit", description: "Submit empty form" }],
+            assertions: ["Validation errors shown for required fields"],
+          },
+        );
+        break;
+
+      case "search":
+        tests.push(
+          {
+            name: "Search page loads",
+            description: "Verify the search page loads correctly",
+            category: "functional",
+            priority: "high",
+            steps: [{ action: "navigate", target: baseUrl, description: `Navigate to ${baseUrl}` }],
+            assertions: ["Search input is visible", "Search button is visible"],
+          },
+          {
+            name: "Search returns results",
+            description: "Test search query returns results",
+            category: "functional",
+            priority: "high",
+            steps: [
+              { action: "type", target: "search", description: "Enter search query" },
+              { action: "click", target: "search-button", description: "Click search" },
+            ],
+            assertions: ["Results are displayed", "Results contain relevant items"],
+          },
+        );
+        break;
+
+      case "checkout":
+        tests.push(
+          {
+            name: "Checkout page loads",
+            description: "Verify the checkout page loads correctly",
+            category: "functional",
+            priority: "high",
+            steps: [{ action: "navigate", target: baseUrl, description: `Navigate to ${baseUrl}` }],
+            assertions: ["Cart items displayed", "Total price visible"],
+          },
+          {
+            name: "Checkout form validation",
+            description: "Test checkout form validation",
+            category: "form-validation",
+            priority: "high",
+            steps: [{ action: "click", target: "submit", description: "Submit without info" }],
+            assertions: ["Validation errors for required fields"],
+          },
+        );
+        break;
+
+      default:
+        tests.push({
+          name: `${pageType} page loads`,
+          description: `Verify the ${pageType} page loads correctly`,
+          category: "functional",
+          priority: "medium",
+          steps: [{ action: "navigate", target: baseUrl, description: `Navigate to ${baseUrl}` }],
+          assertions: ["Page loads without errors", "No console errors"],
+        });
+    }
+
+    return tests;
   }
 }

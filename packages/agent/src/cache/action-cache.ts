@@ -9,7 +9,7 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/action-cache");
@@ -28,6 +28,14 @@ export interface CachedAction {
     value?: string;
     selector?: string;
     description?: string;
+    ref?: string;
+  };
+  /** Element description for self-healing selector recovery */
+  elementDescription?: {
+    role: string;
+    name: string;
+    tagName?: string;
+    nearbyText?: string;
   };
   /** ARIA snapshot fingerprint at time of caching */
   snapshotFingerprint?: string;
@@ -35,8 +43,14 @@ export interface CachedAction {
   cachedAt: number;
   /** Number of times this was replayed successfully */
   replayCount: number;
+  /** Number of times this entry was used (including cache hits) */
+  hitCount: number;
+  /** Number of times selector was healed */
+  healCount: number;
   /** Last successful replay */
   lastReplayedAt?: number;
+  /** Last access time */
+  lastAccessed?: number;
   /** TTL in ms (default: 7 days) */
   ttlMs: number;
 }
@@ -127,6 +141,10 @@ export class ActionCache {
       return null;
     }
 
+    // Track access
+    entry.hitCount++;
+    entry.lastAccessed = Date.now();
+
     return entry;
   }
 
@@ -154,6 +172,9 @@ export class ActionCache {
       snapshotFingerprint,
       cachedAt: Date.now(),
       replayCount: 0,
+      hitCount: 0,
+      healCount: 0,
+      lastAccessed: Date.now(),
       ttlMs: this.config.ttlMs,
     };
 
@@ -174,8 +195,27 @@ export class ActionCache {
     if (entry) {
       entry.replayCount++;
       entry.lastReplayedAt = Date.now();
+      entry.lastAccessed = Date.now();
       await this.saveToDisk(entry);
     }
+  }
+
+  /**
+   * Heal a cache entry by updating its selector and/or ref.
+   * Used when the original selector no longer works but a new one was found.
+   */
+  async heal(key: string, newSelector: string, newRef?: string): Promise<boolean> {
+    const entry = this.memoryCache.get(key);
+    if (!entry) return false;
+
+    entry.action.selector = newSelector;
+    if (newRef) entry.action.ref = newRef;
+    entry.healCount++;
+    entry.lastAccessed = Date.now();
+
+    await this.saveToDisk(entry);
+    logger.debug("Healed action cache entry", { key, newSelector, healCount: entry.healCount });
+    return true;
   }
 
   /**
@@ -213,7 +253,9 @@ export class ActionCache {
         await Promise.all(files.map((f) => unlink(join(this.config.cacheDir, f))));
       }
     } catch (error) {
-      logger.warn("Failed to clear action cache", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to clear action cache", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -241,16 +283,22 @@ export class ActionCache {
 
       for (const file of files) {
         try {
-          const data = JSON.parse(await readFile(join(this.config.cacheDir, file), "utf-8")) as CachedAction;
+          const data = JSON.parse(
+            await readFile(join(this.config.cacheDir, file), "utf-8"),
+          ) as CachedAction;
           // Skip expired
           if (Date.now() - data.cachedAt > data.ttlMs) continue;
           this.memoryCache.set(data.key, data);
         } catch (error) {
-          logger.debug("Failed to parse action cache entry", { err: error instanceof Error ? error.message : String(error) });
+          logger.debug("Failed to parse action cache entry", {
+            err: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     } catch (error) {
-      logger.debug("Failed to load action cache from disk", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to load action cache from disk", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -264,7 +312,9 @@ export class ActionCache {
         JSON.stringify(entry, null, 2),
       );
     } catch (error) {
-      logger.warn("Failed to save action cache entry", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to save action cache entry", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -273,7 +323,9 @@ export class ActionCache {
       const path = join(this.config.cacheDir, `${key}.json`);
       if (existsSync(path)) await unlink(path);
     } catch (error) {
-      logger.debug("Failed to delete action cache entry", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to delete action cache entry", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

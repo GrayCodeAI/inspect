@@ -54,6 +54,12 @@ export interface TestOptions {
   local?: boolean;
   maxSteps?: number;
   maxPages?: number;
+  /** Enable rrweb session recording during test execution */
+  record?: boolean;
+  /** Enable adversarial testing mode */
+  adversarial?: boolean;
+  /** Adversarial testing intensity */
+  adversarialIntensity?: "basic" | "standard" | "aggressive";
 }
 
 const EXIT_CODES = {
@@ -139,7 +145,8 @@ export async function runTest(options: TestOptions): Promise<void> {
   // the Docker container for consistent browser environment.
   if (!options.local && !process.env.IN_DOCKER) {
     try {
-      const { isDockerAvailable, ensureContainer, execInContainer } = await import("../utils/docker.js");
+      const { isDockerAvailable, ensureContainer, execInContainer } =
+        await import("../utils/docker.js");
 
       if (await isDockerAvailable()) {
         // Build the CLI args to forward to the container
@@ -162,7 +169,12 @@ export async function runTest(options: TestOptions): Promise<void> {
         if (options.grep) args.push("--grep", options.grep);
         if (options.trace) args.push("--trace");
         if (options.preset) args.push("--preset", options.preset);
-        if (options.cookies !== undefined) args.push("--cookies", typeof options.cookies === "string" ? options.cookies : "");
+        if (options.cookies !== undefined)
+          args.push("--cookies", typeof options.cookies === "string" ? options.cookies : "");
+        if (options.record) args.push("--record");
+        if (options.adversarial) args.push("--adversarial");
+        if (options.adversarialIntensity)
+          args.push("--adversarial-intensity", options.adversarialIntensity);
         // Always add --local inside container to prevent recursion
         args.push("--local");
 
@@ -179,7 +191,11 @@ export async function runTest(options: TestOptions): Promise<void> {
     } catch (err) {
       // Docker not available or failed — fall through to local execution
       if (options.verbose) {
-        console.log(chalk.dim(`Docker not available, running locally: ${err instanceof Error ? err.message : err}`));
+        console.log(
+          chalk.dim(
+            `Docker not available, running locally: ${err instanceof Error ? err.message : err}`,
+          ),
+        );
       }
     }
   }
@@ -193,7 +209,9 @@ export async function runTest(options: TestOptions): Promise<void> {
   if (options.project) {
     const { loadConfig } = await import("../utils/config.js");
     const config = loadConfig();
-    const projects = (config as any)?.projects as Record<string, Record<string, unknown>> | undefined;
+    const projects = (config as any)?.projects as
+      | Record<string, Record<string, unknown>>
+      | undefined;
     if (projects && projects[options.project]) {
       const projectConfig = projects[options.project];
       // Project settings fill in unset CLI options
@@ -204,7 +222,11 @@ export async function runTest(options: TestOptions): Promise<void> {
       }
       console.log(chalk.dim(`Using project: ${options.project}`));
     } else {
-      console.log(chalk.yellow(`Project "${options.project}" not found in config. Available: ${projects ? Object.keys(projects).join(", ") : "none"}`));
+      console.log(
+        chalk.yellow(
+          `Project "${options.project}" not found in config. Available: ${projects ? Object.keys(projects).join(", ") : "none"}`,
+        ),
+      );
     }
   }
 
@@ -230,10 +252,26 @@ export async function runTest(options: TestOptions): Promise<void> {
     // Pick agent if not specified
     if (!options.agent || options.agent === "claude") {
       const agentChoice = await pick("Select AI agent:", [
-        { label: "Claude (Anthropic)", value: "claude", description: process.env.ANTHROPIC_API_KEY ? "key found" : "no key" },
-        { label: "GPT (OpenAI)", value: "gpt", description: process.env.OPENAI_API_KEY ? "key found" : "no key" },
-        { label: "Gemini (Google)", value: "gemini", description: process.env.GOOGLE_AI_KEY ? "key found" : "no key" },
-        { label: "DeepSeek", value: "deepseek", description: process.env.DEEPSEEK_API_KEY ? "key found" : "no key" },
+        {
+          label: "Claude (Anthropic)",
+          value: "claude",
+          description: process.env.ANTHROPIC_API_KEY ? "key found" : "no key",
+        },
+        {
+          label: "GPT (OpenAI)",
+          value: "gpt",
+          description: process.env.OPENAI_API_KEY ? "key found" : "no key",
+        },
+        {
+          label: "Gemini (Google)",
+          value: "gemini",
+          description: process.env.GOOGLE_AI_KEY ? "key found" : "no key",
+        },
+        {
+          label: "DeepSeek",
+          value: "deepseek",
+          description: process.env.DEEPSEEK_API_KEY ? "key found" : "no key",
+        },
         { label: "Ollama (local)", value: "ollama", description: "always available" },
       ]);
       if (agentChoice) options.agent = agentChoice;
@@ -263,6 +301,40 @@ export async function runTest(options: TestOptions): Promise<void> {
     console.log(chalk.yellow("Or use --target branch to include branch changes."));
   }
 
+  // Generate diff-aware test plan when changes are detected
+  if (context.changedFiles.length > 0 && context.diff) {
+    try {
+      const { DiffPlanGenerator } = await import("@inspect/core");
+      const planGenerator = new DiffPlanGenerator();
+      const diffPlan = await planGenerator.generatePlan({
+        scope: (options.target ?? "unstaged") as "unstaged" | "staged" | "branch" | "commit",
+        targetUrl: options.url,
+      });
+
+      if (options.verbose || options.dryRun) {
+        console.log(chalk.blue("\n--- Diff-Aware Test Plan ---"));
+        console.log(chalk.dim(planGenerator.formatAsInstructions(diffPlan)));
+        console.log(chalk.dim("--- End Diff Plan ---\n"));
+      }
+
+      // Inject diff plan summary into the prompt
+      const diffInstructions = planGenerator.formatAsInstructions(diffPlan);
+      const enhancedPrompt = `${buildPrompt(instruction, context)}\n\n${diffInstructions}`;
+
+      if (options.verbose) {
+        console.log(
+          chalk.dim(`Enhanced prompt with ${diffPlan.steps.length} diff-aware test steps`),
+        );
+      }
+    } catch (err) {
+      if (options.verbose) {
+        console.log(
+          chalk.dim(`Diff plan generation skipped: ${err instanceof Error ? err.message : err}`),
+        );
+      }
+    }
+  }
+
   // Build the prompt
   const prompt = buildPrompt(instruction, context);
 
@@ -287,6 +359,9 @@ export async function runTest(options: TestOptions): Promise<void> {
     faultProfile: options.fault,
     browser: options.browser ?? "chromium",
     verbose: options.verbose ?? false,
+    recording: options.record ?? false,
+    adversarial: options.adversarial ?? false,
+    adversarialIntensity: options.adversarialIntensity ?? "standard",
   };
 
   if (options.ui) {
@@ -306,7 +381,9 @@ export async function runTest(options: TestOptions): Promise<void> {
     const current = parseInt(shardMatch[1], 10);
     const total = parseInt(shardMatch[2], 10);
     if (current < 1 || current > total) {
-      console.error(chalk.red(`Invalid shard ${current}/${total}. Current must be between 1 and ${total}`));
+      console.error(
+        chalk.red(`Invalid shard ${current}/${total}. Current must be between 1 and ${total}`),
+      );
       process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
@@ -327,7 +404,9 @@ export async function runTest(options: TestOptions): Promise<void> {
   const workerCount = parseInt(String(options.workers ?? "1"), 10);
   if (config.devices.length > 1 && workerCount > 1) {
     const effectiveWorkers = Math.min(workerCount, config.devices.length);
-    console.log(chalk.dim(`Running ${config.devices.length} devices with ${effectiveWorkers} workers...\n`));
+    console.log(
+      chalk.dim(`Running ${config.devices.length} devices with ${effectiveWorkers} workers...\n`),
+    );
 
     const deviceResults: Array<{ device: string; passed: number; failed: number }> = [];
 
@@ -346,7 +425,9 @@ export async function runTest(options: TestOptions): Promise<void> {
     console.log(chalk.dim("\n" + "-".repeat(60)));
     console.log(chalk.bold("\nMulti-device results:"));
     for (const dr of deviceResults) {
-      console.log(`  ${chalk.cyan(dr.device)}  ${chalk.green(`${dr.passed} passed`)}  ${dr.failed > 0 ? chalk.red(`${dr.failed} failed`) : ""}`);
+      console.log(
+        `  ${chalk.cyan(dr.device)}  ${chalk.green(`${dr.passed} passed`)}  ${dr.failed > 0 ? chalk.red(`${dr.failed} failed`) : ""}`,
+      );
     }
     console.log();
 
@@ -394,27 +475,52 @@ export async function runTest(options: TestOptions): Promise<void> {
         }
       }
       console.log(`  Prompt size:  ~${Math.ceil(prompt.length / 4)} tokens`);
+      if (config.recording) {
+        console.log(`  Recording:    ${chalk.cyan("enabled (rrweb)")}`);
+      }
+      if (config.adversarial) {
+        console.log(`  Adversarial:  ${chalk.cyan(config.adversarialIntensity)}`);
+      }
       console.log(chalk.dim("\n  Use without --dry-run to execute.\n"));
     }
     return;
   }
 
   // ── Full agent pipeline (--full, --security, --seo, --responsive, --performance, --fast) ──
-  const useAgentPipeline = options.full || options.fast || options.security || options.performance || options.responsive || options.seo || options.advancedSecurity || options.visualRegression || options.apiTesting || options.logicTesting || options.crossBrowser || options.loadTesting;
+  const useAgentPipeline =
+    options.full ||
+    options.fast ||
+    options.security ||
+    options.performance ||
+    options.responsive ||
+    options.seo ||
+    options.advancedSecurity ||
+    options.visualRegression ||
+    options.apiTesting ||
+    options.logicTesting ||
+    options.crossBrowser ||
+    options.loadTesting;
   if (useAgentPipeline && config.url) {
     try {
       const { runFullTest, runQuickTest } = await import("../agents/index.js");
       const { AgentRouter } = await import("@inspect/agent");
 
       const agentToProvider: Record<string, string> = {
-        claude: "anthropic", gpt: "openai", openai: "openai",
-        gemini: "gemini", deepseek: "deepseek", ollama: "ollama",
-        anthropic: "anthropic", google: "gemini",
+        claude: "anthropic",
+        gpt: "openai",
+        openai: "openai",
+        gemini: "gemini",
+        deepseek: "deepseek",
+        ollama: "ollama",
+        anthropic: "anthropic",
+        google: "gemini",
       };
       const providerName = agentToProvider[config.agent] ?? config.agent;
       const keyMap: Record<string, string> = {
-        anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY",
-        gemini: "GOOGLE_AI_KEY", deepseek: "DEEPSEEK_API_KEY",
+        anthropic: "ANTHROPIC_API_KEY",
+        openai: "OPENAI_API_KEY",
+        gemini: "GOOGLE_AI_KEY",
+        deepseek: "DEEPSEEK_API_KEY",
       };
       const apiKey = process.env[keyMap[providerName] ?? ""];
       if (!apiKey && providerName !== "ollama") {
@@ -436,21 +542,42 @@ export async function runTest(options: TestOptions): Promise<void> {
       const onProgress = (kind: string, message: string) => {
         if (!message && kind !== "done") return;
         switch (kind) {
-          case "pass": console.log(chalk.green(message)); break;
-          case "fail": console.log(chalk.red(message)); break;
-          case "warn": console.log(chalk.yellow(message)); break;
-          case "step": console.log(chalk.cyan(message)); break;
-          case "done": console.log(chalk.bold(message)); break;
-          default: console.log(chalk.dim(message));
+          case "pass":
+            console.log(chalk.green(message));
+            break;
+          case "fail":
+            console.log(chalk.red(message));
+            break;
+          case "warn":
+            console.log(chalk.yellow(message));
+            break;
+          case "step":
+            console.log(chalk.cyan(message));
+            break;
+          case "done":
+            console.log(chalk.bold(message));
+            break;
+          default:
+            console.log(chalk.dim(message));
         }
       };
 
       const tiers = options.full
         ? {
-            discovery: true, execution: true, accessibility: true, security: true,
-            advancedSecurity: true, performance: true, responsive: true, seo: true,
-            spa: true, visualRegression: true, apiTesting: true,
-            logicTesting: false, crossBrowser: false, loadTesting: false,
+            discovery: true,
+            execution: true,
+            accessibility: true,
+            security: true,
+            advancedSecurity: true,
+            performance: true,
+            responsive: true,
+            seo: true,
+            spa: true,
+            visualRegression: true,
+            apiTesting: true,
+            logicTesting: false,
+            crossBrowser: false,
+            loadTesting: false,
           }
         : {
             discovery: !options.fast,
@@ -469,12 +596,38 @@ export async function runTest(options: TestOptions): Promise<void> {
             loadTesting: options.loadTesting ?? false,
           };
 
-      console.log(chalk.blue(`\nRunning ${options.fast ? "quick" : options.full ? "full" : "targeted"} test with ${config.agent} agent`));
-      console.log(chalk.dim(`URL: ${config.url} | Tiers: ${Object.entries(tiers).filter(([, v]) => v).map(([k]) => k).join(", ")}\n`));
+      console.log(
+        chalk.blue(
+          `\nRunning ${options.fast ? "quick" : options.full ? "full" : "targeted"} test with ${config.agent} agent`,
+        ),
+      );
+      console.log(
+        chalk.dim(
+          `URL: ${config.url} | Tiers: ${Object.entries(tiers)
+            .filter(([, v]) => v)
+            .map(([k]) => k)
+            .join(", ")}\n`,
+        ),
+      );
 
       const report = options.fast
-        ? await runQuickTest({ url: config.url, headed: config.headed, llm, onProgress, maxSteps: parseInt(String(options.maxSteps ?? "25"), 10) })
-        : await runFullTest({ url: config.url, headed: config.headed, llm, onProgress, tiers, fast: options.fast, maxSteps: parseInt(String(options.maxSteps ?? "25"), 10), maxPages: parseInt(String(options.maxPages ?? "20"), 10) });
+        ? await runQuickTest({
+            url: config.url,
+            headed: config.headed,
+            llm,
+            onProgress,
+            maxSteps: parseInt(String(options.maxSteps ?? "25"), 10),
+          })
+        : await runFullTest({
+            url: config.url,
+            headed: config.headed,
+            llm,
+            onProgress,
+            tiers,
+            fast: options.fast,
+            maxSteps: parseInt(String(options.maxSteps ?? "25"), 10),
+            maxPages: parseInt(String(options.maxPages ?? "20"), 10),
+          });
 
       if (options.json) {
         process.stdout.write(JSON.stringify(report, null, 2) + "\n");
@@ -498,14 +651,21 @@ export async function runTest(options: TestOptions): Promise<void> {
   try {
     // Resolve LLM provider
     const agentToProvider: Record<string, string> = {
-      claude: "anthropic", gpt: "openai", openai: "openai",
-      gemini: "gemini", deepseek: "deepseek", ollama: "ollama",
-      anthropic: "anthropic", google: "gemini",
+      claude: "anthropic",
+      gpt: "openai",
+      openai: "openai",
+      gemini: "gemini",
+      deepseek: "deepseek",
+      ollama: "ollama",
+      anthropic: "anthropic",
+      google: "gemini",
     };
     const providerName = agentToProvider[config.agent] ?? config.agent;
     const keyMap: Record<string, string> = {
-      anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY",
-      gemini: "GOOGLE_AI_KEY", deepseek: "DEEPSEEK_API_KEY",
+      anthropic: "ANTHROPIC_API_KEY",
+      openai: "OPENAI_API_KEY",
+      gemini: "GOOGLE_AI_KEY",
+      deepseek: "DEEPSEEK_API_KEY",
     };
     const apiKey = process.env[keyMap[providerName] ?? ""];
     if (!apiKey && providerName !== "ollama") {
@@ -536,9 +696,18 @@ export async function runTest(options: TestOptions): Promise<void> {
     try {
       const { CredentialVault } = await import("@inspect/credentials");
       credentialVault = new CredentialVault();
-    } catch { /* credentials optional */ }
+    } catch {
+      /* credentials optional */
+    }
 
-    const devicePreset = getPreset(config.devices[0]) ?? { name: config.devices[0], viewport: { width: 1920, height: 1080 } };
+    const devicePreset = getPreset(config.devices[0]) ?? {
+      name: config.devices[0],
+      viewport: { width: 1920, height: 1080 },
+    };
+
+    // Wire real agent implementations to TestExecutor
+    const { createExecutorAdapters } = await import("../agents/executor-adapters.js");
+    const agentAdapters = createExecutorAdapters(router, browserMgr);
 
     const executor = new TestExecutor(
       {
@@ -557,16 +726,29 @@ export async function runTest(options: TestOptions): Promise<void> {
         timeoutMs: 300_000,
         stepTimeoutMs: 30_000,
         verbose: options.verbose ?? false,
+        recording: config.recording,
+        adversarial: config.adversarial,
+        adversarialIntensity: config.adversarialIntensity as "basic" | "standard" | "aggressive",
       },
-      { router, browserManager: browserMgr, credentialVault },
+      {
+        router,
+        browserManager: browserMgr,
+        credentialVault,
+        ...agentAdapters,
+      },
     );
 
     // Progress display
     executor.setProgressCallback((progress) => {
       if (progress.currentToolCall) {
-        process.stdout.write(chalk.dim(`  [${progress.phase}] Step ${progress.currentStep + 1}: ${progress.currentToolCall}      \r`));
+        process.stdout.write(
+          chalk.dim(
+            `  [${progress.phase}] Step ${progress.currentStep + 1}: ${progress.currentToolCall}      \r`,
+          ),
+        );
       } else if (progress.stepResult) {
-        const icon = progress.stepResult.status === "pass" ? chalk.green("PASS") : chalk.red("FAIL");
+        const icon =
+          progress.stepResult.status === "pass" ? chalk.green("PASS") : chalk.red("FAIL");
         console.log(`  ${icon}  ${progress.stepResult.description.slice(0, 100)}`);
         if (progress.stepResult.error) {
           console.log(chalk.red(`         ${progress.stepResult.error.slice(0, 120)}`));
@@ -584,7 +766,28 @@ export async function runTest(options: TestOptions): Promise<void> {
 
     console.log(chalk.dim("\n" + "-".repeat(60)));
     console.log(`\n${chalk.bold("Result:")} ${result.status.toUpperCase()}`);
-    console.log(`  ${chalk.green(`${passed} passed`)}  ${failed > 0 ? chalk.red(`${failed} failed`) : ""}  ${chalk.dim(`${(elapsed / 1000).toFixed(1)}s`)}  ${chalk.dim(`${result.tokenCount} tokens`)}\n`);
+    console.log(
+      `  ${chalk.green(`${passed} passed`)}  ${failed > 0 ? chalk.red(`${failed} failed`) : ""}  ${chalk.dim(`${(elapsed / 1000).toFixed(1)}s`)}  ${chalk.dim(`${result.tokenCount} tokens`)}\n`,
+    );
+
+    // Show recording info
+    if (result.recordingPath) {
+      console.log(chalk.cyan("Session Recording:"));
+      console.log(chalk.dim(`  Recording: ${result.recordingPath}`));
+      if (result.replayViewerPath) {
+        console.log(chalk.dim(`  Replay:    ${result.replayViewerPath}`));
+        console.log(chalk.dim(`  Open in browser to replay the test session`));
+      }
+      console.log();
+    }
+
+    // Show adversarial findings
+    if (result.adversarialFindings && result.adversarialFindings.length > 0) {
+      const { AdversarialExecutor } = await import("@inspect/core");
+      const advExecutor = new AdversarialExecutor();
+      console.log(advExecutor.formatFindings(result.adversarialFindings));
+      console.log();
+    }
 
     // JSON output
     if (options.json) {
@@ -658,18 +861,25 @@ export async function runTest(options: TestOptions): Promise<void> {
       const traceDir = join(process.cwd(), ".inspect", "traces");
       if (!existsSync(traceDir)) mkdirSync(traceDir, { recursive: true });
       const traceFile = join(traceDir, `trace-${Date.now()}.json`);
-      writeFileSync(traceFile, JSON.stringify({
-        instruction,
-        url: config.url,
-        agent: config.agent,
-        timestamp: result.timestamp,
-        steps: result.steps.map((s) => ({
-          description: s.description,
-          status: s.status,
-          duration: s.duration,
-          toolCalls: s.toolCalls,
-        })),
-      }, null, 2));
+      writeFileSync(
+        traceFile,
+        JSON.stringify(
+          {
+            instruction,
+            url: config.url,
+            agent: config.agent,
+            timestamp: result.timestamp,
+            steps: result.steps.map((s) => ({
+              description: s.description,
+              status: s.status,
+              duration: s.duration,
+              toolCalls: s.toolCalls,
+            })),
+          },
+          null,
+          2,
+        ),
+      );
       console.log(chalk.dim(`Trace saved: ${traceFile}`));
     }
 
@@ -721,7 +931,11 @@ export function registerTestCommand(program: Command): void {
     .option("-f, --flow <file>", "Replay a saved flow file")
     .option("-y, --yes", "Skip confirmation and run immediately")
     .option("-a, --agent <agent>", "AI agent to use: claude, gpt, gemini, deepseek", "claude")
-    .option("-t, --target <target>", "Git scope: unstaged, branch, commit:<sha>, changes", "unstaged")
+    .option(
+      "-t, --target <target>",
+      "Git scope: unstaged, branch, commit:<sha>, changes",
+      "unstaged",
+    )
     .option("--verbose", "Show detailed output including prompts and tool calls")
     .option("--headed", "Run browser in headed (visible) mode")
     .option("--url <url>", "Target URL to test (overrides auto-detection)")
@@ -751,21 +965,43 @@ export function registerTestCommand(program: Command): void {
     .option("--json", "Output results as JSON (for CI/scripting)")
     .option("--dry-run", "Preview what would be tested without executing")
     .option("--retries <count>", "Retry failed tests N times (default: 0)", "0")
-    .option("--workers <count>", "Number of parallel workers for multi-device tests (default: 1)", "1")
+    .option(
+      "--workers <count>",
+      "Number of parallel workers for multi-device tests (default: 1)",
+      "1",
+    )
     .option("--grep <pattern>", "Only run test steps matching this pattern")
-    .option("--reporter <type>", "Output format: list, dot, json, junit, html, markdown, github (default: list)")
+    .option(
+      "--reporter <type>",
+      "Output format: list, dot, json, junit, html, markdown, github (default: list)",
+    )
     .option("--output-dir <dir>", "Directory for report files (default: .inspect/reports)")
-    .option("--preset <name>", "Apply a preset configuration: ci, mobile, desktop, comprehensive, quick, debug")
+    .option(
+      "--preset <name>",
+      "Apply a preset configuration: ci, mobile, desktop, comprehensive, quick, debug",
+    )
     .option("--export", "Export test as Playwright .spec.ts file (zero vendor lock-in)")
     .option("--trace", "Enable request/response tracing for debugging")
-    .option("--shard <shard>", "Run a shard of tests: current/total (e.g. 1/3 for first of 3 shards)")
+    .option(
+      "--shard <shard>",
+      "Run a shard of tests: current/total (e.g. 1/3 for first of 3 shards)",
+    )
     .option("--project <name>", "Use a named project configuration from inspect.config")
     .option("--budget <file>", "Budget file for pass/fail thresholds (JSON)")
     .option("--ui", "Interactive debug mode — pause between steps with headed browser")
     .option("--jq <query>", "Filter JSON output with jq-like query (requires --json)")
     .option("--cookies [domain]", "Sync cookies from local browser (optionally filter by domain)")
     .option("--local", "Force local execution (skip Docker engine)")
-    .addHelpText("after", `
+    .option("--record", "Enable rrweb session recording for replay and debugging")
+    .option("--adversarial", "Enable adversarial testing mode (tries to break features)")
+    .option(
+      "--adversarial-intensity <level>",
+      "Adversarial intensity: basic, standard, aggressive",
+      "standard",
+    )
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect test -m "test the login flow"
   $ inspect test -m "verify checkout" --url https://staging.app.com --headed
@@ -791,7 +1027,11 @@ Examples:
   $ inspect test --url https://example.com --fast             Quick test, no quality audits
   $ inspect test --url https://example.com --security --seo   Targeted quality audits
   $ inspect test --url https://example.com --full --max-pages 50  Crawl more pages
-`)
+  $ inspect test -m "test login" --record            Record session for replay
+  $ inspect test -m "test login" --adversarial       Try to break the application
+  $ inspect test -m "test login" --adversarial --adversarial-intensity aggressive
+`,
+    )
     .action(async (opts: TestOptions) => {
       await runTest(opts);
     });

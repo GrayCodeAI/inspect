@@ -21,9 +21,7 @@ interface PRInfo {
 
 function parsePRInput(input: string, repoOpt?: string): PRInfo {
   // Handle full URL: https://github.com/owner/repo/pull/123
-  const urlMatch = input.match(
-    /github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/
-  );
+  const urlMatch = input.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
   if (urlMatch) {
     return {
       owner: urlMatch[1],
@@ -52,7 +50,7 @@ function parsePRInput(input: string, repoOpt?: string): PRInfo {
   }
 
   throw new Error(
-    `Invalid PR reference: "${input}". Use a URL, owner/repo#number, or a number with --repo.`
+    `Invalid PR reference: "${input}". Use a URL, owner/repo#number, or a number with --repo.`,
   );
 }
 
@@ -65,7 +63,7 @@ async function fetchPRDiff(pr: PRInfo): Promise<string> {
     // Try gh CLI first (authenticated)
     const { stdout } = await execAsync(
       `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number} --header "Accept: application/vnd.github.v3.diff"`,
-      { maxBuffer: 10 * 1024 * 1024 }
+      { maxBuffer: 10 * 1024 * 1024 },
     );
     return stdout;
   } catch {
@@ -73,11 +71,14 @@ async function fetchPRDiff(pr: PRInfo): Promise<string> {
     try {
       const { stdout } = await execAsync(
         `curl -sL "https://github.com/${pr.owner}/${pr.repo}/pull/${pr.number}.diff"`,
-        { maxBuffer: 10 * 1024 * 1024 }
+        { maxBuffer: 10 * 1024 * 1024 },
       );
       return stdout;
     } catch (err) {
-      throw new Error(`Failed to fetch PR diff: ${err}`);
+      throw new Error(
+        `Failed to fetch PR diff: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
+      );
     }
   }
 }
@@ -89,7 +90,7 @@ async function fetchPRFiles(pr: PRInfo): Promise<string[]> {
 
   try {
     const { stdout } = await execAsync(
-      `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number}/files --jq '.[].filename'`
+      `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number}/files --jq '.[].filename'`,
     );
     return stdout.trim().split("\n").filter(Boolean);
   } catch {
@@ -112,25 +113,19 @@ async function detectPreviewUrl(pr: PRInfo): Promise<string | null> {
   try {
     // Check PR comments for Vercel/Netlify preview URLs
     const { stdout } = await execAsync(
-      `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments --jq '.[].body'`
+      `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments --jq '.[].body'`,
     );
 
     // Look for Vercel preview
-    const vercelMatch = stdout.match(
-      /https:\/\/[a-z0-9-]+\.vercel\.app/i
-    );
+    const vercelMatch = stdout.match(/https:\/\/[a-z0-9-]+\.vercel\.app/i);
     if (vercelMatch) return vercelMatch[0];
 
     // Look for Netlify preview
-    const netlifyMatch = stdout.match(
-      /https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app/i
-    );
+    const netlifyMatch = stdout.match(/https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app/i);
     if (netlifyMatch) return netlifyMatch[0];
 
     // Look for generic preview URLs
-    const previewMatch = stdout.match(
-      /Preview:\s*(https?:\/\/\S+)/i
-    );
+    const previewMatch = stdout.match(/Preview:\s*(https?:\/\/\S+)/i);
     if (previewMatch) return previewMatch[1];
 
     return null;
@@ -141,11 +136,7 @@ async function detectPreviewUrl(pr: PRInfo): Promise<string | null> {
 
 async function runPRTest(input: string, options: PROptions): Promise<void> {
   const pr = parsePRInput(input, options.repo);
-  console.log(
-    chalk.blue(
-      `\nTesting PR #${pr.number} on ${pr.owner}/${pr.repo}`
-    )
-  );
+  console.log(chalk.blue(`\nTesting PR #${pr.number} on ${pr.owner}/${pr.repo}`));
 
   // Fetch PR information
   console.log(chalk.dim("Fetching PR diff..."));
@@ -164,15 +155,11 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
   let targetUrl = options.url;
   if (!targetUrl) {
     console.log(chalk.dim("Detecting preview URL..."));
-    targetUrl = await detectPreviewUrl(pr) ?? undefined;
+    targetUrl = (await detectPreviewUrl(pr)) ?? undefined;
     if (targetUrl) {
       console.log(chalk.green(`Found preview URL: ${targetUrl}`));
     } else {
-      console.log(
-        chalk.yellow(
-          "No preview URL detected. Use --url to specify the target."
-        )
-      );
+      console.log(chalk.yellow("No preview URL detected. Use --url to specify the target."));
     }
   }
 
@@ -208,8 +195,8 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
 
   console.log(
     chalk.blue(
-      `\nRunning tests with agent: ${options.agent ?? "claude"} (mode: ${options.mode ?? "hybrid"})`
-    )
+      `\nRunning tests with agent: ${options.agent ?? "claude"} (mode: ${options.mode ?? "hybrid"})`,
+    ),
   );
 
   // Wire to test execution via the shared runTest function
@@ -229,64 +216,37 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
   });
 
   if (options.comment) {
-    console.log(
-      chalk.dim("Will post results as PR comment when tests complete.")
-    );
+    console.log(chalk.dim("Will post results as PR comment when tests complete."));
   }
   if (options.status) {
-    console.log(
-      chalk.dim("Will set commit status when tests complete.")
-    );
+    console.log(chalk.dim("Will set commit status when tests complete."));
   }
 }
 
 export function registerPRCommand(program: Command): void {
   program
     .command("pr")
-    .description(
-      "Run AI-powered tests against a pull request"
-    )
-    .argument(
-      "<pr>",
-      "PR URL, owner/repo#number, or number (with --repo)"
-    )
-    .option(
-      "--repo <repo>",
-      "Repository in owner/repo format (when using PR number)"
-    )
-    .option(
-      "-a, --agent <agent>",
-      "AI agent to use",
-      "claude"
-    )
-    .option(
-      "--mode <mode>",
-      "Agent mode: dom, hybrid, cua",
-      "hybrid"
-    )
+    .description("Run AI-powered tests against a pull request")
+    .argument("<pr>", "PR URL, owner/repo#number, or number (with --repo)")
+    .option("--repo <repo>", "Repository in owner/repo format (when using PR number)")
+    .option("-a, --agent <agent>", "AI agent to use", "claude")
+    .option("--mode <mode>", "Agent mode: dom, hybrid, cua", "hybrid")
     .option("--headed", "Run in headed browser mode")
     .option("--url <url>", "Preview URL to test against")
-    .option(
-      "--devices <devices>",
-      "Comma-separated device presets",
-      "desktop-chrome"
-    )
+    .option("--devices <devices>", "Comma-separated device presets", "desktop-chrome")
     .option("--verbose", "Show detailed output")
-    .option(
-      "--comment",
-      "Post test results as PR comment"
-    )
-    .option(
-      "--status",
-      "Set commit status based on results"
-    )
-    .addHelpText("after", `
+    .option("--comment", "Post test results as PR comment")
+    .option("--status", "Set commit status based on results")
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect pr https://github.com/owner/repo/pull/123
   $ inspect pr owner/repo#42 --agent claude --headed
   $ inspect pr 15 --repo owner/repo --comment --status
   $ inspect pr owner/repo#7 --devices "iphone-15,desktop-chrome"
-`)
+`,
+    )
     .action(async (pr: string, opts: PROptions) => {
       try {
         await runPRTest(pr, opts);

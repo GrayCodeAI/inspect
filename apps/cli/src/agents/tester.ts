@@ -15,9 +15,10 @@ async function findBySelector(
   llm: LLMCall,
   timeout = 3000,
 ): Promise<string | null> {
-  const response = await llm([{
-    role: "user",
-    content: `Given this page snapshot, provide a Playwright selector for: "${description}"
+  const response = await llm([
+    {
+      role: "user",
+      content: `Given this page snapshot, provide a Playwright selector for: "${description}"
 
 Snapshot:
 ${snapshot.slice(0, 4000)}
@@ -31,7 +32,8 @@ Respond with ONLY a valid Playwright selector. Examples:
 - role=button[name="Save"]
 
 One selector only, no explanation.`,
-  }]);
+    },
+  ]);
 
   const selector = response.trim().replace(/^["']|["']$/g, "");
   if (!selector || selector === "null" || selector.length > 200) return null;
@@ -48,32 +50,45 @@ One selector only, no explanation.`,
 // Smart element interaction
 // ---------------------------------------------------------------------------
 
-async function clickElement(page: any, target: string, snapshot: string, llm: LLMCall): Promise<void> {
+async function clickElement(
+  page: any,
+  target: string,
+  snapshot: string,
+  llm: LLMCall,
+): Promise<void> {
   // Strategy 1: Text match
   try {
     await page.getByText(target, { exact: false }).first().click({ timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 2: Role match (link, then button, then menuitem)
   for (const role of ["link", "button", "menuitem", "tab"] as const) {
     try {
       await page.getByRole(role, { name: target }).first().click({ timeout: 2000 });
       return;
-    } catch { /* next */ }
+    } catch {
+      /* next */
+    }
   }
 
   // Strategy 3: Label match
   try {
     await page.getByLabel(target, { exact: false }).first().click({ timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 4: Placeholder match
   try {
     await page.getByPlaceholder(target, { exact: false }).first().click({ timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 5: LLM-generated selector
   const selector = await findBySelector(page, `Click: ${target}`, snapshot, llm);
@@ -85,30 +100,49 @@ async function clickElement(page: any, target: string, snapshot: string, llm: LL
   throw new Error(`Could not find element: ${target}`);
 }
 
-async function fillElement(page: any, target: string, value: string, snapshot: string, llm: LLMCall): Promise<void> {
+async function fillElement(
+  page: any,
+  target: string,
+  value: string,
+  snapshot: string,
+  llm: LLMCall,
+): Promise<void> {
   // Strategy 1: Label match
   try {
     await page.getByLabel(target, { exact: false }).first().fill(value, { timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 2: Placeholder match
   try {
     await page.getByPlaceholder(target, { exact: false }).first().fill(value, { timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 3: Role textbox
   try {
     await page.getByRole("textbox", { name: target }).first().fill(value, { timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 4: Text-based (for inputs near labels)
   try {
-    await page.getByText(target, { exact: false }).first().locator(".. >> input, .. >> textarea").first().fill(value, { timeout: 2000 });
+    await page
+      .getByText(target, { exact: false })
+      .first()
+      .locator(".. >> input, .. >> textarea")
+      .first()
+      .fill(value, { timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 5: LLM selector
   const selector = await findBySelector(page, `Input field for: ${target}`, snapshot, llm);
@@ -120,18 +154,31 @@ async function fillElement(page: any, target: string, value: string, snapshot: s
   throw new Error(`Could not find input: ${target}`);
 }
 
-async function selectElement(page: any, target: string, value: string, snapshot: string, llm: LLMCall): Promise<void> {
+async function selectElement(
+  page: any,
+  target: string,
+  value: string,
+  snapshot: string,
+  llm: LLMCall,
+): Promise<void> {
   // Strategy 1: Label
   try {
     await page.getByLabel(target, { exact: false }).first().selectOption(value, { timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 2: Role combobox
   try {
-    await page.getByRole("combobox", { name: target }).first().selectOption(value, { timeout: 2000 });
+    await page
+      .getByRole("combobox", { name: target })
+      .first()
+      .selectOption(value, { timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 3: LLM selector
   const selector = await findBySelector(page, `Select/dropdown for: ${target}`, snapshot, llm);
@@ -172,7 +219,9 @@ export async function executeStep(
         const builder = new AriaSnapshotBuilder();
         await builder.buildTree(page);
         snapshotText = builder.getFormattedTree();
-      } catch { /* keep old snapshot */ }
+      } catch {
+        /* keep old snapshot */
+      }
     }
 
     try {
@@ -239,7 +288,12 @@ async function executeAction(
       try {
         await page.getByText(step.target, { exact: false }).first().dblclick({ timeout: 3000 });
       } catch {
-        const selector = await findBySelector(page, `Double-click: ${step.target}`, snapshotText, llm);
+        const selector = await findBySelector(
+          page,
+          `Double-click: ${step.target}`,
+          snapshotText,
+          llm,
+        );
         if (selector) await page.dblclick(selector, { timeout: 3000 });
         else throw new Error(`Could not find element: ${step.target}`);
       }
@@ -250,9 +304,17 @@ async function executeAction(
     case "rightclick": {
       if (!step.target) throw new Error("No target for right-click");
       try {
-        await page.getByText(step.target, { exact: false }).first().click({ button: "right", timeout: 3000 });
+        await page
+          .getByText(step.target, { exact: false })
+          .first()
+          .click({ button: "right", timeout: 3000 });
       } catch {
-        const selector = await findBySelector(page, `Right-click: ${step.target}`, snapshotText, llm);
+        const selector = await findBySelector(
+          page,
+          `Right-click: ${step.target}`,
+          snapshotText,
+          llm,
+        );
         if (selector) await page.click(selector, { button: "right", timeout: 3000 });
         else throw new Error(`Could not find element: ${step.target}`);
       }
@@ -264,7 +326,10 @@ async function executeAction(
       if (!step.target) throw new Error("No target for fill");
       const value = step.value ?? "";
       await fillElement(page, step.target, value, snapshotText, llm);
-      onProgress("pass", `  ✓ Filled "${step.target}": ${value.slice(0, 30)}${value.length > 30 ? "..." : ""}`);
+      onProgress(
+        "pass",
+        `  ✓ Filled "${step.target}": ${value.slice(0, 30)}${value.length > 30 ? "..." : ""}`,
+      );
       break;
     }
 
@@ -283,7 +348,12 @@ async function executeAction(
         try {
           await page.getByRole("checkbox", { name: step.target }).first().check({ timeout: 2000 });
         } catch {
-          const selector = await findBySelector(page, `Checkbox: ${step.target}`, snapshotText, llm);
+          const selector = await findBySelector(
+            page,
+            `Checkbox: ${step.target}`,
+            snapshotText,
+            llm,
+          );
           if (selector) await page.check(selector, { timeout: 3000 });
           else throw new Error(`Could not find checkbox: ${step.target}`);
         }
@@ -331,7 +401,9 @@ async function executeAction(
           try {
             await page.getByRole(role, { name: step.target }).first().hover({ timeout: 1500 });
             break;
-          } catch { /* next */ }
+          } catch {
+            /* next */
+          }
         }
       }
       onProgress("pass", `  ✓ Hovered: ${step.target}`);
@@ -369,7 +441,12 @@ async function executeAction(
         await fileInput.setInputFiles(testFile);
         onProgress("pass", `  ✓ Uploaded test file`);
       } catch {
-        const selector = await findBySelector(page, `File upload: ${step.target}`, snapshotText, llm);
+        const selector = await findBySelector(
+          page,
+          `File upload: ${step.target}`,
+          snapshotText,
+          llm,
+        );
         if (selector) {
           await page.locator(selector).setInputFiles(testFile);
           onProgress("pass", `  ✓ Uploaded test file`);
@@ -388,12 +465,37 @@ async function executeAction(
     }
 
     case "drag": {
-      onProgress("warn", `  ○ Drag not yet supported`);
+      if (!step.target) throw new Error("Drag requires a target element");
+      const { DragDrop } = await import("@inspect/browser");
+      const dragHandler = new DragDrop();
+      // Parse target as "source->dest" or use value as destination
+      const parts = step.target.split("->");
+      const sourceDesc = parts[0]?.trim() ?? step.target;
+      const destDesc = parts[1]?.trim() ?? step.value ?? step.target;
+      const sourceSelector = await findBySelector(
+        page,
+        `Drag source: ${sourceDesc}`,
+        snapshotText,
+        llm,
+      );
+      const destSelector = await findBySelector(
+        page,
+        `Drag destination: ${destDesc}`,
+        snapshotText,
+        llm,
+      );
+      await dragHandler.dragElement(page, sourceSelector!, destSelector!);
+      onProgress("pass", `  ✓ Dragged ${sourceDesc} to ${destDesc}`);
       break;
     }
 
     case "assert": {
-      const result = await verifyAssertion(step.assertion ?? step.description, page, snapshotText, llm);
+      const result = await verifyAssertion(
+        step.assertion ?? step.description,
+        page,
+        snapshotText,
+        llm,
+      );
       if (result.passed) {
         onProgress("pass", `  ✓ ${result.reason}`);
       } else {
@@ -448,18 +550,28 @@ async function verifyAssertion(
   }
 
   // Broken images check
-  if (lowerAssertion.includes("image") && (lowerAssertion.includes("broken") || lowerAssertion.includes("loaded") || lowerAssertion.includes("alt"))) {
-    const result = await safeEvaluate<{ total: number; broken: number; noAlt: number }>(page, `
+  if (
+    lowerAssertion.includes("image") &&
+    (lowerAssertion.includes("broken") ||
+      lowerAssertion.includes("loaded") ||
+      lowerAssertion.includes("alt"))
+  ) {
+    const result = await safeEvaluate<{ total: number; broken: number; noAlt: number }>(
+      page,
+      `
       (() => {
         const imgs = Array.from(document.querySelectorAll("img"));
         const broken = imgs.filter(img => !img.complete || img.naturalWidth === 0);
         const noAlt = imgs.filter(img => !img.getAttribute("alt"));
         return { total: imgs.length, broken: broken.length, noAlt: noAlt.length };
       })()
-    `, { total: 0, broken: 0, noAlt: 0 });
+    `,
+      { total: 0, broken: 0, noAlt: 0 },
+    );
 
     if (lowerAssertion.includes("alt")) {
-      if (result.noAlt === 0) return { passed: true, reason: `All ${result.total} images have alt text` };
+      if (result.noAlt === 0)
+        return { passed: true, reason: `All ${result.total} images have alt text` };
       return { passed: false, reason: `${result.noAlt}/${result.total} images missing alt text` };
     }
     if (result.broken === 0) return { passed: true, reason: `All ${result.total} images loaded` };
@@ -468,12 +580,16 @@ async function verifyAssertion(
 
   // Heading check
   if (lowerAssertion.includes("heading") && lowerAssertion.includes("hierarch")) {
-    const headings = await safeEvaluate<number[]>(page, `
+    const headings = await safeEvaluate<number[]>(
+      page,
+      `
       (() => {
         const hs = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"));
         return hs.map(h => parseInt(h.tagName.slice(1)));
       })()
-    `, []);
+    `,
+      [],
+    );
     if (headings.length === 0) return { passed: false, reason: "No headings found" };
     for (let i = 1; i < headings.length; i++) {
       if (headings[i] > headings[i - 1] + 1) {
@@ -485,13 +601,17 @@ async function verifyAssertion(
 
   // Meta tags check
   if (lowerAssertion.includes("meta")) {
-    const meta = await safeEvaluate<{ viewport: boolean; description: boolean; charset: boolean }>(page, `
+    const meta = await safeEvaluate<{ viewport: boolean; description: boolean; charset: boolean }>(
+      page,
+      `
       (() => ({
         viewport: !!document.querySelector('meta[name="viewport"]'),
         description: !!document.querySelector('meta[name="description"]'),
         charset: !!document.querySelector('meta[charset]') || !!document.querySelector('meta[http-equiv="Content-Type"]'),
       }))()
-    `, { viewport: false, description: false, charset: false });
+    `,
+      { viewport: false, description: false, charset: false },
+    );
     const missing = [];
     if (!meta.viewport) missing.push("viewport");
     if (!meta.description) missing.push("description");
@@ -501,15 +621,20 @@ async function verifyAssertion(
 
   // Navigation links check
   if (lowerAssertion.includes("navigation") && lowerAssertion.includes("link")) {
-    const linkCount = await safeEvaluate<number>(page, `document.querySelectorAll("nav a, header a").length`, 0);
+    const linkCount = await safeEvaluate<number>(
+      page,
+      `document.querySelectorAll("nav a, header a").length`,
+      0,
+    );
     if (linkCount > 0) return { passed: true, reason: `${linkCount} navigation links found` };
     return { passed: false, reason: "No navigation links found" };
   }
 
   // LLM fallback for complex assertions
-  const response = await llm([{
-    role: "user",
-    content: `Verify this assertion against the current page state:
+  const response = await llm([
+    {
+      role: "user",
+      content: `Verify this assertion against the current page state:
 
 Assertion: "${assertion}"
 
@@ -517,7 +642,8 @@ Page snapshot:
 ${snapshot.slice(0, 4000)}
 
 Respond with JSON: {"passed": true/false, "reason": "brief explanation"}`,
-  }]);
+    },
+  ]);
 
   try {
     let json = response.trim();

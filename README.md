@@ -4,25 +4,25 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-986%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-1642%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node Version">
-  <img src="https://img.shields.io/badge/packages-17-orange" alt="Packages">
-  <img src="https://img.shields.io/badge/CLI%20commands-70-purple" alt="CLI Commands">
+  <img src="https://img.shields.io/badge/packages-18-orange" alt="Packages">
+  <img src="https://img.shields.io/badge/CLI%20commands-76-purple" alt="CLI Commands">
 </p>
 
 ---
 
-Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 17 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, web crawling, stealth browsing, network fault injection, agent benchmarking, and more.
+Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 18 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, web crawling, stealth browsing, network fault injection, agent benchmarking, agent governance, enterprise RBAC/SSO, self-healing, and more.
 
 **Inspired by**: Playwright (browser API), Vitest (runner/reporter), Lighthouse (auditing), GitHub CLI (command structure), Vercel (developer experience), Expect (assertions)
 
 ## Features
 
 - **AI-Powered Testing** -- Describe what to test in plain English; an AI agent drives a real browser
-- **70 CLI Commands** -- Organized into 6 groups: Testing, Browser, Quality, Infrastructure, Data & Workflow, Setup & Info
+- **76 CLI Commands** -- Organized into 8 groups: Testing, Browser, Quality, Infrastructure, Governance, Enterprise, Data & Workflow, Setup & Info
 - **Interactive TUI** -- Form-based interface with instruction history, auto-URL detection, agent/device/mode selectors
-- **Web Dashboard** -- 12-page dashboard with score gauges, trend charts, visual diff viewer
+- **REPL Mode** -- 14 slash commands (/help, /model, /heal, /generate, /cost, /audit, etc.)
 - **7 Reporter Formats** -- list, dot, json, junit, html, markdown, github
 - **5 LLM Providers** -- Claude, GPT, Gemini, DeepSeek, Ollama (local)
 - **Visual Regression** -- Pixel diff with slider, side-by-side, and overlay comparison modes
@@ -43,6 +43,11 @@ Inspect uses AI agents to test websites in real browsers. Give it a natural-lang
 - **Microservice Architecture** -- Service registry, API gateway, message bus
 - **Credential Vault** -- AES-256-GCM encrypted storage with Bitwarden, 1Password, Azure
 - **CI/CD Ready** -- JUnit/GitHub reporters, sharding, presets, template generation
+- **Agent Governance** -- Audit trail, autonomy levels, permission management, compliance reports
+- **Enterprise** -- RBAC (5 roles), SSO (SAML/OIDC/Azure/Okta), multi-tenancy, hybrid LLM routing
+- **Self-Healing** -- 8 healing strategies, DOM differ, selector recovery
+- **Test Generation** -- Page analysis, sitemap-based generation, YAML/instruction export
+- **MCP Server** -- Standalone Model Context Protocol server (14 browser tools)
 - **SDK** -- 9 methods: `act()`, `extract()`, `observe()`, `agent()`, `navigate()`, `screenshot()`, `crawl()`, `track()`, `createProxy()`
 
 ## Quick Start
@@ -63,7 +68,7 @@ ANTHROPIC_API_KEY=sk-ant-... node apps/cli/dist/index.js test \
 
 ## CLI Reference
 
-Inspect ships 70 commands organized into 6 groups.
+Inspect ships 76 commands organized into 8 groups.
 
 ### Testing
 
@@ -135,6 +140,40 @@ inspect sessions list
 inspect mcp
 ```
 
+### Governance
+
+| Command               | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `inspect trail`       | Show agent audit trail                      |
+| `inspect autonomy`    | Manage agent autonomy level                 |
+| `inspect permissions` | Manage agent permissions (domains, actions) |
+| `inspect cost`        | Show session cost breakdown                 |
+
+```bash
+inspect trail --limit 50
+inspect trail --compliance eu-ai-act
+inspect autonomy --level supervision
+inspect permissions --allow-domain example.com
+inspect permissions --block-action navigate
+inspect cost --json
+```
+
+### Enterprise
+
+| Command          | Description                        |
+| ---------------- | ---------------------------------- |
+| `inspect rbac`   | Manage role-based access control   |
+| `inspect tenant` | Manage tenant plans and quotas     |
+| `inspect sso`    | Configure Single Sign-On providers |
+
+```bash
+inspect rbac
+inspect rbac --role admin
+inspect tenant --plan enterprise
+inspect tenant --name "Acme Corp" --plan team
+inspect sso --provider saml --sso-url https://idp.example.com/sso
+```
+
 ### Data & Workflow
 
 | Command               | Description                                         |
@@ -175,6 +214,7 @@ inspect credentials set STAGING_PASSWORD
 | `inspect models`      | List available LLM models across all providers       |
 | `inspect completions` | Generate shell completions (bash/zsh/fish)           |
 | `inspect alias`       | Manage command aliases                               |
+| `inspect engine`      | Manage browser engine settings                       |
 
 ```bash
 inspect init
@@ -183,30 +223,6 @@ inspect doctor --json
 inspect devices --format json
 inspect models --provider anthropic
 inspect completions --shell zsh >> ~/.zshrc
-```
-
-## Web Dashboard
-
-The web dashboard provides 12 pages for monitoring and managing test runs:
-
-| Page              | Description                                               |
-| ----------------- | --------------------------------------------------------- |
-| **Dashboard**     | Overview with score gauges, trend charts, and recent runs |
-| **Tasks**         | Browse and filter all test tasks                          |
-| **Run Detail**    | Step timeline, live polling, token usage breakdown        |
-| **Visual Diff**   | Slider, side-by-side, and pixel diff comparison modes     |
-| **Reports**       | Browse reports with drag-and-drop file upload             |
-| **Accessibility** | Violations dashboard grouped by severity and rule         |
-| **Performance**   | Lighthouse scores with Core Web Vitals breakdown          |
-| **Workflows**     | View and manage YAML workflow definitions                 |
-| **Credentials**   | Manage encrypted credential vault entries                 |
-| **Sessions**      | Active browser session management                         |
-| **Devices**       | Device preset browser                                     |
-| **Settings**      | Configuration, API keys, and preferences                  |
-
-```bash
-# Start the dashboard
-cd apps/web && pnpm dev
 ```
 
 ## SDK Usage
@@ -375,23 +391,24 @@ inspect init --ci circleci         # Generate .circleci/config.yml
 ```
 inspect/
 ├── apps/
-│   ├── cli/                  CLI (Commander + Ink TUI, 70 commands)
-│   └── web/                  Web Dashboard (Vite, 12 pages)
+│   └── cli/                  CLI (Commander + Ink TUI, 76 commands)
 ├── packages/
-│   ├── shared/               Types (20+ modules), utils, constants, device presets
+│   ├── shared/               Types (160+), utils (24), constants, device presets
 │   ├── browser/              Playwright, ARIA, DOM, vision, profiles, backends (Lightpanda)
-│   ├── agent/                5 LLM providers, tools registry, cache, memory, watchdogs
-│   ├── core/                 Orchestrator, git integration, GitHub PR, device pool
+│   ├── agent/                5 LLM providers, tools registry, cache, memory, watchdogs, governance
+│   ├── core/                 Orchestrator, git integration, healing, generation, plugins
 │   ├── workflow/             YAML engine, 14 block types (crawl, track, proxy, benchmark)
 │   ├── credentials/          AES-256-GCM vault (Bitwarden, 1Password, Azure)
 │   ├── data/                 Crawler, change tracking, extractors, parsers, cloud storage
 │   ├── api/                  REST server, webhooks, SSE, WebSocket
 │   ├── network/              Stealth browsing, proxy, domain security, data masking
-│   ├── observability/        Analytics, tracing, metrics, logging
+│   ├── observability/        Analytics, tracing, metrics, logging, cost intelligence
 │   ├── quality/              a11y, Lighthouse, chaos, security, mocking, TCP proxy
 │   ├── visual/               Pixel diff, masking, storybook, slider reports
 │   ├── reporter/             7 formats: list, dot, json, junit, html, markdown, github
 │   ├── sdk/                  Public SDK (9 methods)
+│   ├── mcp/                  Standalone MCP server (Model Context Protocol)
+│   ├── enterprise/           RBAC, SSO, multi-tenancy, hybrid LLM routing
 │   └── services/             Microservice architecture (9 services + 3 infra)
 ├── evals/                    Benchmarks (MiniWoB, WebArena, WorkArena, reward shaping)
 └── docker/                   Dockerfile + Dockerfile.fast
@@ -447,7 +464,7 @@ pnpm install
 # Build all packages (Turborepo)
 pnpm build
 
-# Run all 986 tests
+# Run all 1642 tests
 npx vitest run
 
 # Run a specific test file
@@ -461,9 +478,6 @@ pnpm typecheck
 
 # Run the CLI
 node apps/cli/dist/index.js --help
-
-# Start the web dashboard
-cd apps/web && pnpm dev
 ```
 
 ## Contributing

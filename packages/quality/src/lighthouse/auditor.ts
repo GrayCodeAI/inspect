@@ -109,12 +109,15 @@ export class LighthouseAuditor {
         logLevel: "error" as const,
         onlyCategories: categories,
         formFactor: device,
-        screenEmulation: device === "desktop"
-          ? { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false }
-          : { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false },
-        throttling: mergedOptions.throttling ?? (device === "desktop"
-          ? { rttMs: 40, downloadKbps: 10240, uploadKbps: 10240, cpuSlowdown: 1 }
-          : { rttMs: 150, downloadKbps: 1600, uploadKbps: 750, cpuSlowdown: 4 }),
+        screenEmulation:
+          device === "desktop"
+            ? { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false }
+            : { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false },
+        throttling:
+          mergedOptions.throttling ??
+          (device === "desktop"
+            ? { rttMs: 40, downloadKbps: 10240, uploadKbps: 10240, cpuSlowdown: 1 }
+            : { rttMs: 150, downloadKbps: 1600, uploadKbps: 750, cpuSlowdown: 4 }),
         locale: mergedOptions.locale,
         ...mergedOptions.extraFlags,
       };
@@ -124,10 +127,17 @@ export class LighthouseAuditor {
         extends: "lighthouse:default",
         settings: {
           budgets: mergedOptions.budgets
-            ? [{ path: "/*", resourceSizes: [], resourceCounts: [], timings: mergedOptions.budgets.map((b) => ({
-                metric: b.metric ?? b.resourceType,
-                budget: b.budget,
-              })) }]
+            ? [
+                {
+                  path: "/*",
+                  resourceSizes: [],
+                  resourceCounts: [],
+                  timings: mergedOptions.budgets.map((b) => ({
+                    metric: b.metric ?? b.resourceType,
+                    budget: b.budget,
+                  })),
+                },
+              ]
             : undefined,
         },
       };
@@ -136,7 +146,10 @@ export class LighthouseAuditor {
       const result = await Promise.race([
         lighthouse(url, flags, config),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Lighthouse audit timed out after ${timeout}ms`)), timeout)
+          setTimeout(
+            () => reject(new Error(`Lighthouse audit timed out after ${timeout}ms`)),
+            timeout,
+          ),
         ),
       ]);
 
@@ -152,7 +165,11 @@ export class LighthouseAuditor {
   /**
    * Run Lighthouse on an already-connected Chrome instance via port.
    */
-  async runOnPort(url: string, port: number, options: LighthouseOptions = {}): Promise<LighthouseReport> {
+  async runOnPort(
+    url: string,
+    port: number,
+    options: LighthouseOptions = {},
+  ): Promise<LighthouseReport> {
     const mergedOptions = { ...this.defaultOptions, ...options, port, keepAlive: true };
     return this.run(url, mergedOptions);
   }
@@ -163,25 +180,29 @@ export class LighthouseAuditor {
   private async launchChrome(port: number, chromePath?: string): Promise<ChromeHandle> {
     const chromeExecutable = chromePath ?? this.findChromeExecutable();
 
-    const chromeProcess = spawn(chromeExecutable, [
-      `--remote-debugging-port=${port}`,
-      "--headless=new",
-      "--disable-gpu",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-extensions",
-      "--disable-background-networking",
-      "--disable-default-apps",
-      "--disable-sync",
-      "--disable-translate",
-      "--mute-audio",
-      "--no-first-run",
-      "--safebrowsing-disable-auto-update",
-      "about:blank",
-    ], {
-      stdio: "ignore",
-      detached: false,
-    });
+    const chromeProcess = spawn(
+      chromeExecutable,
+      [
+        `--remote-debugging-port=${port}`,
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-default-apps",
+        "--disable-sync",
+        "--disable-translate",
+        "--mute-audio",
+        "--no-first-run",
+        "--safebrowsing-disable-auto-update",
+        "about:blank",
+      ],
+      {
+        stdio: "ignore",
+        detached: false,
+      },
+    );
 
     // Wait for Chrome to start
     await this.waitForDebugger(port, 15_000);
@@ -254,9 +275,9 @@ export class LighthouseAuditor {
       return mod.default ?? mod;
     } catch (error) {
       logger.debug("Failed to import lighthouse module", { error });
-      throw new Error(
-        "Lighthouse is not installed. Install it with: npm install lighthouse"
-      );
+      throw new Error("Lighthouse is not installed. Install it with: npm install lighthouse", {
+        cause: error,
+      });
     }
   }
 
@@ -296,10 +317,7 @@ export class LighthouseAuditor {
     // Extract opportunities
     const opportunities: LighthouseOpportunity[] = [];
     for (const audit of Object.values(lhr.audits ?? {})) {
-      if (
-        audit.details?.type === "opportunity" &&
-        (audit.details.overallSavingsMs ?? 0) > 0
-      ) {
+      if (audit.details?.type === "opportunity" && (audit.details.overallSavingsMs ?? 0) > 0) {
         opportunities.push({
           id: audit.id,
           title: audit.title,
@@ -319,7 +337,7 @@ export class LighthouseAuditor {
           audit.details?.type === "table" &&
           audit.scoreDisplayMode !== "notApplicable" &&
           audit.score !== null &&
-          audit.score < 1
+          audit.score < 1,
       )
       .map((audit) => ({
         id: audit.id,
@@ -384,7 +402,11 @@ export class LighthouseAuditor {
 // Internal Lighthouse type interfaces
 // ---------------------------------------------------------------------------
 
-type LighthouseFn = (url: string, flags: unknown, config: unknown) => Promise<{ lhr: LighthouseRawResult }>;
+type LighthouseFn = (
+  url: string,
+  flags: unknown,
+  config: unknown,
+) => Promise<{ lhr: LighthouseRawResult }>;
 
 interface LighthouseRawResult {
   categories?: Record<string, { score: number | null }>;

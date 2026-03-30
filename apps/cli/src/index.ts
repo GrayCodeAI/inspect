@@ -52,6 +52,12 @@ import { registerAliasCommand, expandAliases } from "./commands/alias.js";
 import { registerEngineCommand } from "./commands/engine.js";
 import { registerDashboardCommand } from "./commands/dashboard.js";
 import { registerCostCommand } from "./commands/cost.js";
+import { registerTrailCommand } from "./commands/trail.js";
+import { registerAutonomyCommand } from "./commands/autonomy.js";
+import { registerPermissionsCommand } from "./commands/permissions.js";
+import { registerRBACCommand } from "./commands/rbac.js";
+import { registerTenantCommand } from "./commands/tenant.js";
+import { registerSSOCommand } from "./commands/sso.js";
 
 const VERSION = "0.1.0";
 
@@ -128,6 +134,16 @@ registerTunnelCommand(program);
 registerSessionsCommand(program);
 registerMCPCommand(program);
 registerEngineCommand(program);
+
+// ── Governance Commands ───────────────────────────────────────────────────
+registerTrailCommand(program);
+registerAutonomyCommand(program);
+registerPermissionsCommand(program);
+
+// ── Enterprise Commands ───────────────────────────────────────────────────
+registerRBACCommand(program);
+registerTenantCommand(program);
+registerSSOCommand(program);
 
 // ── Data & Workflow Commands ─────────────────────────────────────────────
 registerExtractCommand(program);

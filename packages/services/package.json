@@ -14,7 +14,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@inspect/shared": "workspace:*"
+    "@inspect/shared": "workspace:*",
+    "@inspect/observability": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

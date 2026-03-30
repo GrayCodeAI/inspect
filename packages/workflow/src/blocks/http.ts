@@ -29,10 +29,7 @@ export class HTTPRequestBlock {
   private defaultTimeout: number;
   private defaultHeaders: Record<string, string>;
 
-  constructor(options?: {
-    defaultTimeout?: number;
-    defaultHeaders?: Record<string, string>;
-  }) {
+  constructor(options?: { defaultTimeout?: number; defaultHeaders?: Record<string, string> }) {
     this.defaultTimeout = options?.defaultTimeout ?? 30_000;
     this.defaultHeaders = options?.defaultHeaders ?? {};
   }
@@ -50,10 +47,7 @@ export class HTTPRequestBlock {
    * - parseResponse: Whether to parse JSON responses (default: true)
    * - auth: { type: "basic"|"bearer", username?, password?, token? }
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<HTTPResponse> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<HTTPResponse> {
     const params = block.parameters;
     const method = String(params.method ?? "GET").toUpperCase();
     const url = context.render(String(params.url ?? ""));
@@ -71,28 +65,46 @@ export class HTTPRequestBlock {
       parsedUrl = new URL(url);
     } catch (error) {
       logger.debug("Invalid URL provided to HTTP block", { url, error });
-      throw new Error(`Invalid URL: ${url}`);
+      throw new Error(`Invalid URL: ${url}`, { cause: error });
     }
 
     const hostname = parsedUrl.hostname.toLowerCase();
     const blockedHosts = [
-      "localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]",
-      "169.254.169.254", "metadata.google.internal", "169.254.169.253",
+      "localhost",
+      "127.0.0.1",
+      "0.0.0.0",
+      "::1",
+      "[::1]",
+      "169.254.169.254",
+      "metadata.google.internal",
+      "169.254.169.253",
     ];
     const blockedPrefixes = [
-      "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.",
-      "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
-      "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
+      "10.",
+      "192.168.",
+      "172.16.",
+      "172.17.",
+      "172.18.",
+      "172.19.",
+      "172.20.",
+      "172.21.",
+      "172.22.",
+      "172.23.",
+      "172.24.",
+      "172.25.",
+      "172.26.",
+      "172.27.",
+      "172.28.",
+      "172.29.",
+      "172.30.",
+      "172.31.",
       "169.254.",
     ];
 
-    if (
-      blockedHosts.includes(hostname) ||
-      blockedPrefixes.some((p) => hostname.startsWith(p))
-    ) {
+    if (blockedHosts.includes(hostname) || blockedPrefixes.some((p) => hostname.startsWith(p))) {
       throw new Error(
         `HTTP request to internal/private host "${hostname}" is blocked. ` +
-        "Workflow HTTP blocks cannot access localhost, private networks, or cloud metadata endpoints.",
+          "Workflow HTTP blocks cannot access localhost, private networks, or cloud metadata endpoints.",
       );
     }
 
@@ -106,9 +118,7 @@ export class HTTPRequestBlock {
     };
 
     if (params.headers && typeof params.headers === "object") {
-      for (const [key, val] of Object.entries(
-        params.headers as Record<string, string>,
-      )) {
+      for (const [key, val] of Object.entries(params.headers as Record<string, string>)) {
         headers[key] = context.render(String(val));
       }
     }
@@ -193,16 +203,8 @@ export class HTTPRequestBlock {
         const statusCode = res.statusCode ?? 0;
 
         // Handle redirects
-        if (
-          followRedirects &&
-          statusCode >= 300 &&
-          statusCode < 400 &&
-          res.headers.location
-        ) {
-          const redirectUrl = new URL(
-            res.headers.location,
-            url,
-          ).toString();
+        if (followRedirects && statusCode >= 300 && statusCode < 400 && res.headers.location) {
+          const redirectUrl = new URL(res.headers.location, url).toString();
           this.makeRequest(
             method === "POST" && statusCode === 303 ? "GET" : method,
             redirectUrl,

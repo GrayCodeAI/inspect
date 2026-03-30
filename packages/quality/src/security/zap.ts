@@ -145,8 +145,9 @@ export class ZAPScanner {
     } catch (error) {
       throw new Error(
         `Cannot connect to ZAP at ${this.apiUrl}. ` +
-        "Ensure ZAP is running with API enabled. " +
-        `Error: ${error instanceof Error ? error.message : String(error)}`
+          "Ensure ZAP is running with API enabled. " +
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
       );
     }
   }
@@ -355,7 +356,10 @@ export class ZAPScanner {
   /**
    * Make a GET request to the ZAP API.
    */
-  private async zapGet(path: string, params: Record<string, string> = {}): Promise<Record<string, unknown>> {
+  private async zapGet(
+    path: string,
+    params: Record<string, string> = {},
+  ): Promise<Record<string, unknown>> {
     const url = new URL(path, this.apiUrl);
 
     if (this.apiKey) {

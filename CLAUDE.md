@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-Inspect is an AI-powered browser testing platform. It's a TypeScript monorepo with 15 packages.
+Inspect is an AI-powered browser testing platform. It's a TypeScript monorepo with 18 packages.
 
 ## Build & Run
 
 ```bash
 pnpm install          # Install deps
 pnpm build            # Build all packages (Turborepo)
-npx vitest run        # Run all 317 unit tests
+npx vitest run        # Run all 1642 unit tests
 npx vitest            # Watch mode
 
 # Run CLI
@@ -23,18 +23,20 @@ node apps/cli/dist/index.js test -m "test login" --url https://example.com -y
 - `apps/cli/` — CLI entry point (Commander + Ink TUI)
 - `packages/shared/` — Types (122+), utils (25), constants (68), device presets (25)
 - `packages/browser/` — Playwright wrapper, ARIA snapshots, DOM, vision, cookies, MCP
-- `packages/agent/` — LLM providers (Claude/GPT/Gemini/DeepSeek/Ollama), prompts, memory, cache, watchdogs
-- `packages/core/` — Test orchestrator, git integration, GitHub PR, device pool
+- `packages/agent/` — LLM providers (Claude/GPT/Gemini/DeepSeek/Ollama), prompts, memory, cache, watchdogs, governance, orchestration
+- `packages/core/` — Test orchestrator, git integration, GitHub PR, device pool, healing, generation
 - `packages/workflow/` — YAML workflow engine, 15 block types
 - `packages/credentials/` — Credential vault (Bitwarden, 1Password, Azure)
 - `packages/data/` — Data extraction, file parsers, cloud storage
 - `packages/api/` — REST API server, webhooks, SSE, WebSocket
 - `packages/network/` — Proxy, domain security, data masking, tunneling
-- `packages/observability/` — Analytics, tracing, metrics, logging
+- `packages/observability/` — Analytics, tracing, metrics, logging, cost intelligence
 - `packages/quality/` — a11y, Lighthouse, chaos, security, mocking
 - `packages/visual/` — Pixel diff, slider reports, masking
 - `packages/reporter/` — Markdown/HTML/JSON reports
 - `packages/sdk/` — Public SDK (act/extract/observe/agent)
+- `packages/mcp/` — Standalone MCP server (Model Context Protocol)
+- `packages/enterprise/` — RBAC, SSO, multi-tenancy, hybrid LLM routing
 
 ## Coding Conventions
 
@@ -61,7 +63,7 @@ node apps/cli/dist/index.js test -m "test login" --url https://example.com -y
 - **Config**: `vitest.config.ts` at root
 - **Pattern**: `describe/it/expect` from vitest
 - **No external deps**: Tests must work without network, browser, or API keys
-- **12 test files, 317 tests** currently passing
+- **101 test files, 1642 tests** currently passing
 
 ## Environment Variables
 

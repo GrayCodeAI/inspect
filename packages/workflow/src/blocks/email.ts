@@ -206,7 +206,7 @@ export class SendEmailBlock {
       let socket: net.Socket | tls.TLSSocket;
       let responseLog = "";
       let step = 0;
-      let authenticated = false;
+      const authenticated = false;
 
       const extractEmail = (addr: string): string => {
         const match = addr.match(/<([^>]+)>/);

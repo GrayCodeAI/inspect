@@ -16,10 +16,7 @@ import type {
 import { WorkflowContext } from "./context.js";
 
 /** Event emitter callback for workflow events */
-export type WorkflowEventHandler = (
-  event: string,
-  data: Record<string, unknown>,
-) => void;
+export type WorkflowEventHandler = (event: string, data: Record<string, unknown>) => void;
 
 /**
  * WorkflowExecutor orchestrates the execution of workflow definitions.
@@ -33,10 +30,15 @@ export class WorkflowExecutor {
     (block: WorkflowBlock, context: WorkflowContext) => Promise<unknown>
   > = new Map();
   private cancelledRuns: Set<string> = new Set();
-  private pausedRuns: Map<string, {
-    resolve: (value: unknown) => void;
-    context: WorkflowContext;
-  }> = new Map();
+  private pausedRuns: Map<
+    string,
+    {
+      resolve: (value: unknown) => void;
+      context: WorkflowContext;
+    }
+  > = new Map();
+  private blockClassesRegistered = false;
+  private blockClassInstances: BlockClassInstances | null = null;
 
   constructor(eventHandler?: WorkflowEventHandler) {
     this.eventHandler = eventHandler;
@@ -60,11 +62,7 @@ export class WorkflowExecutor {
     inputParams?: Record<string, unknown>,
   ): Promise<WorkflowRun> {
     const runId = generateId();
-    const context = new WorkflowContext(
-      inputParams,
-      definition.parameters,
-      definition.strictMode,
-    );
+    const context = new WorkflowContext(inputParams, definition.parameters, definition.strictMode);
 
     const run: WorkflowRun = {
       id: runId,
@@ -76,6 +74,11 @@ export class WorkflowExecutor {
     };
 
     this.emit("workflow:started", { runId, workflowId: definition.id });
+
+    // Auto-register block classes on first execution
+    if (!this.blockClassesRegistered) {
+      await this.registerBlockClasses();
+    }
 
     try {
       // Build a block map for quick lookup
@@ -119,24 +122,19 @@ export class WorkflowExecutor {
           currentBlock = blockMap.get(currentBlock.nextBlockId);
         } else {
           // Find next block by index in definition array
-          const currentIndex = definition.blocks.findIndex(
-            (b) => b.id === currentBlock!.id,
-          );
+          const currentIndex = definition.blocks.findIndex((b) => b.id === currentBlock!.id);
           currentBlock = definition.blocks[currentIndex + 1];
         }
       }
 
       // Determine final run status
       if (run.status !== "cancelled" && run.status !== "paused_for_input") {
-        const hasFailures = Object.values(run.blockResults).some(
-          (r) => r.status === "failed",
-        );
+        const hasFailures = Object.values(run.blockResults).some((r) => r.status === "failed");
         run.status = hasFailures ? "failed" : "completed";
       }
     } catch (error) {
       run.status = "failed";
-      run.error =
-        error instanceof Error ? error.message : String(error);
+      run.error = error instanceof Error ? error.message : String(error);
       this.emit("workflow:error", { runId, error: run.error });
     }
 
@@ -191,8 +189,7 @@ export class WorkflowExecutor {
         });
         return result;
       } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : String(error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
 
         if (attempt < maxRetries) {
           this.emit("block:retry", {
@@ -215,9 +212,9 @@ export class WorkflowExecutor {
         });
 
         if (!block.continueOnFailure) {
-          throw new Error(
-            `Block '${block.label}' (${block.id}) failed: ${errorMsg}`,
-          );
+          throw new Error(`Block '${block.label}' (${block.id}) failed: ${errorMsg}`, {
+            cause: error,
+          });
         }
       }
     }
@@ -270,16 +267,11 @@ export class WorkflowExecutor {
     // Built-in block type dispatch
     const timeout = block.timeout ?? 120_000;
 
-    const executeWithTimeout = async (
-      fn: () => Promise<unknown>,
-    ): Promise<unknown> => {
+    const executeWithTimeout = async (fn: () => Promise<unknown>): Promise<unknown> => {
       return Promise.race([
         fn(),
         new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`Block timed out after ${timeout}ms`)),
-            timeout,
-          ),
+          setTimeout(() => reject(new Error(`Block timed out after ${timeout}ms`)), timeout),
         ),
       ]);
     };
@@ -295,29 +287,19 @@ export class WorkflowExecutor {
         return executeWithTimeout(() => this.executeCodeBlock(block, context));
 
       case "data_extraction":
-        return executeWithTimeout(() =>
-          this.executeDataExtractionBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeDataExtractionBlock(block, context));
 
       case "validation":
-        return executeWithTimeout(() =>
-          this.executeValidationBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeValidationBlock(block, context));
 
       case "http_request":
-        return executeWithTimeout(() =>
-          this.executeHTTPRequestBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeHTTPRequestBlock(block, context));
 
       case "send_email":
-        return executeWithTimeout(() =>
-          this.executeSendEmailBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeSendEmailBlock(block, context));
 
       case "file_parser":
-        return executeWithTimeout(() =>
-          this.executeFileParserBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeFileParserBlock(block, context));
 
       case "wait":
         return this.executeWaitBlock(block, context);
@@ -329,24 +311,28 @@ export class WorkflowExecutor {
         return this.executeConditionalBlock(block, context);
 
       case "text_prompt":
-        return executeWithTimeout(() =>
-          this.executeTextPromptBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeTextPromptBlock(block, context));
 
       case "file_download":
-        return executeWithTimeout(() =>
-          this.executeFileDownloadBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeFileDownloadBlock(block, context));
 
       case "file_upload":
-        return executeWithTimeout(() =>
-          this.executeFileUploadBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executeFileUploadBlock(block, context));
 
       case "pdf_parser":
-        return executeWithTimeout(() =>
-          this.executePDFParserBlock(block, context),
-        );
+        return executeWithTimeout(() => this.executePDFParserBlock(block, context));
+
+      case "crawl":
+        return executeWithTimeout(() => this.executeWorldClassBlock(block, context, "crawl"));
+
+      case "track":
+        return executeWithTimeout(() => this.executeWorldClassBlock(block, context, "track"));
+
+      case "proxy":
+        return executeWithTimeout(() => this.executeWorldClassBlock(block, context, "proxy"));
+
+      case "benchmark":
+        return executeWithTimeout(() => this.executeWorldClassBlock(block, context, "benchmark"));
 
       default:
         throw new Error(`Unknown block type: ${block.type}`);
@@ -356,10 +342,7 @@ export class WorkflowExecutor {
   /**
    * Execute a task block (browser automation with NL prompt).
    */
-  private async executeTaskBlock(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<unknown> {
+  private async executeTaskBlock(block: WorkflowBlock, context: WorkflowContext): Promise<unknown> {
     const params = block.parameters;
     const prompt = context.render(String(params.prompt ?? ""));
     const url = params.url ? context.render(String(params.url)) : undefined;
@@ -397,9 +380,7 @@ export class WorkflowExecutor {
     const items = context.get<unknown[]>(itemsKey);
 
     if (!Array.isArray(items)) {
-      throw new Error(
-        `For-loop variable '${itemsKey}' is not an array or is not defined`,
-      );
+      throw new Error(`For-loop variable '${itemsKey}' is not an array or is not defined`);
     }
 
     const innerBlocks = (params.blocks as WorkflowBlock[]) ?? [];
@@ -437,10 +418,7 @@ export class WorkflowExecutor {
   /**
    * Execute a code block using Node.js vm module.
    */
-  private async executeCodeBlock(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<unknown> {
+  private async executeCodeBlock(block: WorkflowBlock, context: WorkflowContext): Promise<unknown> {
     const { createContext, runInNewContext } = await import("node:vm");
     const params = block.parameters;
     const code = context.render(String(params.code ?? ""));
@@ -449,12 +427,9 @@ export class WorkflowExecutor {
     // Build sandbox with restricted globals
     const sandbox: Record<string, unknown> = {
       console: {
-        log: (...args: unknown[]) =>
-          this.emit("code:log", { args }),
-        warn: (...args: unknown[]) =>
-          this.emit("code:warn", { args }),
-        error: (...args: unknown[]) =>
-          this.emit("code:error", { args }),
+        log: (...args: unknown[]) => this.emit("code:log", { args }),
+        warn: (...args: unknown[]) => this.emit("code:warn", { args }),
+        error: (...args: unknown[]) => this.emit("code:error", { args }),
       },
       JSON,
       Math,
@@ -498,7 +473,7 @@ export class WorkflowExecutor {
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(`Code execution failed: ${msg}`);
+      throw new Error(`Code execution failed: ${msg}`, { cause: error });
     }
 
     return sandbox.result;
@@ -581,7 +556,7 @@ export class WorkflowExecutor {
         });
       } catch (error) {
         logger.debug("Validation condition evaluation error", { condition, error });
-        throw new Error(`Validation condition evaluation failed: ${condition}`);
+        throw new Error(`Validation condition evaluation failed: ${condition}`, { cause: error });
       }
       if (!sandbox.result) {
         throw new Error(`Validation condition not met: ${condition}`);
@@ -604,20 +579,14 @@ export class WorkflowExecutor {
     const url = context.render(String(params.url ?? ""));
     const headers = params.headers as Record<string, string> | undefined;
     const body = params.body
-      ? context.render(
-          typeof params.body === "string"
-            ? params.body
-            : JSON.stringify(params.body),
-        )
+      ? context.render(typeof params.body === "string" ? params.body : JSON.stringify(params.body))
       : undefined;
 
     this.emit("http:request", { method, url });
 
     const parsedUrl = new URL(url);
     const isHttps = parsedUrl.protocol === "https:";
-    const httpModule = isHttps
-      ? await import("node:https")
-      : await import("node:http");
+    const httpModule = isHttps ? await import("node:https") : await import("node:http");
 
     return new Promise((resolve, reject) => {
       const reqHeaders: Record<string, string> = {
@@ -807,15 +776,10 @@ export class WorkflowExecutor {
   /**
    * Execute a wait block.
    */
-  private async executeWaitBlock(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<unknown> {
+  private async executeWaitBlock(block: WorkflowBlock, context: WorkflowContext): Promise<unknown> {
     const params = block.parameters;
     const duration = (params.duration as number) ?? 1000;
-    const condition = params.condition
-      ? context.render(String(params.condition))
-      : undefined;
+    const condition = params.condition ? context.render(String(params.condition)) : undefined;
 
     this.emit("wait:start", { duration, condition });
 
@@ -1010,12 +974,40 @@ export class WorkflowExecutor {
   }
 
   /**
+   * Execute a world-class block (crawl, track, proxy, benchmark).
+   * These blocks have standalone implementations that take a flat context record.
+   */
+  private async executeWorldClassBlock(
+    block: WorkflowBlock,
+    context: WorkflowContext,
+    blockType: "crawl" | "track" | "proxy" | "benchmark",
+  ): Promise<unknown> {
+    const contextObj = context.toObject();
+
+    switch (blockType) {
+      case "crawl": {
+        const { executeCrawlBlock } = await import("../blocks/crawl.js");
+        return executeCrawlBlock(block, contextObj);
+      }
+      case "track": {
+        const { executeTrackBlock } = await import("../blocks/track.js");
+        return executeTrackBlock(block, contextObj);
+      }
+      case "proxy": {
+        const { executeProxyBlock } = await import("../blocks/proxy.js");
+        return executeProxyBlock(block, contextObj);
+      }
+      case "benchmark": {
+        const { executeBenchmarkBlock } = await import("../blocks/benchmark.js");
+        return executeBenchmarkBlock(block, contextObj);
+      }
+    }
+  }
+
+  /**
    * Simple CSV parser.
    */
-  private parseCSV(
-    text: string,
-    delimiter: string = ",",
-  ): Record<string, string>[] {
+  private parseCSV(text: string, delimiter: string = ","): Record<string, string>[] {
     const lines = text.split(/\r?\n/).filter((l) => l.trim());
     if (lines.length === 0) return [];
 
@@ -1071,11 +1063,13 @@ export class WorkflowExecutor {
   /**
    * Basic JSON schema validation.
    */
-  private validateAgainstSchema(
-    data: unknown,
-    schema: Record<string, unknown>,
-  ): unknown {
-    if (schema.type === "object" && schema.properties && typeof data === "object" && data !== null) {
+  private validateAgainstSchema(data: unknown, schema: Record<string, unknown>): unknown {
+    if (
+      schema.type === "object" &&
+      schema.properties &&
+      typeof data === "object" &&
+      data !== null
+    ) {
       const props = schema.properties as Record<string, Record<string, unknown>>;
       const required = (schema.required as string[]) ?? [];
       const obj = data as Record<string, unknown>;
@@ -1108,4 +1102,146 @@ export class WorkflowExecutor {
       this.eventHandler(event, { ...data, timestamp: Date.now() });
     }
   }
+
+  /**
+   * Register all block classes as handlers.
+   * This wires the standalone block implementations to the executor,
+   * allowing them to be used instead of the inline implementations.
+   *
+   * Call this after setting up block dependencies (setAgentExecutor, etc.)
+   * via the returned block instances.
+   *
+   * @example
+   * ```typescript
+   * const executor = new WorkflowExecutor();
+   * const blocks = executor.registerBlockClasses();
+   * blocks.taskBlock.setAgentExecutor(myAgentFn);
+   * ```
+   */
+  async registerBlockClasses(): Promise<BlockClassInstances> {
+    if (this.blockClassesRegistered) {
+      // Return existing instances if already registered
+      return this.getBlockClassInstances();
+    }
+
+    const { TaskBlock } = await import("../blocks/task.js");
+    const { ForLoopBlock } = await import("../blocks/loop.js");
+    const { CodeBlock } = await import("../blocks/code.js");
+    const { DataExtractionBlock } = await import("../blocks/extract.js");
+    const { ValidationBlock } = await import("../blocks/validate.js");
+    const { HTTPRequestBlock } = await import("../blocks/http.js");
+    const { SendEmailBlock } = await import("../blocks/email.js");
+    const { FileParserBlock } = await import("../blocks/file-parser.js");
+    const { WaitBlock } = await import("../blocks/wait.js");
+    const { HumanInteractionBlock } = await import("../blocks/human.js");
+    const { executeBenchmarkBlock } = await import("../blocks/benchmark.js");
+    const { executeCrawlBlock } = await import("../blocks/crawl.js");
+    const { executeProxyBlock } = await import("../blocks/proxy.js");
+    const { executeTrackBlock } = await import("../blocks/track.js");
+    const { TextPromptBlock } = await import("../blocks/text-prompt.js");
+    const { FileDownloadBlock } = await import("../blocks/file-download.js");
+    const { FileUploadBlock } = await import("../blocks/file-upload.js");
+
+    const taskBlock = new TaskBlock();
+    const forLoopBlock = new ForLoopBlock();
+    const codeBlock = new CodeBlock();
+    const dataExtractionBlock = new DataExtractionBlock();
+    const validationBlock = new ValidationBlock();
+    const httpRequestBlock = new HTTPRequestBlock();
+    const sendEmailBlock = new SendEmailBlock();
+    const fileParserBlock = new FileParserBlock();
+    const waitBlock = new WaitBlock();
+    const humanInteractionBlock = new HumanInteractionBlock();
+    const textPromptBlock = new TextPromptBlock();
+    const fileDownloadBlock = new FileDownloadBlock();
+    const fileUploadBlock = new FileUploadBlock();
+
+    this.registerBlockHandler("task", (block, ctx) => taskBlock.execute(block, ctx));
+    this.registerBlockHandler("for_loop", (block, ctx) => forLoopBlock.execute(block, ctx));
+    this.registerBlockHandler("code", (block, ctx) => codeBlock.execute(block, ctx));
+    this.registerBlockHandler("data_extraction", (block, ctx) =>
+      dataExtractionBlock.execute(block, ctx),
+    );
+    this.registerBlockHandler("validation", (block, ctx) => validationBlock.execute(block, ctx));
+    this.registerBlockHandler("http_request", (block, ctx) => httpRequestBlock.execute(block, ctx));
+    this.registerBlockHandler("send_email", (block, ctx) => sendEmailBlock.execute(block, ctx));
+    this.registerBlockHandler("file_parser", (block, ctx) => fileParserBlock.execute(block, ctx));
+    this.registerBlockHandler("wait", (block, ctx) => waitBlock.execute(block, ctx));
+    this.registerBlockHandler("human_interaction", (block, ctx) =>
+      humanInteractionBlock.execute(block, ctx, "inline"),
+    );
+    this.registerBlockHandler("benchmark", (block, ctx) =>
+      executeBenchmarkBlock(block, ctx as unknown as Record<string, unknown>),
+    );
+    this.registerBlockHandler("crawl", (block, ctx) =>
+      executeCrawlBlock(block, ctx as unknown as Record<string, unknown>),
+    );
+    this.registerBlockHandler("proxy", (block, ctx) =>
+      executeProxyBlock(block, ctx as unknown as Record<string, unknown>),
+    );
+    this.registerBlockHandler("track", (block, ctx) =>
+      executeTrackBlock(block, ctx as unknown as Record<string, unknown>),
+    );
+    this.registerBlockHandler("text_prompt", (block, ctx) =>
+      textPromptBlock.execute(block, ctx as unknown as Record<string, unknown>),
+    );
+    this.registerBlockHandler("file_download", (block, ctx) =>
+      fileDownloadBlock.execute(block, ctx as unknown as Record<string, unknown>),
+    );
+    this.registerBlockHandler("file_upload", (block, ctx) =>
+      fileUploadBlock.execute(block, ctx as unknown as Record<string, unknown>),
+    );
+
+    this.blockClassesRegistered = true;
+
+    const instances: BlockClassInstances = {
+      taskBlock,
+      forLoopBlock,
+      codeBlock,
+      dataExtractionBlock,
+      validationBlock,
+      httpRequestBlock,
+      sendEmailBlock,
+      fileParserBlock,
+      waitBlock,
+      humanInteractionBlock,
+      textPromptBlock,
+      fileDownloadBlock,
+      fileUploadBlock,
+    };
+
+    this.blockClassInstances = instances;
+    return instances;
+  }
+
+  /**
+   * Get block class instances (for cases where they were already registered).
+   */
+  private getBlockClassInstances(): BlockClassInstances {
+    if (this.blockClassInstances) {
+      return this.blockClassInstances;
+    }
+    // Not yet registered — return empty object
+    return {} as BlockClassInstances;
+  }
+}
+
+/**
+ * Block class instances returned by registerBlockClasses.
+ * Use these to wire dependencies (setAgentExecutor, setLLMExtractor, etc.)
+ */
+export interface BlockClassInstances {
+  taskBlock: import("../blocks/task.js").TaskBlock;
+  forLoopBlock: import("../blocks/loop.js").ForLoopBlock;
+  codeBlock: import("../blocks/code.js").CodeBlock;
+  dataExtractionBlock: import("../blocks/extract.js").DataExtractionBlock;
+  validationBlock: import("../blocks/validate.js").ValidationBlock;
+  httpRequestBlock: import("../blocks/http.js").HTTPRequestBlock;
+  sendEmailBlock: import("../blocks/email.js").SendEmailBlock;
+  fileParserBlock: import("../blocks/file-parser.js").FileParserBlock;
+  waitBlock: import("../blocks/wait.js").WaitBlock;
+  humanInteractionBlock: import("../blocks/human.js").HumanInteractionBlock;
+  textPromptBlock: import("../blocks/text-prompt.js").TextPromptBlock;
+  fileDownloadBlock: import("../blocks/file-download.js").FileDownloadBlock;
+  fileUploadBlock: import("../blocks/file-upload.js").FileUploadBlock;
 }

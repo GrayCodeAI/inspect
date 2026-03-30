@@ -248,7 +248,7 @@ jobs:
     paths:
       - .inspect/reports/
   variables:
-    ANTHROPIC_API_KEY: \$ANTHROPIC_API_KEY
+    ANTHROPIC_API_KEY: ${"\\$"}ANTHROPIC_API_KEY
 `,
   }),
 
@@ -296,8 +296,8 @@ async function runInit(options: InitOptions): Promise<void> {
   if (!templateFn) {
     console.error(
       chalk.red(
-        `Unknown template: "${templateName}". Available: ${Object.keys(TEMPLATES).join(", ")}`
-      )
+        `Unknown template: "${templateName}". Available: ${Object.keys(TEMPLATES).join(", ")}`,
+      ),
     );
     process.exit(1);
   }
@@ -307,11 +307,7 @@ async function runInit(options: InitOptions): Promise<void> {
   // Check if config already exists
   if (existsSync(configPath)) {
     if (!options.yes) {
-      console.log(
-        chalk.yellow(
-          `${CONFIG_FILENAME} already exists. Use --yes to overwrite.`
-        )
-      );
+      console.log(chalk.yellow(`${CONFIG_FILENAME} already exists. Use --yes to overwrite.`));
       return;
     }
     console.log(chalk.dim(`Overwriting existing ${CONFIG_FILENAME}`));
@@ -346,7 +342,7 @@ async function runInit(options: InitOptions): Promise<void> {
         "# Keep baselines",
         "!visual/baseline/",
       ].join("\n"),
-      "utf-8"
+      "utf-8",
     );
     console.log(chalk.green("  Created .inspect/.gitignore"));
   }
@@ -362,7 +358,11 @@ async function runInit(options: InitOptions): Promise<void> {
   if (options.ci) {
     const ciGen = CI_TEMPLATES[options.ci];
     if (!ciGen) {
-      console.error(chalk.red(`Unknown CI platform: "${options.ci}". Available: ${Object.keys(CI_TEMPLATES).join(", ")}`));
+      console.error(
+        chalk.red(
+          `Unknown CI platform: "${options.ci}". Available: ${Object.keys(CI_TEMPLATES).join(", ")}`,
+        ),
+      );
       process.exit(1);
     }
 
@@ -387,14 +387,12 @@ export function registerInitCommand(program: Command): void {
   program
     .command("init")
     .description("Initialize Inspect in your project")
-    .option(
-      "--template <template>",
-      "Config template: default, minimal, comprehensive",
-      "default"
-    )
+    .option("--template <template>", "Config template: default, minimal, comprehensive", "default")
     .option("-y, --yes", "Overwrite existing config without prompting")
     .option("--ci <platform>", "Generate CI workflow: github-actions, gitlab-ci, circleci")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect init                              Create default config
   $ inspect init --template minimal           Minimal config for quick start
@@ -403,7 +401,8 @@ Examples:
   $ inspect init --ci github-actions          Generate GitHub Actions workflow
   $ inspect init --ci gitlab-ci              Generate GitLab CI config
   $ inspect init --ci circleci               Generate CircleCI config
-`)
+`,
+    )
     .action(async (opts: InitOptions) => {
       try {
         await runInit(opts);

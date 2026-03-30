@@ -13,9 +13,7 @@ interface CheckResult {
   detail?: string;
 }
 
-async function getCommandVersion(
-  cmd: string
-): Promise<string | null> {
+async function getCommandVersion(cmd: string): Promise<string | null> {
   try {
     const { stdout } = await exec(`${cmd} --version`);
     return stdout.trim();
@@ -136,17 +134,24 @@ async function checkPlaywrightBrowsers(): Promise<CheckResult> {
     const { readdirSync } = await import("node:fs");
     const pnpmDir = join(process.cwd(), "node_modules", ".pnpm");
     if (fileExists(pnpmDir)) {
-      const dirs = readdirSync(pnpmDir).filter(d => d.startsWith("playwright-core@") || d.startsWith("playwright@"));
+      const dirs = readdirSync(pnpmDir).filter(
+        (d) => d.startsWith("playwright-core@") || d.startsWith("playwright@"),
+      );
       for (const d of dirs) {
         const name = d.startsWith("playwright-core") ? "playwright-core" : "playwright";
         candidates.push(join(pnpmDir, d, "node_modules", name, "cli.js"));
       }
     }
-  } catch {}
+  } catch {
+    /* pnpm directory not found */
+  }
 
   let playwrightCli = "";
   for (const c of candidates) {
-    if (fileExists(c)) { playwrightCli = c; break; }
+    if (fileExists(c)) {
+      playwrightCli = c;
+      break;
+    }
   }
 
   if (!playwrightCli) {
@@ -165,7 +170,9 @@ async function checkPlaywrightBrowsers(): Promise<CheckResult> {
   }
 
   try {
-    const { stdout } = await exec(`${process.execPath} ${playwrightCli} --version`, { timeout: 10000 });
+    const { stdout } = await exec(`${process.execPath} ${playwrightCli} --version`, {
+      timeout: 10000,
+    });
     const version = stdout.trim();
     return {
       name: "Playwright",
@@ -211,11 +218,7 @@ async function checkChrome(): Promise<CheckResult> {
 
 async function checkConfig(): Promise<CheckResult> {
   const cwd = process.cwd();
-  const configFiles = [
-    "inspect.config.ts",
-    "inspect.config.js",
-    "inspect.config.json",
-  ];
+  const configFiles = ["inspect.config.ts", "inspect.config.js", "inspect.config.json"];
 
   for (const file of configFiles) {
     if (existsSync(`${cwd}/${file}`)) {
@@ -261,7 +264,9 @@ async function checkApiKeys(): Promise<CheckResult> {
     if (existsSync(keysPath)) {
       savedKeys = JSON.parse(readFileSync(keysPath, "utf-8"));
     }
-  } catch {}
+  } catch {
+    /* keys not readable */
+  }
 
   const keyChecks = [
     { name: "ANTHROPIC_API_KEY", label: "Claude" },
@@ -291,8 +296,7 @@ async function checkApiKeys(): Promise<CheckResult> {
     name: "API Keys",
     status: "warn",
     message: "No API keys configured",
-    detail:
-      "Run /config in the REPL to set up a provider",
+    detail: "Run /config in the REPL to set up a provider",
   };
 }
 
@@ -364,20 +368,14 @@ async function runDoctor(options: DoctorOptions = {}): Promise<void> {
   }
 
   console.log(
-    `\n  ${chalk.green(`${passes} passed`)}${warns > 0 ? `, ${chalk.yellow(`${warns} warnings`)}` : ""}${fails > 0 ? `, ${chalk.red(`${fails} failed`)}` : ""}`
+    `\n  ${chalk.green(`${passes} passed`)}${warns > 0 ? `, ${chalk.yellow(`${warns} warnings`)}` : ""}${fails > 0 ? `, ${chalk.red(`${fails} failed`)}` : ""}`,
   );
 
   if (fails > 0) {
-    console.log(
-      chalk.red("\nFix the failed checks above before using Inspect.")
-    );
+    console.log(chalk.red("\nFix the failed checks above before using Inspect."));
     process.exit(1);
   } else if (warns > 0) {
-    console.log(
-      chalk.yellow(
-        "\nSome optional dependencies are missing. Core features will work."
-      )
-    );
+    console.log(chalk.yellow("\nSome optional dependencies are missing. Core features will work."));
   } else {
     console.log(chalk.green("\nEverything looks good!"));
   }
@@ -389,7 +387,9 @@ export function registerDoctorCommand(program: Command): void {
     .description("Check your environment and diagnose issues")
     .option("--json", "Output results as JSON (for CI/scripting)")
     .option("--jq <query>", "Filter JSON output with jq-like query (requires --json)")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Checks performed:
   Node.js           Verifies version 20+ is installed
   pnpm              Checks package manager availability
@@ -405,7 +405,8 @@ Examples:
   $ inspect doctor                  Run all checks with colored output
   $ inspect doctor --json           Output results as JSON
   $ inspect doctor --json | jq .    Pipe JSON to jq for processing
-`)
+`,
+    )
     .action(async (opts: DoctorOptions) => {
       try {
         await runDoctor(opts);

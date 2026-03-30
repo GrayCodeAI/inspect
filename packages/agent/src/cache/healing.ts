@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { LLMProvider, LLMMessage } from "../providers/base.js";
-import type { ActionCache, CachedAction } from "./store.js";
+import type { ActionCache, CachedAction } from "./action-cache.js";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/cache-healing");
@@ -30,7 +30,7 @@ export interface HealCandidate {
   /** Match confidence (0-1) */
   confidence: number;
   /** How the match was found */
-  method: "exact" | "semantic" | "fuzzy" | "vision";
+  method: "exact" | "semantic" | "fuzzy" | "vision" | "css-similar" | "neighbor-anchor";
 }
 
 /** Healing result */
@@ -145,6 +145,32 @@ export class SelfHealer {
       }
     }
 
+    // Strategy 5: CSS selector similarity (match by attribute patterns)
+    const cssMatches = this.findByCssSimilarity(description, snapshot);
+    allCandidates.push(...cssMatches);
+    if (cssMatches.length > 0 && cssMatches[0].confidence > 0.6) {
+      return {
+        success: true,
+        candidate: cssMatches[0],
+        allCandidates,
+        elapsed: Date.now() - start,
+        method: "css-similar",
+      };
+    }
+
+    // Strategy 6: Neighbor anchor (locate via nearby stable element)
+    const neighborMatch = this.findByNeighborAnchor(description, snapshot);
+    if (neighborMatch) {
+      allCandidates.push(neighborMatch);
+      return {
+        success: true,
+        candidate: neighborMatch,
+        allCandidates,
+        elapsed: Date.now() - start,
+        method: "neighbor-anchor",
+      };
+    }
+
     // Return best candidate even if confidence is low
     const bestCandidate = allCandidates.sort((a, b) => b.confidence - a.confidence)[0];
 
@@ -171,10 +197,7 @@ export class SelfHealer {
     snapshot: SnapshotElement[],
   ): HealCandidate | null {
     for (const element of snapshot) {
-      if (
-        element.role === description.role &&
-        element.name === description.name
-      ) {
+      if (element.role === description.role && element.name === description.name) {
         return {
           ref: element.ref,
           role: element.role,
@@ -329,7 +352,9 @@ Return ONLY the JSON object, nothing else.`,
         };
       }
     } catch (error) {
-      logger.warn("Vision-based healing failed", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Vision-based healing failed", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return null;
@@ -375,11 +400,7 @@ Return ONLY the JSON object, nothing else.`,
       curr[0] = j;
       for (let i = 1; i <= sLen; i++) {
         const cost = shorter[i - 1] === longer[j - 1] ? 0 : 1;
-        curr[i] = Math.min(
-          prev[i] + 1,
-          curr[i - 1] + 1,
-          prev[i - 1] + cost,
-        );
+        curr[i] = Math.min(prev[i] + 1, curr[i - 1] + 1, prev[i - 1] + cost);
       }
       [prev, curr] = [curr, prev];
     }
@@ -413,5 +434,115 @@ Return ONLY the JSON object, nothing else.`,
   private areRolesRelated(roleA: string, roleB: string): boolean {
     const group = SelfHealer.RELATED_ROLES.get(roleA);
     return group ? group.has(roleB) : false;
+  }
+
+  /**
+   * Strategy 5: CSS selector similarity — match by attribute patterns.
+   * Looks for elements with similar id, name, class, or data-* attributes.
+   */
+  private findByCssSimilarity(
+    description: ElementDescription,
+    snapshot: SnapshotElement[],
+  ): HealCandidate[] {
+    const candidates: HealCandidate[] = [];
+    const descAttrs = description.attributes ?? {};
+
+    for (const element of snapshot) {
+      if (!element.interactive) continue;
+
+      const elemAttrs = element.attributes ?? {};
+      let confidence = 0;
+
+      // Check id similarity
+      if (descAttrs.id && elemAttrs.id) {
+        if (descAttrs.id === elemAttrs.id) {
+          confidence += 0.6;
+        } else if (this.stringSimilarity(descAttrs.id, elemAttrs.id) > 0.7) {
+          confidence += 0.4;
+        }
+      }
+
+      // Check name attribute
+      if (descAttrs.name && elemAttrs.name) {
+        if (descAttrs.name === elemAttrs.name) {
+          confidence += 0.5;
+        } else if (this.stringSimilarity(descAttrs.name, elemAttrs.name) > 0.7) {
+          confidence += 0.3;
+        }
+      }
+
+      // Check class overlap
+      if (descAttrs.class && elemAttrs.class) {
+        const descClasses = new Set(descAttrs.class.split(/\s+/));
+        const elemClasses = new Set(elemAttrs.class.split(/\s+/));
+        const overlap = [...descClasses].filter((c) => elemClasses.has(c)).length;
+        const total = new Set([...descClasses, ...elemClasses]).size;
+        confidence += (total > 0 ? overlap / total : 0) * 0.3;
+      }
+
+      // Check data-* attributes
+      for (const [key, val] of Object.entries(descAttrs)) {
+        if (key.startsWith("data-") && elemAttrs[key] === val) {
+          confidence += 0.2;
+        }
+      }
+
+      // Role match bonus
+      if (element.role === description.role) {
+        confidence += 0.2;
+      }
+
+      if (confidence > 0.3) {
+        candidates.push({
+          ref: element.ref,
+          role: element.role,
+          name: element.name,
+          tagName: element.tagName,
+          confidence: Math.min(confidence, 1.0),
+          method: "css-similar",
+        });
+      }
+    }
+
+    return candidates.sort((a, b) => b.confidence - a.confidence);
+  }
+
+  /**
+   * Strategy 6: Neighbor anchor — locate via nearby stable element.
+   * If the target element is near a well-known anchor (heading, landmark),
+   * use that anchor's position to find the target.
+   */
+  private findByNeighborAnchor(
+    description: ElementDescription,
+    snapshot: SnapshotElement[],
+  ): HealCandidate | null {
+    // Look for elements near headings or landmarks that match the description
+    const anchors = snapshot.filter(
+      (el) => el.role === "heading" || el.role === "banner" || el.role === "navigation",
+    );
+
+    for (const element of snapshot) {
+      if (element.role !== description.role) continue;
+
+      // Check if this element is near any anchor
+      for (const anchor of anchors) {
+        if (
+          anchor.textContent &&
+          description.nearbyText &&
+          this.stringSimilarity(anchor.textContent, description.nearbyText) > 0.6
+        ) {
+          return {
+            ref: element.ref,
+            role: element.role,
+            name: element.name,
+            tagName: element.tagName,
+            confidence: 0.65,
+            method: "neighbor-anchor",
+          };
+        }
+      }
+    }
+
+    return null;
   }
 }

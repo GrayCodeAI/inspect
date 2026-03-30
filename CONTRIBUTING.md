@@ -13,9 +13,8 @@ npx vitest run
 ## Project Structure
 
 - `apps/cli/` — CLI entry point (Commander + Ink TUI)
-- `apps/cli/src/agents/` — 12-agent autonomous testing system
-- `apps/web/` — Web dashboard
-- `packages/` — 15 shared packages (shared, browser, agent, core, etc.)
+- `apps/cli/src/agents/` — 28-agent autonomous testing system
+- `packages/` — 17 shared packages (shared, browser, agent, core, mcp, enterprise, etc.)
 - `tests/` — Integration and E2E tests
 
 ## Development

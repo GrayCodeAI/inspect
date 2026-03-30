@@ -6,7 +6,7 @@
 // ============================================================================
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ActionLoopDetector, ActCache } from "@inspect/agent";
+import { ActionLoopDetector, ActionCache } from "@inspect/agent";
 import { SpeculativePlanner, RunCache } from "@inspect/core";
 
 // ---------------------------------------------------------------------------
@@ -15,9 +15,9 @@ import { SpeculativePlanner, RunCache } from "@inspect/core";
 
 describe("ActionCache wiring", () => {
   it("caches action by instruction+url hash", async () => {
-    const cache = new ActCache({ enabled: true });
+    const cache = new ActionCache({ enabled: true });
     await cache.ready;
-    const key = ActCache.key("click Play", "https://example.com");
+    const key = ActionCache.key("click Play", "https://example.com");
     expect(key).toBeTypeOf("string");
     expect(key.length).toBeGreaterThan(0);
 
@@ -34,16 +34,16 @@ describe("ActionCache wiring", () => {
   });
 
   it("returns null on cache miss", async () => {
-    const cache = new ActCache({ enabled: true });
+    const cache = new ActionCache({ enabled: true });
     await cache.ready;
     const hit = await cache.get("nonexistent", "https://example.com");
     expect(hit).toBeNull();
   });
 
   it("tracks replay count", async () => {
-    const cache = new ActCache({ enabled: true });
+    const cache = new ActionCache({ enabled: true });
     await cache.ready;
-    const key = ActCache.key("click Submit", "https://example.com");
+    const key = ActionCache.key("click Submit", "https://example.com");
 
     await cache.set("click Submit", "https://example.com", {
       type: "click",
@@ -58,7 +58,7 @@ describe("ActionCache wiring", () => {
   });
 
   it("skips caching when disabled", async () => {
-    const cache = new ActCache({ enabled: false });
+    const cache = new ActionCache({ enabled: false });
     await cache.ready;
     await cache.set("click X", "https://example.com", { type: "click" });
     const hit = await cache.get("click X", "https://example.com");
@@ -200,7 +200,7 @@ describe("Agent loop prompt integration", () => {
 
 describe("Cache + LoopDetector coexistence", () => {
   it("cached actions still get recorded in loop detector", () => {
-    const cache = new ActCache({ enabled: true });
+    const cache = new ActionCache({ enabled: true });
     const detector = new ActionLoopDetector({ threshold: 3 });
 
     // Simulate: cache hit for same action 3 times

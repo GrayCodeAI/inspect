@@ -29,7 +29,11 @@ describe("BenchmarkTracker", () => {
   });
 
   afterEach(() => {
-    try { if (existsSync(tmpFile)) unlinkSync(tmpFile); } catch {}
+    try {
+      if (existsSync(tmpFile)) unlinkSync(tmpFile);
+    } catch {
+      /* cleanup */
+    }
   });
 
   it("records and retrieves entries", () => {

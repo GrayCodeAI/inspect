@@ -57,6 +57,10 @@ const SLASH_COMMANDS = [
   { name: "devices", desc: "List available device presets" },
   { name: "history", desc: "Show past test instructions" },
   { name: "init", desc: "Initialize project configuration" },
+  { name: "cost", desc: "Show session cost breakdown" },
+  { name: "audit", desc: "Show agent audit trail" },
+  { name: "heal", desc: "Show healing strategies" },
+  { name: "generate", desc: "Generate tests from page" },
   { name: "dashboard", desc: "Live multi-agent test dashboard" },
   { name: "install", desc: "Install browser dependencies" },
   { name: "clear", desc: "Clear conversation history" },
@@ -250,6 +254,10 @@ async function handleSlash(
           "  \x1b[36m/devices\x1b[0m           List available device presets",
           "  \x1b[36m/models\x1b[0m            List all available AI models",
           "  \x1b[36m/history\x1b[0m           Show past test instructions",
+          "  \x1b[36m/cost\x1b[0m              Show session cost breakdown",
+          "  \x1b[36m/audit\x1b[0m             Show agent audit trail",
+          "  \x1b[36m/heal\x1b[0m              Show healing strategies",
+          "  \x1b[36m/generate\x1b[0m          Generate tests from current page",
           "  \x1b[36m/init\x1b[0m              Initialize project configuration",
           "  \x1b[36m/install\x1b[0m           Install browser dependencies",
           "  \x1b[36m/clear\x1b[0m             Clear conversation history",
@@ -267,7 +275,15 @@ async function handleSlash(
     case "doctor":
     case "devices":
     case "init":
-    case "install": {
+    case "install":
+    case "cost":
+    case "audit":
+    case "trail":
+    case "autonomy":
+    case "permissions":
+    case "rbac":
+    case "tenant":
+    case "sso": {
       try {
         const cliPath = join(__dirname, "..", "index.js");
         const { stdout } = await execFile(process.execPath, [cliPath, name], { timeout: 15000 });
@@ -276,6 +292,54 @@ async function handleSlash(
         return { kind: "cmd", text: e.stdout?.trim() ?? e.message };
       }
     }
+
+    case "heal":
+      return {
+        kind: "cmd",
+        text: [
+          "",
+          "  \x1b[1;35mSelf-Healing Strategies\x1b[0m",
+          "",
+          "  The self-healing engine uses a cascade of 8 strategies:",
+          "",
+          "  \x1b[36m1. TEXT_MATCH\x1b[0m       Find element by visible text content",
+          "  \x1b[36m2. ARIA_ROLE\x1b[0m        Find by ARIA role + label",
+          "  \x1b[36m3. VISUAL_LOCATE\x1b[0m    Vision-based element location via LLM",
+          "  \x1b[36m4. XPATH_RELATIVE\x1b[0m   Relative XPath from stable ancestor",
+          "  \x1b[36m5. CSS_SIMILAR\x1b[0m      Similar CSS selector",
+          "  \x1b[36m6. NEIGHBOR_ANCHOR\x1b[0m  Locate via nearby stable element",
+          "  \x1b[36m7. SEMANTIC_MATCH\x1b[0m   Match by purpose/semantics",
+          "  \x1b[36m8. FULL_RESCAN\x1b[0m      Complete page re-analysis",
+          "",
+          "  Strategies are tried in order (cheapest first) until one succeeds.",
+          "  Healing results are cached for faster recovery next time.",
+          "",
+        ].join("\n"),
+      };
+
+    case "generate":
+      return {
+        kind: "cmd",
+        text: [
+          "",
+          "  \x1b[1;35mTest Generation\x1b[0m",
+          "",
+          "  Generates tests from page structure analysis.",
+          "",
+          "  \x1b[36mUsage:\x1b[0m",
+          "    Provide a URL to generate tests:",
+          "    \x1b[33m  test https://example.com/login\x1b[0m",
+          "",
+          "  \x1b[36mSupported page types:\x1b[0m",
+          "    login, signup, checkout, search, settings,",
+          "    listing, dashboard, article, form, landing",
+          "",
+          "  \x1b[36mTest categories:\x1b[0m",
+          "    functional, navigation, form-validation,",
+          "    error-handling, accessibility, edge-case",
+          "",
+        ].join("\n"),
+      };
 
     case "config":
       return { kind: "cmd", text: "__OPEN_CONFIG__" };
@@ -1086,7 +1150,10 @@ export function Repl(): React.ReactElement {
     setBusy(false);
     const chatSecs = (Date.now() - chatStart) / 1000;
     const c = CRUNCHES[Math.floor(Math.random() * CRUNCHES.length)];
-    push("result", out + `\n\n\nCRUNCH:${c.color}:${c.sym} ${c.verb} in ${formatDuration(chatSecs)}`);
+    push(
+      "result",
+      out + `\n\n\nCRUNCH:${c.color}:${c.sym} ${c.verb} in ${formatDuration(chatSecs)}`,
+    );
   }, [input, push, exit, hist]);
 
   const ctrlCRef = React.useRef(0);
@@ -1601,7 +1668,9 @@ export function Repl(): React.ReactElement {
               return (
                 <Box key={m.id} flexDirection="column">
                   <Box paddingX={2}>
-                    <Text color="#334155">{"\u2500".repeat(Math.min(60, process.stdout.columns - 4 || 76))}</Text>
+                    <Text color="#334155">
+                      {"\u2500".repeat(Math.min(60, process.stdout.columns - 4 || 76))}
+                    </Text>
                   </Box>
                   <Box paddingX={2} marginTop={1}>
                     <Text color="#f97316" bold>
@@ -1622,7 +1691,7 @@ export function Repl(): React.ReactElement {
                     .map((line, i) => {
                       // Preserve blank lines as spacing
                       if (line.trim() === "") {
-                        return <Text key={i}>{" "}</Text>;
+                        return <Text key={i}> </Text>;
                       }
                       // Color result lines based on content
                       if (line.includes("\u2713") || line.includes("✓")) {
@@ -1653,10 +1722,7 @@ export function Repl(): React.ReactElement {
                         );
                       }
                       // Dim envDetails leftovers
-                      if (
-                        /<environment/i.test(line) ||
-                        /Current time:/.test(line)
-                      ) {
+                      if (/<environment/i.test(line) || /Current time:/.test(line)) {
                         return (
                           <Text key={i} color="#475569">
                             {line}

@@ -17,7 +17,11 @@ describe("TestGenerator", () => {
 
   describe("analyzePage", () => {
     it("extracts elements from ARIA tree", () => {
-      const analysis = generator.analyzePage("https://example.com/login", "Login Page", SAMPLE_ARIA);
+      const analysis = generator.analyzePage(
+        "https://example.com/login",
+        "Login Page",
+        SAMPLE_ARIA,
+      );
       expect(analysis.elements.length).toBeGreaterThan(0);
       expect(analysis.elements[0].ref).toBe("e1");
       expect(analysis.elements[0].role).toBe("heading");
@@ -58,7 +62,11 @@ describe("TestGenerator", () => {
     });
 
     it("returns unknown for ambiguous pages", () => {
-      const analysis = generator.analyzePage("https://example.com/xyz", "Page", `[e1] heading "Content"`);
+      const analysis = generator.analyzePage(
+        "https://example.com/xyz",
+        "Page",
+        `[e1] heading "Content"`,
+      );
       expect(analysis.pageType).toBe("unknown");
     });
   });
@@ -140,6 +148,134 @@ describe("TestGenerator", () => {
       for (const inst of instructions) {
         expect(inst.length).toBeGreaterThan(10);
       }
+    });
+  });
+
+  describe("generateFromSitemap", () => {
+    it("generates tests from URL list", async () => {
+      const urls = [
+        "https://example.com/login",
+        "https://example.com/signup",
+        "https://example.com/dashboard",
+      ].join("\n");
+
+      const result = await generator.generateFromSitemap(urls, { maxPages: 10 });
+      expect(result.pagesAnalyzed).toBe(3);
+      expect(result.suite.tests.length).toBeGreaterThan(0);
+    });
+
+    it("generates tests from XML sitemap", async () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://example.com/login</loc></url>
+  <url><loc>https://example.com/signup</loc></url>
+</urlset>`;
+
+      const result = await generator.generateFromSitemap(xml, { maxPages: 10 });
+      expect(result.pagesAnalyzed).toBe(2);
+    });
+
+    it("respects maxPages limit", async () => {
+      const urls = Array.from({ length: 20 }, (_, i) => `https://example.com/page${i}`).join("\n");
+      const result = await generator.generateFromSitemap(urls, { maxPages: 5 });
+      expect(result.pagesAnalyzed).toBe(5);
+    });
+
+    it("deduplicates URLs", async () => {
+      const urls = ["https://example.com/login", "https://example.com/login"].join("\n");
+      const result = await generator.generateFromSitemap(urls);
+      expect(result.pagesAnalyzed).toBe(1);
+    });
+
+    it("skips invalid URLs", async () => {
+      const urls = ["https://example.com/login", "not-a-url", "ftp://old.com"].join("\n");
+      const result = await generator.generateFromSitemap(urls);
+      expect(result.pagesAnalyzed).toBe(1);
+    });
+
+    it("filters by category when specified", async () => {
+      const urls = ["https://example.com/login", "https://example.com/dashboard"].join("\n");
+
+      const result = await generator.generateFromSitemap(urls, { categories: ["login"] });
+      expect(result.pagesAnalyzed).toBe(1);
+    });
+  });
+
+  describe("page type detection", () => {
+    it("detects checkout page type", () => {
+      const aria = `[e1] heading "Checkout"\n[e2] textbox "Card Number"\n[e3] button "Pay"`;
+      const analysis = generator.analyzePage("https://example.com/checkout", "Checkout", aria);
+      expect(analysis.pageType).toBe("checkout");
+    });
+
+    it("detects settings page type", () => {
+      const aria = `[e1] heading "Settings"\n[e2] textbox "Name"\n[e3] button "Save"`;
+      const analysis = generator.analyzePage("https://example.com/settings", "Settings", aria);
+      expect(analysis.pageType).toBe("settings");
+    });
+
+    it("detects dashboard page type from URL", () => {
+      const aria = `[e1] heading "Overview"\n[e2] link "Reports"`;
+      const analysis = generator.analyzePage("https://example.com/dashboard", "Dashboard", aria);
+      expect(analysis.pageType).toBe("dashboard");
+    });
+
+    it("detects listing page type from URL", () => {
+      const aria = `[e1] heading "Products"\n[e2] link "Product 1"`;
+      const analysis = generator.analyzePage("https://example.com/products", "Products", aria);
+      expect(analysis.pageType).toBe("listing");
+    });
+
+    it("detects article page type from URL", () => {
+      const aria = `[e1] heading "Blog Post"\n[e2] link "Read More"`;
+      const analysis = generator.analyzePage("https://example.com/blog/post", "Blog", aria);
+      expect(analysis.pageType).toBe("article");
+    });
+  });
+
+  describe("YAML export", () => {
+    it("includes all test metadata in YAML", () => {
+      const analysis = generator.analyzePage("https://example.com/login", "Login", SAMPLE_ARIA);
+      const suite = generator.generate(analysis);
+      const yaml = generator.toYAML(suite);
+
+      expect(yaml).toContain("category:");
+      expect(yaml).toContain("priority:");
+      expect(yaml).toContain("action:");
+      expect(yaml).toContain("description:");
+    });
+
+    it("includes URL and title in YAML header", () => {
+      const analysis = generator.analyzePage("https://example.com/login", "Login", SAMPLE_ARIA);
+      const suite = generator.generate(analysis);
+      const yaml = generator.toYAML(suite);
+
+      expect(yaml).toContain("https://example.com/login");
+      expect(yaml).toContain("Login Tests");
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles empty ARIA tree", () => {
+      const analysis = generator.analyzePage("https://example.com", "Page", "");
+      expect(analysis.elements).toHaveLength(0);
+      expect(analysis.forms).toHaveLength(0);
+      expect(analysis.navLinks).toHaveLength(0);
+    });
+
+    it("handles page with no interactive elements", () => {
+      const aria = `[e1] heading "About Us"\n[e2] paragraph "We are awesome"`;
+      const analysis = generator.analyzePage("https://example.com/about", "About", aria);
+      const suite = generator.generate(analysis);
+      expect(suite.tests.length).toBeGreaterThan(0);
+    });
+
+    it("generates tests with proper priority levels", () => {
+      const analysis = generator.analyzePage("https://example.com/login", "Login", SAMPLE_ARIA);
+      const suite = generator.generate(analysis);
+
+      const priorities = new Set(suite.tests.map((t) => t.priority));
+      expect(priorities.has("critical")).toBe(true);
     });
   });
 });
