@@ -45,6 +45,7 @@ import { registerScreenshotCommand } from "./commands/screenshot.js";
 import { registerPDFCommand } from "./commands/pdf.js";
 import { registerCodegenCommand } from "./commands/codegen.js";
 import { registerWatchCommand } from "./commands/watch.js";
+import { registerFlowCommand } from "./commands/flow.js";
 import { registerShowReportCommand } from "./commands/show-report.js";
 import { registerShowTraceCommand } from "./commands/show-trace.js";
 import { registerInstallCommand } from "./commands/install.js";
@@ -112,6 +113,7 @@ registerPRCommand(program);
 registerReplayCommand(program);
 registerCompareCommand(program);
 registerWatchCommand(program);
+registerFlowCommand(program);
 
 // ── Browser Commands ────────────────────────────────────────────────────
 registerOpenCommand(program);

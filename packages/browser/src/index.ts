@@ -104,6 +104,23 @@ export {
   type GestureResult,
 } from "./mobile/gestures.js";
 
+// CDP auto-discovery
+export {
+  autoDiscoverCdp,
+  probeCdpPort,
+  listCdpTargets,
+  getKnownBrowserProfiles,
+  type CdpEndpoint,
+} from "./discovery/cdp-discovery.js";
+
+// iOS simulator support
+export {
+  IosSimulatorManager,
+  IosWebDriverClient,
+  type IosDevice,
+  type IosSession,
+} from "./mobile/ios.js";
+
 // Watchdog system
 export { BrowserWatchdog } from "./watchdog/index.js";
 export type { WatchdogOptions, WatchdogEvent } from "./watchdog/index.js";

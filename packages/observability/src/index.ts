@@ -27,6 +27,10 @@ export type { WebVitalName, PageLike } from "./performance.js";
 export { Notifier } from "./notifications.js";
 export type { NotificationConfig, TestNotification } from "./notifications.js";
 
+// Desktop Notifications (macOS, Linux, Windows)
+export { DesktopNotifier } from "./desktop-notifier.js";
+export type { DesktopNotificationOptions } from "./desktop-notifier.js";
+
 // Structured Logging
 export { Logger, createLogger } from "./logging.js";
 export type { LogLevel, LogEntry, LoggerConfig } from "./logging.js";

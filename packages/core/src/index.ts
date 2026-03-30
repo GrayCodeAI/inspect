@@ -194,3 +194,32 @@ export {
 
 // Self-healing + generation (additional exports not in testing/)
 export { type AnalyzedElement, type FormInfo } from "./generation/index.js";
+
+// Enhanced watch engine (Expect-style fingerprint-based dedup, settle, assess)
+export {
+  WatchEngine,
+  type WatchEngineOptions,
+  type WatchRunResult,
+  type WatchState,
+  type WatchEvent,
+} from "./testing/watch-engine.js";
+
+// Test coverage import graph analysis
+export {
+  TestCoverageAnalyzer,
+  type CoverageReport,
+  type ImportNode,
+} from "./testing/coverage-analyzer.js";
+
+// Framework detection
+export { detectFramework, type DetectedFramework } from "./testing/framework-detector.js";
+
+// Static analysis (routes, forms, API calls, import graph)
+export {
+  StaticAnalyzer,
+  type RouteInfo,
+  type FormInfo as StaticFormInfo,
+  type ApiCallInfo,
+  type EventHandlerInfo,
+  type StaticAnalysisResult,
+} from "./analysis/static-analyzer.js";
