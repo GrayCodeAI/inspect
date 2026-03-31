@@ -3,6 +3,7 @@
 // For AUTHORIZED security testing only (defensive/educational)
 // ============================================================================
 
+import type { Page } from "./playwright-types.js";
 import type {
   SecurityReport,
   SecurityIssue,
@@ -20,8 +21,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function runSecurityAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<SecurityReport> {
@@ -93,8 +93,7 @@ export async function runSecurityAudit(
 // ---------------------------------------------------------------------------
 
 export async function checkSecurityHeaders(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<SecurityHeaders> {
   const responseHeaders: Record<string, string> = {};
@@ -207,8 +206,7 @@ function collectHeaderIssues(headers: SecurityHeaders, url: string): SecurityIss
 // ---------------------------------------------------------------------------
 
 export async function checkHttps(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<HttpsStatus> {
   const parsedUrl = new URL(url);
@@ -320,8 +318,7 @@ function collectHttpsIssues(https: HttpsStatus, url: string): SecurityIssue[] {
 // 3. Cookie audit
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function auditCookies(page: any): Promise<CookieAudit[]> {
+export async function auditCookies(page: Page): Promise<CookieAudit[]> {
   let rawCookies: Array<{
     name: string;
     secure: boolean;
@@ -420,8 +417,7 @@ const XSS_PAYLOADS = [
 ];
 
 export async function testXss(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<XssTestResult[]> {
   const results: XssTestResult[] = [];
@@ -635,8 +631,7 @@ const SENSITIVE_PATTERNS: Array<{
   },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function scanExposedData(page: any): Promise<ExposedData[]> {
+export async function scanExposedData(page: Page): Promise<ExposedData[]> {
   const findings: ExposedData[] = [];
   let html: string;
 

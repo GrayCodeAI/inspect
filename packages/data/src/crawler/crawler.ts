@@ -9,6 +9,7 @@ import type {
   CrawlProgressEvent,
   CrawlCheckpoint,
 } from "@inspect/shared";
+import { generateId, sleep } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("data/crawler");
@@ -420,14 +421,6 @@ export class WebCrawler {
 
 interface RobotsRules {
   isAllowed: (url: string) => boolean;
-}
-
-function generateId(): string {
-  return `crawl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function matchGlob(str: string, pattern: string): boolean {

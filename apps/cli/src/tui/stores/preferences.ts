@@ -33,7 +33,9 @@ function loadPersistedPreferences(): Partial<Preferences> {
     if (existsSync(prefPath)) {
       return JSON.parse(readFileSync(prefPath, "utf-8")) as Partial<Preferences>;
     }
-  } catch {}
+  } catch {
+    // Silently ignore parse errors and return defaults
+  }
   return {};
 }
 
@@ -42,7 +44,9 @@ function persistPreferences(prefs: Partial<Preferences>): void {
     const dir = join(process.cwd(), ".inspect");
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "preferences.json"), JSON.stringify(prefs, null, 2));
-  } catch {}
+  } catch {
+    // Silently ignore write errors
+  }
 }
 
 const persisted = loadPersistedPreferences();

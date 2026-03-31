@@ -1,6 +1,10 @@
 import { Schema } from "effect";
 
-export const SameSitePolicy = Schema.Literal("Strict", "Lax", "None");
+export const SameSitePolicy = Schema.Union([
+  Schema.Literal("Strict"),
+  Schema.Literal("Lax"),
+  Schema.Literal("None"),
+]);
 export type SameSitePolicy = typeof SameSitePolicy.Type;
 
 export const Cookie = Schema.Struct({
@@ -24,7 +28,14 @@ export type ExtractOptions = {
 export const BrowserKey = Schema.String;
 export type BrowserKey = typeof BrowserKey.Type;
 
-export type ChromiumBrowserKey = "chrome" | "chromium" | "brave" | "edge" | "opera" | "vivaldi" | "arc";
+export type ChromiumBrowserKey =
+  | "chrome"
+  | "chromium"
+  | "brave"
+  | "edge"
+  | "opera"
+  | "vivaldi"
+  | "arc";
 export type FirefoxBrowserKey = "firefox" | "firefox-developer" | "firefox-nightly";
 export type SafariBrowserKey = "safari" | "safari-technology-preview";
 

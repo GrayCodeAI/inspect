@@ -53,6 +53,15 @@ async function startServer(options: ServeOptions): Promise<void> {
   server.use(server.securityHeaders());
   server.use(server.csrfProtection());
 
+  // JWT authentication (only if a secret is configured)
+  if (jwtSecret) {
+    server.use(server.jwtAuth());
+  }
+
+  // RBAC authorization middleware
+  const { createRBACMiddleware } = await import("@inspect/api/middleware/rbac.js");
+  server.use(createRBACMiddleware());
+
   // Metrics collection
   const metrics = new MetricsCollector();
   server.use(metrics.middleware());

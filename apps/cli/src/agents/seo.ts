@@ -1,6 +1,13 @@
+import type { Page } from "./playwright-types.js";
 import type {
-  SEOReport, SEOIssue, MetaTagAudit, RobotsTxtAudit, SitemapAudit,
-  StructuredDataAudit, CanonicalAudit, ProgressCallback
+  SEOReport,
+  SEOIssue,
+  MetaTagAudit,
+  RobotsTxtAudit,
+  SitemapAudit,
+  StructuredDataAudit,
+  CanonicalAudit,
+  ProgressCallback,
 } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 
@@ -9,8 +16,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function runSEOAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<SEOReport> {
@@ -52,10 +58,10 @@ export async function runSEOAudit(
   issues.push(...canonicalIssues(canonicals));
 
   // Score: 100 minus weighted penalties
-  const criticalCount = issues.filter(i => i.severity === "critical").length;
-  const seriousCount = issues.filter(i => i.severity === "serious").length;
-  const moderateCount = issues.filter(i => i.severity === "moderate").length;
-  const minorCount = issues.filter(i => i.severity === "minor").length;
+  const criticalCount = issues.filter((i) => i.severity === "critical").length;
+  const seriousCount = issues.filter((i) => i.severity === "serious").length;
+  const moderateCount = issues.filter((i) => i.severity === "moderate").length;
+  const minorCount = issues.filter((i) => i.severity === "minor").length;
 
   const score = Math.max(
     0,
@@ -90,9 +96,10 @@ export async function runSEOAudit(
 // Meta tags
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function auditMetaTags(page: any): Promise<MetaTagAudit> {
-  const data = await safeEvaluate<MetaTagAudit>(page, `
+export async function auditMetaTags(page: Page): Promise<MetaTagAudit> {
+  const data = await safeEvaluate<MetaTagAudit>(
+    page,
+    `
     (() => {
       const getMeta = (name) => {
         const el = document.querySelector('meta[name="' + name + '"]')
@@ -121,16 +128,18 @@ export async function auditMetaTags(page: any): Promise<MetaTagAudit> {
         charset,
       };
     })()
-  `, {
-    title: null,
-    description: null,
-    ogTitle: null,
-    ogDescription: null,
-    ogImage: null,
-    twitterCard: null,
-    viewport: null,
-    charset: null,
-  });
+  `,
+    {
+      title: null,
+      description: null,
+      ogTitle: null,
+      ogDescription: null,
+      ogImage: null,
+      twitterCard: null,
+      viewport: null,
+      charset: null,
+    },
+  );
 
   return data;
 }
@@ -236,8 +245,7 @@ function metaTagIssues(meta: MetaTagAudit, url: string): SEOIssue[] {
 // Robots.txt
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function auditRobotsTxt(page: any, baseUrl: string): Promise<RobotsTxtAudit> {
+export async function auditRobotsTxt(page: Page, baseUrl: string): Promise<RobotsTxtAudit> {
   const robotsUrl = `${baseUrl}/robots.txt`;
   const result: RobotsTxtAudit = {
     exists: false,
@@ -261,7 +269,10 @@ export async function auditRobotsTxt(page: any, baseUrl: string): Promise<Robots
       return result;
     }
 
-    const lines = body.split("\n").map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith("#"));
+    const lines = body
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter((l: string) => l && !l.startsWith("#"));
 
     const disallowed: string[] = [];
     let sitemapUrl: string | undefined;
@@ -322,8 +333,7 @@ function robotsTxtIssues(audit: RobotsTxtAudit, url: string): SEOIssue[] {
 // Sitemap
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function auditSitemap(page: any, baseUrl: string): Promise<SitemapAudit> {
+export async function auditSitemap(page: Page, baseUrl: string): Promise<SitemapAudit> {
   const sitemapUrl = `${baseUrl}/sitemap.xml`;
   const result: SitemapAudit = {
     exists: false,
@@ -333,7 +343,10 @@ export async function auditSitemap(page: any, baseUrl: string): Promise<SitemapA
   };
 
   try {
-    const response = await page.goto(sitemapUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
+    const response = await page.goto(sitemapUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 15_000,
+    });
     const status: number = response?.status?.() ?? 0;
 
     if (status !== 200) {
@@ -343,11 +356,15 @@ export async function auditSitemap(page: any, baseUrl: string): Promise<SitemapA
     result.exists = true;
 
     // Grab the raw page content (may be XML rendered as text)
-    const content: string = await safeEvaluate<string>(page, `
+    const content: string = await safeEvaluate<string>(
+      page,
+      `
       document.querySelector("pre")?.textContent
         ?? document.body?.innerText
         ?? ""
-    `, "");
+    `,
+      "",
+    );
 
     if (!content || content.trim().length === 0) {
       return result;
@@ -434,12 +451,17 @@ function sitemapIssues(audit: SitemapAudit, url: string): SEOIssue[] {
 // Structured data (JSON-LD & microdata)
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function auditStructuredData(page: any): Promise<StructuredDataAudit> {
+export async function auditStructuredData(page: Page): Promise<StructuredDataAudit> {
   // Navigate back is not needed — we'll re-evaluate on the current page.
   // The caller is responsible for ensuring the page is on the target URL.
 
-  const data = await safeEvaluate<{ jsonLdTypes: string[]; jsonLdErrors: string[]; microdataTypes: string[] }>(page, `
+  const data = await safeEvaluate<{
+    jsonLdTypes: string[];
+    jsonLdErrors: string[];
+    microdataTypes: string[];
+  }>(
+    page,
+    `
     (() => {
       const result = {
         jsonLdTypes: [],
@@ -487,7 +509,9 @@ export async function auditStructuredData(page: any): Promise<StructuredDataAudi
 
       return result;
     })()
-  `, { jsonLdTypes: [], jsonLdErrors: [], microdataTypes: [] });
+  `,
+    { jsonLdTypes: [], jsonLdErrors: [], microdataTypes: [] },
+  );
 
   const allTypes = [...new Set([...data.jsonLdTypes, ...data.microdataTypes])];
 
@@ -518,7 +542,7 @@ function structuredDataIssues(audit: StructuredDataAudit, url: string): SEOIssue
       rule: "structured-data-parse-error",
       description: error,
       url,
-      fix: "Fix the JSON syntax inside the <script type=\"application/ld+json\"> block.",
+      fix: 'Fix the JSON syntax inside the <script type="application/ld+json"> block.',
     });
   }
 
@@ -529,14 +553,17 @@ function structuredDataIssues(audit: StructuredDataAudit, url: string): SEOIssue
 // Canonical URLs
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function auditCanonicals(page: any, url: string): Promise<CanonicalAudit> {
-  const canonicalData = await safeEvaluate<string | null>(page, `
+export async function auditCanonicals(page: Page, url: string): Promise<CanonicalAudit> {
+  const canonicalData = await safeEvaluate<string | null>(
+    page,
+    `
     (() => {
       const link = document.querySelector('link[rel="canonical"]');
       return link ? link.getAttribute("href") : null;
     })()
-  `, null);
+  `,
+    null,
+  );
 
   const pages: CanonicalAudit["pages"] = [];
 

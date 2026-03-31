@@ -108,42 +108,21 @@ importers:
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.28
+      playwright:
+        specifier: ^1.50.0
+        version: 1.58.2
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/acp:
+  packages/a11y:
     dependencies:
-      '@agentclientprotocol/sdk':
-        specifier: ^0.16.1
-        version: 0.16.1(zod@3.25.76)
-      '@ai-sdk/provider':
-        specifier: ^3.0.8
-        version: 3.0.8
-      '@effect/platform-node':
-        specifier: 4.0.0-beta.35
-        version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
-      '@github/copilot':
-        specifier: ^1.0.12
-        version: 1.0.13
-      '@google/gemini-cli':
-        specifier: ^0.35.3
-        version: 0.35.3(express@5.2.1)
       '@inspect/observability':
         specifier: workspace:*
         version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
-      '@zed-industries/claude-agent-acp':
-        specifier: ^0.22.2
-        version: 0.22.2
-      '@zed-industries/codex-acp':
-        specifier: ^0.10.0
-        version: 0.10.0
-      effect:
-        specifier: 4.0.0-beta.35
-        version: 4.0.0-beta.35
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -169,6 +148,21 @@ importers:
       '@google/gemini-cli':
         specifier: ^0.35.3
         version: 0.35.3(express@5.2.1)
+      '@inspect/agent-governance':
+        specifier: workspace:*
+        version: link:../agent-governance
+      '@inspect/agent-memory':
+        specifier: workspace:*
+        version: link:../agent-memory
+      '@inspect/agent-tools':
+        specifier: workspace:*
+        version: link:../agent-tools
+      '@inspect/agent-watchdogs':
+        specifier: workspace:*
+        version: link:../agent-watchdogs
+      '@inspect/llm':
+        specifier: workspace:*
+        version: link:../llm
       '@inspect/observability':
         specifier: workspace:*
         version: link:../observability
@@ -184,6 +178,76 @@ importers:
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/agent-governance:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/agent-memory:
+    dependencies:
+      '@inspect/llm':
+        specifier: workspace:*
+        version: link:../llm
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/agent-tools:
+    dependencies:
+      '@inspect/llm':
+        specifier: workspace:*
+        version: link:../llm
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/agent-watchdogs:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -258,6 +322,22 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/chaos:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   packages/cli-context:
     dependencies:
       '@inspect/agent':
@@ -322,30 +402,15 @@ importers:
 
   packages/core:
     dependencies:
-      '@inspect/agent':
+      '@inspect/devices':
         specifier: workspace:*
-        version: link:../agent
-      '@inspect/browser':
+        version: link:../devices
+      '@inspect/git':
         specifier: workspace:*
-        version: link:../browser
-      '@inspect/credentials':
+        version: link:../git
+      '@inspect/orchestrator':
         specifier: workspace:*
-        version: link:../credentials
-      '@inspect/observability':
-        specifier: workspace:*
-        version: link:../observability
-      '@inspect/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@inspect/shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@inspect/visual':
-        specifier: workspace:*
-        version: link:../visual
-      simple-git:
-        specifier: ^3.27.0
-        version: 3.33.0
+        version: link:../orchestrator
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -389,6 +454,22 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/devices:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   packages/enterprise:
     dependencies:
       '@inspect/agent':
@@ -408,11 +489,78 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/git:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+      simple-git:
+        specifier: ^3.27.0
+        version: 3.33.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/lighthouse-quality:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/llm:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   packages/mcp:
     dependencies:
       '@inspect/browser':
         specifier: workspace:*
         version: link:../browser
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/mocking:
+    dependencies:
       '@inspect/observability':
         specifier: workspace:*
         version: link:../observability
@@ -456,14 +604,73 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/quality:
+  packages/orchestrator:
     dependencies:
-      '@inspect/assert':
+      '@inspect/agent':
         specifier: workspace:*
-        version: link:../assert
+        version: link:../agent
       '@inspect/browser':
         specifier: workspace:*
         version: link:../browser
+      '@inspect/credentials':
+        specifier: workspace:*
+        version: link:../credentials
+      '@inspect/devices':
+        specifier: workspace:*
+        version: link:../devices
+      '@inspect/git':
+        specifier: workspace:*
+        version: link:../git
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@inspect/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@inspect/visual':
+        specifier: workspace:*
+        version: link:../visual
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/quality:
+    dependencies:
+      '@inspect/a11y':
+        specifier: workspace:*
+        version: link:../a11y
+      '@inspect/chaos':
+        specifier: workspace:*
+        version: link:../chaos
+      '@inspect/lighthouse-quality':
+        specifier: workspace:*
+        version: link:../lighthouse-quality
+      '@inspect/mocking':
+        specifier: workspace:*
+        version: link:../mocking
+      '@inspect/resilience':
+        specifier: workspace:*
+        version: link:../resilience
+      '@inspect/security-scanner':
+        specifier: workspace:*
+        version: link:../security-scanner
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/reporter:
+    dependencies:
       '@inspect/observability':
         specifier: workspace:*
         version: link:../observability
@@ -478,7 +685,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/reporter:
+  packages/resilience:
     dependencies:
       '@inspect/observability':
         specifier: workspace:*
@@ -514,6 +721,22 @@ importers:
       '@inspect/quality':
         specifier: workspace:*
         version: link:../quality
+      '@inspect/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/security-scanner:
+    dependencies:
+      '@inspect/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared

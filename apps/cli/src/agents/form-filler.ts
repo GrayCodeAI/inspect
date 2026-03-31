@@ -1,3 +1,4 @@
+import type { Page } from "./playwright-types.js";
 import type {
   FormInfo,
   FormField,
@@ -97,8 +98,7 @@ export function generateTestData(): TestDataSet {
 // detectForms
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function detectForms(page: any): Promise<FormInfo[]> {
+export async function detectForms(page: Page): Promise<FormInfo[]> {
   const rawForms: Array<{
     action: string | null;
     method: string;
@@ -160,8 +160,7 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
       });
     })()
   `,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [] as any,
+        [] as any,
   );
 
   const currentUrl: string = page.url();
@@ -381,8 +380,7 @@ function classifyForm(
 // ---------------------------------------------------------------------------
 
 export async function fillForm(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+    page: Page,
   formInfo: FormInfo,
   testData: TestDataSet,
   onProgress: ProgressCallback,
@@ -536,8 +534,7 @@ export async function fillForm(
 // ---------------------------------------------------------------------------
 
 export async function testFormValidation(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+    page: Page,
   formInfo: FormInfo,
   llm: LLMCall,
   onProgress: ProgressCallback,
@@ -873,8 +870,7 @@ function generateBoundaryData(formInfo: FormInfo): TestDataSet {
 
 /** Submit the form without filling and collect validation errors */
 async function submitAndCollectErrors(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+    page: Page,
   url: string,
   formInfo: FormInfo,
   _onProgress: ProgressCallback,
@@ -965,8 +961,7 @@ async function submitAndCollectErrors(
 
 /** Fill a form with arbitrary data and submit, returning the result */
 async function fillAndSubmit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+    page: Page,
   formInfo: FormInfo,
   data: TestDataSet,
   _onProgress: ProgressCallback,

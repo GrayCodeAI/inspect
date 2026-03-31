@@ -1,3 +1,4 @@
+import type { Page, Request, Response, Route, CDPSession } from "./playwright-types.js";
 // ============================================================================
 // API & Network Testing Agent — Captures, validates, and tests API traffic
 // ============================================================================
@@ -54,8 +55,7 @@ export interface WebSocketLog {
 // 1. Network logger — captures all HTTP traffic via Playwright events
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createNetworkLogger(page: any): {
+export function createNetworkLogger(page: Page): {
   start: () => void;
   stop: () => NetworkLog;
   getLog: () => NetworkLog;
@@ -65,16 +65,12 @@ export function createNetworkLogger(page: any): {
   const failures: Array<{ url: string; error: string }> = [];
   const requestTimings = new Map<string, number>();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let onRequest: ((req: any) => void) | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let onResponse: ((res: any) => void) | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let onRequestFailed: ((req: any) => void) | null = null;
+  let onRequest: ((req: Request) => void) | null = null;
+  let onResponse: ((res: Response) => void) | null = null;
+  let onRequestFailed: ((req: Request) => void) | null = null;
 
   function start(): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onRequest = (req: any) => {
+    onRequest = (req: Request) => {
       const url = req.url() as string;
       const timestamp = Date.now();
       requestTimings.set(url, timestamp);
@@ -102,8 +98,7 @@ export function createNetworkLogger(page: any): {
       });
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onResponse = (res: any) => {
+    onResponse = (res: Response) => {
       const url = res.url() as string;
       const startTime = requestTimings.get(url);
       const duration = startTime ? Date.now() - startTime : 0;
@@ -128,8 +123,7 @@ export function createNetworkLogger(page: any): {
       });
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onRequestFailed = (req: any) => {
+    onRequestFailed = (req: Request) => {
       const url = req.url() as string;
       requestTimings.delete(url);
 
@@ -173,15 +167,13 @@ export function createNetworkLogger(page: any): {
 // 2. WebSocket logger — uses CDP to intercept WebSocket frames
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createWebSocketLogger(page: any): {
+export function createWebSocketLogger(page: Page): {
   start: () => void;
   stop: () => WebSocketLog[];
   getLogs: () => WebSocketLog[];
 } {
   const logsByUrl = new Map<string, WebSocketLog>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cdpSession: any = null;
+  let cdpSession: CDPSession | null = null;
   let started = false;
 
   function getOrCreateLog(url: string): WebSocketLog {
@@ -537,8 +529,7 @@ export async function discoverAPIEndpoints(
 // ---------------------------------------------------------------------------
 
 export async function mockAPIResponse(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   urlPattern: string,
   response: {
     status: number;
@@ -546,8 +537,7 @@ export async function mockAPIResponse(
     headers?: Record<string, string>;
   },
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await page.route(urlPattern, (route: any) => {
+  await page.route(urlPattern, (route: Route) => {
     route.fulfill({
       status: response.status,
       contentType:
@@ -565,13 +555,11 @@ export async function mockAPIResponse(
 // ---------------------------------------------------------------------------
 
 export async function simulateNetworkError(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   urlPattern: string,
   errorType: "timeout" | "abort" | "500",
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await page.route(urlPattern, async (route: any) => {
+  await page.route(urlPattern, async (route: Route) => {
     switch (errorType) {
       case "abort":
         await route.abort("failed");
@@ -606,8 +594,7 @@ export async function simulateNetworkError(
 // ---------------------------------------------------------------------------
 
 export async function testCORS(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<{ valid: boolean; issues: string[] }> {
   const issues: string[] = [];
@@ -726,8 +713,7 @@ const SLOW_THRESHOLD_MS = 3000;
 const LARGE_PAYLOAD_BYTES = 1024 * 1024; // 1 MB
 
 export async function runAPIAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<{

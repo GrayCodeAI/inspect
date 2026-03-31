@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { LLMCall, ProgressCallback, TestStep, TestPlan, A11yReport } from "./types.js";
-
+import type { Page } from "./playwright-types.js";
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
@@ -22,8 +22,7 @@ function mockLlm(response: string): LLMCall {
 }
 
 /** Create a mock Playwright Page object */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mockPage(overrides: Record<string, unknown> = {}): any {
+function mockPage(overrides: Record<string, unknown> = {}): Page {
   const evaluateResults: Record<string, unknown> = {};
   return {
     goto: vi.fn().mockResolvedValue(null),
@@ -42,23 +41,69 @@ function mockPage(overrides: Record<string, unknown> = {}): any {
     evaluate: vi.fn().mockImplementation((script: string) => {
       // Return canned results based on script content
       if (script.includes("querySelectorAll") && script.includes("img")) return Promise.resolve([]);
-      if (script.includes("querySelectorAll") && script.includes("input")) return Promise.resolve([]);
+      if (script.includes("querySelectorAll") && script.includes("input"))
+        return Promise.resolve([]);
       if (script.includes("querySelectorAll") && script.includes("h1")) return Promise.resolve([]);
       if (script.includes("lang")) return Promise.resolve(true);
       if (script.includes("viewport")) return Promise.resolve(true);
       if (script.includes("scrollWidth")) return Promise.resolve(false);
       if (script.includes("axe")) return Promise.resolve([]);
       if (script.includes("title")) return Promise.resolve("Test Page");
-      if (script.includes("performance")) return Promise.resolve({ lcp: 1200, cls: 0.05, fid: 50, fcp: 800, ttfb: 200, domContentLoaded: 1000, fullLoad: 1500 });
+      if (script.includes("performance"))
+        return Promise.resolve({
+          lcp: 1200,
+          cls: 0.05,
+          fid: 50,
+          fcp: 800,
+          ttfb: 200,
+          domContentLoaded: 1000,
+          fullLoad: 1500,
+        });
       if (evaluateResults[script]) return Promise.resolve(evaluateResults[script]);
       return Promise.resolve(null);
     }),
     addScriptTag: vi.fn().mockResolvedValue(null),
-    getByText: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined), fill: vi.fn().mockResolvedValue(undefined), waitFor: vi.fn().mockResolvedValue(undefined), scrollIntoViewIfNeeded: vi.fn().mockResolvedValue(undefined), hover: vi.fn().mockResolvedValue(undefined), dblclick: vi.fn().mockResolvedValue(undefined), locator: vi.fn().mockReturnValue({ first: () => ({ fill: vi.fn().mockResolvedValue(undefined) }) }) }) }),
-    getByRole: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined), fill: vi.fn().mockResolvedValue(undefined), waitFor: vi.fn().mockResolvedValue(undefined), hover: vi.fn().mockResolvedValue(undefined) }) }),
-    getByLabel: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined), fill: vi.fn().mockResolvedValue(undefined), check: vi.fn().mockResolvedValue(undefined), uncheck: vi.fn().mockResolvedValue(undefined), selectOption: vi.fn().mockResolvedValue(undefined), waitFor: vi.fn().mockResolvedValue(undefined) }) }),
-    getByPlaceholder: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined), fill: vi.fn().mockResolvedValue(undefined), waitFor: vi.fn().mockResolvedValue(undefined) }) }),
-    locator: vi.fn().mockReturnValue({ first: () => ({ setInputFiles: vi.fn().mockResolvedValue(undefined) }) }),
+    getByText: vi.fn().mockReturnValue({
+      first: () => ({
+        click: vi.fn().mockResolvedValue(undefined),
+        fill: vi.fn().mockResolvedValue(undefined),
+        waitFor: vi.fn().mockResolvedValue(undefined),
+        scrollIntoViewIfNeeded: vi.fn().mockResolvedValue(undefined),
+        hover: vi.fn().mockResolvedValue(undefined),
+        dblclick: vi.fn().mockResolvedValue(undefined),
+        locator: vi
+          .fn()
+          .mockReturnValue({ first: () => ({ fill: vi.fn().mockResolvedValue(undefined) }) }),
+      }),
+    }),
+    getByRole: vi.fn().mockReturnValue({
+      first: () => ({
+        click: vi.fn().mockResolvedValue(undefined),
+        fill: vi.fn().mockResolvedValue(undefined),
+        waitFor: vi.fn().mockResolvedValue(undefined),
+        hover: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+    getByLabel: vi.fn().mockReturnValue({
+      first: () => ({
+        click: vi.fn().mockResolvedValue(undefined),
+        fill: vi.fn().mockResolvedValue(undefined),
+        check: vi.fn().mockResolvedValue(undefined),
+        uncheck: vi.fn().mockResolvedValue(undefined),
+        selectOption: vi.fn().mockResolvedValue(undefined),
+        waitFor: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+    getByPlaceholder: vi.fn().mockReturnValue({
+      first: () => ({
+        click: vi.fn().mockResolvedValue(undefined),
+        fill: vi.fn().mockResolvedValue(undefined),
+        waitFor: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+    locator: vi
+      .fn()
+      .mockReturnValue({ first: () => ({ setInputFiles: vi.fn().mockResolvedValue(undefined) }) }),
     click: vi.fn().mockResolvedValue(undefined),
     fill: vi.fn().mockResolvedValue(undefined),
     selectOption: vi.fn().mockResolvedValue(undefined),
@@ -97,7 +142,10 @@ describe("cache", () => {
     let callCount = 0;
     // Use a unique prompt each test run to avoid stale cache from previous runs
     const uniqueKey = `test-cache-${Date.now()}-${Math.random()}`;
-    const baseLlm: LLMCall = async () => { callCount++; return "response-" + callCount; };
+    const baseLlm: LLMCall = async () => {
+      callCount++;
+      return "response-" + callCount;
+    };
     const cached = withCache(baseLlm, { enabled: true });
 
     const messages = [{ role: "user", content: uniqueKey }];
@@ -111,7 +159,10 @@ describe("cache", () => {
   it("withCache disabled passes through", async () => {
     const { withCache } = await import("./cache.js");
     let callCount = 0;
-    const baseLlm: LLMCall = async () => { callCount++; return "response-" + callCount; };
+    const baseLlm: LLMCall = async () => {
+      callCount++;
+      return "response-" + callCount;
+    };
     const cached = withCache(baseLlm, { enabled: false });
 
     const messages = [{ role: "user", content: "test-disabled" }];
@@ -185,7 +236,9 @@ describe("planner", () => {
 
   it("planTests creates a plan with steps", async () => {
     const { planTests } = await import("./planner.js");
-    const llm = mockLlm('[{"id":1,"action":"assert","description":"Check title","assertion":"Has title"},{"id":2,"action":"click","description":"Click home","target":"Home"}]');
+    const llm = mockLlm(
+      '[{"id":1,"action":"assert","description":"Check title","assertion":"Has title"},{"id":2,"action":"click","description":"Click home","target":"Home"}]',
+    );
     const progress = mockProgress();
 
     const plan = await planTests("https://example.com", "snapshot text", "Example", llm, progress);
@@ -200,12 +253,18 @@ describe("planner", () => {
     const llm = mockLlm("This is not JSON at all, sorry!");
     const progress = mockProgress();
 
-    const plan = await planTests("https://example.com", 'link "Home"\nlink "About"\nbutton "Submit"', "Example", llm, progress);
+    const plan = await planTests(
+      "https://example.com",
+      'link "Home"\nlink "About"\nbutton "Submit"',
+      "Example",
+      llm,
+      progress,
+    );
 
     expect(plan.steps.length).toBeGreaterThan(0);
     // Fallback plan should have assertions and screenshots
-    expect(plan.steps.some(s => s.action === "screenshot")).toBe(true);
-    expect(plan.steps.some(s => s.action === "assert")).toBe(true);
+    expect(plan.steps.some((s) => s.action === "screenshot")).toBe(true);
+    expect(plan.steps.some((s) => s.action === "assert")).toBe(true);
   });
 
   it("generateTestData returns valid data", async () => {
@@ -232,7 +291,12 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "screenshot", description: "Take screenshot", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "screenshot",
+      description: "Take screenshot",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     expect(result.status).toBe("pass");
@@ -245,7 +309,12 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "scroll", description: "Scroll down", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "scroll",
+      description: "Scroll down",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     expect(result.status).toBe("pass");
@@ -258,7 +327,13 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "press", description: "Press Enter", value: "Enter", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "press",
+      description: "Press Enter",
+      value: "Enter",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     expect(result.status).toBe("pass");
@@ -271,7 +346,13 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "wait", description: "Wait 500ms", value: "500", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "wait",
+      description: "Wait 500ms",
+      value: "500",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     expect(result.status).toBe("pass");
@@ -283,7 +364,13 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "click", description: "Click login", target: "Login", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "click",
+      description: "Click login",
+      target: "Login",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     expect(result.status).toBe("pass");
@@ -295,7 +382,12 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "screenshot", description: "Screenshot", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "screenshot",
+      description: "Screenshot",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     expect(result.duration).toBeDefined();
@@ -308,7 +400,12 @@ describe("tester", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "unknown_action", description: "Unknown", status: "pending" };
+    const step: TestStep = {
+      id: 1,
+      action: "unknown_action",
+      description: "Unknown",
+      status: "pending",
+    };
     const result = await executeStep(step, page, "", llm, progress);
 
     // Unknown actions either skip or pass (warn) — both are acceptable
@@ -338,7 +435,13 @@ describe("validator", () => {
     const llm = mockLlm("");
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "click", description: "Click", status: "fail", error: "Not found" };
+    const step: TestStep = {
+      id: 1,
+      action: "click",
+      description: "Click",
+      status: "fail",
+      error: "Not found",
+    };
     const result = await validateStep(step, "before", "after", llm, progress);
 
     expect(result.valid).toBe(false);
@@ -346,10 +449,18 @@ describe("validator", () => {
 
   it("validateStep uses LLM for assertion checking", async () => {
     const { validateStep } = await import("./validator.js");
-    const llm = mockLlm('{"valid": true, "details": "Title changed as expected", "confidence": 0.95}');
+    const llm = mockLlm(
+      '{"valid": true, "details": "Title changed as expected", "confidence": 0.95}',
+    );
     const progress = mockProgress();
 
-    const step: TestStep = { id: 1, action: "click", description: "Click home", assertion: "Title changes", status: "pass" };
+    const step: TestStep = {
+      id: 1,
+      action: "click",
+      description: "Click home",
+      assertion: "Title changes",
+      status: "pass",
+    };
     const result = await validateStep(step, "before snapshot", "after snapshot", llm, progress);
 
     expect(result.valid).toBe(true);
@@ -395,7 +506,14 @@ describe("reporter", () => {
 
     const results: TestStep[] = [
       { id: 1, action: "assert", description: "Check title", status: "pass", duration: 100 },
-      { id: 2, action: "click", description: "Click button", status: "fail", error: "Not found", duration: 200 },
+      {
+        id: 2,
+        action: "click",
+        description: "Click button",
+        status: "fail",
+        error: "Not found",
+        duration: 200,
+      },
       { id: 3, action: "screenshot", description: "Screenshot", status: "skip", duration: 50 },
     ];
 
@@ -417,9 +535,21 @@ describe("reporter", () => {
     const { generateReport, generateGitHubAnnotations } = await import("./reporter.js");
     const progress = mockProgress();
 
-    const plan: TestPlan = { url: "https://example.com", title: "Example", steps: [], createdAt: Date.now() };
+    const plan: TestPlan = {
+      url: "https://example.com",
+      title: "Example",
+      steps: [],
+      createdAt: Date.now(),
+    };
     const results: TestStep[] = [
-      { id: 1, action: "assert", description: "Check title", status: "fail", error: "Title missing", duration: 100 },
+      {
+        id: 1,
+        action: "assert",
+        description: "Check title",
+        status: "fail",
+        error: "Title missing",
+        duration: 100,
+      },
     ];
     const report = generateReport(plan, results, [], [], Date.now(), progress);
 
@@ -474,7 +604,15 @@ describe("form-filler", () => {
 describe("navigator", () => {
   it("detectRedirectLoop detects repeated URLs", async () => {
     const { detectRedirectLoop } = await import("./navigator.js");
-    expect(detectRedirectLoop(["https://a.com", "https://b.com", "https://a.com", "https://b.com", "https://a.com"])).toBe(true);
+    expect(
+      detectRedirectLoop([
+        "https://a.com",
+        "https://b.com",
+        "https://a.com",
+        "https://b.com",
+        "https://a.com",
+      ]),
+    ).toBe(true);
   });
 
   it("detectRedirectLoop returns false for normal history", async () => {
@@ -498,11 +636,13 @@ describe("accessibility", () => {
     const page = mockPage({
       evaluate: vi.fn().mockImplementation((script: string) => {
         if (typeof script === "string" && script.includes("lang")) return Promise.resolve(true);
-        if (typeof script === "string" && script.includes("viewport")) return Promise.resolve("width=device-width, initial-scale=1");
+        if (typeof script === "string" && script.includes("viewport"))
+          return Promise.resolve("width=device-width, initial-scale=1");
         if (typeof script === "string" && script.includes("axe")) return Promise.resolve([]);
         if (typeof script === "string" && script.includes("skip")) return Promise.resolve(true);
         if (typeof script === "string" && script.includes("focus")) return Promise.resolve(true);
-        if (typeof script === "string" && script.includes("activeElement")) return Promise.resolve(null);
+        if (typeof script === "string" && script.includes("activeElement"))
+          return Promise.resolve(null);
         return Promise.resolve([]);
       }),
       addScriptTag: vi.fn().mockResolvedValue(null),
@@ -557,8 +697,13 @@ describe("performance-agent", () => {
     const { measureCoreWebVitals } = await import("./performance-agent.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue({
-        lcp: 1200, cls: 0.05, fid: 50, fcp: 800, ttfb: 200,
-        domContentLoaded: 1000, fullLoad: 1500,
+        lcp: 1200,
+        cls: 0.05,
+        fid: 50,
+        fcp: 800,
+        ttfb: 200,
+        domContentLoaded: 1000,
+        fullLoad: 1500,
       }),
     });
 
@@ -615,7 +760,11 @@ describe("security-agent", () => {
   it("scanExposedData detects AWS keys", async () => {
     const { scanExposedData } = await import("./security-agent.js");
     const page = mockPage({
-      content: vi.fn().mockResolvedValue('<html><body><script>const key = "AKIAIOSFODNN7EXAMPLE";</script></body></html>'),
+      content: vi
+        .fn()
+        .mockResolvedValue(
+          '<html><body><script>const key = "AKIAIOSFODNN7EXAMPLE";</script></body></html>',
+        ),
       evaluate: vi.fn().mockResolvedValue([]),
     });
 

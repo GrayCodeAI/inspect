@@ -8,6 +8,7 @@
 // Loop: observe snapshot → LLM decides next action → execute → repeat
 // ============================================================================
 
+import type {  } from "./playwright-types.js";
 import type { Page } from "@inspect/browser";
 import { AnnotatedScreenshot, DOMDiff } from "@inspect/browser";
 import type { TestStep, TestPlan, LLMCall, ProgressCallback } from "./types.js";
@@ -194,12 +195,9 @@ export async function runAgentLoop(opts: {
   executeStep: typeof import("./tester.js").executeStep;
   validateStep: typeof import("./validator.js").validateStep;
   screenshotDir: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  AriaSnapshotBuilder: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  networkMonitor: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  consoleMonitor: any;
+  AriaSnapshotBuilder: typeof import("@inspect/browser").AriaSnapshotBuilder;
+  networkMonitor: { failures: import("./types.js").NetworkFailure[]; slowResponses: Array<{ url: string; duration: number }>; start: () => void; stop: () => import("./types.js").NetworkFailure[] };
+  consoleMonitor: { errors: string[]; start: () => void; stop: () => string[] };
   specPlanner?: SpeculativePlanner;
 }): Promise<AgentLoopResult> {
   const {

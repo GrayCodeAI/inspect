@@ -6,6 +6,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import type { Page, Cookie } from "./playwright-types.js";
 import type { ProgressCallback } from "./types.js";
 import { safeEvaluate, safeEvaluateVoid } from "./evaluate.js";
 
@@ -14,8 +15,7 @@ import { safeEvaluate, safeEvaluateVoid } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function injectCookies(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   cookies: Array<{ name: string; value: string; domain: string; path?: string }>,
 ): Promise<void> {
   if (cookies.length === 0) return;
@@ -36,8 +36,7 @@ export async function injectCookies(
 // ---------------------------------------------------------------------------
 
 export async function injectStorage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   storage: {
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
@@ -74,8 +73,7 @@ export async function injectStorage(
 // saveSession — Export cookies + localStorage + sessionStorage to a JSON file
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function saveSession(page: any, filePath: string): Promise<void> {
+export async function saveSession(page: Page, filePath: string): Promise<void> {
   const context = page.context();
   const cookies = await context.cookies();
 
@@ -129,12 +127,10 @@ export async function saveSession(page: any, filePath: string): Promise<void> {
 // loadSession — Read a session JSON file and inject cookies + storage
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function loadSession(page: any, filePath: string): Promise<void> {
+export async function loadSession(page: Page, filePath: string): Promise<void> {
   const raw = fs.readFileSync(filePath, "utf-8");
   const session = JSON.parse(raw) as {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cookies?: any[];
+    cookies?: Cookie[];
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
   };
@@ -230,8 +226,7 @@ const AUTH_INDICATORS_SCRIPT = `(() => {
 })()`;
 
 export async function detectAuthState(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
 ): Promise<{ loggedIn: boolean; indicators: string[] }> {
   const indicators: string[] = await safeEvaluate(page, AUTH_INDICATORS_SCRIPT, [] as string[]);
 
@@ -312,8 +307,7 @@ const CAPTCHA_DETECT_SCRIPT = `(() => {
 })()`;
 
 export async function detectCaptcha(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
 ): Promise<{ found: boolean; type: string | null; element: string | null }> {
   const result = await safeEvaluate(page, CAPTCHA_DETECT_SCRIPT, {
     found: false,
@@ -387,10 +381,8 @@ export async function generateTOTP(secret: string): Promise<string> {
 // ---------------------------------------------------------------------------
 
 export async function testMultiRole(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  roles: Array<{ name: string; cookies?: any[]; storage?: any }>,
+  page: Page,
+  roles: Array<{ name: string; cookies?: Cookie[]; storage?: Record<string, unknown> }>,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<Array<{ role: string; accessible: boolean; redirected: boolean; finalUrl: string }>> {

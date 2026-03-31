@@ -2,6 +2,10 @@
 // packages/services/src/bus.ts - Inter-Service Message Bus
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { generateId } from "@inspect/shared";
+
+import { generateId } from "@inspect/shared";
+
 /** Message priority */
 export type MessagePriority = "low" | "normal" | "high" | "critical";
 
@@ -213,8 +217,4 @@ export class MessageBus {
       this.sendToDeadLetter(message, `Handler error: ${error}`);
     }
   }
-}
-
-function generateId(): string {
-  return `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }

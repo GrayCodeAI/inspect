@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Effect, Layer, Match, Option, Schema, SchemaGetter, ServiceMap } from "effect";
+import { Effect, Layer, Match, Schema, SchemaGetter, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { CdpClient } from "./cdp-client.js";
@@ -59,17 +59,16 @@ const FirefoxCookieRow = Schema.Struct({
   sameSite: FirefoxSameSite,
 });
 
-const firefoxRowToCookie = (row: typeof FirefoxCookieRow.Type) =>
-  Cookie.make({
-    name: row.name,
-    value: row.value,
-    domain: row.host,
-    path: row.path || "/",
-    expires: row.expiry,
-    secure: row.isSecure,
-    httpOnly: row.isHttpOnly,
-    sameSite: row.sameSite,
-  });
+const firefoxRowToCookie = (row: typeof FirefoxCookieRow.Type): Cookie => ({
+  name: row.name,
+  value: row.value,
+  domain: row.host,
+  path: row.path || "/",
+  expires: row.expiry,
+  secure: row.isSecure,
+  httpOnly: row.isHttpOnly,
+  sameSite: row.sameSite,
+});
 
 export class Cookies extends ServiceMap.Service<Cookies>()("@inspect/Cookies", {
   make: Effect.gen(function* () {
@@ -85,18 +84,11 @@ export class Cookies extends ServiceMap.Service<Cookies>()("@inspect/Cookies", {
           executablePath: browser.executablePath,
         })
         .pipe(
-          Effect.catchTags({
-            TimeoutError: (cause) =>
-              new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-            SchemaError: (cause) =>
-              new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-            SocketError: (cause) =>
-              new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-            HttpClientError: (cause) =>
-              new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-            PlatformError: (cause) =>
-              new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-          }),
+          Effect.catchCause((cause) =>
+            new ExtractionError({
+              reason: new UnknownError({ cause: cause as unknown }),
+            }).asEffect(),
+          ),
         );
 
     const extractFirefox = (browser: Extract<Browser, { _tag: "FirefoxBrowser" }>) =>
@@ -120,33 +112,31 @@ export class Cookies extends ServiceMap.Service<Cookies>()("@inspect/Cookies", {
         );
       }).pipe(
         Effect.scoped,
-        Effect.catchTags({
-          CookieReadError: (cause) =>
-            new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-          CookieDatabaseCopyError: (cause) =>
-            new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-          SchemaError: (cause) =>
-            new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-        }),
+        Effect.catchCause((cause) =>
+          new ExtractionError({
+            reason: new UnknownError({ cause: cause as unknown }),
+          }).asEffect(),
+        ),
       );
 
     const extractSafari = (browser: Extract<Browser, { _tag: "SafariBrowser" }>) =>
       Effect.gen(function* () {
-        if (Option.isNone(browser.cookieFilePath)) {
+        if (browser.cookieFilePath === null) {
           return yield* new ExtractionError({
             reason: new RequiresFullDiskAccess(),
           }).asEffect();
         }
 
-        const data = yield* fs.readFile(browser.cookieFilePath.value);
+        const data = yield* fs.readFile(browser.cookieFilePath);
         return parseBinaryCookies(Buffer.from(data)).filter(
           (cookie) => Boolean(cookie.name) && Boolean(cookie.domain),
         );
       }).pipe(
-        Effect.catchTags({
-          PlatformError: (cause) =>
-            new ExtractionError({ reason: new UnknownError({ cause: cause as unknown }) }).asEffect(),
-        }),
+        Effect.catchCause((cause) =>
+          new ExtractionError({
+            reason: new UnknownError({ cause: cause as unknown }),
+          }).asEffect(),
+        ),
       );
 
     const extract = (browser: Browser) =>

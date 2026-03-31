@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { SuiteResult, TestResult } from "../formats/markdown.js";
+import { truncate } from "@inspect/shared";
 
 /** Options for formatting GitHub comments */
 export interface GitHubCommentOptions {
@@ -247,8 +248,4 @@ export class GitHubCommentFormatter {
 
 function escapeMarkdown(str: string): string {
   return str.replace(/(_*[\]()~`>#+=|{}.!\\-])/g, "\\$1");
-}
-
-function truncate(str: string, maxLen: number): string {
-  return str.length > maxLen ? str.slice(0, maxLen - 3) + "..." : str;
 }

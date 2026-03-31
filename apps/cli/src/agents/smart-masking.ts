@@ -1,3 +1,4 @@
+import type { Page } from "./playwright-types.js";
 // ============================================================================
 // Smart Masking Agent — Intelligent dynamic content masking for visual regression
 // Auto-detects elements that change between runs and masks them for stable diffs
@@ -64,8 +65,7 @@ const AVATAR_IMG_PATTERNS = [
 // 1. detectDynamicContent — find elements likely to change between runs
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function detectDynamicContent(page: any): Promise<MaskTarget[]> {
+  export async function detectDynamicContent(page: Page): Promise<MaskTarget[]> {
   const targets: MaskTarget[] = [];
   const seenSelectors = new Set<string>();
 
@@ -331,8 +331,7 @@ export async function detectDynamicContent(page: any): Promise<MaskTarget[]> {
 // ---------------------------------------------------------------------------
 
 export async function applySmartMasks(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   targets?: MaskTarget[],
 ): Promise<number> {
   const maskTargets = targets ?? (await detectDynamicContent(page));
@@ -408,8 +407,7 @@ export async function applySmartMasks(
  * @returns MaskTarget array of elements that changed between captures
  */
 export async function learnMasks(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   samples = 3,
 ): Promise<MaskTarget[]> {

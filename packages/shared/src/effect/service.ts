@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, ServiceMap } from "effect";
+import { Effect, Layer, ServiceMap } from "effect";
 
 export type ServiceMaker<S> = Effect.Effect<S>;
 

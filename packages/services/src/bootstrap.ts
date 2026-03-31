@@ -283,8 +283,8 @@ export class ServiceBootstrap {
         path: `${definition.endpoint}/health`,
         handler: async (_req: unknown, res: unknown) => {
           const svc = this.registry.get(definition.name);
-          (res as unknown).status = 200;
-          (res as unknown).body = {
+          (res as { status: number; body: unknown }).status = 200;
+          (res as { status: number; body: unknown }).body = {
             service: definition.name,
             health: svc?.health ?? "unknown",
             capabilities: definition.capabilities,
@@ -295,8 +295,8 @@ export class ServiceBootstrap {
         method: "GET",
         path: `${definition.endpoint}/status`,
         handler: async (_req: unknown, res: unknown) => {
-          (res as unknown).status = 200;
-          (res as unknown).body = {
+          (res as { status: number; body: unknown }).status = 200;
+          (res as { status: number; body: unknown }).body = {
             service: definition.name,
             version: definition.version,
             instanceAvailable: this.instances.has(definition.name),

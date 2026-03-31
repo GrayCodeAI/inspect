@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { inflateSync } from "node:zlib";
+import type { Page } from "./playwright-types.js";
 import { safeEvaluate } from "./evaluate.js";
 import type { ProgressCallback } from "./types.js";
 
@@ -74,12 +75,24 @@ function bytesPerPixel(colorType: number, bitDepth: number): number {
   const bitsPerChannel = bitDepth;
   let channels: number;
   switch (colorType) {
-    case 0: channels = 1; break; // grayscale
-    case 2: channels = 3; break; // RGB
-    case 3: channels = 1; break; // indexed (palette)
-    case 4: channels = 2; break; // grayscale + alpha
-    case 6: channels = 4; break; // RGBA
-    default: channels = 4; break;
+    case 0:
+      channels = 1;
+      break; // grayscale
+    case 2:
+      channels = 3;
+      break; // RGB
+    case 3:
+      channels = 1;
+      break; // indexed (palette)
+    case 4:
+      channels = 2;
+      break; // grayscale + alpha
+    case 6:
+      channels = 4;
+      break; // RGBA
+    default:
+      channels = 4;
+      break;
   }
   return Math.ceil((channels * bitsPerChannel) / 8);
 }
@@ -96,10 +109,7 @@ function screenshotHash(url: string, width: number, height: number): string {
     .replace(/[^a-zA-Z0-9._-]/g, "_")
     .slice(0, 60);
 
-  const hash = createHash("sha256")
-    .update(`${url}::${width}x${height}`)
-    .digest("hex")
-    .slice(0, 12);
+  const hash = createHash("sha256").update(`${url}::${width}x${height}`).digest("hex").slice(0, 12);
 
   return `${sanitised}-${width}x${height}-${hash}`;
 }
@@ -193,7 +203,8 @@ export function decodePNG(buf: Buffer): { width: number; height: number; pixels:
         case 3: // Average
           pixels[curIdx] = (pixels[curIdx] + Math.floor((a + b) / 2)) & 0xff;
           break;
-        case 4: { // Paeth
+        case 4: {
+          // Paeth
           // Paeth predictor
           const p = a + b - c;
           const pa = Math.abs(p - a);
@@ -242,8 +253,7 @@ const DEFAULT_DYNAMIC_SELECTORS = [
  * Inject CSS and JS to freeze all page animations, transitions, auto-playing
  * videos, smooth scrolling, and requestAnimationFrame loops.
  */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function freezeAnimations(page: any): Promise<void> {
+export async function freezeAnimations(page: Page): Promise<void> {
   // Inject a <style> that kills all CSS animations and transitions
   await safeEvaluate<void>(
     page,
@@ -298,11 +308,7 @@ export async function freezeAnimations(page: any): Promise<void> {
  * Replace dynamic elements (timestamps, avatars, ads, etc.) with solid grey
  * blocks so they do not cause false positives in visual comparisons.
  */
-export async function maskDynamicContent(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-  selectors?: string[],
-): Promise<void> {
+export async function maskDynamicContent(page: Page, selectors?: string[]): Promise<void> {
   const selectorList = selectors ?? DEFAULT_DYNAMIC_SELECTORS;
   const joined = selectorList.map((s) => JSON.stringify(s)).join(",");
 
@@ -353,8 +359,7 @@ export async function maskDynamicContent(
  * @returns The absolute path to the saved baseline image.
  */
 export async function captureBaseline(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   viewport: { width: number; height: number },
   baselineDir: string,
@@ -407,8 +412,7 @@ export async function captureBaseline(
  * that highlights the changed pixels in red against a dimmed background.
  */
 export async function compareScreenshot(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   viewport: { width: number; height: number },
   baselineDir: string,
@@ -503,9 +507,7 @@ export async function compareScreenshot(
   }
 
   const diffPercentage =
-    totalPixels > 0
-      ? Math.round((differentPixels / totalPixels) * 100 * 1000) / 1000
-      : 0;
+    totalPixels > 0 ? Math.round((differentPixels / totalPixels) * 100 * 1000) / 1000 : 0;
 
   const match = diffPercentage <= threshold;
 
@@ -576,10 +578,7 @@ async function generateDiffImage(
  *
  * @returns The path to the updated baseline.
  */
-export async function updateBaseline(
-  currentPath: string,
-  baselineDir: string,
-): Promise<string> {
+export async function updateBaseline(currentPath: string, baselineDir: string): Promise<string> {
   if (!existsSync(currentPath)) {
     throw new Error(`Current screenshot not found: ${currentPath}`);
   }
@@ -610,8 +609,7 @@ export async function updateBaseline(
  * Reports progress through the `onProgress` callback.
  */
 export async function runVisualRegression(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   urls: string[],
   viewports: Array<{ width: number; height: number; label: string }>,
   baselineDir: string,
@@ -670,7 +668,10 @@ export async function runVisualRegression(
           if (diff.match) {
             onProgress("pass", `    Match (${diff.diffPercentage.toFixed(3)}% diff)`);
           } else {
-            onProgress("fail", `    Mismatch: ${diff.diffPercentage.toFixed(3)}% diff (threshold: 0.1%)`);
+            onProgress(
+              "fail",
+              `    Mismatch: ${diff.diffPercentage.toFixed(3)}% diff (threshold: 0.1%)`,
+            );
             passed = false;
             if (diff.diffImagePath) {
               onProgress("info", `    Diff image: ${basename(diff.diffImagePath)}`);

@@ -17,3 +17,38 @@ export {
   CredentialError,
   NetworkError,
 } from "./errors.js";
+export {
+  CircuitBreaker,
+  CircuitBreakerOpenError,
+  type CircuitState,
+  type CircuitBreakerConfig,
+  type CircuitBreakerStats,
+} from "./utils/circuit-breaker.js";
+
+export {
+  expect,
+  AssertionError,
+  toBe,
+  toEqual,
+  toStrictEqual,
+  toBeNull,
+  toBeUndefined,
+  toBeDefined,
+  toBeTruthy,
+  toBeFalsy,
+  toBeGreaterThan,
+  toBeGreaterThanOrEqual,
+  toBeLessThan,
+  toBeLessThanOrEqual,
+  toBeCloseTo,
+  toContain,
+  toContainEqual,
+  toHaveLength,
+  toHaveProperty,
+  toBeInstanceOf,
+  toBeTypeOf,
+  toMatch,
+  toStartWith,
+  toEndWith,
+  toThrow,
+} from "./assert/index.js";

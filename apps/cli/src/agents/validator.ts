@@ -1,4 +1,12 @@
-import type { TestStep, ValidationResult, ValidationEvidence, NetworkFailure, LLMCall, ProgressCallback } from "./types.js";
+import type { Page, Request, Response, ConsoleMessage } from "./playwright-types.js";
+import type {
+  TestStep,
+  ValidationResult,
+  ValidationEvidence,
+  NetworkFailure,
+  LLMCall,
+  ProgressCallback,
+} from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
@@ -12,19 +20,16 @@ interface NetworkMonitor {
   stop: () => NetworkFailure[];
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createNetworkMonitor(page: any): NetworkMonitor {
+export function createNetworkMonitor(page: Page): NetworkMonitor {
   const failures: NetworkFailure[] = [];
   const slowResponses: Array<{ url: string; duration: number }> = [];
   const requestTimings = new Map<string, number>();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onRequest = (request: any) => {
+  const onRequest = (request: Request) => {
     requestTimings.set(request.url(), Date.now());
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onResponse = (response: any) => {
+  const onResponse = (response: Response) => {
     const url = response.url();
     const status = response.status();
     const startTime = requestTimings.get(url);
@@ -58,19 +63,20 @@ export function createNetworkMonitor(page: any): NetworkMonitor {
 // Console error capture
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createConsoleMonitor(page: any): { errors: string[]; start: () => void; stop: () => string[] } {
+export function createConsoleMonitor(page: Page): {
+  errors: string[];
+  start: () => void;
+  stop: () => string[];
+} {
   const errors: string[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onConsole = (msg: any) => {
+  const onConsole = (msg: ConsoleMessage) => {
     if (msg.type() === "error") {
       errors.push(msg.text());
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onPageError = (err: any) => {
+  const onPageError = (err: Error) => {
     errors.push(err.message ?? String(err));
   };
 
@@ -92,8 +98,7 @@ export function createConsoleMonitor(page: any): { errors: string[]; start: () =
 // URL change tracking
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function trackUrlChanges(page: any): { getHistory: () => string[] } {
+export function trackUrlChanges(page: Page): { getHistory: () => string[] } {
   const history: string[] = [page.url()];
 
   const onNavigation = () => {
@@ -121,9 +126,10 @@ export function trackUrlChanges(page: any): { getHistory: () => string[] } {
 // Error banner/toast detection
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function detectErrorMessages(page: any): Promise<string[]> {
-  return safeEvaluate<string[]>(page, `
+async function detectErrorMessages(page: Page): Promise<string[]> {
+  return safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const errors = [];
 
@@ -171,7 +177,9 @@ async function detectErrorMessages(page: any): Promise<string[]> {
 
       return [...new Set(errors)].slice(0, 10);
     })()
-  `, []);
+  `,
+    [],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -188,8 +196,18 @@ function detectVisualChanges(before: string, after: string): boolean {
   if (Math.abs(beforeLines - afterLines) > 5) return true;
 
   // Content change check (compare line sets)
-  const beforeSet = new Set(before.split("\n").map(l => l.trim()).filter(Boolean));
-  const afterSet = new Set(after.split("\n").map(l => l.trim()).filter(Boolean));
+  const beforeSet = new Set(
+    before
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean),
+  );
+  const afterSet = new Set(
+    after
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean),
+  );
 
   let changed = 0;
   for (const line of afterSet) {
@@ -218,8 +236,7 @@ export async function validateStep(
     consoleErrors?: string[];
     beforeUrl?: string;
     afterUrl?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    page?: any;
+    page?: Page;
   },
 ): Promise<ValidationResult> {
   // If step already failed, no need to validate
@@ -228,8 +245,12 @@ export async function validateStep(
       valid: false,
       details: step.error ?? "Step failed",
       evidence: {
-        urlChanged: false, contentChanged: false, errorsDetected: [],
-        networkFailures: [], consoleErrors: [], visualChanges: false,
+        urlChanged: false,
+        contentChanged: false,
+        errorsDetected: [],
+        networkFailures: [],
+        consoleErrors: [],
+        visualChanges: false,
       },
       confidence: 1.0,
     };
@@ -241,8 +262,12 @@ export async function validateStep(
       valid: true,
       details: "No assertion to verify",
       evidence: {
-        urlChanged: false, contentChanged: false, errorsDetected: [],
-        networkFailures: [], consoleErrors: [], visualChanges: false,
+        urlChanged: false,
+        contentChanged: false,
+        errorsDetected: [],
+        networkFailures: [],
+        consoleErrors: [],
+        visualChanges: false,
       },
       confidence: 1.0,
     };
@@ -262,7 +287,9 @@ export async function validateStep(
   if (context?.page) {
     try {
       evidence.errorsDetected = await detectErrorMessages(context.page);
-    } catch { /* page might have navigated */ }
+    } catch {
+      /* page might have navigated */
+    }
   }
 
   // Quick checks that don't need LLM
@@ -270,7 +297,7 @@ export async function validateStep(
   // If there are network failures during the step, flag them
   if (evidence.networkFailures.length > 0) {
     const failSummary = evidence.networkFailures
-      .map(f => `${f.method} ${f.url} → ${f.status}`)
+      .map((f) => `${f.method} ${f.url} → ${f.status}`)
       .join(", ");
     onProgress("warn", `  ⚠ Network failures: ${failSummary.slice(0, 100)}`);
   }
@@ -284,7 +311,11 @@ export async function validateStep(
   if (evidence.errorsDetected.length > 0) {
     const errorAssertion = step.assertion.toLowerCase();
     // If we're EXPECTING errors (e.g., testing validation), this is actually a pass
-    if (errorAssertion.includes("error") || errorAssertion.includes("validation") || errorAssertion.includes("invalid")) {
+    if (
+      errorAssertion.includes("error") ||
+      errorAssertion.includes("validation") ||
+      errorAssertion.includes("invalid")
+    ) {
       onProgress("pass", `  ✓ Validated: Error messages displayed as expected`);
       return {
         valid: true,
@@ -296,9 +327,10 @@ export async function validateStep(
   }
 
   // LLM-based validation for complex assertions
-  const response = await llm([{
-    role: "user",
-    content: `You are a test validator. Compare the page state before and after an action.
+  const response = await llm([
+    {
+      role: "user",
+      content: `You are a test validator. Compare the page state before and after an action.
 
 Action performed: ${step.description}
 Expected result: ${step.assertion}
@@ -306,7 +338,7 @@ Expected result: ${step.assertion}
 URL changed: ${evidence.urlChanged ? "Yes" : "No"}${evidence.urlChanged ? ` (${context?.beforeUrl} → ${context?.afterUrl})` : ""}
 Content changed: ${evidence.contentChanged ? "Yes" : "No"}
 Visual changes: ${evidence.visualChanges ? "Significant" : "Minimal"}
-Network failures: ${evidence.networkFailures.length > 0 ? evidence.networkFailures.map(f => `${f.status} ${f.url}`).join(", ") : "None"}
+Network failures: ${evidence.networkFailures.length > 0 ? evidence.networkFailures.map((f) => `${f.status} ${f.url}`).join(", ") : "None"}
 Console errors: ${evidence.consoleErrors.length > 0 ? evidence.consoleErrors.slice(0, 3).join("; ") : "None"}
 Error banners: ${evidence.errorsDetected.length > 0 ? evidence.errorsDetected.slice(0, 3).join("; ") : "None"}
 
@@ -319,7 +351,8 @@ ${afterSnapshot.slice(0, 2500)}
 Did the expected result happen? Consider all evidence.
 
 Respond with JSON: {"valid": true/false, "details": "what changed or why it failed", "confidence": 0.0-1.0}`,
-  }]);
+    },
+  ]);
 
   try {
     let json = response.trim();

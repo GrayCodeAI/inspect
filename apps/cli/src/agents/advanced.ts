@@ -2,6 +2,7 @@
 // Advanced Testing Agent — PDF, email, scheduling, self-healing selectors
 // ============================================================================
 
+import type { Page } from "./playwright-types.js";
 import type { LLMCall, TestPlan } from "./types.js";
 import { writeFileSync, readFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -47,8 +48,7 @@ export interface SelfHealResult {
 // ---------------------------------------------------------------------------
 
 export async function testPDFDownload(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<PDFTestResult> {
   const issues: string[] = [];
@@ -342,8 +342,7 @@ export function generateCronExpression(
 // ---------------------------------------------------------------------------
 
 export async function selfHealSelector(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   failedSelector: string,
   description: string,
   snapshot: string,
@@ -753,8 +752,7 @@ function buildRoleSelector(description: string): string | null {
   return null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function safeQuerySelector(page: any, selector: string): Promise<boolean> {
+async function safeQuerySelector(page: Page, selector: string): Promise<boolean> {
   try {
     const element = await page.$(selector);
     return element !== null;

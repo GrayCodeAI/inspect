@@ -2,6 +2,7 @@
 // Cross-Browser & i18n Testing Agent — Tests across browsers and locales
 // ============================================================================
 
+import type { Page, Browser, BrowserContext } from "./playwright-types.js";
 import type { ProgressCallback } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 
@@ -41,10 +42,8 @@ export async function runCrossBrowser(
   onProgress("info", "Running cross-browser compatibility tests...");
 
   // Dynamically import playwright to avoid hard dependency at module level
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let playwright: any;
+  let playwright: typeof import("playwright");
   try {
-    // @ts-expect-error — playwright is an optional peer dependency
     playwright = await import("playwright");
   } catch {
     onProgress("fail", "  Playwright is not installed. Cannot run cross-browser tests.");
@@ -75,12 +74,9 @@ export async function runCrossBrowser(
       issues: [],
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let browser: any = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let context: any = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let page: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page;
 
     try {
       // Launch the browser
@@ -284,8 +280,7 @@ export async function runCrossBrowser(
  * adapts to the locale (e.g. language attribute, text direction, number formats).
  */
 export async function testLocale(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   locale: string,
   url: string,
 ): Promise<LocaleTestResult> {
@@ -470,8 +465,7 @@ export async function testLocale(
  * horizontal overflow or misaligned elements.
  */
 export async function testRTL(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<{ isRTL: boolean; issues: string[] }> {
   const issues: string[] = [];
@@ -657,8 +651,7 @@ export async function testRTL(
  * render correctly for the given timezone.
  */
 export async function testTimezone(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   timezone: string,
   url: string,
 ): Promise<{ dates: string[]; issues: string[] }> {

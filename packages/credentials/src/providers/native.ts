@@ -35,31 +35,31 @@ export class NativeCredentialStore {
   private encryptionKey: Buffer;
   private filePath: string;
 
-  constructor(options?: {
-    basePath?: string;
-    encryptionKey?: string;
-  }) {
+  constructor(options?: { basePath?: string; encryptionKey?: string }) {
     const basePath = options?.basePath ?? process.cwd();
     this.filePath = path.join(basePath, ".inspect", "credentials.enc");
 
     // Derive encryption key
-    const rawKey =
+    const keyMaterial =
       options?.encryptionKey ??
       process.env.INSPECT_CREDENTIAL_KEY ??
       this.loadOrCreateKey(path.join(basePath, ".inspect"));
 
-    this.encryptionKey = this.deriveKey(rawKey);
+    if (typeof keyMaterial === "string") {
+      // Key provided directly via env or option — use a deterministic salt for reproducibility
+      const salt = crypto.createHash("sha256").update(keyMaterial).digest();
+      this.encryptionKey = this.deriveKey(keyMaterial, salt);
+    } else {
+      // Key loaded from file — use stored salt
+      this.encryptionKey = this.deriveKey(keyMaterial.key, keyMaterial.salt);
+    }
     this.load();
   }
 
   /**
    * Store a credential.
    */
-  set(
-    service: string,
-    account: string,
-    data: Record<string, unknown>,
-  ): NativeCredentialEntry {
+  set(service: string, account: string, data: Record<string, unknown>): NativeCredentialEntry {
     const id = `${service}:${account}`;
     const encryptedData = this.encrypt(JSON.stringify(data));
     const now = Date.now();
@@ -82,10 +82,7 @@ export class NativeCredentialStore {
   /**
    * Retrieve a credential.
    */
-  get(
-    service: string,
-    account: string,
-  ): Record<string, unknown> | null {
+  get(service: string, account: string): Record<string, unknown> | null {
     const id = `${service}:${account}`;
     const entry = this.entries.get(id);
     if (!entry) return null;
@@ -160,10 +157,7 @@ export class NativeCredentialStore {
   private encrypt(plaintext: string): string {
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, this.encryptionKey, iv);
-    const encrypted = Buffer.concat([
-      cipher.update(plaintext, "utf-8"),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
     const tag = cipher.getAuthTag();
 
     // Encode as base64: IV + Tag + Ciphertext
@@ -183,48 +177,17 @@ export class NativeCredentialStore {
     const tag = data.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
     const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH);
 
-    const decipher = crypto.createDecipheriv(
-      ALGORITHM,
-      this.encryptionKey,
-      iv,
-    );
+    const decipher = crypto.createDecipheriv(ALGORITHM, this.encryptionKey, iv);
     decipher.setAuthTag(tag);
 
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]).toString("utf-8");
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf-8");
   }
 
   /**
-   * Derive a 256-bit key from a passphrase.
+   * Derive a 256-bit key from a passphrase using a random salt.
    */
-  private deriveKey(passphrase: string): Buffer {
-    const salt = crypto
-      .createHash("sha256")
-      .update("inspect-native-store")
-      .digest()
-      .subarray(0, 32);
-    return crypto.pbkdf2Sync(passphrase, salt, 100_000, KEY_LENGTH, "sha512");
-  }
-
-  /**
-   * Load or create an encryption key.
-   */
-  private loadOrCreateKey(dir: string): string {
-    const keyPath = path.join(dir, "native-store.key");
-    try {
-      fs.mkdirSync(dir, { recursive: true });
-      if (fs.existsSync(keyPath)) {
-        return fs.readFileSync(keyPath, "utf-8").trim();
-      }
-      const key = crypto.randomBytes(32).toString("hex");
-      fs.writeFileSync(keyPath, key, { mode: 0o600 });
-      return key;
-    } catch (error) {
-      logger.debug("Failed to load or create key file, using ephemeral key", { error });
-      return crypto.randomBytes(32).toString("hex");
-    }
+  private deriveKey(passphrase: string, salt: Buffer): Buffer {
+    return crypto.pbkdf2Sync(passphrase, salt, 600_000, KEY_LENGTH, "sha512");
   }
 
   /**
@@ -250,11 +213,7 @@ export class NativeCredentialStore {
     try {
       const dir = path.dirname(this.filePath);
       fs.mkdirSync(dir, { recursive: true });
-      const data = JSON.stringify(
-        Array.from(this.entries.values()),
-        null,
-        2,
-      );
+      const data = JSON.stringify(Array.from(this.entries.values()), null, 2);
       fs.writeFileSync(this.filePath, data, { mode: 0o600 });
     } catch (error) {
       logger.error("Failed to save native credential store", { error });

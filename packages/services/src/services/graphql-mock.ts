@@ -2,6 +2,7 @@
 // packages/services/src/services/graphql-mock.ts - Deep GraphQL Mocking Service (MSW-inspired)
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { sleep } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("services/graphql-mock");
@@ -239,8 +240,4 @@ export class GraphQLMockService {
     }
     return handler.operationName.test(req.operationName ?? "");
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

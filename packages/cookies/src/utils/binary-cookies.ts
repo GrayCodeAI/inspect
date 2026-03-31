@@ -5,7 +5,7 @@ export const parseBinaryCookies = (buffer: Buffer): Cookie[] => {
   const cookies: Cookie[] = [];
   try {
     const magic = buffer.readUInt32LE(0);
-    if (magic !== 0x636F6F6B) return cookies;
+    if (magic !== 0x636f6f6b) return cookies;
 
     const numPages = buffer.readUInt32LE(4);
     let offset = 8;
@@ -49,10 +49,12 @@ export const parseBinaryCookies = (buffer: Buffer): Cookie[] => {
               expires,
               secure: (flags & 1) === 1,
               httpOnly: (flags & 4) === 4,
-              sameSite: (flags & 2) === 2 ? "Lax" as const : undefined,
+              sameSite: (flags & 2) === 2 ? ("Lax" as "Lax" | "Strict" | "None") : undefined,
             });
           }
-        } catch {}
+        } catch {
+          // Skip malformed cookies
+        }
 
         cookieOffset += cookieSize;
       }

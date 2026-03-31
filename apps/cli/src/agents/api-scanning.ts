@@ -1,8 +1,4 @@
-// ============================================================================
-// API Scanning Agent — OpenAPI/GraphQL security and conformance scanning
-// ============================================================================
-
-import type { Page } from "@inspect/browser";
+import type { Page, Response } from "./playwright-types.js";
 import { safeEvaluate } from "./evaluate.js";
 import type { ProgressCallback } from "./types.js";
 
@@ -63,13 +59,7 @@ const OPENAPI_PATHS = [
 // Common GraphQL endpoint paths to probe
 // ---------------------------------------------------------------------------
 
-const GRAPHQL_PATHS = [
-  "/graphql",
-  "/api/graphql",
-  "/gql",
-  "/api/gql",
-  "/graphql/v1",
-];
+const GRAPHQL_PATHS = ["/graphql", "/api/graphql", "/gql", "/api/gql", "/graphql/v1"];
 
 // ---------------------------------------------------------------------------
 // GraphQL introspection query
@@ -89,10 +79,7 @@ const INTROSPECTION_QUERY = JSON.stringify({
 // 1. fetchOpenAPISpec — discover and parse OpenAPI/Swagger spec
 // ---------------------------------------------------------------------------
 
-export async function fetchOpenAPISpec(
-  page: Page,
-  baseUrl: string,
-): Promise<OpenAPISpec | null> {
+export async function fetchOpenAPISpec(page: Page, baseUrl: string): Promise<OpenAPISpec | null> {
   // Normalize base URL (remove trailing slash)
   const base = baseUrl.replace(/\/+$/, "");
 
@@ -272,16 +259,12 @@ export async function testGraphQLIntrospection(
     // Extract query fields
     const queryType = schema["queryType"] as Record<string, unknown> | undefined;
     const queryFields = (queryType?.["fields"] ?? []) as Array<Record<string, unknown>>;
-    const queries = queryFields
-      .map((f) => f["name"] as string)
-      .filter(Boolean);
+    const queries = queryFields.map((f) => f["name"] as string).filter(Boolean);
 
     // Extract mutation fields
     const mutationType = schema["mutationType"] as Record<string, unknown> | undefined;
     const mutationFields = (mutationType?.["fields"] ?? []) as Array<Record<string, unknown>>;
-    const mutations = mutationFields
-      .map((f) => f["name"] as string)
-      .filter(Boolean);
+    const mutations = mutationFields.map((f) => f["name"] as string).filter(Boolean);
 
     return {
       types,
@@ -347,7 +330,8 @@ export async function scanOpenAPIEndpoints(
             test: "Missing required parameters",
             passed: false,
             severity: "high",
-            details: `Server returned ${status} instead of 400 when required parameters were omitted. ` +
+            details:
+              `Server returned ${status} instead of 400 when required parameters were omitted. ` +
               `Required: ${requiredParams.join(", ")}. ` +
               `The server should validate input and return 400 Bad Request.`,
           });
@@ -399,7 +383,8 @@ export async function scanOpenAPIEndpoints(
             test: "Wrong parameter types",
             passed: false,
             severity: "medium",
-            details: `Server returned ${status} when given wrong types in request body. ` +
+            details:
+              `Server returned ${status} when given wrong types in request body. ` +
               `The server should validate types and return 400 Bad Request.`,
           });
         } else {
@@ -445,7 +430,8 @@ export async function scanOpenAPIEndpoints(
             test: "Extra-long string input",
             passed: false,
             severity: "medium",
-            details: `Server returned ${status} when given a 100K character string payload. ` +
+            details:
+              `Server returned ${status} when given a 100K character string payload. ` +
               `The server should enforce payload size limits and return 400 or 413.`,
           });
         } else {
@@ -483,8 +469,7 @@ export async function scanOpenAPIEndpoints(
       const status = authTestResult.status;
       // If endpoint returns 200 without auth, it might be an open endpoint
       // Check if responses list suggests auth is expected (401/403 in spec)
-      const expectsAuth =
-        endpoint.responses.includes("401") || endpoint.responses.includes("403");
+      const expectsAuth = endpoint.responses.includes("401") || endpoint.responses.includes("403");
 
       if (expectsAuth && status === 200) {
         results.push({
@@ -492,7 +477,8 @@ export async function scanOpenAPIEndpoints(
           test: "Authentication enforcement",
           passed: false,
           severity: "high",
-          details: `Endpoint returned 200 without authentication, but the spec defines ` +
+          details:
+            `Endpoint returned 200 without authentication, but the spec defines ` +
             `401/403 responses. The endpoint may be missing auth middleware.`,
         });
       } else if (status === 401 || status === 403) {
@@ -586,7 +572,8 @@ export async function scanGraphQLSecurity(
         test: "Introspection enabled",
         passed: false,
         severity: "medium",
-        details: "GraphQL introspection is enabled. In production, introspection should be " +
+        details:
+          "GraphQL introspection is enabled. In production, introspection should be " +
           "disabled to prevent attackers from discovering the entire API schema. " +
           "Disable introspection in your GraphQL server configuration.",
       });
@@ -613,7 +600,11 @@ export async function scanGraphQLSecurity(
   }
   deepQuery += closeParens;
 
-  const depthResult = await safeEvaluate<{ status: number; hasErrors: boolean; errorMessage: string } | null>(
+  const depthResult = await safeEvaluate<{
+    status: number;
+    hasErrors: boolean;
+    errorMessage: string;
+  } | null>(
     page,
     `(async () => {
       try {
@@ -650,7 +641,8 @@ export async function scanGraphQLSecurity(
         test: "Query depth limit",
         passed: true,
         severity: "info",
-        details: `Deeply nested query was rejected (status ${depthResult.status}). ` +
+        details:
+          `Deeply nested query was rejected (status ${depthResult.status}). ` +
           `Server enforces query depth limits.`,
       });
     } else {
@@ -659,7 +651,8 @@ export async function scanGraphQLSecurity(
         test: "Query depth limit",
         passed: false,
         severity: "medium",
-        details: "Deeply nested query (20 levels) was accepted. The server should enforce " +
+        details:
+          "Deeply nested query (20 levels) was accepted. The server should enforce " +
           "query depth limits to prevent resource exhaustion attacks. Consider using " +
           "graphql-depth-limit or equivalent middleware.",
       });
@@ -697,9 +690,7 @@ export async function scanGraphQLSecurity(
 
   if (batchResult) {
     const batchRejected =
-      batchResult.status === 400 ||
-      batchResult.status === 429 ||
-      batchResult.responseCount < 50;
+      batchResult.status === 400 || batchResult.status === 429 || batchResult.responseCount < 50;
 
     if (batchRejected) {
       results.push({
@@ -707,7 +698,8 @@ export async function scanGraphQLSecurity(
         test: "Batch query limit",
         passed: true,
         severity: "info",
-        details: `Batch of 50 queries was limited or rejected (status ${batchResult.status}, ` +
+        details:
+          `Batch of 50 queries was limited or rejected (status ${batchResult.status}, ` +
           `${batchResult.responseCount} response(s)). Server enforces batch limits.`,
       });
     } else {
@@ -716,7 +708,8 @@ export async function scanGraphQLSecurity(
         test: "Batch query limit",
         passed: false,
         severity: "medium",
-        details: `Batch of 50 queries was fully executed (${batchResult.responseCount} responses). ` +
+        details:
+          `Batch of 50 queries was fully executed (${batchResult.responseCount} responses). ` +
           "The server should enforce batch query limits to prevent denial-of-service. " +
           "Consider limiting the number of operations per request.",
       });
@@ -726,7 +719,11 @@ export async function scanGraphQLSecurity(
   // --- Test 4: Field suggestion exposure ---
   onProgress("step", "  Testing field suggestion exposure...");
 
-  const suggestionResult = await safeEvaluate<{ hasErrors: boolean; errorMessage: string; hasSuggestion: boolean } | null>(
+  const suggestionResult = await safeEvaluate<{
+    hasErrors: boolean;
+    errorMessage: string;
+    hasSuggestion: boolean;
+  } | null>(
     page,
     `(async () => {
       try {
@@ -758,7 +755,8 @@ export async function scanGraphQLSecurity(
         test: "Field suggestion exposure",
         passed: false,
         severity: "low",
-        details: "GraphQL error messages include field suggestions (e.g., 'Did you mean...'). " +
+        details:
+          "GraphQL error messages include field suggestions (e.g., 'Did you mean...'). " +
           "This reveals schema information to attackers through error messages. " +
           "Consider disabling field suggestions in production.",
       });
@@ -768,7 +766,8 @@ export async function scanGraphQLSecurity(
         test: "Field suggestion exposure",
         passed: true,
         severity: "info",
-        details: "GraphQL error messages do not include field suggestions — schema is not " +
+        details:
+          "GraphQL error messages do not include field suggestions — schema is not " +
           "leaked through error messages.",
       });
     }
@@ -889,7 +888,8 @@ export async function runAPIScan(
             test: "Unauthenticated API access",
             passed: false,
             severity: "medium",
-            details: `API endpoint returns 200 without credentials. ` +
+            details:
+              `API endpoint returns 200 without credentials. ` +
               `Verify this endpoint should be publicly accessible.`,
           });
         }
@@ -897,7 +897,10 @@ export async function runAPIScan(
 
       // Check for sensitive data in response headers
       if (ep.status && ep.status < 400) {
-        const headerCheck = await safeEvaluate<{ server: string | null; poweredBy: string | null } | null>(
+        const headerCheck = await safeEvaluate<{
+          server: string | null;
+          poweredBy: string | null;
+        } | null>(
           page,
           `(async () => {
             try {
@@ -924,7 +927,8 @@ export async function runAPIScan(
               test: "Server technology exposure",
               passed: false,
               severity: "low",
-              details: `X-Powered-By header exposes server technology: "${headerCheck.poweredBy}". ` +
+              details:
+                `X-Powered-By header exposes server technology: "${headerCheck.poweredBy}". ` +
                 `Remove this header to reduce information leakage.`,
             });
           }
@@ -963,10 +967,7 @@ export async function runAPIScan(
  * Discover API endpoints by navigating to the page and monitoring network
  * traffic for XHR/fetch requests.
  */
-async function discoverEndpointsFromTraffic(
-  page: Page,
-  url: string,
-): Promise<APIEndpoint[]> {
+async function discoverEndpointsFromTraffic(page: Page, url: string): Promise<APIEndpoint[]> {
   const endpoints: APIEndpoint[] = [];
   const seen = new Set<string>();
 
@@ -975,8 +976,7 @@ async function discoverEndpointsFromTraffic(
     /\.(js|css|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|map|mp4|webm|ogg|mp3|wav|pdf|zip|wasm)(\?|#|$)/i;
 
   // Set up response listener before navigation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onResponse = (response: any): void => {
+  const onResponse = (response: Response): void => {
     try {
       const resUrl = response.url() as string;
       const status = response.status() as number;

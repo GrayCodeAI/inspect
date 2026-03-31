@@ -3,6 +3,7 @@
 // notifications, persistence, conditional UI, undo/redo, and game logic.
 // ============================================================================
 
+import type { Page, Locator } from "./playwright-types.js";
 import type { LLMCall, ProgressCallback } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 
@@ -39,8 +40,7 @@ function _parseLLMArray<T>(raw: string, fallback: T[]): T[] {
 }
 
 /** Take a text snapshot of the current page using ARIA tree if available, else innerHTML summary. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function takeSnapshot(page: any): Promise<string> {
+async function takeSnapshot(page: Page): Promise<string> {
   try {
     const { AriaSnapshotBuilder } = await import("@inspect/browser");
     const builder = new AriaSnapshotBuilder();
@@ -80,8 +80,7 @@ function delay(ms: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function testBehavior(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   instruction: string,
   snapshot: string,
   llm: LLMCall,
@@ -167,8 +166,7 @@ Did the expected behavior occur? Respond with JSON only:
 
 /** Execute a single natural-language step against the page. */
 async function executeNaturalStep(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   step: string,
   snapshot: string,
   llm: LLMCall,
@@ -272,9 +270,8 @@ Respond with JSON: {"action": "click|fill|press|scroll|wait", "target": "selecto
 }
 
 /** Click an element using multiple strategies. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function smartClick(
-  page: any,
+  page: Page,
   target: string,
   snapshot: string,
   llm: LLMCall,
@@ -332,9 +329,8 @@ Respond with ONLY a valid Playwright selector. One selector only, no explanation
 }
 
 /** Fill an input field using multiple strategies. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function smartFill(
-  page: any,
+  page: Page,
   target: string,
   value: string,
   snapshot: string,
@@ -394,8 +390,7 @@ Respond with ONLY a valid Playwright selector. One selector only, no explanation
 // ---------------------------------------------------------------------------
 
 export async function testCRUD(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   llm: LLMCall,
   onProgress: ProgressCallback,
 ): Promise<{
@@ -704,64 +699,63 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
 // ---------------------------------------------------------------------------
 
 export async function testDragDrop(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   source: string,
   target: string,
 ): Promise<boolean> {
   // Locate source and target elements
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let sourceLocator: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let targetLocator: any = null;
+  let sourceLocator: Locator | null = null;
+  let targetLocator: Locator | null = null;
 
   // Try CSS selector first, then text
-  for (const [sel, setter] of [
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [
-      source,
-      (v: any) => {
-        sourceLocator = v;
-      },
-    ],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [
-      target,
-      (v: any) => {
-        targetLocator = v;
-      },
-    ],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ] as Array<[string, (v: any) => void]>) {
+  // Try to locate source element
+  for (const sel of [source]) {
     try {
       const bySelector = page.locator(sel);
       if ((await bySelector.count()) > 0) {
-        setter(bySelector.first());
-        continue;
+        sourceLocator = bySelector.first();
+        break;
       }
-    } catch {
-      /* not a valid selector */
-    }
-
+    } catch { /* not a valid selector */ }
     try {
       const byText = page.getByText(sel, { exact: false }).first();
       if ((await byText.count()) > 0) {
-        setter(byText);
-        continue;
+        sourceLocator = byText;
+        break;
       }
-    } catch {
-      /* not found by text */
-    }
-
+    } catch { /* not found by text */ }
     try {
       const byRole = page.getByRole("listitem", { name: sel }).first();
       if ((await byRole.count()) > 0) {
-        setter(byRole);
-        continue;
+        sourceLocator = byRole;
+        break;
       }
-    } catch {
-      /* not found by role */
-    }
+    } catch { /* not found by role */ }
+  }
+
+  // Try to locate target element
+  for (const sel of [target]) {
+    try {
+      const bySelector = page.locator(sel);
+      if ((await bySelector.count()) > 0) {
+        targetLocator = bySelector.first();
+        break;
+      }
+    } catch { /* not a valid selector */ }
+    try {
+      const byText = page.getByText(sel, { exact: false }).first();
+      if ((await byText.count()) > 0) {
+        targetLocator = byText;
+        break;
+      }
+    } catch { /* not found by text */ }
+    try {
+      const byRole = page.getByRole("listitem", { name: sel }).first();
+      if ((await byRole.count()) > 0) {
+        targetLocator = byRole;
+        break;
+      }
+    } catch { /* not found by role */ }
   }
 
   if (!sourceLocator || !targetLocator) {
@@ -812,8 +806,7 @@ export async function testDragDrop(
 // ---------------------------------------------------------------------------
 
 export async function testNotifications(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
 ): Promise<Array<{ type: string; text: string; dismissed: boolean }>> {
   const notifications: Array<{ type: string; text: string; dismissed: boolean }> = [];
 
@@ -926,8 +919,7 @@ export async function testNotifications(
 // ---------------------------------------------------------------------------
 
 export async function testDataPersistence(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
 ): Promise<{ persisted: boolean; lostFields: string[] }> {
   const lostFields: string[] = [];
@@ -1041,8 +1033,7 @@ export async function testDataPersistence(
 // ---------------------------------------------------------------------------
 
 export async function testConditionalUI(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   trigger: string,
   expected: string,
   snapshot: string,
@@ -1093,8 +1084,7 @@ Did the expected UI change occur? Respond with JSON:
 // ---------------------------------------------------------------------------
 
 export async function testUndoRedo(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
 ): Promise<{ hasUndo: boolean; hasRedo: boolean; undoWorks: boolean; redoWorks: boolean }> {
   let hasUndo: boolean;
   let hasRedo: boolean;
@@ -1324,8 +1314,7 @@ export async function testUndoRedo(
 // ---------------------------------------------------------------------------
 
 export async function testGameLogic(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   llm: LLMCall,
   onProgress: ProgressCallback,
 ): Promise<{ gameDetected: boolean; playable: boolean; observations: string[] }> {

@@ -1,3 +1,4 @@
+import { generateId } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("browser/cloud");
@@ -141,10 +142,6 @@ export class CloudBrowserProvider {
     const data = (await response.json()) as { websocketUrl: string };
     return data.websocketUrl;
   }
-}
-
-function generateId(): string {
-  return `cloud-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /**

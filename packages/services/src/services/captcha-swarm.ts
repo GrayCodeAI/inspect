@@ -2,6 +2,7 @@
 // packages/services/src/services/captcha-swarm.ts - CAPTCHA Solving & Multi-Agent Swarm
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { generateId } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("services/captcha-swarm");
@@ -263,8 +264,4 @@ export interface CaptchaProvider {
   name: string;
   supportsType: (type: CaptchaType) => boolean;
   solve: (request: CaptchaSolveRequest) => Promise<CaptchaSolveResult>;
-}
-
-function generateId(): string {
-  return `swarm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }

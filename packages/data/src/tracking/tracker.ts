@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { ChangeSnapshot, ChangeDiff, ChangeTrackingConfig } from "@inspect/shared";
+import { generateId } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("data/tracker");
@@ -254,8 +255,4 @@ export class ChangeTracker {
       2,
     );
   }
-}
-
-function generateId(): string {
-  return `snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }

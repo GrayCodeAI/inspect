@@ -46,30 +46,31 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inspect/shared": "workspace:*",
-    "@inspect/core": "workspace:*",
-    "@inspect/browser": "workspace:*",
     "@inspect/agent": "workspace:*",
-    "@inspect/reporter": "workspace:*",
-    "@inspect/quality": "workspace:*",
+    "@inspect/api": "workspace:*",
+    "@inspect/browser": "workspace:*",
+    "@inspect/core": "workspace:*",
     "@inspect/credentials": "workspace:*",
     "@inspect/data": "workspace:*",
-    "@inspect/network": "workspace:*",
-    "@inspect/workflow": "workspace:*",
-    "@inspect/visual": "workspace:*",
-    "@inspect/observability": "workspace:*",
-    "@inspect/api": "workspace:*",
     "@inspect/enterprise": "workspace:*",
+    "@inspect/network": "workspace:*",
+    "@inspect/observability": "workspace:*",
+    "@inspect/quality": "workspace:*",
+    "@inspect/reporter": "workspace:*",
+    "@inspect/shared": "workspace:*",
+    "@inspect/visual": "workspace:*",
+    "@inspect/workflow": "workspace:*",
+    "chalk": "^5.4.0",
     "commander": "^13.0.0",
     "ink": "^5.1.0",
-    "react": "^18.3.0",
     "ink-spinner": "^5.0.0",
-    "chalk": "^5.4.0",
+    "react": "^18.3.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
     "@types/node": "^22.0.0",
-    "@types/react": "^18.3.0"
+    "@types/react": "^18.3.0",
+    "playwright": "^1.50.0",
+    "typescript": "^5.7.0"
   }
 }

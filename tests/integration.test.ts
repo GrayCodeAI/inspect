@@ -10,11 +10,11 @@ import { BatchScraper } from "../packages/services/src/services/batch-scraper.js
 import { GraphQLMockService } from "../packages/services/src/services/graphql-mock.js";
 import { NucleiMultiService } from "../packages/services/src/services/nuclei-multi.js";
 import { CaptchaSwarmService } from "../packages/services/src/services/captcha-swarm.js";
-import { ToolRegistry } from "../packages/agent/src/tools/registry.js";
+import { ToolRegistry } from "../packages/agent-tools/src/tools/registry.js";
 import { StealthEngine } from "../packages/network/src/stealth/stealth.js";
 import { ProxyServer, TOXICITY_PRESETS } from "../packages/quality/src/resilience/proxy-server.js";
 import { Snapshotter, Differ } from "../packages/data/src/tracking/tracker.js";
-import { RewardShaper} from "../evals/benchmarks/reward.js";
+import { RewardShaper } from "../evals/benchmarks/reward.js";
 import { BenchmarkRunner } from "../evals/benchmarks/runner.js";
 
 describe("End-to-End Integration", () => {

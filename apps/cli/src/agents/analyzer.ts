@@ -2,6 +2,7 @@
 // Analyzer Agent (Agent 2) — Classifies pages and detects features across a site
 // ============================================================================
 
+import type { Page } from "./playwright-types.js";
 import type {
   SiteMap,
   SiteAnalysis,
@@ -22,8 +23,7 @@ import { safeEvaluate } from "./evaluate.js";
 
 export async function analyzeSite(
   siteMap: SiteMap,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any, // Playwright Page
+  page: Page,
   llm: LLMCall,
   onProgress: ProgressCallback,
 ): Promise<SiteAnalysis> {
@@ -43,7 +43,9 @@ export async function analyzeSite(
       await page.goto(pageInfo.url, { waitUntil: "domcontentloaded", timeout: 15_000 });
     } catch {
       onProgress("warn", `Failed to navigate to ${pageInfo.url}, skipping`);
-      pageAnalyses.push(buildSkippedPageAnalysis(pageInfo.url, pageInfo.type, pageInfo.forms, pageInfo.interactive));
+      pageAnalyses.push(
+        buildSkippedPageAnalysis(pageInfo.url, pageInfo.type, pageInfo.forms, pageInfo.interactive),
+      );
       continue;
     }
 
@@ -53,7 +55,10 @@ export async function analyzeSite(
       await ariaBuilder.buildTree(page);
       ariaSnapshot = ariaBuilder.getFormattedTree();
     } catch {
-      onProgress("warn", `ARIA snapshot failed for ${pageInfo.url}, continuing with DOM-only analysis`);
+      onProgress(
+        "warn",
+        `ARIA snapshot failed for ${pageInfo.url}, continuing with DOM-only analysis`,
+      );
     }
 
     // Detect page features via DOM evaluation
@@ -110,7 +115,10 @@ export async function analyzeSite(
     }
   }
 
-  onProgress("done", `Analysis complete: ${pageAnalyses.length} pages, ${techStack.length} technologies detected`);
+  onProgress(
+    "done",
+    `Analysis complete: ${pageAnalyses.length} pages, ${techStack.length} technologies detected`,
+  );
 
   return {
     siteMap,
@@ -139,9 +147,10 @@ interface PageFeatures {
   hasPayment: boolean;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function detectPageFeatures(page: any): Promise<PageFeatures> {
-  return await safeEvaluate<PageFeatures>(page, `
+async function detectPageFeatures(page: Page): Promise<PageFeatures> {
+  return await safeEvaluate<PageFeatures>(
+    page,
+    `
       (() => {
         const q = (s) => document.querySelector(s) !== null;
         const qAll = (s) => Array.from(document.querySelectorAll(s));
@@ -194,7 +203,8 @@ async function detectPageFeatures(page: any): Promise<PageFeatures> {
 
         return { hasAuth, hasSearch, hasPagination, hasModals, hasTabs, hasCarousel, hasInfiniteScroll, hasFileUpload, hasCookieConsent, hasCaptcha, oauthProviders, hasPayment };
       })()
-    `, {
+    `,
+    {
       hasAuth: false,
       hasSearch: false,
       hasPagination: false,
@@ -207,16 +217,18 @@ async function detectPageFeatures(page: any): Promise<PageFeatures> {
       hasCaptcha: false,
       oauthProviders: [],
       hasPayment: false,
-    });
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Tech stack detection
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function detectTechStack(page: any): Promise<string[]> {
-  return await safeEvaluate<string[]>(page, `
+async function detectTechStack(page: Page): Promise<string[]> {
+  return await safeEvaluate<string[]>(
+    page,
+    `
       (() => {
         const detected = [];
         const w = window;
@@ -261,7 +273,9 @@ async function detectTechStack(page: any): Promise<string[]> {
 
         return detected;
       })()
-    `, []);
+    `,
+    [],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -281,7 +295,8 @@ function classifyForms(forms: FormInfo[]): FormInfo[] {
 
     // Login: has password, 2-3 fields, typically email/username + password
     if (fieldTypes.includes("password") && form.fields.length <= 3) {
-      const hasEmailOrUsername = allText.includes("email") || allText.includes("user") || allText.includes("login");
+      const hasEmailOrUsername =
+        allText.includes("email") || allText.includes("user") || allText.includes("login");
       if (hasEmailOrUsername) {
         return { ...form, formType: "login" as const };
       }
@@ -293,14 +308,18 @@ function classifyForms(forms: FormInfo[]): FormInfo[] {
         fieldNames.filter((n) => n.includes("password")).length >= 2 ||
         allText.includes("confirm") ||
         allText.includes("repeat");
-      const hasNameField = allText.includes("name") || allText.includes("first") || allText.includes("last");
+      const hasNameField =
+        allText.includes("name") || allText.includes("first") || allText.includes("last");
       if (hasConfirmPassword || hasNameField) {
         return { ...form, formType: "signup" as const };
       }
     }
 
     // Search: single text input, search-like names
-    if (form.fields.length <= 2 && (allText.includes("search") || allText.includes("query") || allText.includes("q"))) {
+    if (
+      form.fields.length <= 2 &&
+      (allText.includes("search") || allText.includes("query") || allText.includes("q"))
+    ) {
       return { ...form, formType: "search" as const };
     }
 
@@ -317,7 +336,11 @@ function classifyForms(forms: FormInfo[]): FormInfo[] {
     }
 
     // Contact: message/subject fields
-    if (allText.includes("message") || allText.includes("subject") || (allText.includes("email") && allText.includes("name") && !fieldTypes.includes("password"))) {
+    if (
+      allText.includes("message") ||
+      allText.includes("subject") ||
+      (allText.includes("email") && allText.includes("name") && !fieldTypes.includes("password"))
+    ) {
       return { ...form, formType: "contact" as const };
     }
 
@@ -327,12 +350,18 @@ function classifyForms(forms: FormInfo[]): FormInfo[] {
     }
 
     // Settings: has various input types, often with current values
-    if (allText.includes("setting") || allText.includes("preference") || allText.includes("profile")) {
+    if (
+      allText.includes("setting") ||
+      allText.includes("preference") ||
+      allText.includes("profile")
+    ) {
       return { ...form, formType: "settings" as const };
     }
 
     // Filter: has selects/checkboxes, few text fields
-    const selectCount = fieldTypes.filter((t) => t === "select" || t === "checkbox" || t === "radio").length;
+    const selectCount = fieldTypes.filter(
+      (t) => t === "select" || t === "checkbox" || t === "radio",
+    ).length;
     if (selectCount > form.fields.length / 2 && form.fields.length >= 2) {
       return { ...form, formType: "filter" as const };
     }
@@ -353,7 +382,8 @@ async function classifyPageWithLLM(
 ): Promise<PageType> {
   try {
     // Truncate the ARIA snapshot to keep token usage reasonable
-    const truncated = ariaSnapshot.length > 3000 ? ariaSnapshot.slice(0, 3000) + "\n... (truncated)" : ariaSnapshot;
+    const truncated =
+      ariaSnapshot.length > 3000 ? ariaSnapshot.slice(0, 3000) + "\n... (truncated)" : ariaSnapshot;
 
     const prompt = `You are a JSON API. Classify this web page into exactly one type.
 
@@ -381,9 +411,22 @@ No markdown, no explanation, just the JSON.`;
 
     const parsed = JSON.parse(jsonStr) as { type: string };
     const validTypes: PageType[] = [
-      "landing", "auth", "dashboard", "form", "list", "detail",
-      "checkout", "settings", "error", "search", "blog", "docs",
-      "pricing", "contact", "profile", "admin",
+      "landing",
+      "auth",
+      "dashboard",
+      "form",
+      "list",
+      "detail",
+      "checkout",
+      "settings",
+      "error",
+      "search",
+      "blog",
+      "docs",
+      "pricing",
+      "contact",
+      "profile",
+      "admin",
     ];
     if (validTypes.includes(parsed.type as PageType)) {
       return parsed.type as PageType;
@@ -536,10 +579,14 @@ function buildFeatureSummary(features: FeatureInventory): string {
   if (features.authFlows.length > 0) parts.push(`${features.authFlows.length} auth flow(s)`);
   if (features.searchPages.length > 0) parts.push(`${features.searchPages.length} search page(s)`);
   if (features.formPages.length > 0) parts.push(`${features.formPages.length} form page(s)`);
-  if (features.paginatedPages.length > 0) parts.push(`${features.paginatedPages.length} paginated page(s)`);
-  if (features.protectedRoutes.length > 0) parts.push(`${features.protectedRoutes.length} protected route(s)`);
-  if (features.oauthProviders.length > 0) parts.push(`OAuth: ${features.oauthProviders.join(", ")}`);
-  if (features.paymentForms.length > 0) parts.push(`${features.paymentForms.length} payment form(s)`);
+  if (features.paginatedPages.length > 0)
+    parts.push(`${features.paginatedPages.length} paginated page(s)`);
+  if (features.protectedRoutes.length > 0)
+    parts.push(`${features.protectedRoutes.length} protected route(s)`);
+  if (features.oauthProviders.length > 0)
+    parts.push(`OAuth: ${features.oauthProviders.join(", ")}`);
+  if (features.paymentForms.length > 0)
+    parts.push(`${features.paymentForms.length} payment form(s)`);
   if (features.fileUploads.length > 0) parts.push(`${features.fileUploads.length} file upload(s)`);
   return parts.length > 0 ? `Features found: ${parts.join(", ")}` : "No notable features detected";
 }

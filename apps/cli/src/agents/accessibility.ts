@@ -1,3 +1,4 @@
+import type { Page } from "./playwright-types.js";
 import type { A11yReport, A11yIssue, KeyboardNavResult, ProgressCallback } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 
@@ -5,8 +6,7 @@ import { safeEvaluate } from "./evaluate.js";
 // axe-core injection and execution
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runAxeCore(page: any, url: string): Promise<A11yIssue[]> {
+  async function runAxeCore(page: Page, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
   try {
@@ -126,8 +126,7 @@ function extractWcag(tags: string[]): string | undefined {
 // Manual accessibility checks (run always, augment axe results)
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
+  async function checkImagesAlt(page: Page, url: string): Promise<A11yIssue[]> {
   const results = await safeEvaluate<Array<{ src: string; html: string }>>(page, `
     (() => {
       const imgs = Array.from(document.querySelectorAll("img"));
@@ -152,8 +151,7 @@ async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
   }));
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
+  async function checkFormLabels(page: Page, url: string): Promise<A11yIssue[]> {
   const results = await safeEvaluate<Array<{ tag: string; type: string; name: string; id: string; html: string }>>(page, `
     (() => {
       const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
@@ -187,8 +185,7 @@ async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
   }));
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[]> {
+  async function checkHeadingHierarchy(page: Page, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
   const headings = await safeEvaluate<Array<{ level: number; text: string; html: string }>>(page, `
@@ -242,8 +239,7 @@ async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[
   return issues;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> {
+  async function checkColorContrast(page: Page, url: string): Promise<A11yIssue[]> {
   const results = await safeEvaluate<Array<{ text: string; ratio: string; required: string; color: string; bgColor: string; html: string }>>(page, `
     (() => {
       const issues = [];
@@ -316,8 +312,7 @@ async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> 
   }));
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> {
+  async function checkLangAttribute(page: Page, url: string): Promise<A11yIssue[]> {
   const hasLang = await safeEvaluate<boolean>(page, `!!document.documentElement.getAttribute("lang")`, false);
   if (!hasLang) {
     return [{
@@ -345,8 +340,7 @@ async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> 
   return [];
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkViewportMeta(page: any, url: string): Promise<A11yIssue[]> {
+  async function checkViewportMeta(page: Page, url: string): Promise<A11yIssue[]> {
   const viewport = await safeEvaluate<string | null>(page, `
     (() => {
       const meta = document.querySelector('meta[name="viewport"]');
@@ -396,8 +390,7 @@ async function checkViewportMeta(page: any, url: string): Promise<A11yIssue[]> {
 // Keyboard navigation testing
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function testKeyboardNavigation(page: any, _url: string): Promise<KeyboardNavResult> {
+  async function testKeyboardNavigation(page: Page, _url: string): Promise<KeyboardNavResult> {
   // Count total focusable elements
   const focusableCount = await safeEvaluate<number>(page, `
     document.querySelectorAll('a[href], button, input:not([type="hidden"]), textarea, select, [tabindex]:not([tabindex="-1"])').length
@@ -469,8 +462,7 @@ async function testKeyboardNavigation(page: any, _url: string): Promise<Keyboard
 // Skip navigation check
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkSkipNavigation(page: any): Promise<boolean> {
+  async function checkSkipNavigation(page: Page): Promise<boolean> {
   return safeEvaluate<boolean>(page, `
     (() => {
       // Check for skip-to-content links
@@ -489,8 +481,7 @@ async function checkSkipNavigation(page: any): Promise<boolean> {
 // Focus indicator check
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkFocusIndicators(page: any): Promise<boolean> {
+  async function checkFocusIndicators(page: Page): Promise<boolean> {
   return safeEvaluate<boolean>(page, `
     (() => {
       // Check a sample of interactive elements for focus styles
@@ -517,8 +508,7 @@ async function checkFocusIndicators(page: any): Promise<boolean> {
 // ARIA validation
 // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkAriaUsage(page: any, _url: string): Promise<A11yIssue[]> {
+  async function checkAriaUsage(page: Page, _url: string): Promise<A11yIssue[]> {
   return safeEvaluate<A11yIssue[]>(page, `
     (() => {
       const issues = [];
@@ -594,8 +584,7 @@ async function checkAriaUsage(page: any, _url: string): Promise<A11yIssue[]> {
 // ---------------------------------------------------------------------------
 
 export async function checkAccessibility(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<A11yReport> {

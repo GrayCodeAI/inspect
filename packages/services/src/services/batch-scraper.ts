@@ -2,6 +2,8 @@
 // packages/services/src/services/batch-scraper.ts - Firecrawl Batch & Media Service
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { generateId, sleep } from "@inspect/shared";
+import { generateId, sleep } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("services/batch-scraper");
@@ -326,12 +328,4 @@ export class BatchScraper {
       }).catch(() => {});
     }
   }
-}
-
-function generateId(): string {
-  return `batch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

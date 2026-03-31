@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { SuiteResult, TestResult, TestStep, Screenshot } from "./markdown.js";
+import { truncate } from "@inspect/shared";
 
 /** HTML reporter options */
 export interface HTMLReporterOptions {
@@ -71,7 +72,11 @@ export class HTMLReporter {
 
   private renderHeader(results: SuiteResult, stats: ReturnType<typeof this.getStats>): string {
     const date = new Date(results.startedAt).toLocaleDateString("en-US", {
-      year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
     const statusClass = stats.failed > 0 ? "fail" : "pass";
 
@@ -143,7 +148,8 @@ export class HTMLReporter {
   }
 
   private renderTest(test: TestResult): string {
-    const statusClass = test.status === "passed" ? "pass" : test.status === "failed" ? "fail" : "skip";
+    const statusClass =
+      test.status === "passed" ? "pass" : test.status === "failed" ? "fail" : "skip";
     const duration = this.formatDuration(test.duration);
 
     return `
@@ -179,10 +185,12 @@ export class HTMLReporter {
   private renderSteps(steps: TestStep[]): string {
     if (steps.length === 0) return "";
 
-    const rows = steps.map((step) => {
-      const statusClass = step.status === "passed" ? "pass" : step.status === "failed" ? "fail" : "skip";
+    const rows = steps
+      .map((step) => {
+        const statusClass =
+          step.status === "passed" ? "pass" : step.status === "failed" ? "fail" : "skip";
 
-      return `
+        return `
         <tr class="${statusClass}">
           <td>${step.index}</td>
           <td><code>${escapeHTML(step.action)}</code></td>
@@ -193,7 +201,8 @@ export class HTMLReporter {
         </tr>
         ${step.error ? `<tr class="step-error"><td colspan="6">${escapeHTML(step.error)}</td></tr>` : ""}
         ${step.thought ? `<tr class="step-thought"><td colspan="6"><em>${escapeHTML(truncate(step.thought, 200))}</em></td></tr>` : ""}`;
-    }).join("\n");
+      })
+      .join("\n");
 
     return `
       <div class="steps-section">
@@ -210,21 +219,23 @@ export class HTMLReporter {
   private renderScreenshots(screenshots: Screenshot[]): string {
     if (screenshots.length === 0) return "";
 
-    const items = screenshots.map((ss) => {
-      let src: string;
-      if (ss.data) {
-        // Validate base64 data contains only safe characters
-        const safeData = ss.data.replace(/[^A-Za-z0-9+/=]/g, "");
-        src = `data:image/png;base64,${safeData}`;
-      } else {
-        src = escapeHTML(ss.path ?? "");
-      }
-      return `
+    const items = screenshots
+      .map((ss) => {
+        let src: string;
+        if (ss.data) {
+          // Validate base64 data contains only safe characters
+          const safeData = ss.data.replace(/[^A-Za-z0-9+/=]/g, "");
+          src = `data:image/png;base64,${safeData}`;
+        } else {
+          src = escapeHTML(ss.path ?? "");
+        }
+        return `
         <div class="screenshot-item">
           <img src="${src}" alt="${escapeHTML(ss.name)}" onclick="openLightbox(this.src)" loading="lazy">
           <div class="screenshot-label">${escapeHTML(ss.name)}</div>
         </div>`;
-    }).join("\n");
+      })
+      .join("\n");
 
     return `
       <div class="screenshots-section">
@@ -370,7 +381,9 @@ export class HTMLReporter {
   private getStats(results: SuiteResult) {
     const total = results.tests.length;
     const passed = results.tests.filter((t) => t.status === "passed").length;
-    const failed = results.tests.filter((t) => t.status === "failed" || t.status === "error").length;
+    const failed = results.tests.filter(
+      (t) => t.status === "failed" || t.status === "error",
+    ).length;
     const skipped = results.tests.filter((t) => t.status === "skipped").length;
     const totalDuration = results.finishedAt - results.startedAt;
     const passRate = total > 0 ? Math.round((passed / Math.max(total - skipped, 1)) * 100) : 0;
@@ -394,8 +407,4 @@ function escapeHTML(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-}
-
-function truncate(str: string, maxLen: number): string {
-  return str.length > maxLen ? str.slice(0, maxLen - 3) + "..." : str;
 }

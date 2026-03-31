@@ -2,6 +2,7 @@
 // Load & Stress Testing Agent — Measures performance under concurrent load
 // ============================================================================
 
+import type { Browser, CDPSession, ConsoleMessage } from "./playwright-types.js";
 import type { Page } from "@inspect/browser";
 import { freemem, totalmem } from "node:os";
 import type { ProgressCallback } from "./types.js";
@@ -45,19 +46,19 @@ interface ThrottleProfile {
 
 const THROTTLE_PROFILES: Record<"3g" | "4g" | "wifi", ThrottleProfile> = {
   "3g": {
-    downloadThroughput: 750 * 1024 / 8,   // 750 Kbps
-    uploadThroughput: 250 * 1024 / 8,      // 250 Kbps
-    latency: 100,                           // 100ms
+    downloadThroughput: (750 * 1024) / 8, // 750 Kbps
+    uploadThroughput: (250 * 1024) / 8, // 250 Kbps
+    latency: 100, // 100ms
   },
   "4g": {
-    downloadThroughput: 4 * 1024 * 1024 / 8,  // 4 Mbps
-    uploadThroughput: 3 * 1024 * 1024 / 8,     // 3 Mbps
-    latency: 20,                                // 20ms
+    downloadThroughput: (4 * 1024 * 1024) / 8, // 4 Mbps
+    uploadThroughput: (3 * 1024 * 1024) / 8, // 3 Mbps
+    latency: 20, // 20ms
   },
-  "wifi": {
-    downloadThroughput: 30 * 1024 * 1024 / 8,  // 30 Mbps
-    uploadThroughput: 15 * 1024 * 1024 / 8,     // 15 Mbps
-    latency: 2,                                  // 2ms
+  wifi: {
+    downloadThroughput: (30 * 1024 * 1024) / 8, // 30 Mbps
+    uploadThroughput: (15 * 1024 * 1024) / 8, // 15 Mbps
+    latency: 2, // 2ms
   },
 };
 
@@ -94,13 +95,14 @@ export async function runLoadTest(
   }
   concurrency = effectiveConcurrency;
 
-  onProgress("info", `Running load test: ${concurrency} concurrent users for ${Math.round(duration / 1000)}s...`);
+  onProgress(
+    "info",
+    `Running load test: ${concurrency} concurrent users for ${Math.round(duration / 1000)}s...`,
+  );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let playwright: any;
+  let playwright: typeof import("playwright");
   try {
-    // @ts-expect-error — playwright is an optional peer dependency
-    playwright = await import("playwright");
+      playwright = await import("playwright");
   } catch {
     onProgress("fail", "  Playwright is not installed. Cannot run load tests.");
     return {
@@ -119,8 +121,7 @@ export async function runLoadTest(
 
   // Worker function — each concurrent "user" runs this
   async function worker(_workerId: number): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let browser: any = null;
+    let browser: Browser | null = null;
 
     try {
       browser = await playwright.chromium.launch({ headless: true });
@@ -169,10 +170,13 @@ export async function runLoadTest(
   }
 
   // Progress reporting while workers are running
-  const progressInterval = setInterval(() => {
-    const elapsed = Math.round((Date.now() - startTime) / 1000);
-    onProgress("step", `  ${elapsed}s elapsed — ${requestCount} requests, ${errorCount} errors`);
-  }, Math.min(duration / 4, 5_000));
+  const progressInterval = setInterval(
+    () => {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      onProgress("step", `  ${elapsed}s elapsed — ${requestCount} requests, ${errorCount} errors`);
+    },
+    Math.min(duration / 4, 5_000),
+  );
 
   // Wait for all workers to finish
   await Promise.allSettled(workers);
@@ -181,17 +185,15 @@ export async function runLoadTest(
   const totalDuration = Date.now() - startTime;
 
   // Calculate metrics
-  const avgResponseTime = responseTimes.length > 0
-    ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
-    : 0;
+  const avgResponseTime =
+    responseTimes.length > 0
+      ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+      : 0;
 
-  const maxResponseTime = responseTimes.length > 0
-    ? Math.max(...responseTimes)
-    : 0;
+  const maxResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
 
-  const throughput = totalDuration > 0
-    ? Math.round((requestCount / (totalDuration / 1000)) * 100) / 100
-    : 0;
+  const throughput =
+    totalDuration > 0 ? Math.round((requestCount / (totalDuration / 1000)) * 100) / 100 : 0;
 
   const result: LoadTestResult = {
     concurrency,
@@ -211,9 +213,15 @@ export async function runLoadTest(
   if (errorCount === 0 && avgResponseTime < 3000) {
     onProgress("pass", `  Load test passed: ${throughput} req/s, avg ${avgResponseTime}ms`);
   } else if (errorCount > requestCount * 0.1) {
-    onProgress("fail", `  Load test failed: ${errorCount} errors (${Math.round(errorCount / requestCount * 100)}% error rate)`);
+    onProgress(
+      "fail",
+      `  Load test failed: ${errorCount} errors (${Math.round((errorCount / requestCount) * 100)}% error rate)`,
+    );
   } else {
-    onProgress("warn", `  Load test completed with warnings: avg ${avgResponseTime}ms, ${errorCount} errors`);
+    onProgress(
+      "warn",
+      `  Load test completed with warnings: avg ${avgResponseTime}ms, ${errorCount} errors`,
+    );
   }
 
   onProgress("done", "Load test finished.");
@@ -247,8 +255,7 @@ export async function detectMemoryLeak(
   }
 
   // Get CDP session for memory metrics
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let client: any;
+  let client: CDPSession;
   try {
     client = await page.context().newCDPSession(page);
     await client.send("Performance.enable");
@@ -260,7 +267,7 @@ export async function detectMemoryLeak(
   // Measure initial heap size
   async function getHeapSize(): Promise<number> {
     try {
-      const { metrics } = await client.send("Performance.getMetrics") as {
+      const { metrics } = (await client.send("Performance.getMetrics")) as {
         metrics: Array<{ name: string; value: number }>;
       };
       const heapMetric = metrics.find((m) => m.name === "JSHeapUsedSize");
@@ -301,7 +308,11 @@ export async function detectMemoryLeak(
       switch (actionType) {
         case 0:
           // Scroll down and up
-          await safeEvaluate<void>(page, `window.scrollTo(0, document.body.scrollHeight)`, undefined);
+          await safeEvaluate<void>(
+            page,
+            `window.scrollTo(0, document.body.scrollHeight)`,
+            undefined,
+          );
           await page.waitForTimeout(200);
           await safeEvaluate<void>(page, `window.scrollTo(0, 0)`, undefined);
           break;
@@ -316,10 +327,7 @@ export async function detectMemoryLeak(
 
         case 2:
           // Trigger mouse movement to activate hover handlers
-          await page.mouse.move(
-            Math.floor(Math.random() * 600),
-            Math.floor(Math.random() * 400),
-          );
+          await page.mouse.move(Math.floor(Math.random() * 600), Math.floor(Math.random() * 400));
           break;
 
         case 3:
@@ -388,8 +396,7 @@ export async function stressTest(
     errors.push(`[PageError] ${error.message.slice(0, 150)}`);
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("console", (msg: any) => {
+  page.on("console", (msg: ConsoleMessage) => {
     if (msg.type() === "error") {
       const text = msg.text();
       if (!errors.some((e) => e.includes(text.slice(0, 50)))) {
@@ -418,15 +425,14 @@ export async function stressTest(
   }
 
   // Measure initial memory via CDP
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let client: any = null;
+  let client: CDPSession | null = null;
   let initialMemory = 0;
   let peakMemory = 0;
 
   try {
     client = await page.context().newCDPSession(page);
     await client.send("Performance.enable");
-    const { metrics } = await client.send("Performance.getMetrics") as {
+    const { metrics } = (await client.send("Performance.getMetrics")) as {
       metrics: Array<{ name: string; value: number }>;
     };
     const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
@@ -437,11 +443,15 @@ export async function stressTest(
   }
 
   // Get clickable elements
-  const clickTargets = await safeEvaluate<Array<{
-    x: number;
-    y: number;
-    tag: string;
-  }>>(page, `
+  const clickTargets = await safeEvaluate<
+    Array<{
+      x: number;
+      y: number;
+      tag: string;
+    }>
+  >(
+    page,
+    `
     (() => {
       const targets = [];
       const clickable = Array.from(
@@ -459,7 +469,9 @@ export async function stressTest(
       }
       return targets.slice(0, 50);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   // Perform rapid actions — wrapped in top-level try/catch so a single
   // crash does not kill the entire stress test
@@ -551,7 +563,7 @@ export async function stressTest(
         // Check memory every 10 actions via CDP — abort if JSHeapUsedSize > 500MB
         if (client && i % 10 === 0 && i > 0) {
           try {
-            const { metrics } = await client.send("Performance.getMetrics") as {
+            const { metrics } = (await client.send("Performance.getMetrics")) as {
               metrics: Array<{ name: string; value: number }>;
             };
             const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
@@ -560,8 +572,13 @@ export async function stressTest(
                 peakMemory = heap.value;
               }
               if (heap.value > HEAP_ABORT_THRESHOLD) {
-                onProgress("warn", `  Aborting stress test: JSHeapUsedSize (${Math.round(heap.value / 1_000_000)}MB) exceeds 500MB threshold`);
-                errors.push(`Memory abort at action ${i}: JSHeapUsedSize ${Math.round(heap.value / 1_000_000)}MB > 500MB`);
+                onProgress(
+                  "warn",
+                  `  Aborting stress test: JSHeapUsedSize (${Math.round(heap.value / 1_000_000)}MB) exceeds 500MB threshold`,
+                );
+                errors.push(
+                  `Memory abort at action ${i}: JSHeapUsedSize ${Math.round(heap.value / 1_000_000)}MB > 500MB`,
+                );
                 break;
               }
             }
@@ -573,7 +590,7 @@ export async function stressTest(
         // Also check memory at the original report interval for peak tracking
         else if (client && i % reportInterval === 0) {
           try {
-            const { metrics } = await client.send("Performance.getMetrics") as {
+            const { metrics } = (await client.send("Performance.getMetrics")) as {
               metrics: Array<{ name: string; value: number }>;
             };
             const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
@@ -588,7 +605,10 @@ export async function stressTest(
 
         // Report progress
         if (i % reportInterval === 0 && i > 0) {
-          onProgress("step", `  ${actionsExecuted}/${maxActions} actions completed, ${errors.length} errors`);
+          onProgress(
+            "step",
+            `  ${actionsExecuted}/${maxActions} actions completed, ${errors.length} errors`,
+          );
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -624,7 +644,7 @@ export async function stressTest(
     try {
       await client.send("HeapProfiler.collectGarbage").catch(() => {});
       await page.waitForTimeout(500);
-      const { metrics } = await client.send("Performance.getMetrics") as {
+      const { metrics } = (await client.send("Performance.getMetrics")) as {
         metrics: Array<{ name: string; value: number }>;
       };
       const heap = metrics.find((m) => m.name === "JSHeapUsedSize");
@@ -638,9 +658,8 @@ export async function stressTest(
     }
   }
 
-  const growthPercent = initialMemory > 0
-    ? ((finalMemory - initialMemory) / initialMemory) * 100
-    : 0;
+  const growthPercent =
+    initialMemory > 0 ? ((finalMemory - initialMemory) / initialMemory) * 100 : 0;
 
   const memoryProfile: MemoryProfile = {
     initial: initialMemory,
@@ -660,9 +679,15 @@ export async function stressTest(
   if (crashed) {
     onProgress("fail", `  Stress test: PAGE CRASHED after ${actionsExecuted} actions`);
   } else if (errors.length > actionsExecuted * 0.1) {
-    onProgress("fail", `  Stress test: High error rate — ${errors.length} errors in ${actionsExecuted} actions`);
+    onProgress(
+      "fail",
+      `  Stress test: High error rate — ${errors.length} errors in ${actionsExecuted} actions`,
+    );
   } else if (memoryProfile.leaked) {
-    onProgress("warn", `  Stress test: Memory leak detected (${Math.round(growthPercent)}% growth)`);
+    onProgress(
+      "warn",
+      `  Stress test: Memory leak detected (${Math.round(growthPercent)}% growth)`,
+    );
   } else {
     onProgress("pass", `  Stress test passed: ${actionsExecuted} actions, ${errors.length} errors`);
   }
@@ -683,12 +708,10 @@ export async function testWithThrottling(
   page: Page,
   url: string,
   profile: "3g" | "4g" | "wifi",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<{ loadTime: number; metrics: any }> {
+): Promise<{ loadTime: number; metrics: Record<string, unknown> }> {
   const throttle = THROTTLE_PROFILES[profile];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let client: any = null;
+  let client: CDPSession | null = null;
 
   try {
     client = await page.context().newCDPSession(page);
@@ -728,7 +751,9 @@ export async function testWithThrottling(
     resourceCount: number;
     totalTransferred: number;
     ttfb: number;
-  }>(page, `
+  }>(
+    page,
+    `
     (() => {
       const nav = performance.getEntriesByType("navigation")[0];
       const resources = performance.getEntriesByType("resource");
@@ -745,13 +770,15 @@ export async function testWithThrottling(
         ttfb: nav ? Math.round(nav.responseStart - nav.requestStart) : 0,
       };
     })()
-  `, {
-    domContentLoaded: 0,
-    fullLoad: 0,
-    resourceCount: 0,
-    totalTransferred: 0,
-    ttfb: 0,
-  });
+  `,
+    {
+      domContentLoaded: 0,
+      fullLoad: 0,
+      resourceCount: 0,
+      totalTransferred: 0,
+      ttfb: 0,
+    },
+  );
 
   // Disable throttling
   if (client) {
@@ -818,7 +845,9 @@ export async function testServiceWorker(
     hasServiceWorker: boolean;
     swUrl: string;
     state: string;
-  }>(page, `
+  }>(
+    page,
+    `
     (async () => {
       if (!("serviceWorker" in navigator)) {
         return { hasServiceWorker: false, swUrl: "", state: "" };
@@ -840,7 +869,9 @@ export async function testServiceWorker(
 
       return { hasServiceWorker: false, swUrl: "", state: "" };
     })()
-  `, { hasServiceWorker: false, swUrl: "", state: "" });
+  `,
+    { hasServiceWorker: false, swUrl: "", state: "" },
+  );
 
   if (!swInfo.hasServiceWorker) {
     return { hasServiceWorker: false, offlineWorks: false, cacheStrategy: null };
@@ -848,8 +879,7 @@ export async function testServiceWorker(
 
   // Test offline functionality using CDP
   let offlineWorks = false;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let client: any = null;
+  let client: CDPSession | null = null;
 
   try {
     client = await page.context().newCDPSession(page);
@@ -873,7 +903,9 @@ export async function testServiceWorker(
         hasContent: boolean;
         bodyLength: number;
         hasOfflineMessage: boolean;
-      }>(page, `
+      }>(
+        page,
+        `
         (() => {
           const bodyText = (document.body.textContent || "").trim();
           const hasOfflineMessage = /offline|no.+internet|connection.+lost/i.test(bodyText);
@@ -883,7 +915,9 @@ export async function testServiceWorker(
             hasOfflineMessage: hasOfflineMessage,
           };
         })()
-      `, { hasContent: false, bodyLength: 0, hasOfflineMessage: false });
+      `,
+        { hasContent: false, bodyLength: 0, hasOfflineMessage: false },
+      );
 
       offlineWorks = offlineContent.hasContent && !offlineContent.hasOfflineMessage;
     } catch {
@@ -912,7 +946,9 @@ export async function testServiceWorker(
       await page.waitForTimeout(1_000);
 
       // Fetch the SW script source to analyze strategy
-      cacheStrategy = await safeEvaluate<string | null>(page, `
+      cacheStrategy = await safeEvaluate<string | null>(
+        page,
+        `
         (async () => {
           try {
             const response = await fetch("${swInfo.swUrl.replace(/"/g, '\\"')}");
@@ -946,7 +982,9 @@ export async function testServiceWorker(
             return null;
           }
         })()
-      `, null);
+      `,
+        null,
+      );
     } catch {
       // Non-fatal
     }

@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { LLMCall, ProgressCallback, TestPlan } from "./types.js";
+import type { Page } from "./playwright-types.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -17,8 +18,7 @@ function mockLlm(response: string): LLMCall {
   return vi.fn().mockResolvedValue(response);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mockPage(overrides: Record<string, unknown> = {}): any {
+function mockPage(overrides: Record<string, unknown> = {}): Page {
   return {
     goto: vi.fn().mockResolvedValue(null),
     title: vi.fn().mockResolvedValue("Test Page"),

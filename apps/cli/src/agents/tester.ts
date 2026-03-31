@@ -1,3 +1,4 @@
+import type { Page } from "./playwright-types.js";
 import type { TestStep, LLMCall, ProgressCallback } from "./types.js";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
@@ -9,8 +10,7 @@ import { safeEvaluate } from "./evaluate.js";
 
 /** Find by CSS selector (LLM-generated) */
 async function findBySelector(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   description: string,
   snapshot: string,
   llm: LLMCall,
@@ -52,8 +52,7 @@ One selector only, no explanation.`,
 // ---------------------------------------------------------------------------
 
 async function clickElement(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   target: string,
   snapshot: string,
   llm: LLMCall,
@@ -103,8 +102,7 @@ async function clickElement(
 }
 
 async function fillElement(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   target: string,
   value: string,
   snapshot: string,
@@ -158,8 +156,7 @@ async function fillElement(
 }
 
 async function selectElement(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   target: string,
   value: string,
   snapshot: string,
@@ -202,8 +199,7 @@ const MAX_RETRIES = 2;
 
 export async function executeStep(
   step: TestStep,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   snapshotText: string,
   llm: LLMCall,
   onProgress: ProgressCallback,
@@ -265,8 +261,7 @@ export async function executeStep(
 
 async function executeAction(
   step: TestStep,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   snapshotText: string,
   llm: LLMCall,
   onProgress: ProgressCallback,
@@ -533,8 +528,7 @@ async function executeAction(
 
 async function verifyAssertion(
   assertion: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   snapshot: string,
   llm: LLMCall,
 ): Promise<{ passed: boolean; reason: string }> {

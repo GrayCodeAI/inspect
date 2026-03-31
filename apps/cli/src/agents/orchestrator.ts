@@ -1,3 +1,4 @@
+import type { Page } from "./playwright-types.js";
 import type {
   A11yReport,
   TestReport,
@@ -95,8 +96,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   } = options;
 
   // Mode-aware snapshot builder — hybrid merges ARIA+DOM (Stagehand pattern)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const captureSnapshot = async (page: any, builder: any): Promise<string> => {
+  const captureSnapshot = async (page: Page, builder: { buildTree: (page: Page) => Promise<unknown>; buildHybridTree: (page: Page) => Promise<{ formatted: string }>; getFormattedTree: () => string }): Promise<string> => {
     if (mode === "hybrid") {
       const { formatted } = await builder.buildHybridTree(page);
       return formatted;
@@ -193,8 +193,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   await browserMgr.launchBrowser({
     headless: !headed,
     viewport,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+      } as any);
   const page = await browserMgr.newPage();
 
   // Set up screenshot directory

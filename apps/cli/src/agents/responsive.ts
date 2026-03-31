@@ -1,3 +1,4 @@
+import type { Page } from "./playwright-types.js";
 import type { ResponsiveReport, ViewportResult, ResponsiveIssue, ProgressCallback } from "./types.js";
 import { safeEvaluate } from "./evaluate.js";
 import { join } from "node:path";
@@ -28,8 +29,7 @@ const VIEWPORTS: ViewportDef[] = [
 const MOBILE_BREAKPOINT = 768;
 
 export async function runResponsiveAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<ResponsiveReport> {
@@ -109,8 +109,7 @@ export async function runResponsiveAudit(
 }
 
 export async function testViewport(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   width: number,
   height: number,
@@ -170,8 +169,7 @@ export async function testViewport(
   };
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function checkHorizontalOverflow(page: any): Promise<ResponsiveIssue[]> {
+export async function checkHorizontalOverflow(page: Page): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
   const overflowData = await safeEvaluate<{
@@ -241,8 +239,7 @@ export async function checkHorizontalOverflow(page: any): Promise<ResponsiveIssu
   return issues;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function checkTouchTargets(page: any, isMobile: boolean): Promise<ResponsiveIssue[]> {
+export async function checkTouchTargets(page: Page, isMobile: boolean): Promise<ResponsiveIssue[]> {
   if (!isMobile) {
     return [];
   }
@@ -295,8 +292,7 @@ export async function checkTouchTargets(page: any, isMobile: boolean): Promise<R
   return issues;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function checkFontReadability(page: any, isMobile: boolean): Promise<ResponsiveIssue[]> {
+export async function checkFontReadability(page: Page, isMobile: boolean): Promise<ResponsiveIssue[]> {
   if (!isMobile) {
     return [];
   }
@@ -348,8 +344,7 @@ export async function checkFontReadability(page: any, isMobile: boolean): Promis
   return issues;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function checkImageScaling(page: any): Promise<ResponsiveIssue[]> {
+export async function checkImageScaling(page: Page): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
   const imageData = await safeEvaluate<Array<{
@@ -435,8 +430,7 @@ export async function checkImageScaling(page: any): Promise<ResponsiveIssue[]> {
   return issues;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]> {
+export async function checkStickyElements(page: Page): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
   // Find sticky/fixed elements before scrolling
@@ -560,8 +554,7 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
   return issues;
 }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function testMobileMenu(page: any): Promise<boolean | undefined> {
+export async function testMobileMenu(page: Page): Promise<boolean | undefined> {
   // Look for common hamburger menu selectors
   const menuButton = await safeEvaluate<{ found: boolean; selector: string | null }>(page, `
     (() => {

@@ -1,11 +1,20 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// @inspect/agent - Main exports
-// ──────────────────────────────────────────────────────────────────────────────
+// @inspect/agent — Backward-compatibility facade
+// Re-exports from @inspect/llm, @inspect/agent-memory, @inspect/agent-tools,
+// @inspect/agent-watchdogs, @inspect/agent-governance
+// New code should import the specific packages directly.
 
-// Providers
 export {
   LLMProvider,
   LLMError,
+  ClaudeProvider,
+  OpenAIProvider,
+  GeminiProvider,
+  DeepSeekProvider,
+  OllamaProvider,
+  AgentRouter,
+  RateLimiter,
+  RATE_LIMIT_PRESETS,
+  FallbackManager,
   type ProviderConfig,
   type LLMMessage,
   type LLMContentPart,
@@ -14,14 +23,122 @@ export {
   type LLMRequestOptions,
   type LLMResponse,
   type LLMChunk,
-} from "./providers/base.js";
+  type AgentRouterConfig,
+  type ProviderName,
+  type RateLimitConfig,
+  type FallbackConfig,
+  type LLMCallFn,
+} from "@inspect/llm";
 
-export { ClaudeProvider } from "./providers/claude.js";
-export { OpenAIProvider } from "./providers/openai.js";
-export { GeminiProvider } from "./providers/gemini.js";
-export { DeepSeekProvider } from "./providers/deepseek.js";
-export { OllamaProvider } from "./providers/ollama.js";
-export { AgentRouter, type AgentRouterConfig, type ProviderName } from "./providers/router.js";
+export {
+  MessageManager,
+  LongTermMemory,
+  ContextCompactor,
+  MessageCompactor,
+  PatternStore,
+  ActionCache,
+  SelfHealer,
+  LoopDetector,
+  ActionLoopDetector,
+  StallDetector,
+  type MessageManagerOptions,
+  type LearnedPattern,
+  type MemoryEntry,
+  type CompactionOptions,
+  type CompactionResult,
+  type CompactorConfig,
+  type StoredPattern,
+  type ActionCacheConfig,
+  type CachedAction,
+  type HealResult,
+  type HealCandidate,
+  type ElementDescription,
+  type SnapshotElement,
+  type ActionRecord,
+  type LoopDetection,
+  type LoopNudge,
+  type ActionLoopConfig,
+  type ActionLoopNudge,
+  type ReplanConfig,
+  type ReplanResult,
+} from "@inspect/agent-memory";
+
+export {
+  ToolRegistry,
+  CustomTools,
+  BaseTool,
+  toolAction,
+  toolProvider,
+  registerDecoratedTools,
+  ToolValidator,
+  NLAssert,
+  TokenTracker,
+  SensitiveDataMasker,
+  JudgeLLM,
+  UserToolRegistry,
+  defineTool,
+  type ToolHandler,
+  type ToolParameterSchema,
+  type ToolResult,
+  type RegisteredTool,
+  type CustomToolDefinition,
+  type CustomToolParameter,
+  type SkillReference,
+  type ToolMetadata,
+  type ToolActionMetadata,
+  type DecoratedMethod,
+  type ValidationError,
+  type ValidationResult,
+  type AssertionContext,
+  type AssertionResult,
+  type TokenBudget,
+  type TokenUsageEntry,
+  type TokenSummary,
+  type JudgeInput,
+  type JudgeVerdict,
+  type UserToolDefinition,
+} from "@inspect/agent-tools";
+
+export {
+  WatchdogManager,
+  CaptchaWatchdog,
+  DownloadWatchdog,
+  PopupWatchdog,
+  CrashWatchdog,
+  DOMWatchdog,
+  PermissionsWatchdog,
+  type WatchdogType,
+  type WatchdogEvent,
+  type WatchdogConfig,
+  type Watchdog,
+  type WatchdogCallback,
+  type TrackedDownload,
+  type TrackedPopup,
+  type PopupRule,
+  type CrashInfo,
+  type DOMMutation,
+  type PermissionRequest,
+  type PermissionRule,
+} from "@inspect/agent-watchdogs";
+
+export {
+  AuditTrail,
+  AutonomyManager,
+  AutonomyLevel,
+  PermissionManager,
+  type AuditEntry,
+  type AuditAction,
+  type AuditFilter,
+  type ToolCall,
+  type TokenUsage,
+  type ComplianceReport,
+  type AutonomyConfig,
+  type AgentPermissions,
+} from "@inspect/agent-governance";
+
+// OTP
+export { TOTPGenerator, generateTOTP, type TOTPConfig } from "./otp/totp.js";
+export { EmailPoller, type EmailPollConfig, type EmailPollResult } from "./otp/email-poll.js";
 
 // ACP
 export {
@@ -66,139 +183,7 @@ export {
   buildPerformanceInstruction,
 } from "./prompts/specialists/performance.js";
 
-// Memory
-export { MessageManager, type MessageManagerOptions } from "./memory/short-term.js";
-export { LongTermMemory, type LearnedPattern, type MemoryEntry } from "./memory/long-term.js";
-export {
-  ContextCompactor,
-  type CompactionOptions,
-  type CompactionResult,
-} from "./memory/compaction.js";
-
-// Cache
-export { ActionCache, type ActionCacheConfig, type CachedAction } from "./cache/action-cache.js";
-export {
-  SelfHealer,
-  type HealResult,
-  type HealCandidate,
-  type ElementDescription,
-  type SnapshotElement,
-} from "./cache/healing.js";
-
-// Watchdogs
-export {
-  WatchdogManager,
-  type WatchdogType,
-  type WatchdogEvent,
-  type WatchdogConfig,
-  type Watchdog,
-  type WatchdogCallback,
-} from "./watchdogs/manager.js";
-export { CaptchaWatchdog } from "./watchdogs/captcha.js";
-export { DownloadWatchdog, type TrackedDownload } from "./watchdogs/downloads.js";
-export { PopupWatchdog, type TrackedPopup, type PopupRule } from "./watchdogs/popups.js";
-export { CrashWatchdog, type CrashInfo } from "./watchdogs/crashes.js";
-export { DOMWatchdog, type DOMMutation } from "./watchdogs/dom.js";
-export {
-  PermissionsWatchdog,
-  type PermissionRequest,
-  type PermissionRule,
-} from "./watchdogs/permissions.js";
-
-// OTP
-export { TOTPGenerator, generateTOTP, type TOTPConfig } from "./otp/totp.js";
-export { EmailPoller, type EmailPollConfig, type EmailPollResult } from "./otp/email-poll.js";
-
-// Loop detection
-export {
-  LoopDetector,
-  type ActionRecord,
-  type LoopDetection,
-  type LoopNudge,
-} from "./loop/detector.js";
-export { ActionLoopDetector } from "./loop/action-loop.js";
-export type {
-  LoopDetectorConfig as ActionLoopConfig,
-  LoopNudge as ActionLoopNudge,
-} from "./loop/action-loop.js";
-
-// Tools
-export {
-  ToolRegistry,
-  type ToolHandler,
-  type ToolParameterSchema,
-  type ToolResult,
-  type RegisteredTool,
-} from "./tools/registry.js";
-export {
-  CustomTools,
-  type CustomToolDefinition,
-  type CustomToolParameter,
-  type SkillReference,
-} from "./tools/custom.js";
-export { BaseTool, type ToolMetadata } from "./tools/base.js";
-export {
-  toolAction,
-  toolProvider,
-  registerDecoratedTools,
-  type ToolActionMetadata,
-  type DecoratedMethod,
-} from "./tools/decorators.js";
-export { ToolValidator, type ValidationError, type ValidationResult } from "./tools/validator.js";
-export { NLAssert, type AssertionContext, type AssertionResult } from "./tools/nl-assert.js";
-
-// Rate limiting
-export { RateLimiter, RATE_LIMIT_PRESETS } from "./providers/rate-limiter.js";
-export type { RateLimitConfig } from "./providers/rate-limiter.js";
-
-// Fallback LLM
-export { FallbackManager } from "./providers/fallback.js";
-export type { FallbackConfig, LLMCallFn } from "./providers/fallback.js";
-
-// Token tracking
-export { TokenTracker } from "./tools/token-tracker.js";
-export type { TokenBudget, TokenUsageEntry, TokenSummary } from "./tools/token-tracker.js";
-
-// Sensitive data masking
-export { SensitiveDataMasker } from "./tools/sensitive-masker.js";
-
-// Judge LLM
-export { JudgeLLM } from "./tools/judge.js";
-export type { JudgeInput, JudgeVerdict } from "./tools/judge.js";
-
-// User-defined tools
-export { UserToolRegistry, defineTool } from "./tools/user-tools.js";
-export type { UserToolDefinition } from "./tools/user-tools.js";
-
-// Message compaction
-export { MessageCompactor } from "./memory/compactor.js";
-export type { CompactorConfig } from "./memory/compactor.js";
-
-// Stall detection + replan
-export { StallDetector } from "./loop/replan.js";
-export type { ReplanConfig, ReplanResult } from "./loop/replan.js";
-
-// Cross-session learning
-export { PatternStore } from "./memory/pattern-store.js";
-export type { LearnedPattern as StoredPattern } from "./memory/pattern-store.js";
-
-// Agent Governance & Observability
-export {
-  AuditTrail,
-  AutonomyManager,
-  AutonomyLevel,
-  PermissionManager,
-  type AuditEntry,
-  type AuditAction,
-  type AuditFilter,
-  type ToolCall,
-  type TokenUsage,
-  type ComplianceReport,
-  type AutonomyConfig,
-  type AgentPermissions,
-} from "./governance/index.js";
-
-// Multi-Agent Orchestration
+// Orchestration
 export {
   AgentGraph,
   type AgentNode,

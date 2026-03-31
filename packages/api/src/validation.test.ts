@@ -9,7 +9,6 @@ import {
   WorkflowError,
   CredentialError,
   NetworkError,
-  InspectError,
 } from "@inspect/shared";
 
 describe("validateBody", () => {

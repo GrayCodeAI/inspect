@@ -2,6 +2,7 @@
 // Crawler Agent (Agent 1) — Discovers all pages on a website
 // ============================================================================
 
+import type { Page } from "./playwright-types.js";
 import type {
   SiteMap,
   PageInfo,
@@ -20,8 +21,7 @@ import { safeEvaluate } from "./evaluate.js";
 
 export async function crawlSite(
   startUrl: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any, // Playwright Page
+  page: Page, // Playwright Page
   onProgress: ProgressCallback,
   options?: { maxPages?: number; maxDepth?: number; timeout?: number; crawlDelay?: number },
 ): Promise<SiteMap> {
@@ -228,8 +228,7 @@ export async function crawlSite(
 // ---------------------------------------------------------------------------
 
 async function visitPage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   depth: number,
   timeout: number,
@@ -262,8 +261,14 @@ async function visitPage(
   const loadTime = Date.now() - loadStart;
 
   // Extract page data in a single evaluate call for performance
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const extracted = await safeEvaluate<any>(
+  const extracted = await safeEvaluate<{
+      links: string[];
+      headings: string[];
+      meta: Record<string, string>;
+      forms: unknown[];
+      interactive: unknown[];
+      bodyText: string;
+    }>(
     page,
     `(() => {
     // Links
@@ -779,12 +784,7 @@ function parseSitemapXml(xml: string): string[] {
 // Fetch text content via Playwright page navigation
 // ---------------------------------------------------------------------------
 
-async function fetchTextViaPage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
-  url: string,
-  timeout: number,
-): Promise<string | null> {
+async function fetchTextViaPage(page: Page, url: string, timeout: number): Promise<string | null> {
   try {
     const response = await page.goto(url, {
       waitUntil: "domcontentloaded",

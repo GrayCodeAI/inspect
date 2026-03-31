@@ -1,42 +1,39 @@
-// ============================================================================
-// @inspect/quality - Quality & Testing Toolkit
-// ============================================================================
+// @inspect/quality — Backward-compatibility facade
+// Re-exports from @inspect/a11y, @inspect/lighthouse-quality, @inspect/chaos,
+// @inspect/security-scanner, @inspect/mocking, @inspect/resilience
+// New code should import the specific packages directly.
 
-// Accessibility
-export { AccessibilityAuditor, type A11yAuditOptions } from "./a11y/auditor.js";
 export {
+  AccessibilityAuditor,
   A11Y_RULES,
   ALL_A11Y_RULES,
   getRulesByTag,
   getRulesByImpact,
   getRulesByCategory,
   getRuleById,
-  type A11yRuleDefinition,
-} from "./a11y/rules.js";
-export {
   SitemapAuditor,
+  type A11yAuditOptions,
+  type A11yRuleDefinition,
   type SitemapAuditOptions,
   type SitemapAuditResult,
-} from "./a11y/sitemap.js";
+} from "@inspect/a11y";
 
-// Lighthouse
 export {
   LighthouseAuditor,
-  type LighthouseOptions,
-  type LighthouseBudget,
-} from "./lighthouse/auditor.js";
-export {
   BudgetManager,
   BUDGET_PRESETS,
+  ScoreHistory,
+  type LighthouseOptions,
+  type LighthouseBudget,
   type BudgetThreshold,
   type BudgetAssertionResult,
   type BudgetCheckResult,
-} from "./lighthouse/budgets.js";
-export { ScoreHistory, type ScoreEntry, type ScoreTrend } from "./lighthouse/history.js";
+  type ScoreEntry,
+  type ScoreTrend,
+} from "@inspect/lighthouse-quality";
 
-// Chaos Testing
-export { ChaosEngine, type ChaosOptions } from "./chaos/gremlins.js";
 export {
+  ChaosEngine,
   ClickerGremlin,
   TyperGremlin,
   ScrollerGremlin,
@@ -44,37 +41,32 @@ export {
   ToucherGremlin,
   GREMLIN_REGISTRY,
   createGremlin,
-  type Gremlin,
-  type GremlinInjectionOptions,
-} from "./chaos/species.js";
-export {
   FPS_MONITOR_SCRIPT,
   FPS_MONITOR_STOP_SCRIPT,
   ERROR_MONITOR_SCRIPT,
   ERROR_MONITOR_RESULTS_SCRIPT,
   ALERT_MONITOR_SCRIPT,
+  type ChaosOptions,
+  type Gremlin,
+  type GremlinInjectionOptions,
   type FPSMonitorResult,
   type ErrorMonitorResult,
   type AlertMonitorResult,
-} from "./chaos/monitors.js";
+} from "@inspect/chaos";
 
-// Security
-export { NucleiScanner, type NucleiOptions } from "./security/nuclei.js";
-export { ZAPScanner, type ZAPOptions } from "./security/zap.js";
 export {
+  NucleiScanner,
+  ZAPScanner,
   SecurityProxy,
+  type NucleiOptions,
+  type ZAPOptions,
   type SecurityProxyConfig,
   type SecurityHeaderFinding,
   type TrafficLogEntry,
-} from "./security/proxy.js";
+} from "@inspect/security-scanner";
 
-// Mocking
 export {
   NetworkInterceptor,
-  type InterceptorOptions,
-  type InterceptedRequest,
-} from "./mocking/interceptor.js";
-export {
   rest,
   graphql,
   response,
@@ -85,17 +77,25 @@ export {
   matchUrl,
   parseQuery,
   parseGraphQLOperation,
+  MockGenerator,
+  FakeData,
+  ws,
+  WsMockBuilder,
+  WsHandlerBuilder,
+  WsMessageMatcher,
+  MockWsConnection,
+  WsRecorder,
+  type InterceptorOptions,
+  type InterceptedRequest,
   type MockHandler,
   type MockRequest,
   type MockResponse,
   type HandlerFn,
-} from "./mocking/handlers.js";
-export { MockGenerator } from "./mocking/generators.js";
-export { FakeData } from "./mocking/faker.js";
+  type WsMessageHandlerFn,
+} from "@inspect/mocking";
 
-// Resilience / Fault Injection
-export { FaultInjector, type FaultConfig, type FaultStats } from "./resilience/faults.js";
 export {
+  FaultInjector,
   LatencyToxic,
   BandwidthToxic,
   TimeoutToxic,
@@ -105,17 +105,9 @@ export {
   LimitDataToxic,
   createToxic,
   TOXIC_PRESETS,
+  ProxyServer,
+  TOXICITY_PRESETS,
+  type FaultConfig,
+  type FaultStats,
   type Toxic,
-} from "./resilience/toxics.js";
-export { ProxyServer, TOXICITY_PRESETS } from "./resilience/proxy-server.js";
-
-// WebSocket Mocking
-export {
-  ws,
-  WsMockBuilder,
-  WsHandlerBuilder,
-  WsMessageMatcher,
-  MockWsConnection,
-  WsRecorder,
-  type WsMessageHandlerFn,
-} from "./mocking/ws.js";
+} from "@inspect/resilience";

@@ -1,3 +1,4 @@
+import type { Page, Request, ConsoleMessage, Response as PWResponse } from "./playwright-types.js";
 import type {
   PerformanceReport,
   CoreWebVitals,
@@ -14,8 +15,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function runPerformanceAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<PerformanceReport> {
@@ -31,8 +31,7 @@ export async function runPerformanceAudit(
   const redirectChains: RedirectChain[] = [];
   const redirectMap = new Map<string, string[]>();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("request", (req: any) => {
+  page.on("request", (req: Request) => {
     const redirected = req.redirectedFrom();
     if (redirected) {
       const startUrl = redirected.url();
@@ -135,8 +134,7 @@ export async function runPerformanceAudit(
 // Core Web Vitals
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
+export async function measureCoreWebVitals(page: Page): Promise<CoreWebVitals> {
   // Simulate a user interaction to trigger FID measurement
   try {
     await page.mouse.click(0, 0); // click at top-left (usually safe)
@@ -356,8 +354,7 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
 // Resource analysis
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
+export async function analyzeResources(page: Page): Promise<ResourceAnalysis> {
   const rawResources = await safeEvaluate<
     Array<{
       name: string;
@@ -504,16 +501,14 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
 // JavaScript error capture
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function captureJsErrors(page: any): Promise<string[]> {
+export async function captureJsErrors(page: Page): Promise<string[]> {
   const errors: string[] = [];
 
   page.on("pageerror", (error: Error) => {
     errors.push(`[PageError] ${error.message}`);
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("console", (msg: any) => {
+  page.on("console", (msg: ConsoleMessage) => {
     if (msg.type() === "error") {
       const text = msg.text();
       // Avoid duplicating page errors that also appear in console
@@ -533,8 +528,7 @@ export async function captureJsErrors(page: any): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 export async function monitorApiCalls(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   _url: string,
 ): Promise<SlowApiCall[]> {
   const slowCalls: SlowApiCall[] = [];
@@ -542,8 +536,7 @@ export async function monitorApiCalls(
 
   const SLOW_THRESHOLD_MS = 3000;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("request", (request: any) => {
+  page.on("request", (request: Request) => {
     const resourceType = request.resourceType();
     if (resourceType === "xhr" || resourceType === "fetch") {
       requestTimings.set(request.url(), {
@@ -553,8 +546,7 @@ export async function monitorApiCalls(
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("response", (response: any) => {
+  page.on("response", (response: PWResponse) => {
     const reqUrl = response.url();
     const timing = requestTimings.get(reqUrl);
     if (!timing) return;
@@ -578,8 +570,7 @@ export async function monitorApiCalls(
   });
 
   // Also capture timed-out requests that never got a response
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("requestfailed", (request: any) => {
+  page.on("requestfailed", (request: Request) => {
     const reqUrl = request.url();
     const timing = requestTimings.get(reqUrl);
     if (!timing) return;
@@ -602,8 +593,7 @@ export async function monitorApiCalls(
 // Mixed content detection
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function detectMixedContent(page: any): Promise<string[]> {
+export async function detectMixedContent(page: Page): Promise<string[]> {
   const pageUrl = page.url() as string;
 
   // Only relevant for HTTPS pages

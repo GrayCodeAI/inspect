@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, ServiceMap, Scope } from "effect";
+import { Effect, Layer, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
 import { CookieDatabaseCopyError, CookieReadError } from "./errors.js";
 

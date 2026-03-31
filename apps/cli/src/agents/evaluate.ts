@@ -1,5 +1,4 @@
-// ============================================================================
-// Safe page.evaluate wrapper with timeout guards
+import type { Page } from "./playwright-types.js";
 // ============================================================================
 
 /** Default timeout for page.evaluate calls (ms) */
@@ -11,8 +10,7 @@ const DEFAULT_TIMEOUT = 10_000;
  * it rejects after the timeout instead of blocking forever.
  */
 export async function safeEvaluate<T>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   script: string,
   fallback: T,
   timeout = DEFAULT_TIMEOUT,
@@ -35,8 +33,7 @@ export async function safeEvaluate<T>(
  * Silently catches errors and timeouts.
  */
 export async function safeEvaluateVoid(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   script: string,
   timeout = DEFAULT_TIMEOUT,
 ): Promise<void> {

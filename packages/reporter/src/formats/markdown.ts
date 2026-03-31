@@ -2,6 +2,8 @@
 // @inspect/reporter - Markdown Reporter
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { truncate } from "@inspect/shared";
+
 /** Test result data structure */
 export interface TestResult {
   /** Test name/instruction */
@@ -145,7 +147,9 @@ export class MarkdownReporter {
     const lines: string[] = [];
 
     const statusIcon = stats.failed > 0 ? "FAIL" : "PASS";
-    lines.push(`**${statusIcon}** | ${stats.passed}/${stats.total} passed | ${this.formatDuration(stats.totalDuration)}`);
+    lines.push(
+      `**${statusIcon}** | ${stats.passed}/${stats.total} passed | ${this.formatDuration(stats.totalDuration)}`,
+    );
 
     if (stats.failed > 0) {
       lines.push("\nFailed:");
@@ -199,7 +203,8 @@ export class MarkdownReporter {
 
   private generateTestDetail(test: TestResult): string {
     const lines: string[] = [];
-    const icon = test.status === "passed" ? "[PASS]" : test.status === "failed" ? "[FAIL]" : "[SKIP]";
+    const icon =
+      test.status === "passed" ? "[PASS]" : test.status === "failed" ? "[FAIL]" : "[SKIP]";
     const duration = this.formatDuration(test.duration);
 
     lines.push(`### ${icon} ${test.name}`);
@@ -232,7 +237,8 @@ export class MarkdownReporter {
       lines.push("|---|--------|--------|--------|----------|");
 
       for (const step of test.steps) {
-        const stepIcon = step.status === "passed" ? "OK" : step.status === "failed" ? "ERR" : "SKIP";
+        const stepIcon =
+          step.status === "passed" ? "OK" : step.status === "failed" ? "ERR" : "SKIP";
         const target = step.target ? truncate(step.target, 30) : "-";
         const dur = `${step.duration}ms`;
         lines.push(`| ${step.index} | ${step.action} | ${target} | ${stepIcon} | ${dur} |`);
@@ -262,7 +268,9 @@ export class MarkdownReporter {
       lines.push("<details>");
       lines.push(`<summary>Screenshots (${test.screenshots.length})</summary>\n`);
       for (const ss of test.screenshots) {
-        lines.push(`- [${ss.name}](${ss.path})${ss.stepIndex !== undefined ? ` (step ${ss.stepIndex})` : ""}`);
+        lines.push(
+          `- [${ss.name}](${ss.path})${ss.stepIndex !== undefined ? ` (step ${ss.stepIndex})` : ""}`,
+        );
       }
       lines.push("</details>\n");
     }
@@ -280,7 +288,9 @@ export class MarkdownReporter {
   private getStats(results: SuiteResult) {
     const total = results.tests.length;
     const passed = results.tests.filter((t) => t.status === "passed").length;
-    const failed = results.tests.filter((t) => t.status === "failed" || t.status === "error").length;
+    const failed = results.tests.filter(
+      (t) => t.status === "failed" || t.status === "error",
+    ).length;
     const skipped = results.tests.filter((t) => t.status === "skipped").length;
     const totalSteps = results.tests.reduce((sum, t) => sum + t.steps.length, 0);
     const totalDuration = results.finishedAt - results.startedAt;
@@ -296,8 +306,4 @@ export class MarkdownReporter {
     const seconds = ((ms % 60_000) / 1000).toFixed(0);
     return `${minutes}m ${seconds}s`;
   }
-}
-
-function truncate(str: string, maxLen: number): string {
-  return str.length > maxLen ? str.slice(0, maxLen - 3) + "..." : str;
 }

@@ -2,6 +2,7 @@
 // Navigator Agent (Agent 4) — Advanced navigation with popup/cookie/modal handling
 // ============================================================================
 
+import type { Page, ConsoleMessage, Response, Dialog } from "./playwright-types.js";
 import type { NavigationResult, ProgressCallback } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -95,8 +96,7 @@ const ACCEPT_BUTTON_TEXTS = [
 // ---------------------------------------------------------------------------
 
 export async function navigateTo(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<NavigationResult> {
@@ -108,8 +108,7 @@ export async function navigateTo(
   onProgress("info", `Navigating to ${url}`);
 
   // Capture console errors during navigation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const consoleHandler = (msg: any) => {
+  const consoleHandler = (msg: ConsoleMessage) => {
     if (msg.type() === "error") {
       consoleErrors.push(msg.text());
     }
@@ -126,8 +125,7 @@ export async function navigateTo(
   }
 
   // Navigate
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let response: any;
+  let response: Response | null;
   try {
     response = await page.goto(url, {
       waitUntil: "domcontentloaded",
@@ -202,8 +200,7 @@ export async function navigateTo(
 // handlePopups — Dismiss common popups and overlays
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function handlePopups(page: any): Promise<string[]> {
+export async function handlePopups(page: Page): Promise<string[]> {
   const handled: string[] = [];
 
   for (const selector of POPUP_SELECTORS) {
@@ -279,8 +276,7 @@ export async function handlePopups(page: any): Promise<string[]> {
 // dismissCookieConsent — Handle cookie banners from various libraries
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function dismissCookieConsent(page: any): Promise<boolean> {
+export async function dismissCookieConsent(page: Page): Promise<boolean> {
   // First, try well-known cookie consent library buttons directly
   const directButtons = [
     // CookieBot
@@ -398,9 +394,8 @@ export async function dismissCookieConsent(page: any): Promise<boolean> {
         if (visible) {
           // Verify the button is likely part of a cookie consent by checking
           // if it or a parent contains "cookie" or "consent" in its text/class
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const parentText: string = await btn
-            .evaluate((el: any) => {
+            .evaluate((el: Element) => {
               const parent = el.closest(
                 '[class*="cookie"], [class*="consent"], [id*="cookie"], [id*="consent"], [class*="banner"]',
               );
@@ -429,10 +424,8 @@ export async function dismissCookieConsent(page: any): Promise<boolean> {
 
 const dialogMessages: string[] = [];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function handleAlertDialogs(page: any): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("dialog", async (dialog: any) => {
+export async function handleAlertDialogs(page: Page): Promise<void> {
+  page.on("dialog", async (dialog: Dialog) => {
     const message = dialog.message();
     dialogMessages.push(message);
 
@@ -460,8 +453,7 @@ export async function handleAlertDialogs(page: any): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function waitForPageReady(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any,
+  page: Page,
   timeout: number = 10_000,
 ): Promise<void> {
   const deadline = Date.now() + timeout;
@@ -494,17 +486,14 @@ export async function waitForPageReady(
           // PerformanceObserver with layout-shift is a browser API —
           // we use string casts here because this runs in the browser context,
           // not in Node where TypeScript checks the types.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const observer = new PerformanceObserver((list: any) => {
+          const observer = new PerformanceObserver((list: PerformanceObserverEntryList) => {
             for (const entry of list.getEntries()) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               if ((entry as any).entryType === "layout-shift") {
                 lastShiftTime = Date.now();
               }
             }
           });
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           observer.observe({ type: "layout-shift" as any, buffered: false });
 
           const check = () => {
