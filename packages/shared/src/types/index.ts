@@ -18,3 +18,5 @@ export * from "./stealth.js";
 export * from "./proxy.js";
 export * from "./dashboard.js";
 export * from "./diff-plan.js";
+export * from "./matchers.js";
+export * from "./matchers.js";
