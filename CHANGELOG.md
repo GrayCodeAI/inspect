@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- CI/CD pipeline with GitHub Actions (build, test, lint, security scan)
+- Release workflow with auto-generated changelog and GitHub releases
+- Husky pre-commit hooks with lint-staged for automatic formatting
+- PR template with checklist for code quality
+- CODEOWNERS file for code review routing
 - Agent Governance & Observability system
   - Audit trail with SHA-256 hash chain for tamper detection
   - Autonomy levels (Augmentation → Supervision → Delegation → Autonomy)
