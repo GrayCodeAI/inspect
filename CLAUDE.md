@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Inspect is an AI-powered browser testing platform. It's a TypeScript monorepo with 18 packages.
+Inspect is an AI-powered browser testing platform. It's a TypeScript monorepo with 34 packages.
 
 ## Build & Run
 
@@ -22,21 +22,36 @@ node apps/cli/dist/index.js test -m "test login" --url https://example.com -y
 
 - `apps/cli/` — CLI entry point (Commander + Ink TUI)
 - `packages/shared/` — Types (122+), utils (25), constants (68), device presets (25)
+- `packages/observability/` — Analytics, tracing, metrics, logging, cost intelligence
 - `packages/browser/` — Playwright wrapper, ARIA snapshots, DOM, vision, cookies, MCP
-- `packages/agent/` — LLM providers (Claude/GPT/Gemini/DeepSeek/Ollama), prompts, memory, cache, watchdogs, governance, orchestration
-- `packages/core/` — Test orchestrator, git integration, GitHub PR, device pool, healing, generation
+- `packages/devices/` — Device presets and device pool
+- `packages/llm/` — LLM providers (Claude/GPT/Gemini/DeepSeek/Ollama), rate limiting, fallback
+- `packages/agent/` — Backward-compat facade (re-exports llm, agent-\*)
+- `packages/agent-memory/` — Action cache, short/long-term memory, compaction
+- `packages/agent-tools/` — Tool registry, decorators, judge, validator
+- `packages/agent-watchdogs/` — Captcha, crash, DOM, download, popup watchdogs
+- `packages/agent-governance/` — Audit trail, autonomy levels, permissions
+- `packages/orchestrator/` — Test execution, scheduling, recovery, caching, error classification
+- `packages/core/` — Backward-compat facade (re-exports orchestrator, git, devices)
+- `packages/git/` — Git integration, GitHub PR management
 - `packages/workflow/` — YAML workflow engine, 15 block types
 - `packages/credentials/` — Credential vault (Bitwarden, 1Password, Azure)
 - `packages/data/` — Data extraction, file parsers, cloud storage
 - `packages/api/` — REST API server, webhooks, SSE, WebSocket
 - `packages/network/` — Proxy, domain security, data masking, tunneling
-- `packages/observability/` — Analytics, tracing, metrics, logging, cost intelligence
-- `packages/quality/` — a11y, Lighthouse, chaos, security, mocking
+- `packages/quality/` — Backward-compat facade (re-exports a11y, chaos, etc.)
+- `packages/a11y/` — Accessibility auditing (axe-core, WCAG 2.2)
+- `packages/lighthouse-quality/` — Core Web Vitals, budgets, history
+- `packages/chaos/` — Gremlins.js chaos testing
+- `packages/security-scanner/` — Nuclei, ZAP security scanning
+- `packages/mocking/` — REST/GraphQL/WebSocket mocking
+- `packages/resilience/` — Network fault injection (TCP proxy, toxics)
 - `packages/visual/` — Pixel diff, slider reports, masking
 - `packages/reporter/` — Markdown/HTML/JSON reports
 - `packages/sdk/` — Public SDK (act/extract/observe/agent)
 - `packages/mcp/` — Standalone MCP server (Model Context Protocol)
 - `packages/enterprise/` — RBAC, SSO, multi-tenancy, hybrid LLM routing
+- `packages/services/` — Microservice architecture (9 services + 3 infra)
 
 ## Coding Conventions
 

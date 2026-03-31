@@ -7,13 +7,13 @@
   <img src="https://img.shields.io/badge/tests-1642%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node Version">
-  <img src="https://img.shields.io/badge/packages-18-orange" alt="Packages">
+  <img src="https://img.shields.io/badge/packages-34-orange" alt="Packages">
   <img src="https://img.shields.io/badge/CLI%20commands-76-purple" alt="CLI Commands">
 </p>
 
 ---
 
-Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 18 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, web crawling, stealth browsing, network fault injection, agent benchmarking, agent governance, enterprise RBAC/SSO, self-healing, and more.
+Inspect uses AI agents to test websites in real browsers. Give it a natural-language instruction and it launches Playwright, navigates pages, finds bugs, and reports results. It ships as a monorepo of 34 packages covering browser automation, 5 LLM providers, visual regression, accessibility auditing, performance scoring, security scanning, web crawling, stealth browsing, network fault injection, agent benchmarking, agent governance, enterprise RBAC/SSO, self-healing, and more.
 
 **Inspired by**: Playwright (browser API), Vitest (runner/reporter), Lighthouse (auditing), GitHub CLI (command structure), Vercel (developer experience), Expect (assertions)
 
@@ -394,16 +394,30 @@ inspect/
 │   └── cli/                  CLI (Commander + Ink TUI, 76 commands)
 ├── packages/
 │   ├── shared/               Types (160+), utils (24), constants, device presets
+│   ├── observability/        Analytics, tracing, metrics, logging, cost intelligence
 │   ├── browser/              Playwright, ARIA, DOM, vision, profiles, backends (Lightpanda)
-│   ├── agent/                5 LLM providers, tools registry, cache, memory, watchdogs, governance
-│   ├── core/                 Orchestrator, git integration, healing, generation, plugins
+│   ├── devices/              Device presets and device pool
+│   ├── llm/                  5 LLM providers (Claude, GPT, Gemini, DeepSeek, Ollama)
+│   ├── agent/                Backward-compat facade (re-exports llm, agent-*)
+│   ├── agent-memory/         Action cache, short/long-term memory, compaction
+│   ├── agent-tools/          Tool registry, decorators, judge, validator
+│   ├── agent-watchdogs/      Captcha, crash, DOM, download, popup watchdogs
+│   ├── agent-governance/     Audit trail, autonomy levels, permissions
+│   ├── orchestrator/         Test execution, scheduling, recovery, caching
+│   ├── core/                 Backward-compat facade (re-exports orchestrator, git, devices)
+│   ├── git/                  Git integration, GitHub PR management
 │   ├── workflow/             YAML engine, 14 block types (crawl, track, proxy, benchmark)
 │   ├── credentials/          AES-256-GCM vault (Bitwarden, 1Password, Azure)
 │   ├── data/                 Crawler, change tracking, extractors, parsers, cloud storage
 │   ├── api/                  REST server, webhooks, SSE, WebSocket
 │   ├── network/              Stealth browsing, proxy, domain security, data masking
-│   ├── observability/        Analytics, tracing, metrics, logging, cost intelligence
-│   ├── quality/              a11y, Lighthouse, chaos, security, mocking, TCP proxy
+│   ├── quality/              Backward-compat facade (re-exports a11y, chaos, etc.)
+│   ├── a11y/                 Accessibility auditing (axe-core, WCAG 2.2)
+│   ├── lighthouse-quality/   Core Web Vitals, budgets, history
+│   ├── chaos/                Gremlins.js chaos testing
+│   ├── security-scanner/     Nuclei, ZAP security scanning
+│   ├── mocking/              REST/GraphQL/WebSocket mocking
+│   ├── resilience/           Network fault injection (TCP proxy, toxics)
 │   ├── visual/               Pixel diff, masking, storybook, slider reports
 │   ├── reporter/             7 formats: list, dot, json, junit, html, markdown, github
 │   ├── sdk/                  Public SDK (9 methods)

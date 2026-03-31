@@ -14,7 +14,7 @@ npx vitest run
 
 - `apps/cli/` — CLI entry point (Commander + Ink TUI)
 - `apps/cli/src/agents/` — 28-agent autonomous testing system
-- `packages/` — 17 shared packages (shared, browser, agent, core, mcp, enterprise, etc.)
+- `packages/` — 34 packages (shared, observability, browser, llm, agent-\*, orchestrator, quality sub-packages, etc.)
 - `tests/` — Integration and E2E tests
 
 ## Development

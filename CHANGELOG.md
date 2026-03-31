@@ -53,16 +53,19 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Test suite grew from 986 to 1598 passing tests
-- 17 packages total (added `@inspect/mcp` and `@inspect/enterprise`)
+- Test suite grew from 986 to 1642 passing tests
+- 34 packages total (refactored from 17 into focused sub-packages)
 - Focused on CLI/REPL-first development
+- Reorganized monorepo: split `agent` into `agent-*` packages, `quality` into sub-packages, `core` into `orchestrator`/`git`/`devices`
+- Replaced `any` types with proper Playwright `Page` types across CLI agents
 
 ### Removed
 
 - Web dashboard (`apps/web/`) — removed to focus on CLI/REPL
-- `docker/Dockerfile.dashboard` — dashboard container removed
 - Dashboard service from `docker-compose.yml`
 - Web SPA serving from `inspect serve` command
+- Nested repositories (Airtest, LaVague, stagehand, skyvern, etc.)
+- Nested repositories (Airtest, LaVague, stagehand, skyvern, etc.)
 
 ### Added (original)
 
