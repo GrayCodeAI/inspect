@@ -60,8 +60,6 @@ import { registerRBACCommand } from "./commands/rbac.js";
 import { registerTenantCommand } from "./commands/tenant.js";
 import { registerSSOCommand } from "./commands/sso.js";
 import { registerAcpAgentsCommand } from "./commands/acp-agents.js";
-import { registerWatchCmdCommand } from "./commands/watch-cmd.js";
-import { registerFlowCmdCommand } from "./commands/flow-cmd.js";
 
 // Command group routers (organize subcommands under parent commands)
 import { registerChaosGroupCommand } from "./commands/chaos-group.js";
@@ -187,8 +185,6 @@ registerAliasCommand(program);
 
 // ── ACP & Coding Agent Commands ─────────────────────────────────────────
 registerAcpAgentsCommand(program);
-registerWatchCmdCommand(program);
-registerFlowCmdCommand(program);
 
 // ── Command Groups (organize subcommands under parents) ──────────────────
 registerChaosGroupCommand(program);
