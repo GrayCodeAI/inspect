@@ -21,7 +21,8 @@ describe("JSONParser", () => {
     it("parses nested objects", () => {
       const result = parser.parse('{"a":{"b":{"c":1}}}');
       expect(result.success).toBe(true);
-      expect((result.data as unknown).a.b.c).toBe(1);
+      const data = result.data as Record<string, Record<string, Record<string, number>>>;
+      expect(data.a.b.c).toBe(1);
     });
 
     it("parses with no recovery needed", () => {
@@ -55,7 +56,7 @@ describe("JSONParser", () => {
       }`;
       const result = parser.parse(input);
       expect(result.success).toBe(true);
-      expect((result.data as unknown).key).toBe("value");
+      expect((result.data as Record<string, unknown>).key).toBe("value");
       expect(result.recovered).toBe(true);
     });
 
@@ -67,14 +68,14 @@ describe("JSONParser", () => {
       }`;
       const result = parser.parse(input);
       expect(result.success).toBe(true);
-      expect((result.data as unknown).key).toBe("value");
+      expect((result.data as Record<string, unknown>).key).toBe("value");
     });
 
     it("preserves // inside strings", () => {
       const input = '{"url": "https://example.com"}';
       const result = parser.parse(input);
       expect(result.success).toBe(true);
-      expect((result.data as unknown).url).toBe("https://example.com");
+      expect((result.data as Record<string, unknown>).url).toBe("https://example.com");
     });
   });
 
@@ -82,15 +83,15 @@ describe("JSONParser", () => {
     it("handles single-quoted strings", () => {
       const result = parser.parse("{'key': 'value'}");
       expect(result.success).toBe(true);
-      expect((result.data as unknown).key).toBe("value");
+      expect((result.data as Record<string, unknown>).key).toBe("value");
     });
   });
 
   describe("unquoted keys", () => {
     it("handles unquoted object keys", () => {
-      const result = parser.parse("{name: \"Alice\"}");
+      const result = parser.parse('{name: "Alice"}');
       expect(result.success).toBe(true);
-      expect((result.data as unknown).name).toBe("Alice");
+      expect((result.data as Record<string, unknown>).name).toBe("Alice");
     });
   });
 
@@ -124,7 +125,7 @@ describe("JSONParser", () => {
       const buf = Buffer.from('{"x": 42}', "utf-8");
       const result = parser.parse(buf);
       expect(result.success).toBe(true);
-      expect((result.data as unknown).x).toBe(42);
+      expect((result.data as Record<string, unknown>).x).toBe(42);
     });
   });
 
@@ -154,7 +155,7 @@ describe("JSONParser", () => {
         },
       });
       expect(result.success).toBe(true);
-      expect((result.data as unknown).val).toBe(42);
+      expect((result.data as Record<string, unknown>).val).toBe(42);
     });
   });
 

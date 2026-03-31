@@ -37,7 +37,7 @@ export function createPageResources(page: Page): MCPResource[] {
       read: async () => {
         try {
           const errors = await page.evaluate(() => {
-            return (window as unknown).__inspectConsoleErrors ?? [];
+            return (window as { __inspectConsoleErrors?: unknown[] }).__inspectConsoleErrors ?? [];
           });
           return { errors };
         } catch {
@@ -53,7 +53,9 @@ export function createPageResources(page: Page): MCPResource[] {
       read: async () => {
         try {
           const requests = await page.evaluate(() => {
-            return (window as unknown).__inspectNetworkRequests ?? [];
+            return (
+              (window as { __inspectNetworkRequests?: unknown[] }).__inspectNetworkRequests ?? []
+            );
           });
           return { requests: requests.slice(-50) };
         } catch {
@@ -69,7 +71,9 @@ export function createPageResources(page: Page): MCPResource[] {
       read: async () => {
         try {
           const metrics = await page.evaluate(() => {
-            const perf = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+            const perf = performance.getEntriesByType(
+              "navigation",
+            )[0] as PerformanceNavigationTiming;
             return {
               loadTime: perf?.loadEventEnd - perf?.startTime,
               domContentLoaded: perf?.domContentLoadedEventEnd - perf?.startTime,
@@ -128,9 +132,7 @@ export function createPagePrompts(): MCPPrompt[] {
     {
       name: "generate_assertion",
       description: "Generate a test assertion for the current page state",
-      arguments: [
-        { name: "description", description: "What to assert", required: true },
-      ],
+      arguments: [{ name: "description", description: "What to assert", required: true }],
       getMessages: async (args) => [
         {
           role: "user",

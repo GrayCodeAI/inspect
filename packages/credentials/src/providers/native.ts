@@ -45,14 +45,9 @@ export class NativeCredentialStore {
       process.env.INSPECT_CREDENTIAL_KEY ??
       this.loadOrCreateKey(path.join(basePath, ".inspect"));
 
-    if (typeof keyMaterial === "string") {
-      // Key provided directly via env or option — use a deterministic salt for reproducibility
-      const salt = crypto.createHash("sha256").update(keyMaterial).digest();
-      this.encryptionKey = this.deriveKey(keyMaterial, salt);
-    } else {
-      // Key loaded from file — use stored salt
-      this.encryptionKey = this.deriveKey(keyMaterial.key, keyMaterial.salt);
-    }
+    // Use a deterministic salt for reproducibility
+    const salt = crypto.createHash("sha256").update(keyMaterial).digest();
+    this.encryptionKey = this.deriveKey(keyMaterial, salt);
     this.load();
   }
 
@@ -188,6 +183,21 @@ export class NativeCredentialStore {
    */
   private deriveKey(passphrase: string, salt: Buffer): Buffer {
     return crypto.pbkdf2Sync(passphrase, salt, 600_000, KEY_LENGTH, "sha512");
+  }
+
+  /**
+   * Load or create a random key file for the native credential store.
+   */
+  private loadOrCreateKey(dir: string): string {
+    const keyPath = path.join(dir, ".native-key");
+    try {
+      return fs.readFileSync(keyPath, "utf-8").trim();
+    } catch {
+      const key = crypto.randomBytes(32).toString("hex");
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(keyPath, key, { mode: 0o600 });
+      return key;
+    }
   }
 
   /**

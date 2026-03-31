@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { RefManager } from "./refs.js";
 import type { ElementSnapshot } from "@inspect/shared";
+import type { Page } from "playwright";
 
 function makeSnapshot(ref: string, role: string, name: string): ElementSnapshot {
   return {
@@ -66,7 +67,7 @@ describe("RefManager", () => {
   });
 
   it("resolveLocator throws for missing ref", () => {
-    const fakePage = {} as unknown;
+    const fakePage = {} as unknown as Page;
     expect(() => mgr.resolveLocator(fakePage, "e99")).toThrow('Reference "e99" not found');
   });
 });

@@ -2,7 +2,7 @@
 // @inspect/agent - ACP (Agent Communication Protocol) Client
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { LLMToolDefinition } from "../providers/base.js";
+import type { LLMToolDefinition } from "@inspect/llm";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/acp-client");
@@ -22,7 +22,14 @@ export interface ACPConfig {
 }
 
 /** ACP event types emitted during agent execution */
-export type ACPEventType = "thought" | "tool_call" | "tool_result" | "observation" | "action" | "error" | "done";
+export type ACPEventType =
+  | "thought"
+  | "tool_call"
+  | "tool_result"
+  | "observation"
+  | "action"
+  | "error"
+  | "done";
 
 /** An event from the ACP stream */
 export interface ACPEvent {
@@ -97,7 +104,9 @@ export class ACPClient {
       const response = await this.request("GET", "/auth/verify");
       return response.ok;
     } catch (error) {
-      logger.warn("ACP auth verification failed", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("ACP auth verification failed", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -186,7 +195,9 @@ export class ACPClient {
             try {
               event = JSON.parse(data);
             } catch (error) {
-              logger.debug("Failed to parse ACP stream event", { err: error instanceof Error ? error.message : String(error) });
+              logger.debug("Failed to parse ACP stream event", {
+                err: error instanceof Error ? error.message : String(error),
+              });
               continue;
             }
 
@@ -212,15 +223,11 @@ export class ACPClient {
       throw new ACPError("No active session", 0);
     }
 
-    const response = await this.request(
-      "POST",
-      `/sessions/${this.sessionId}/tool-result`,
-      {
-        toolCallId,
-        content: result,
-        isError: isError ?? false,
-      },
-    );
+    const response = await this.request("POST", `/sessions/${this.sessionId}/tool-result`, {
+      toolCallId,
+      content: result,
+      isError: isError ?? false,
+    });
 
     if (!response.ok) {
       const error = await response.text();
@@ -271,7 +278,9 @@ export class ACPClient {
       try {
         await this.request("DELETE", `/sessions/${this.sessionId}`);
       } catch (error) {
-        logger.debug("Failed to close ACP session", { err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Failed to close ACP session", {
+          err: error instanceof Error ? error.message : String(error),
+        });
       }
       this.sessionId = null;
     }
@@ -288,7 +297,9 @@ export class ACPClient {
       try {
         handler(event);
       } catch (error) {
-        logger.warn("ACP event handler failed", { err: error instanceof Error ? error.message : String(error) });
+        logger.warn("ACP event handler failed", {
+          err: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -298,7 +309,9 @@ export class ACPClient {
       try {
         handler(event);
       } catch (error) {
-        logger.warn("ACP wildcard event handler failed", { err: error instanceof Error ? error.message : String(error) });
+        logger.warn("ACP wildcard event handler failed", {
+          err: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }

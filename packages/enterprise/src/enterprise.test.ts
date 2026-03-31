@@ -3,6 +3,13 @@ import { RBACManager, Role } from "./rbac.js";
 import { HybridRouter } from "./hybrid-router.js";
 import { TenantManager } from "./tenant.js";
 import { SSOManager } from "./sso.js";
+import type { LLMProvider } from "@inspect/llm";
+
+const _mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as LLMProvider;
+const _mockCloudProvider = {
+  getName: () => "anthropic",
+  getModel: () => "claude-sonnet",
+} as LLMProvider;
 
 describe("RBACManager", () => {
   it("should allow tester to execute test command", () => {
@@ -49,8 +56,11 @@ describe("RBACManager", () => {
 });
 
 describe("HybridRouter", () => {
-  const mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as unknown;
-  const mockCloudProvider = { getName: () => "anthropic", getModel: () => "claude-sonnet" } as unknown;
+  const mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as LLMProvider;
+  const mockCloudProvider = {
+    getName: () => "anthropic",
+    getModel: () => "claude-sonnet",
+  } as LLMProvider;
 
   it("should route sensitive data to local", async () => {
     const router = new HybridRouter({

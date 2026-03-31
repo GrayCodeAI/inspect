@@ -18,11 +18,11 @@ export function createTaggedService<S>(): any {
       };
 }
 
-export type EffectFn<R extends Effect.Effect<any, any, any>> = R;
+export type EffectFn<R extends Effect.Effect<unknown, unknown, unknown>> = R;
 
-export function effectFn<Args extends Array<any>, Ret extends Effect.Effect<any, any, any>>(
-  _name: string,
-  fn: (...args: Args) => Ret,
-): (...args: Args) => Ret {
+export function effectFn<
+  Args extends Array<unknown>,
+  Ret extends Effect.Effect<unknown, unknown, unknown>,
+>(_name: string, fn: (...args: Args) => Ret): (...args: Args) => Ret {
   return fn;
 }

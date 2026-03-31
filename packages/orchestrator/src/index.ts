@@ -173,3 +173,23 @@ export {
   exportPlaywrightFromSuite,
 } from "./export/playwright.js";
 export type { PlaywrightExportOptions } from "./export/playwright.js";
+
+// Healing
+export { SelfHealer } from "./healing/healer.js";
+export {
+  HealingStrategy,
+  type HealingAttemptResult,
+  mapMethodToStrategy,
+} from "./healing/strategies.js";
+export { DOMDiffer, type DOMChange, type DOMDiffResult } from "./healing/dom-differ.js";
+
+// Static analysis
+export { StaticAnalyzer } from "./analysis/index.js";
+export type {
+  RouteInfo,
+  ApiCallInfo,
+  EventHandlerInfo,
+  StaticAnalysisResult,
+} from "./analysis/static-analyzer.js";
+export type { FormInfo as StaticFormInfo } from "./analysis/static-analyzer.js";
+export type { AnalyzedElement, FormInfo } from "./testing/generator.js";

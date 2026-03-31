@@ -7,8 +7,12 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./middleware/rbac.js": {
+      "types": "./dist/middleware/rbac.d.ts",
+      "default": "./dist/middleware/rbac.js"
     }
   },
   "scripts": {
@@ -19,7 +23,8 @@
   },
   "dependencies": {
     "@inspect/shared": "workspace:*",
-    "@inspect/observability": "workspace:*"
+    "@inspect/observability": "workspace:*",
+    "@inspect/enterprise": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

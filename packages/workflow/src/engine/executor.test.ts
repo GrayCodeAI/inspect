@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { WorkflowExecutor } from "./executor.js";
-import type { WorkflowDefinition, WorkflowBlock } from "@inspect/shared";
+import type { WorkflowDefinition, WorkflowBlock, WorkflowBlockType } from "@inspect/shared";
 
 function makeBlock(
   id: string,
@@ -10,14 +10,17 @@ function makeBlock(
 ): WorkflowBlock {
   return {
     id,
-    type: type as unknown,
+    type: type as WorkflowBlockType,
     label: `Block ${id}`,
     parameters: params,
     ...opts,
   };
 }
 
-function makeWorkflow(blocks: WorkflowBlock[], opts?: Partial<WorkflowDefinition>): WorkflowDefinition {
+function makeWorkflow(
+  blocks: WorkflowBlock[],
+  opts?: Partial<WorkflowDefinition>,
+): WorkflowDefinition {
   return {
     id: "test-workflow",
     name: "Test Workflow",
@@ -124,7 +127,7 @@ describe("WorkflowExecutor", () => {
       executor.registerBlockHandler("ok", async () => "success");
 
       const workflow = makeWorkflow([
-        makeBlock("b1", "fail", {}, { continueOnFailure: true } as unknown),
+        makeBlock("b1", "fail", {}, { continueOnFailure: true }),
         makeBlock("b2", "ok"),
       ]);
       const run = await executor.execute(workflow);
@@ -152,19 +155,16 @@ describe("WorkflowExecutor", () => {
         secondBlockInput = context.get("lastOutput");
       });
 
-      const workflow = makeWorkflow([
-        makeBlock("b1", "producer"),
-        makeBlock("b2", "consumer"),
-      ]);
+      const workflow = makeWorkflow([makeBlock("b1", "producer"), makeBlock("b2", "consumer")]);
       await executor.execute(workflow);
 
       expect(secondBlockInput).toBe("produced-value");
     });
 
     it("emits lifecycle events", async () => {
-      executor.registerBlockHandler("noop", async () => {});
+      executor.registerBlockHandler("noop" as WorkflowBlockType, async () => {});
 
-      const workflow = makeWorkflow([makeBlock("b1", "noop")]);
+      const workflow = makeWorkflow([makeBlock("b1", "noop" as WorkflowBlockType)]);
       await executor.execute(workflow);
 
       const eventNames = events.map((e) => e.event);
@@ -201,10 +201,7 @@ describe("WorkflowExecutor", () => {
         return "done";
       });
 
-      const workflow = makeWorkflow([
-        makeBlock("b1", "slow"),
-        makeBlock("b2", "slow"),
-      ]);
+      const workflow = makeWorkflow([makeBlock("b1", "slow"), makeBlock("b2", "slow")]);
 
       // Start and immediately cancel
       const runPromise = executor.execute(workflow);

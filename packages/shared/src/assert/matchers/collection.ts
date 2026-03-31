@@ -165,7 +165,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 function isIterable(value: unknown): value is Iterable<unknown> {
-  return value != null && typeof (value as any)[Symbol.iterator] === "function";
+  return value != null && typeof (value as Iterable<unknown>)[Symbol.iterator] === "function";
 }
 
 function formatType(value: unknown): string {

@@ -262,13 +262,13 @@ async function visitPage(
 
   // Extract page data in a single evaluate call for performance
   const extracted = await safeEvaluate<{
-      links: string[];
-      headings: string[];
-      meta: Record<string, string>;
-      forms: unknown[];
-      interactive: unknown[];
-      bodyText: string;
-    }>(
+    links: string[];
+    headings: string[];
+    meta: Record<string, string>;
+    forms: unknown[];
+    interactive: unknown[];
+    bodyText: string;
+  }>(
     page,
     `(() => {
     // Links
@@ -798,7 +798,12 @@ async function fetchTextViaPage(page: Page, url: string, timeout: number): Promi
     // For XML/text content, get the body text
     if (contentType.includes("xml") || contentType.includes("text/plain")) {
       return await page.evaluate(
-        () => document.body?.innerText ?? document.documentElement?.textContent ?? "",
+        () =>
+          (globalThis as unknown as typeof globalThis & { document: Document }).document.body
+            ?.innerText ??
+          (globalThis as unknown as typeof globalThis & { document: Document }).document
+            .documentElement?.textContent ??
+          "",
       );
     }
 

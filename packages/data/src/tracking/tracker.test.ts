@@ -8,7 +8,7 @@ describe("Snapshotter", () => {
       expect(snap.url).toBe("https://example.com");
       expect(snap.textContent).toContain("Hello");
       expect(snap.hash).toBeDefined();
-      expect(snap.id).toMatch(/^snap_/);
+      expect(snap.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(snap.timestamp).toBeGreaterThan(0);
     });
 

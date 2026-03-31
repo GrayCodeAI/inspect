@@ -5,7 +5,10 @@ import { FileSystem } from "effect/FileSystem";
 import { RecorderInjectionError, SessionLoadError } from "./errors.js";
 import type { CollectResult } from "./types.js";
 
-const evaluateRuntime = (page: Page, fnName: string): Effect.Effect<unknown, RecorderInjectionError> =>
+const evaluateRuntime = (
+  page: Page,
+  fnName: string,
+): Effect.Effect<unknown, RecorderInjectionError> =>
   Effect.tryPromise({
     try: () => page.evaluate(`typeof ${fnName} === 'function' ? ${fnName}() : null`),
     catch: (cause) => new RecorderInjectionError({ cause: String(cause) }),
@@ -18,7 +21,10 @@ export const collectEvents = Effect.fn("Recorder.collectEvents")(function* (page
   const total = yield* evaluateRuntime(page, "getEventCount").pipe(
     Effect.catchCause((cause) => new RecorderInjectionError({ cause: String(cause) }).asEffect()),
   );
-  return { events, total: total + events.length } satisfies CollectResult;
+  return {
+    events: events as eventWithTime[],
+    total: (total as number) + (events as eventWithTime[]).length,
+  } satisfies CollectResult;
 });
 
 export const collectAllEvents = Effect.fn("Recorder.collectAllEvents")(function* (page: Page) {
@@ -75,11 +81,14 @@ export class SessionRecorder {
 
   async start(): Promise<void> {
     await this.page.evaluate(() => {
-      if (typeof rrweb !== "undefined") {
-        rrweb.record({
-          emit(event) {
-            if (window.__rrwebEvents__.length < window.__rrwebMaxEvents__) {
-              window.__rrwebEvents__.push(event);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const g = globalThis as any;
+      if (typeof g.rrweb !== "undefined") {
+        g.rrweb.record({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          emit(event: any) {
+            if (g.__rrwebEvents__.length < g.__rrwebMaxEvents__) {
+              g.__rrwebEvents__.push(event);
             }
           },
           checkoutEveryNms: 60000,
@@ -89,7 +98,8 @@ export class SessionRecorder {
   }
 
   async getEvents(): Promise<eventWithTime[]> {
-    return this.page.evaluate(() => window.__rrwebEvents__ || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.page.evaluate(() => (globalThis as any).__rrwebEvents__ || []);
   }
 
   async stop(): Promise<eventWithTime[]> {

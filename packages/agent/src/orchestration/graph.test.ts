@@ -9,17 +9,26 @@ describe("AgentGraph", () => {
     graph.addNode({
       id: "a",
       name: "Node A",
-      execute: async () => { executionOrder.push("a"); return "a-result"; },
+      execute: async () => {
+        executionOrder.push("a");
+        return "a-result";
+      },
     });
     graph.addNode({
       id: "b",
       name: "Node B",
-      execute: async () => { executionOrder.push("b"); return "b-result"; },
+      execute: async () => {
+        executionOrder.push("b");
+        return "b-result";
+      },
     });
     graph.addNode({
       id: "c",
       name: "Node C",
-      execute: async () => { executionOrder.push("c"); return "c-result"; },
+      execute: async () => {
+        executionOrder.push("c");
+        return "c-result";
+      },
     });
 
     graph.addEdge({ from: "a", to: "b" });
@@ -188,7 +197,7 @@ describe("AgentGraph", () => {
     graph.addEdge({
       from: "source",
       to: "consumer",
-      transform: (output: unknown) => ({ doubled: output.count * 2 }),
+      transform: (output: unknown) => ({ doubled: (output as { count: number }).count * 2 }),
     });
 
     const result = await graph.execute();

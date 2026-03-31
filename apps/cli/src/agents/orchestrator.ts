@@ -96,7 +96,14 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   } = options;
 
   // Mode-aware snapshot builder — hybrid merges ARIA+DOM (Stagehand pattern)
-  const captureSnapshot = async (page: Page, builder: { buildTree: (page: Page) => Promise<unknown>; buildHybridTree: (page: Page) => Promise<{ formatted: string }>; getFormattedTree: () => string }): Promise<string> => {
+  const captureSnapshot = async (
+    page: Page,
+    builder: {
+      buildTree: (page: Page) => Promise<unknown>;
+      buildHybridTree: (page: Page) => Promise<{ formatted: string }>;
+      getFormattedTree: () => string;
+    },
+  ): Promise<string> => {
     if (mode === "hybrid") {
       const { formatted } = await builder.buildHybridTree(page);
       return formatted;
@@ -193,7 +200,8 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   await browserMgr.launchBrowser({
     headless: !headed,
     viewport,
-      } as any);
+    stealth: true,
+  });
   const page = await browserMgr.newPage();
 
   // Set up screenshot directory

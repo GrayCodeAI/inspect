@@ -40,3 +40,17 @@ export type { JudgeInput, JudgeVerdict } from "./tools/judge.js";
 
 export { UserToolRegistry, defineTool } from "./tools/user-tools.js";
 export type { UserToolDefinition } from "./tools/user-tools.js";
+
+// Loop detection and action loops
+export {
+  LoopDetector,
+  ActionLoopDetector,
+  StallDetector,
+  type ActionRecord,
+  type LoopDetection,
+  type LoopNudge,
+  type ActionLoopConfig,
+  type ActionLoopNudge,
+  type ReplanConfig,
+  type ReplanResult,
+} from "./loop/index.js";

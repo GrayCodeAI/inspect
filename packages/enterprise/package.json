@@ -20,7 +20,8 @@
   "dependencies": {
     "@inspect/shared": "workspace:*",
     "@inspect/observability": "workspace:*",
-    "@inspect/agent": "workspace:*"
+    "@inspect/agent": "workspace:*",
+    "@inspect/llm": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

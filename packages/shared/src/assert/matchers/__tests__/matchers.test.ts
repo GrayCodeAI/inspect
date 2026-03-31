@@ -376,10 +376,8 @@ describe("expect", () => {
     });
 
     describe("rejects", () => {
-      it("rejects.toBe works", async () => {
-        await expect(
-          inspectExpect(Promise.reject(new Error("boom"))).rejects.toMatch(/boom/),
-        ).toBeDefined();
+      it("rejects.toMatch works", async () => {
+        await expect(inspectExpect(Promise.reject("boom")).rejects.toMatch(/boom/)).toBeDefined();
       });
 
       it("rejects.toEqual works", async () => {

@@ -9,6 +9,7 @@ export {
   prettyCause,
   hasStringMessage,
 } from "./effect/index.js";
+export { Unsubscribe, EventBus } from "./effect/event-bus.js";
 export * from "./validation.js";
 export {
   InspectError as LegacyInspectError,

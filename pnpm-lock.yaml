@@ -258,22 +258,12 @@ importers:
 
   packages/api:
     dependencies:
+      '@inspect/enterprise':
+        specifier: workspace:*
+        version: link:../enterprise
       '@inspect/observability':
         specifier: workspace:*
         version: link:../observability
-      '@inspect/shared':
-        specifier: workspace:*
-        version: link:../shared
-    devDependencies:
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.15
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  packages/assert:
-    dependencies:
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
@@ -475,6 +465,9 @@ importers:
       '@inspect/agent':
         specifier: workspace:*
         version: link:../agent
+      '@inspect/llm':
+        specifier: workspace:*
+        version: link:../llm
       '@inspect/observability':
         specifier: workspace:*
         version: link:../observability

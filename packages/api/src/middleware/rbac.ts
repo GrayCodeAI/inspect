@@ -79,7 +79,7 @@ export function createRBACMiddleware(config?: RBACMiddlewareConfig): Middleware 
     }
 
     // Require authentication
-    const user = (req as Record<string, unknown>).user as UserIdentity | undefined;
+    const user = (req as unknown as Record<string, unknown>).user as UserIdentity | undefined;
     if (!user) {
       // Let jwtAuth handle missing auth — if we got here without a user,
       // jwtAuth is not configured or failed silently

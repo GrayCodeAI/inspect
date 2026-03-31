@@ -13,11 +13,11 @@ function mockServerResponse(): ServerResponse & {
   _ended: boolean;
 } {
   const emitter = new EventEmitter();
-  const mock: unknown = Object.assign(emitter, {
+  const mock = Object.assign(emitter, {
     _written: [] as string[],
     _headers: {} as Record<string, string | number>,
     _ended: false,
-    writableEnded: false,
+    writableEnded: false as boolean,
     writeHead(statusCode: number, headers: Record<string, string>) {
       mock._headers = { ...mock._headers, statusCode, ...headers };
     },
@@ -27,9 +27,14 @@ function mockServerResponse(): ServerResponse & {
     },
     end() {
       mock._ended = true;
-      mock.writableEnded = true;
+      Object.defineProperty(mock, "writableEnded", { value: true, writable: true });
     },
-  });
+  }) as ServerResponse & {
+    _written: string[];
+    _headers: Record<string, string | number>;
+    _ended: boolean;
+    writableEnded: boolean;
+  };
   return mock;
 }
 

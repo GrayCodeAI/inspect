@@ -75,7 +75,16 @@ export interface ProviderConfig {
  */
 export interface BrowserSession {
   browserManager: InstanceType<typeof import("@inspect/browser").BrowserManager>;
-  page: unknown; // Playwright Page - typed loosely to avoid playwright dependency
+  page: {
+    goto: (
+      url: string,
+      opts?: {
+        waitUntil?: "load" | "domcontentloaded" | "networkidle" | "commit";
+        timeout?: number;
+        referer?: string;
+      },
+    ) => Promise<unknown>;
+  };
   close: () => Promise<void>;
 }
 
@@ -198,7 +207,8 @@ export class CLIContext {
     await browserManager.launchBrowser({
       headless: !(options?.headed ?? this.config.headed),
       viewport: options?.viewport ?? this.config.viewport,
-    } as unknown);
+      stealth: true,
+    });
 
     const page = await browserManager.newPage();
 
@@ -248,7 +258,7 @@ export class CLIContext {
 
     // Convenience LLM function
     const llm = async (messages: Array<{ role: string; content: string }>) => {
-      const response = await provider.chat(messages as unknown);
+      const response = await provider.chat(messages as import("@inspect/agent").LLMMessage[]);
       return response.content;
     };
 

@@ -4,8 +4,6 @@
 
 import { generateId } from "@inspect/shared";
 
-import { generateId } from "@inspect/shared";
-
 /** Message priority */
 export type MessagePriority = "low" | "normal" | "high" | "critical";
 

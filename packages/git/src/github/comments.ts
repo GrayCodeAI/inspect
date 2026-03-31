@@ -3,7 +3,6 @@ import { promisify } from "node:util";
 import type { PRInfo } from "./pr.js";
 import { createLogger } from "@inspect/observability";
 import { formatDuration } from "@inspect/shared";
-import { formatDuration } from "@inspect/shared";
 
 const execFile = promisify(execFileCb);
 const logger = createLogger("core/github-comments");

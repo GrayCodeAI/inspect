@@ -160,7 +160,23 @@ export async function detectForms(page: Page): Promise<FormInfo[]> {
       });
     })()
   `,
-        [] as any,
+    [] as unknown as {
+      action: string | null;
+      method: string;
+      fields: {
+        name: string;
+        type: string;
+        label: string | null;
+        placeholder: string | null;
+        required: boolean;
+        pattern: string | null;
+        minLength: number | null;
+        maxLength: number | null;
+        options: string[];
+        autocomplete: string | null;
+      }[];
+      hasSubmitButton: boolean;
+    }[],
   );
 
   const currentUrl: string = page.url();
@@ -380,7 +396,7 @@ function classifyForm(
 // ---------------------------------------------------------------------------
 
 export async function fillForm(
-    page: Page,
+  page: Page,
   formInfo: FormInfo,
   testData: TestDataSet,
   onProgress: ProgressCallback,
@@ -438,7 +454,8 @@ export async function fillForm(
     try {
       // Try finding the submit button within the form context
       const submitClicked = await page.evaluate(() => {
-        const form = document.querySelector("form");
+        const doc = (globalThis as unknown as { document: Document }).document;
+        const form = doc.querySelector("form");
         if (!form) return false;
         const btn =
           form.querySelector<HTMLElement>('button[type="submit"]') ??
@@ -534,7 +551,7 @@ export async function fillForm(
 // ---------------------------------------------------------------------------
 
 export async function testFormValidation(
-    page: Page,
+  page: Page,
   formInfo: FormInfo,
   llm: LLMCall,
   onProgress: ProgressCallback,
@@ -574,7 +591,7 @@ export async function testFormValidation(
   try {
     await page.reload({ waitUntil: "domcontentloaded", timeout: 10000 });
     const invalidData = generateInvalidData();
-    const invalidResult = await fillAndSubmit(page, formInfo, invalidData, onProgress);
+    const invalidResult = await fillForm(page, formInfo, invalidData, onProgress);
     invalidResult.testType = "invalid";
 
     // We expect validation errors for invalid data
@@ -641,7 +658,7 @@ Does the page show any validation error messages or rejection? Answer JSON: {"ha
   try {
     await page.reload({ waitUntil: "domcontentloaded", timeout: 10000 });
     const boundaryData = generateBoundaryData(formInfo);
-    const boundaryResult = await fillAndSubmit(page, formInfo, boundaryData, onProgress);
+    const boundaryResult = await fillForm(page, formInfo, boundaryData, onProgress);
     boundaryResult.testType = "boundary";
 
     // Boundary test passes if the form handles edge cases gracefully (errors or accepts)
@@ -870,7 +887,7 @@ function generateBoundaryData(formInfo: FormInfo): TestDataSet {
 
 /** Submit the form without filling and collect validation errors */
 async function submitAndCollectErrors(
-    page: Page,
+  page: Page,
   url: string,
   formInfo: FormInfo,
   _onProgress: ProgressCallback,
@@ -883,7 +900,8 @@ async function submitAndCollectErrors(
   if (formInfo.hasSubmitButton) {
     try {
       const clicked = await page.evaluate(() => {
-        const form = document.querySelector("form");
+        const doc = (globalThis as unknown as { document: Document }).document;
+        const form = doc.querySelector("form");
         if (!form) return false;
         const btn =
           form.querySelector<HTMLElement>('button[type="submit"]') ??
@@ -951,139 +969,6 @@ async function submitAndCollectErrors(
     formType: formInfo.formType,
     fieldsFound: formInfo.fields.length,
     fieldsFilled: 0,
-    submitted,
-    validationErrors,
-    passed: false, // caller will determine
-    duration: Date.now() - startTime,
-    testType: "empty",
-  };
-}
-
-/** Fill a form with arbitrary data and submit, returning the result */
-async function fillAndSubmit(
-    page: Page,
-  formInfo: FormInfo,
-  data: TestDataSet,
-  _onProgress: ProgressCallback,
-): Promise<FormTestResult> {
-  const startTime = Date.now();
-  const url: string = page.url();
-  let fieldsFilled = 0;
-
-  for (const field of formInfo.fields) {
-    try {
-      const value = resolveFieldValue(field, data);
-      if (value === null) continue;
-
-      const selector = buildFieldSelector(field);
-
-      if (field.type === "select" || field.type === "select-one") {
-        if (field.options && field.options.length > 0) {
-          await page.selectOption(selector, field.options[0], { timeout: 3000 });
-          fieldsFilled++;
-        }
-      } else if (field.type === "checkbox") {
-        await page.check(selector, { timeout: 3000 });
-        fieldsFilled++;
-      } else if (field.type === "radio") {
-        if (field.options && field.options.length > 0) {
-          await page.check(`input[name="${field.name}"][value="${field.options[0]}"]`, {
-            timeout: 3000,
-          });
-        } else {
-          await page.check(selector, { timeout: 3000 });
-        }
-        fieldsFilled++;
-      } else if (field.type === "file") {
-        continue;
-      } else {
-        // Clear existing value first
-        try {
-          await page.fill(selector, "", { timeout: 2000 });
-        } catch {
-          // field may not be clearable
-        }
-        await page.fill(selector, value, { timeout: 3000 });
-        fieldsFilled++;
-      }
-    } catch {
-      // Skip fields that can't be filled
-    }
-  }
-
-  // Submit
-  let submitted = false;
-  if (formInfo.hasSubmitButton) {
-    try {
-      const clicked = await page.evaluate(() => {
-        const form = document.querySelector("form");
-        if (!form) return false;
-        const btn =
-          form.querySelector<HTMLElement>('button[type="submit"]') ??
-          form.querySelector<HTMLElement>('input[type="submit"]') ??
-          form.querySelector<HTMLElement>("button:not([type])");
-        if (btn) {
-          btn.click();
-          return true;
-        }
-        return false;
-      });
-      submitted = clicked as boolean;
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!submitted) {
-    try {
-      await page.keyboard.press("Enter");
-      submitted = true;
-    } catch {
-      // ignore
-    }
-  }
-
-  try {
-    await page.waitForTimeout(1500);
-  } catch {
-    // ignore
-  }
-
-  const validationErrors: string[] = await safeEvaluate<string[]>(
-    page,
-    `
-    (() => {
-      const errorSelectors = [
-        ".error", ".error-message", ".field-error", ".validation-error",
-        ".invalid-feedback", ".form-error", '[role="alert"]',
-        ".alert-danger", ".alert-error", ".text-danger", ".text-error",
-      ];
-      const found = [];
-      for (const sel of errorSelectors) {
-        const elements = Array.from(document.querySelectorAll(sel));
-        for (const el of elements) {
-          const text = (el.textContent ?? "").trim();
-          if (text && text.length < 200) found.push(text);
-        }
-      }
-      const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
-      for (const input of inputs) {
-        const el = input;
-        if (!el.checkValidity() && el.validationMessage) {
-          found.push((el.name || el.id || el.type) + ": " + el.validationMessage);
-        }
-      }
-      return found;
-    })()
-  `,
-    [],
-  );
-
-  return {
-    formUrl: url,
-    formType: formInfo.formType,
-    fieldsFound: formInfo.fields.length,
-    fieldsFilled,
     submitted,
     validationErrors,
     passed: false, // caller will determine

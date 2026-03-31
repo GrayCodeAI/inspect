@@ -1,6 +1,15 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { RateLimiter } from "./rate-limit.js";
 import type { APIRequest, APIResponse } from "../server.js";
+import type { IncomingMessage, ServerResponse } from "node:http";
+
+/** Create a minimal mock IncomingMessage. */
+function mockRaw(overrides: Partial<IncomingMessage> = {}): IncomingMessage {
+  return {
+    socket: { remoteAddress: "127.0.0.1" },
+    ...overrides,
+  } as unknown as IncomingMessage;
+}
 
 /** Create a minimal mock APIRequest. */
 function mockRequest(overrides: Partial<APIRequest> = {}): APIRequest {
@@ -13,7 +22,7 @@ function mockRequest(overrides: Partial<APIRequest> = {}): APIRequest {
     headers: {},
     body: null,
     rawBody: "",
-    raw: { socket: { remoteAddress: "127.0.0.1" } } as unknown,
+    raw: mockRaw(),
     ...overrides,
   };
 }
@@ -25,13 +34,15 @@ function mockResponse(): APIResponse & {
   _json: unknown;
   _sent: boolean;
 } {
-  const res: unknown = {
+  const res = {
     statusCode: 200,
     _status: 200,
     _headers: {} as Record<string, string>,
-    _json: undefined as unknown,
+    _json: undefined,
     _sent: false,
-    headers: {},
+    headers: {} as Record<string, string>,
+    sent: false,
+    raw: {} as ServerResponse,
     status(code: number) {
       res.statusCode = code;
       res._status = code;
@@ -56,6 +67,11 @@ function mockResponse(): APIResponse & {
     end() {
       res._sent = true;
     },
+  } as APIResponse & {
+    _status: number;
+    _headers: Record<string, string>;
+    _json: unknown;
+    _sent: boolean;
   };
   return res;
 }
@@ -75,7 +91,9 @@ describe("RateLimiter", () => {
       const res = mockResponse();
       let nextCalled = false;
 
-      await mw(req, res, async () => { nextCalled = true; });
+      await mw(req, res, async () => {
+        nextCalled = true;
+      });
 
       expect(nextCalled).toBe(true);
       expect(res._status).toBe(200);
@@ -95,12 +113,14 @@ describe("RateLimiter", () => {
       // Third request should be rejected
       const res = mockResponse();
       let nextCalled = false;
-      await mw(mockRequest(), res, async () => { nextCalled = true; });
+      await mw(mockRequest(), res, async () => {
+        nextCalled = true;
+      });
 
       expect(nextCalled).toBe(false);
       expect(res._status).toBe(429);
       expect(res._json).toBeDefined();
-      expect((res._json as unknown).retryAfter).toBeGreaterThan(0);
+      expect((res._json as { retryAfter: number }).retryAfter).toBeGreaterThan(0);
     });
   });
 
@@ -153,11 +173,9 @@ describe("RateLimiter", () => {
       // Health path should still work
       const healthRes = mockResponse();
       let nextCalled = false;
-      await mw(
-        mockRequest({ path: "/api/health" }),
-        healthRes,
-        async () => { nextCalled = true; },
-      );
+      await mw(mockRequest({ path: "/api/health" }), healthRes, async () => {
+        nextCalled = true;
+      });
       expect(nextCalled).toBe(true);
       expect(healthRes._status).toBe(200);
     });
@@ -172,11 +190,9 @@ describe("RateLimiter", () => {
       // Default skip paths should bypass the limiter
       for (const skipPath of ["/api/health", "/api/status"]) {
         let nextCalled = false;
-        await mw(
-          mockRequest({ path: skipPath }),
-          mockResponse(),
-          async () => { nextCalled = true; },
-        );
+        await mw(mockRequest({ path: skipPath }), mockResponse(), async () => {
+          nextCalled = true;
+        });
         expect(nextCalled).toBe(true);
       }
     });
@@ -235,7 +251,7 @@ describe("RateLimiter", () => {
       limiter = new RateLimiter({
         maxRequests: 2,
         windowMs: 60_000,
-        keyExtractor: (req) => req.headers["x-api-key"] as string ?? "anonymous",
+        keyExtractor: (req) => (req.headers["x-api-key"] as string) ?? "anonymous",
       });
       const mw = limiter.middleware();
 
@@ -251,11 +267,9 @@ describe("RateLimiter", () => {
       // user-b should still be allowed
       const allowedRes = mockResponse();
       let nextCalled = false;
-      await mw(
-        mockRequest({ headers: { "x-api-key": "user-b" } }),
-        allowedRes,
-        async () => { nextCalled = true; },
-      );
+      await mw(mockRequest({ headers: { "x-api-key": "user-b" } }), allowedRes, async () => {
+        nextCalled = true;
+      });
       expect(nextCalled).toBe(true);
     });
   });
@@ -282,7 +296,9 @@ describe("RateLimiter", () => {
       // Should be allowed again
       const res = mockResponse();
       let nextCalled = false;
-      await mw(mockRequest(), res, async () => { nextCalled = true; });
+      await mw(mockRequest(), res, async () => {
+        nextCalled = true;
+      });
       expect(nextCalled).toBe(true);
       expect(res._status).toBe(200);
     });
@@ -293,24 +309,34 @@ describe("RateLimiter", () => {
       limiter = new RateLimiter({ maxRequests: 1, windowMs: 60_000 });
       const mw = limiter.middleware();
 
-      const reqA = mockRequest({ raw: { socket: { remoteAddress: "10.0.0.1" } } as unknown });
-      const reqB = mockRequest({ raw: { socket: { remoteAddress: "10.0.0.2" } } as unknown });
+      const reqA = mockRequest({
+        raw: mockRaw({ socket: { remoteAddress: "10.0.0.1" } as IncomingMessage["socket"] }),
+      });
+      const reqB = mockRequest({
+        raw: mockRaw({ socket: { remoteAddress: "10.0.0.2" } as IncomingMessage["socket"] }),
+      });
 
       // Both IPs should be allowed their first request
       const resA = mockResponse();
       let nextA = false;
-      await mw(reqA, resA, async () => { nextA = true; });
+      await mw(reqA, resA, async () => {
+        nextA = true;
+      });
       expect(nextA).toBe(true);
 
       const resB = mockResponse();
       let nextB = false;
-      await mw(reqB, resB, async () => { nextB = true; });
+      await mw(reqB, resB, async () => {
+        nextB = true;
+      });
       expect(nextB).toBe(true);
 
       // Second request from A should be blocked
       const resA2 = mockResponse();
       await mw(
-        mockRequest({ raw: { socket: { remoteAddress: "10.0.0.1" } } as unknown }),
+        mockRequest({
+          raw: mockRaw({ socket: { remoteAddress: "10.0.0.1" } as IncomingMessage["socket"] }),
+        }),
         resA2,
         async () => {},
       );
@@ -319,7 +345,9 @@ describe("RateLimiter", () => {
       // Second request from B should also be blocked
       const resB2 = mockResponse();
       await mw(
-        mockRequest({ raw: { socket: { remoteAddress: "10.0.0.2" } } as unknown }),
+        mockRequest({
+          raw: mockRaw({ socket: { remoteAddress: "10.0.0.2" } as IncomingMessage["socket"] }),
+        }),
         resB2,
         async () => {},
       );

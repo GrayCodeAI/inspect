@@ -3,6 +3,7 @@
  * Provides HAR recording, request mocking, and request blocking.
  */
 
+import type { Page } from "playwright";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("browser/network");
@@ -115,21 +116,21 @@ export class NetworkMonitor {
   /**
    * Start monitoring network activity on a page.
    */
-  start(page: { on: (event: string, handler: (...args: unknown[]) => void) => void }): void {
+  start(page: Page): void {
     this.isActive = true;
 
     // Monitor requests
-    page.on("request", (req: unknown) => {
+    page.on("request", (req) => {
       if (!this.isActive) return;
 
       const request: RecordedRequest = {
         id: `req-${++requestIdCounter}`,
-        method: req.method?.() ?? "GET",
-        url: req.url?.() ?? "",
-        headers: req.headers?.() ?? {},
-        postData: req.postData?.(),
+        method: req.method() ?? "GET",
+        url: req.url() ?? "",
+        headers: req.headers() ?? {},
+        postData: req.postData() ?? undefined,
         timestamp: Date.now(),
-        resourceType: req.resourceType?.() ?? "other",
+        resourceType: req.resourceType() ?? "other",
       };
 
       this.requests.push(request);
@@ -137,19 +138,19 @@ export class NetworkMonitor {
     });
 
     // Monitor responses
-    page.on("response", (res: unknown) => {
+    page.on("response", (res) => {
       if (!this.isActive) return;
 
-      const url = res.url?.() ?? "";
+      const url = res.url() ?? "";
       const startTime = this.requestStartTimes.get(url) ?? Date.now();
 
       const response: RecordedResponse = {
         requestId: url,
-        status: res.status?.() ?? 0,
-        statusText: res.statusText?.() ?? "",
-        headers: res.headers?.() ?? {},
+        status: res.status() ?? 0,
+        statusText: res.statusText() ?? "",
+        headers: res.headers() ?? {},
         bodySize: 0,
-        mimeType: res.headers?.()["content-type"] ?? "",
+        mimeType: res.headers()["content-type"] ?? "",
         duration: Date.now() - startTime,
       };
 

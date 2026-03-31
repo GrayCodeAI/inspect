@@ -396,7 +396,7 @@ export async function dismissCookieConsent(page: Page): Promise<boolean> {
           // if it or a parent contains "cookie" or "consent" in its text/class
           const parentText: string = await btn
             .evaluate((el: Element) => {
-              const parent = el.closest(
+              const parent = (el as HTMLElement).closest(
                 '[class*="cookie"], [class*="consent"], [id*="cookie"], [id*="consent"], [class*="banner"]',
               );
               return parent ? parent.className : "";
@@ -452,10 +452,7 @@ export async function handleAlertDialogs(page: Page): Promise<void> {
 // waitForPageReady — Smart wait for full page readiness
 // ---------------------------------------------------------------------------
 
-export async function waitForPageReady(
-  page: Page,
-  timeout: number = 10_000,
-): Promise<void> {
+export async function waitForPageReady(page: Page, timeout: number = 10_000): Promise<void> {
   const deadline = Date.now() + timeout;
 
   // Wait for DOM content loaded
@@ -486,15 +483,17 @@ export async function waitForPageReady(
           // PerformanceObserver with layout-shift is a browser API —
           // we use string casts here because this runs in the browser context,
           // not in Node where TypeScript checks the types.
-          const observer = new PerformanceObserver((list: PerformanceObserverEntryList) => {
-            for (const entry of list.getEntries()) {
-              if ((entry as any).entryType === "layout-shift") {
-                lastShiftTime = Date.now();
+          const observer = new PerformanceObserver(
+            (list: { getEntries(): { entryType: string }[] }) => {
+              for (const entry of list.getEntries()) {
+                if ((entry as { entryType: string }).entryType === "layout-shift") {
+                  lastShiftTime = Date.now();
+                }
               }
-            }
-          });
+            },
+          );
 
-          observer.observe({ type: "layout-shift" as any, buffered: false });
+          observer.observe({ type: "layout-shift" as unknown as string, buffered: false });
 
           const check = () => {
             if (Date.now() - lastShiftTime >= 500) {

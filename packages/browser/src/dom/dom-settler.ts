@@ -46,7 +46,7 @@ export class DOMSettler {
       ({ timeoutMs, quietMs }) => {
         return new Promise<boolean>((resolve) => {
           let lastMutation = Date.now();
-          const _settled = false;
+          const startTime = Date.now();
 
           const observer = new MutationObserver(() => {
             lastMutation = Date.now();
@@ -62,7 +62,6 @@ export class DOMSettler {
           const check = () => {
             if (Date.now() - lastMutation >= quietMs) {
               observer.disconnect();
-              settled = true;
               resolve(true);
               return;
             }
@@ -74,7 +73,6 @@ export class DOMSettler {
             setTimeout(check, 100);
           };
 
-          const startTime = Date.now();
           setTimeout(check, quietMs);
         });
       },

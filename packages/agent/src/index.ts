@@ -38,9 +38,6 @@ export {
   PatternStore,
   ActionCache,
   SelfHealer,
-  LoopDetector,
-  ActionLoopDetector,
-  StallDetector,
   type MessageManagerOptions,
   type LearnedPattern,
   type MemoryEntry,
@@ -54,13 +51,6 @@ export {
   type HealCandidate,
   type ElementDescription,
   type SnapshotElement,
-  type ActionRecord,
-  type LoopDetection,
-  type LoopNudge,
-  type ActionLoopConfig,
-  type ActionLoopNudge,
-  type ReplanConfig,
-  type ReplanResult,
 } from "@inspect/agent-memory";
 
 export {
@@ -77,6 +67,9 @@ export {
   JudgeLLM,
   UserToolRegistry,
   defineTool,
+  LoopDetector,
+  ActionLoopDetector,
+  StallDetector,
   type ToolHandler,
   type ToolParameterSchema,
   type ToolResult,
@@ -97,6 +90,13 @@ export {
   type JudgeInput,
   type JudgeVerdict,
   type UserToolDefinition,
+  type ActionRecord,
+  type LoopDetection,
+  type LoopNudge,
+  type ActionLoopConfig,
+  type ActionLoopNudge,
+  type ReplanConfig,
+  type ReplanResult,
 } from "@inspect/agent-tools";
 
 export {

@@ -17,7 +17,6 @@ import type {
   Worker,
   FileChooser,
   FrameLocator,
-  Accessibility,
   APIRequestContext,
   APIResponse,
   Cookie,
@@ -26,8 +25,6 @@ import type {
   Tracing,
   Route,
   WebSocket,
-  WebSocketFrame,
-  Error as PlaywrightError,
 } from "playwright";
 
 export type {
@@ -49,7 +46,6 @@ export type {
   Worker,
   FileChooser,
   FrameLocator,
-  Accessibility,
   APIRequestContext,
   APIResponse,
   Cookie,
@@ -58,6 +54,4 @@ export type {
   Tracing,
   Route,
   WebSocket,
-  WebSocketFrame,
-  PlaywrightError as PlaywrightError,
 };

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DiffPlanGenerator } from "./diff-plan-generator.js";
 
-// Mock simple-git
-vi.mock("../git/git.js", () => ({
+// Mock @inspect/git
+vi.mock("@inspect/git", () => ({
   GitManager: class {
     async getDiff() {
       return `diff --git a/src/pages/Login.tsx b/src/pages/Login.tsx
@@ -67,7 +67,7 @@ describe("DiffPlanGenerator", () => {
       const analysis = await generator.analyzeDiff({ scope: "unstaged" });
 
       expect(analysis.summary).toContain("Analyzed");
-      expect(analysis.summary).toContain("page(s)");
+      expect(analysis.summary).toContain("file(s)");
     });
   });
 
