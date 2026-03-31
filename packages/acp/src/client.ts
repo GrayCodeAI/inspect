@@ -62,8 +62,7 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@inspect/AcpClie
         }),
       sessionUpdate: async ({ sessionId, update }) => {
         const updatesQueue = sessionUpdatesMap.get(SessionId.makeUnsafe(sessionId));
-        if (updatesQueue === undefined)
-          return console.warn(`updates queue not found for session ${sessionId}`);
+        if (updatesQueue === undefined) return;
         try {
           const decoded = Schema.decodeUnknownSync(AcpSessionUpdate)(update);
           Queue.offerUnsafe(updatesQueue, decoded);
