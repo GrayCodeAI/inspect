@@ -136,7 +136,7 @@ export class AIAnalysis {
       );
 
       return this.parseResponse(response.content, diff);
-    } catch (error) {
+    } catch (_error) {
       // Fall back to pixel-based analysis
       return this.fallbackAnalysis(diff);
     }

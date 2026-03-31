@@ -129,7 +129,7 @@ describe("TOXICITY_PRESETS", () => {
   });
 
   it("should have valid toxics in all presets", () => {
-    for (const [name, preset] of Object.entries(TOXICITY_PRESETS)) {
+    for (const [_name, preset] of Object.entries(TOXICITY_PRESETS)) {
       expect(preset.name).toBeDefined();
       expect(preset.description).toBeDefined();
       expect(preset.toxics.length).toBeGreaterThan(0);

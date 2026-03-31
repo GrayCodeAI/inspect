@@ -2,9 +2,7 @@ import type { Command } from "commander";
 import chalk from "chalk";
 
 export function registerEngineCommand(program: Command): void {
-  const engine = program
-    .command("engine")
-    .description("Manage the Inspect Docker engine");
+  const engine = program.command("engine").description("Manage the Inspect Docker engine");
 
   engine
     .command("start")
@@ -19,7 +17,9 @@ export function registerEngineCommand(program: Command): void {
         });
         console.log(chalk.green("\nInspect engine is running."));
       } catch (err) {
-        console.error(chalk.red(`Failed to start engine: ${err instanceof Error ? err.message : err}`));
+        console.error(
+          chalk.red(`Failed to start engine: ${err instanceof Error ? err.message : err}`),
+        );
         process.exit(1);
       }
     });
@@ -51,7 +51,9 @@ export function registerEngineCommand(program: Command): void {
 
       console.log(chalk.blue("\nInspect Engine Status\n"));
       console.log(`  Docker:     ${dockerOk ? chalk.green("available") : chalk.red("not found")}`);
-      console.log(`  Engine:     ${status.running ? chalk.green("running") : chalk.dim("stopped")}`);
+      console.log(
+        `  Engine:     ${status.running ? chalk.green("running") : chalk.dim("stopped")}`,
+      );
       if (status.running) {
         console.log(`  Container:  ${status.containerId}`);
         console.log(`  Port:       ${status.port}`);
@@ -65,7 +67,7 @@ export function registerEngineCommand(program: Command): void {
     .description("Rebuild the Docker image")
     .action(async () => {
       const { buildImage, stopContainer } = await import("../utils/docker.js");
-      const { join } = await import("node:path");
+      const { join: _join } = await import("node:path");
 
       console.log(chalk.dim("Stopping existing engine..."));
       await stopContainer();

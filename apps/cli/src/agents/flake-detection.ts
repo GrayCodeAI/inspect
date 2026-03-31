@@ -2,8 +2,8 @@
 // Flake Detection — Track test stability across runs and flag flaky tests
 // ============================================================================
 
-import type { TestStep, TestReport, ProgressCallback } from "./types.js";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, unlinkSync } from "node:fs";
+import type { TestReport } from "./types.js";
+import { existsSync, mkdirSync, readFileSync, appendFileSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 
 // ---------------------------------------------------------------------------

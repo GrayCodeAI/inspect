@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GitHubActionsReporter } from "./github-actions.js";
-import type { ActionsTestSuite, ActionsTestResult } from "./github-actions.js";
+import type { ActionsTestSuite} from "./github-actions.js";
 
 describe("GitHubActionsReporter", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;

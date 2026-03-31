@@ -67,7 +67,12 @@ export class BrowserWatchdog {
       this.page.context().on("page", async (newPage) => {
         try {
           await newPage.close();
-          this.events.push({ type: "popup", action: "dismissed", details: newPage.url(), timestamp: Date.now() });
+          this.events.push({
+            type: "popup",
+            action: "dismissed",
+            details: newPage.url(),
+            timestamp: Date.now(),
+          });
         } catch (error) {
           logger.debug("Failed to close popup page", { error });
         }
@@ -136,7 +141,9 @@ export class BrowserWatchdog {
             btn.click();
             return true;
           }
-        } catch {}
+        } catch {
+          /* intentionally empty */
+        }
       }
       return false;
     });
@@ -149,13 +156,17 @@ export class BrowserWatchdog {
   private async dismissOverlays(): Promise<void> {
     const dismissed = await this.page.evaluate(() => {
       // Find fixed/absolute overlays covering >50% of viewport
-      const overlays = document.querySelectorAll('[style*="position: fixed"], [style*="position:fixed"], .modal, .overlay, [role="dialog"]');
+      const overlays = document.querySelectorAll(
+        '[style*="position: fixed"], [style*="position:fixed"], .modal, .overlay, [role="dialog"]',
+      );
 
       for (const overlay of overlays) {
         const rect = (overlay as HTMLElement).getBoundingClientRect();
         if (rect.width > window.innerWidth * 0.5 && rect.height > window.innerHeight * 0.5) {
           // Look for close button inside
-          const closeBtn = overlay.querySelector('button[aria-label*="close" i], button[class*="close" i], .close, [data-dismiss]') as HTMLElement;
+          const closeBtn = overlay.querySelector(
+            'button[aria-label*="close" i], button[class*="close" i], .close, [data-dismiss]',
+          ) as HTMLElement;
           if (closeBtn) {
             closeBtn.click();
             return true;

@@ -92,10 +92,12 @@ async function startServer(options: ServeOptions): Promise<void> {
     // Adapt CredentialVault to the CredentialVaultAPI interface
     registerCredentialRoutes(server, {
       create: (opts) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vault.create(opts as any) as unknown as { id: string; [key: string]: unknown },
       getSafe: (id) => vault.getSafe(id) as unknown as Record<string, unknown> | null,
       update: (id, opts) => vault.update(id, opts) as unknown as Record<string, unknown> | null,
       delete: (id) => vault.delete(id),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       list: (filter) => vault.list(filter as any) as unknown as Array<Record<string, unknown>>,
       test: (id) => vault.test(id),
     });
@@ -115,10 +117,15 @@ async function startServer(options: ServeOptions): Promise<void> {
   server.get("/api/devices", (_req: APIRequest, res: APIResponse) => {
     const devices = Object.entries(DEVICE_PRESETS).map(([key, d]) => ({
       key,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       name: (d as any).name ?? key,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       width: (d as any).width,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       height: (d as any).height,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dpr: (d as any).dpr ?? 1,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mobile: (d as any).mobile ?? false,
     }));
     res.json({ devices, total: devices.length });

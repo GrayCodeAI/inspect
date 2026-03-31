@@ -46,7 +46,7 @@ export class DOMSettler {
       ({ timeoutMs, quietMs }) => {
         return new Promise<boolean>((resolve) => {
           let lastMutation = Date.now();
-          let settled = false;
+          const _settled = false;
 
           const observer = new MutationObserver(() => {
             lastMutation = Date.now();
@@ -88,37 +88,31 @@ export class DOMSettler {
   async waitAndVerifyElement(page: Page, selector: string): Promise<boolean> {
     await this.waitForSettle(page);
 
-    return page.evaluate(
-      (sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        return (
-          rect.top >= 0 &&
-          rect.left >= 0 &&
-          rect.bottom <= window.innerHeight &&
-          rect.right <= window.innerWidth &&
-          rect.width > 0 &&
-          rect.height > 0
-        );
-      },
-      selector,
-    );
+    return page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= window.innerHeight &&
+        rect.right <= window.innerWidth &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    }, selector);
   }
 
   /**
    * Scroll element into view if needed, then wait for settle.
    */
   async scrollIntoViewAndSettle(page: Page, selector: string): Promise<boolean> {
-    const scrolled = await page.evaluate(
-      (sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return false;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        return true;
-      },
-      selector,
-    );
+    const scrolled = await page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return false;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return true;
+    }, selector);
 
     if (!scrolled) return false;
     return this.waitForSettle(page);

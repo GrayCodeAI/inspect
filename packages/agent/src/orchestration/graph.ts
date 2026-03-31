@@ -1,6 +1,6 @@
 import { createLogger } from "@inspect/observability";
 
-const logger = createLogger("agent/orchestration/graph");
+const _logger = createLogger("agent/orchestration/graph");
 
 // ─── Types ────────────────────────────────────────────────────────────────
 

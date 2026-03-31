@@ -20,6 +20,7 @@ import { safeEvaluate } from "./evaluate.js";
 
 export async function crawlSite(
   startUrl: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any, // Playwright Page
   onProgress: ProgressCallback,
   options?: { maxPages?: number; maxDepth?: number; timeout?: number; crawlDelay?: number },
@@ -123,17 +124,19 @@ export async function crawlSite(
     // Respect robots.txt Disallow rules
     try {
       const urlPath = new URL(normalized).pathname;
-      if (disallowedPaths.some(d => urlPath.startsWith(d))) {
+      if (disallowedPaths.some((d) => urlPath.startsWith(d))) {
         onProgress("info", `  Skipped (robots.txt): ${normalized}`);
         continue;
       }
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
 
     visited.add(normalized);
 
     // Politeness delay to avoid hammering the server
     if (pages.length > 0 && crawlDelay > 0) {
-      await new Promise(r => setTimeout(r, crawlDelay));
+      await new Promise((r) => setTimeout(r, crawlDelay));
     }
 
     onProgress("step", `[${pages.length + 1}/${maxPages}] Visiting: ${normalized}`);
@@ -203,7 +206,10 @@ export async function crawlSite(
 
   const totalLinks = allDiscoveredInternalLinks.size + externalLinks.size;
 
-  onProgress("done", `Crawl complete: ${pages.length} pages, ${brokenLinks.length} broken links, ${externalLinks.size} external links`);
+  onProgress(
+    "done",
+    `Crawl complete: ${pages.length} pages, ${brokenLinks.length} broken links, ${externalLinks.size} external links`,
+  );
 
   return {
     baseUrl: startUrl,
@@ -222,6 +228,7 @@ export async function crawlSite(
 // ---------------------------------------------------------------------------
 
 async function visitPage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   depth: number,
@@ -229,8 +236,8 @@ async function visitPage(
 ): Promise<PageInfo | null> {
   const loadStart = Date.now();
 
-  let status = 200;
-  let title = "";
+  let status: number;
+  let title: string;
 
   try {
     // Listen for the response status code
@@ -255,7 +262,10 @@ async function visitPage(
   const loadTime = Date.now() - loadStart;
 
   // Extract page data in a single evaluate call for performance
-  const extracted = await safeEvaluate<any>(page, `(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extracted = await safeEvaluate<any>(
+    page,
+    `(() => {
     // Links
     const anchors = Array.from(document.querySelectorAll("a[href]"));
     const links = anchors.map((a) => a.href).filter(Boolean);
@@ -287,7 +297,7 @@ async function visitPage(
         // Find associated label
         let label = "";
         if (el.id) {
-          const labelEl = document.querySelector("label[for=\"" + el.id + "\"]");
+          const labelEl = document.querySelector('label[for="' + el.id + '"]');
           if (labelEl) label = labelEl.textContent?.trim() ?? "";
         }
         if (!label) {
@@ -332,7 +342,7 @@ async function visitPage(
     const interactive = [];
 
     // Buttons
-    for (const btn of Array.from(document.querySelectorAll("button, [role=\"button\"]"))) {
+    for (const btn of Array.from(document.querySelectorAll('button, [role="button"]'))) {
       interactive.push({
         type: "button",
         text: btn.textContent?.trim().slice(0, 80) ?? "",
@@ -341,7 +351,7 @@ async function visitPage(
     }
 
     // Inputs
-    for (const inp of Array.from(document.querySelectorAll("input:not([type=\"hidden\"]), textarea"))) {
+    for (const inp of Array.from(document.querySelectorAll('input:not([type="hidden"]), textarea'))) {
       const el = inp;
       const inputType = el.type || "text";
       let elType = "input";
@@ -367,7 +377,7 @@ async function visitPage(
     }
 
     // Modal triggers
-    for (const el of Array.from(document.querySelectorAll("[data-toggle=\"modal\"], [data-bs-toggle=\"modal\"], [data-target], [aria-haspopup=\"dialog\"]"))) {
+    for (const el of Array.from(document.querySelectorAll('[data-toggle="modal"], [data-bs-toggle="modal"], [data-target], [aria-haspopup="dialog"]'))) {
       interactive.push({
         type: "modal-trigger",
         text: el.textContent?.trim().slice(0, 80) ?? "",
@@ -376,7 +386,7 @@ async function visitPage(
     }
 
     // Tabs
-    for (const el of Array.from(document.querySelectorAll("[role=\"tab\"], [data-toggle=\"tab\"], [data-bs-toggle=\"tab\"]"))) {
+    for (const el of Array.from(document.querySelectorAll('[role="tab"], [data-toggle="tab"], [data-bs-toggle="tab"]'))) {
       interactive.push({
         type: "tab",
         text: el.textContent?.trim().slice(0, 80) ?? "",
@@ -385,7 +395,7 @@ async function visitPage(
     }
 
     // Accordions
-    for (const el of Array.from(document.querySelectorAll("[data-toggle=\"collapse\"], [data-bs-toggle=\"collapse\"], [aria-expanded]"))) {
+    for (const el of Array.from(document.querySelectorAll('[data-toggle="collapse"], [data-bs-toggle="collapse"], [aria-expanded]'))) {
       // Skip if already captured as tab
       if (el.getAttribute("role") === "tab") continue;
       interactive.push({
@@ -396,7 +406,7 @@ async function visitPage(
     }
 
     // Carousels
-    for (const el of Array.from(document.querySelectorAll("[data-ride=\"carousel\"], [data-bs-ride=\"carousel\"], .carousel, .swiper"))) {
+    for (const el of Array.from(document.querySelectorAll('[data-ride="carousel"], [data-bs-ride="carousel"], .carousel, .swiper'))) {
       interactive.push({
         type: "carousel",
         text: "carousel",
@@ -405,7 +415,7 @@ async function visitPage(
     }
 
     // Dropdowns
-    for (const el of Array.from(document.querySelectorAll("[data-toggle=\"dropdown\"], [data-bs-toggle=\"dropdown\"], [aria-haspopup=\"listbox\"], [aria-haspopup=\"menu\"]"))) {
+    for (const el of Array.from(document.querySelectorAll('[data-toggle="dropdown"], [data-bs-toggle="dropdown"], [aria-haspopup="listbox"], [aria-haspopup="menu"]'))) {
       interactive.push({
         type: "dropdown",
         text: el.textContent?.trim().slice(0, 80) ?? "",
@@ -414,7 +424,7 @@ async function visitPage(
     }
 
     // Toggles
-    for (const el of Array.from(document.querySelectorAll("[role=\"switch\"], input[type=\"checkbox\"][role=\"switch\"]"))) {
+    for (const el of Array.from(document.querySelectorAll('[role="switch"], input[type="checkbox"][role="switch"]'))) {
       interactive.push({
         type: "toggle",
         text: el.textContent?.trim().slice(0, 80) ?? "",
@@ -425,10 +435,10 @@ async function visitPage(
     // Helper to get a simple CSS selector for an element
     function getSimpleSelector(el) {
       if (el.id) return "#" + el.id;
-      if (el.getAttribute("data-testid")) return "[data-testid=\"" + el.getAttribute("data-testid") + "\"]";
-      if (el.getAttribute("aria-label")) return "[aria-label=\"" + el.getAttribute("aria-label") + "\"]";
+      if (el.getAttribute("data-testid")) return '[data-testid="' + el.getAttribute("data-testid") + '"]';
+      if (el.getAttribute("aria-label")) return '[aria-label="' + el.getAttribute("aria-label") + '"]';
       if (el.className && typeof el.className === "string") {
-        const cls = el.className.split(/\s+/).filter(Boolean).slice(0, 2).join(".");
+        const cls = el.className.split(new RegExp('[ \\t\\n\\r\\f]+')).filter(Boolean).slice(0, 2).join(".");
         if (cls) return el.tagName.toLowerCase() + "." + cls;
       }
       return el.tagName.toLowerCase();
@@ -438,14 +448,16 @@ async function visitPage(
     const bodyText = document.body?.innerText?.slice(0, 2000) ?? "";
 
     return { links, headings, meta, forms, interactive, bodyText };
-  })()`, {
-    links: [],
-    headings: [],
-    meta: {},
-    forms: [],
-    interactive: [],
-    bodyText: "",
-  });
+  })()`,
+    {
+      links: [],
+      headings: [],
+      meta: {},
+      forms: [],
+      interactive: [],
+      bodyText: "",
+    },
+  );
 
   // Map extracted forms to FormInfo
   type ExtractedField = {
@@ -494,11 +506,13 @@ async function visitPage(
   });
 
   // Map interactive elements
-  const interactive: InteractiveElement[] = (extracted.interactive as ExtractedInteractive[]).map((el: ExtractedInteractive) => ({
-    type: el.type as InteractiveElement["type"],
-    text: el.text,
-    selector: el.selector || undefined,
-  }));
+  const interactive: InteractiveElement[] = (extracted.interactive as ExtractedInteractive[]).map(
+    (el: ExtractedInteractive) => ({
+      type: el.type as InteractiveElement["type"],
+      text: el.text,
+      selector: el.selector || undefined,
+    }),
+  );
 
   // Classify page type
   const pageType = classifyPage(url, title, forms, extracted.bodyText, extracted.headings);
@@ -570,12 +584,14 @@ function classifyPage(
   if (lowerTitle.includes("documentation") || lowerTitle.includes("docs")) return "docs";
 
   // Body text signals
-  if (lowerBody.includes("sign in to your account") || lowerBody.includes("log in to")) return "auth";
+  if (lowerBody.includes("sign in to your account") || lowerBody.includes("log in to"))
+    return "auth";
   if (lowerBody.includes("search results for")) return "search";
 
   // List patterns — many repeated similar structures
   const listIndicators = ["product", "item", "result", "listing", "catalog"];
-  if (listIndicators.some((ind) => (lowerBody.match(new RegExp(ind, "g")) || []).length > 3)) return "list";
+  if (listIndicators.some((ind) => (lowerBody.match(new RegExp(ind, "g")) || []).length > 3))
+    return "list";
 
   // Detail page — usually has a single item slug in URL
   const pathSegments = path.split("/").filter(Boolean);
@@ -597,22 +613,20 @@ function classifyPage(
 // Form classification
 // ---------------------------------------------------------------------------
 
-function classifyForm(
-  action: string,
-  _method: string,
-  fields: FormField[],
-): FormInfo["formType"] {
+function classifyForm(action: string, _method: string, fields: FormField[]): FormInfo["formType"] {
   const lowerAction = (action || "").toLowerCase();
-  const fieldNames = fields.map((f) => (f.name + " " + (f.label ?? "") + " " + (f.type ?? "")).toLowerCase());
+  const fieldNames = fields.map((f) =>
+    (f.name + " " + (f.label ?? "") + " " + (f.type ?? "")).toLowerCase(),
+  );
   const allFieldText = fieldNames.join(" ");
 
   // Login: has password + email/username, few fields
   const hasPassword = fields.some((f) => f.type === "password");
-  const hasEmail = fields.some((f) =>
-    f.type === "email" || /email/.test(f.name.toLowerCase()) || f.autocomplete === "email",
+  const hasEmail = fields.some(
+    (f) => f.type === "email" || /email/.test(f.name.toLowerCase()) || f.autocomplete === "email",
   );
-  const hasUsername = fields.some((f) =>
-    /username|user/.test(f.name.toLowerCase()) || f.autocomplete === "username",
+  const hasUsername = fields.some(
+    (f) => /username|user/.test(f.name.toLowerCase()) || f.autocomplete === "username",
   );
 
   if (hasPassword && (hasEmail || hasUsername) && fields.length <= 5) {
@@ -662,7 +676,8 @@ function classifyForm(
   if (
     allFieldText.includes("filter") ||
     allFieldText.includes("sort") ||
-    (fields.every((f) => f.type === "checkbox" || f.type === "radio" || f.type === "select-one") && fields.length >= 2)
+    (fields.every((f) => f.type === "checkbox" || f.type === "radio" || f.type === "select-one") &&
+      fields.length >= 2)
   ) {
     return "filter";
   }
@@ -765,6 +780,7 @@ function parseSitemapXml(xml: string): string[] {
 // ---------------------------------------------------------------------------
 
 async function fetchTextViaPage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   timeout: number,
@@ -781,7 +797,9 @@ async function fetchTextViaPage(
 
     // For XML/text content, get the body text
     if (contentType.includes("xml") || contentType.includes("text/plain")) {
-      return await page.evaluate(() => document.body?.innerText ?? document.documentElement?.textContent ?? "");
+      return await page.evaluate(
+        () => document.body?.innerText ?? document.documentElement?.textContent ?? "",
+      );
     }
 
     // Fallback: try to get the raw text anyway

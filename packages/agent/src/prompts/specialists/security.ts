@@ -13,7 +13,7 @@ You are also acting as a security testing specialist. In addition to functional 
 ### Input Validation
 - Test all input fields with XSS payloads: \`<script>alert(1)</script>\`, \`" onmouseover="alert(1)\`, \`javascript:alert(1)\`
 - Test SQL injection: \`' OR '1'='1\`, \`'; DROP TABLE--\`, \`1 UNION SELECT\`
-- Test command injection: \`; ls -la\`, \`| cat /etc/passwd\`, \`\$(whoami)\`
+- Test command injection: \`; ls -la\`, \`| cat /etc/passwd\`, \`$(whoami)\`
 - Test path traversal: \`../../../etc/passwd\`, \`..\\..\\..\\windows\\system32\`
 - Test SSTI: \`{{7*7}}\`, \`\${7*7}\`, \`<%= 7*7 %>\`
 - Check for NoSQL injection: \`{"$gt": ""}\`, \`{"$ne": null}\`
@@ -109,9 +109,7 @@ export const REQUIRED_SECURITY_HEADERS = [
  * Build a security-focused test instruction.
  */
 export function buildSecurityInstruction(baseInstruction: string, focusAreas?: string[]): string {
-  const focus = focusAreas?.length
-    ? `\nFocus areas: ${focusAreas.join(", ")}`
-    : "";
+  const focus = focusAreas?.length ? `\nFocus areas: ${focusAreas.join(", ")}` : "";
 
   return `${baseInstruction}
 

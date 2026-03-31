@@ -4,10 +4,12 @@
 
 import { existsSync } from "node:fs";
 import { readdir, copyFile, unlink } from "node:fs/promises";
-import { join, basename } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
 import { execSync } from "node:child_process";
+import * as http from "node:http";
+import * as https from "node:https";
 import type { CookieData, CookieParam } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 import { BROWSER_CONFIGS, findBrowserConfig, resolveBrowserPath } from "./browsers.js";
@@ -65,7 +67,7 @@ export class CookieExtractor {
           default:
             throw new Error(`Unsupported encryption method: ${config.encryption}`);
         }
-      } catch (e) {
+      } catch (_e) {
         // Try next path
         continue;
       }
@@ -139,9 +141,7 @@ export class CookieExtractor {
       source: "CDP",
     }));
 
-    return domain
-      ? cookies.filter((c) => c.domain.includes(domain))
-      : cookies;
+    return domain ? cookies.filter((c) => c.domain.includes(domain)) : cookies;
   }
 
   /**
@@ -158,9 +158,7 @@ export class CookieExtractor {
       // fall back to a manual HTTP upgrade + raw socket approach
       const url = new URL(wsUrl);
       const protocol = url.protocol === "wss:" ? "https" : "http";
-      const httpModule = protocol === "https"
-        ? require("node:https")
-        : require("node:http");
+      const httpModule = protocol === "https" ? https : http;
 
       const requestId = 1;
       const message = JSON.stringify({ id: requestId, method, params });
@@ -450,7 +448,7 @@ export class CookieExtractor {
   private async extractSafariCookies(
     basePath: string,
     config: { name: string; cookieFile: string },
-    domain?: string,
+    _domain?: string,
   ): Promise<CookieData[]> {
     const cookiePath = join(basePath, config.cookieFile);
     if (!existsSync(cookiePath)) {
@@ -459,7 +457,9 @@ export class CookieExtractor {
 
     // Safari uses a binary cookie format — use python or a dedicated parser
     // For now, return empty and log a warning
-    logger.warn("Safari binary cookie parsing requires additional tooling — use CDP extraction instead");
+    logger.warn(
+      "Safari binary cookie parsing requires additional tooling — use CDP extraction instead",
+    );
     return [];
   }
 
@@ -485,9 +485,8 @@ export class CookieExtractor {
       if (existsSync(walPath)) await copyFile(walPath, `${tempPath}-wal`);
       if (existsSync(shmPath)) await copyFile(shmPath, `${tempPath}-shm`);
 
-      const query = format === "chromium"
-        ? this.buildChromiumQuery(domain)
-        : this.buildFirefoxQuery(domain);
+      const query =
+        format === "chromium" ? this.buildChromiumQuery(domain) : this.buildFirefoxQuery(domain);
 
       // Execute sqlite3 query
       const result = execSync(`sqlite3 -json "${tempPath}" "${query}"`, {
@@ -515,12 +514,15 @@ export class CookieExtractor {
    * Escapes SQL special characters to prevent injection.
    */
   private sanitizeDomainForSQL(domain: string): string {
-    return domain
-      .replace(/'/g, "''")
-      .replace(/%/g, "")
-      .replace(/_/g, "\\_")
-      .replace(/\\/g, "\\\\")
-      .replace(/[\x00-\x1f\x7f]/g, "");
+    return (
+      domain
+        .replace(/'/g, "''")
+        .replace(/%/g, "")
+        .replace(/_/g, "\\_")
+        .replace(/\\/g, "\\\\")
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1f\x7f]/g, "")
+    );
   }
 
   private buildChromiumQuery(domain?: string): string {
@@ -531,9 +533,7 @@ export class CookieExtractor {
   }
 
   private buildFirefoxQuery(domain?: string): string {
-    const whereClause = domain
-      ? `WHERE host LIKE '%${this.sanitizeDomainForSQL(domain)}%'`
-      : "";
+    const whereClause = domain ? `WHERE host LIKE '%${this.sanitizeDomainForSQL(domain)}%'` : "";
     return `SELECT host, name, value, path, expiry, isHttpOnly, isSecure, sameSite FROM moz_cookies ${whereClause} ORDER BY host, name`;
   }
 
@@ -551,9 +551,7 @@ export class CookieExtractor {
     // Convert Chromium epoch (microseconds since Jan 1, 1601) to Unix epoch
     const chromiumEpochOffset = 11644473600n;
     const expiresUtc = BigInt(row["expires_utc"] as number);
-    const unixExpiry = expiresUtc > 0n
-      ? Number((expiresUtc / 1_000_000n) - chromiumEpochOffset)
-      : -1;
+    const unixExpiry = expiresUtc > 0n ? Number(expiresUtc / 1_000_000n - chromiumEpochOffset) : -1;
 
     return {
       name: row["name"] as string,

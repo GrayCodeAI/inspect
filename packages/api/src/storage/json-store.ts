@@ -2,7 +2,14 @@
 // @inspect/api - JSON File-Based Persistent Store
 // ============================================================================
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  copyFileSync,
+  renameSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { createLogger } from "@inspect/observability";
 
@@ -75,13 +82,14 @@ export class JsonStore<T extends { id: string }> {
       for (const item of items) {
         this.data.set(item.id, item);
       }
-    } catch (err) {
+    } catch (_err) {
       // If the file is corrupted, start fresh but preserve the bad file
       const backupPath = this.filePath + ".corrupt." + Date.now();
       try {
-        const { copyFileSync } = require("node:fs") as typeof import("node:fs");
         copyFileSync(this.filePath, backupPath);
-      } catch (backupError) { logger.debug("Failed to backup corrupt store file", { backupError }); }
+      } catch (backupError) {
+        logger.debug("Failed to backup corrupt store file", { backupError });
+      }
       logger.warn("Failed to load store, starting fresh", {
         filePath: this.filePath,
         backupPath,
@@ -112,7 +120,6 @@ export class JsonStore<T extends { id: string }> {
       // Atomic write: write to tmp file then rename
       const tmpPath = this.filePath + ".tmp";
       writeFileSync(tmpPath, json, "utf-8");
-      const { renameSync } = require("node:fs") as typeof import("node:fs");
       renameSync(tmpPath, this.filePath);
     } catch (err) {
       logger.error("Failed to save store", { filePath: this.filePath, error: err });

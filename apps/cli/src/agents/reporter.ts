@@ -93,24 +93,36 @@ export function generateReport(
   try {
     const jsonFile = `report-${timestamp}.json`;
     writeFileSync(join(dir, jsonFile), JSON.stringify(report, null, 2));
-    reportPaths.push(`  ${chalk.hex(PALETTE.dim)("JSON")}  ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${jsonFile}`)}`);
-  } catch {}
+    reportPaths.push(
+      `  ${chalk.hex(PALETTE.dim)("JSON")}  ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${jsonFile}`)}`,
+    );
+  } catch {
+    /* intentionally empty */
+  }
 
   // HTML report
   try {
     const htmlFile = `report-${timestamp}.html`;
     const html = generateHtmlReport(report);
     writeFileSync(join(dir, htmlFile), html);
-    reportPaths.push(`  ${chalk.hex(PALETTE.dim)("HTML")}  ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${htmlFile}`)}`);
-  } catch {}
+    reportPaths.push(
+      `  ${chalk.hex(PALETTE.dim)("HTML")}  ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${htmlFile}`)}`,
+    );
+  } catch {
+    /* intentionally empty */
+  }
 
   // JUnit XML report
   try {
     const junitFile = `report-${timestamp}.xml`;
     const xml = generateJUnitXml(report);
     writeFileSync(join(dir, junitFile), xml);
-    reportPaths.push(`  ${chalk.hex(PALETTE.dim)("XML")}   ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${junitFile}`)}`);
-  } catch {}
+    reportPaths.push(
+      `  ${chalk.hex(PALETTE.dim)("XML")}   ${chalk.hex(PALETTE.cyan)(`.inspect/reports/${junitFile}`)}`,
+    );
+  } catch {
+    /* intentionally empty */
+  }
 
   if (reportPaths.length > 0) {
     onProgress("done", reportPaths.join("\n"));
@@ -190,19 +202,19 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
     chalk.hex(PALETTE.border)("\u2591".repeat(W - barFilled));
 
   const bW = 52;
-  const top = chalk.hex(PALETTE.subtle)(`\u256d${ "\u2500".repeat(bW) }\u256e`);
-  const bot = chalk.hex(PALETTE.subtle)(`\u2570${ "\u2500".repeat(bW) }\u256f`);
-  const mid = chalk.hex(PALETTE.subtle)(`\u251c${ "\u2500".repeat(bW) }\u2524`);
+  const top = chalk.hex(PALETTE.subtle)(`\u256d${"\u2500".repeat(bW)}\u256e`);
+  const bot = chalk.hex(PALETTE.subtle)(`\u2570${"\u2500".repeat(bW)}\u256f`);
+  const mid = chalk.hex(PALETTE.subtle)(`\u251c${"\u2500".repeat(bW)}\u2524`);
   const v = chalk.hex(PALETTE.subtle)("\u2502");
 
   const pad = (s: string, width: number) => {
     // Pad accounting for ANSI codes (visible length)
-    const vis = s.replace(/\x1b\[[0-9;]*m/g, "");
+    const vis = s.replace(/\x1b\[[0-9;]*m/g, ""); // eslint-disable-line no-control-regex
     return s + " ".repeat(Math.max(0, width - vis.length));
   };
 
   const row = (content: string) => `${v} ${pad(content, bW - 1)}${v}`;
-  const emptyRow = `${v}${" ".repeat(bW)}${v}`;
+  const _emptyRow = `${v}${" ".repeat(bW)}${v}`;
 
   // Build the entire report as one string so the Repl renders it as a single block
   const L: string[] = [];
@@ -213,9 +225,21 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
 
   // Metadata
   L.push(row(`${chalk.hex(PALETTE.dim)("URL")}       ${chalk.hex(PALETTE.cyan)(report.url)}`));
-  L.push(row(`${chalk.hex(PALETTE.dim)("Title")}     ${chalk.hex(PALETTE.text)(report.title.slice(0, 40))}`));
-  L.push(row(`${chalk.hex(PALETTE.dim)("Duration")}  ${chalk.hex(PALETTE.amber)(`${(report.summary.duration / 1000).toFixed(1)}s`)}`));
-  L.push(row(`${chalk.hex(PALETTE.dim)("Score")}     ${chalk.hex(scoreColor).bold(`${scoreVal}/100`)} ${chalk.hex(PALETTE.dim)(scoreLabel)}`));
+  L.push(
+    row(
+      `${chalk.hex(PALETTE.dim)("Title")}     ${chalk.hex(PALETTE.text)(report.title.slice(0, 40))}`,
+    ),
+  );
+  L.push(
+    row(
+      `${chalk.hex(PALETTE.dim)("Duration")}  ${chalk.hex(PALETTE.amber)(`${(report.summary.duration / 1000).toFixed(1)}s`)}`,
+    ),
+  );
+  L.push(
+    row(
+      `${chalk.hex(PALETTE.dim)("Score")}     ${chalk.hex(scoreColor).bold(`${scoreVal}/100`)} ${chalk.hex(PALETTE.dim)(scoreLabel)}`,
+    ),
+  );
   L.push(row(`          ${bar}`));
 
   L.push(mid);
@@ -224,9 +248,13 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
   L.push(row(chalk.hex(PALETTE.text).bold("Steps")));
   for (const step of report.results) {
     if (step.status === "pass") {
-      L.push(row(`${chalk.hex(PALETTE.green)(ICONS.pass)} ${chalk.hex(PALETTE.text)(step.description)}`));
+      L.push(
+        row(`${chalk.hex(PALETTE.green)(ICONS.pass)} ${chalk.hex(PALETTE.text)(step.description)}`),
+      );
     } else if (step.status === "fail") {
-      L.push(row(`${chalk.hex(PALETTE.red)(ICONS.fail)} ${chalk.hex(PALETTE.red)(step.description)}`));
+      L.push(
+        row(`${chalk.hex(PALETTE.red)(ICONS.fail)} ${chalk.hex(PALETTE.red)(step.description)}`),
+      );
       if (step.error) {
         // Word-wrap error to ~45 chars per line
         const words = step.error.split(" ");
@@ -244,7 +272,11 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
         }
       }
     } else {
-      L.push(row(`${chalk.hex(PALETTE.muted)(ICONS.pending)} ${chalk.hex(PALETTE.dim)(step.description)}`));
+      L.push(
+        row(
+          `${chalk.hex(PALETTE.muted)(ICONS.pending)} ${chalk.hex(PALETTE.dim)(step.description)}`,
+        ),
+      );
     }
   }
 
@@ -259,7 +291,11 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
       chalk.hex(sc)("\u2588".repeat(Math.round(score / 10))) +
       chalk.hex(PALETTE.border)("\u2591".repeat(10 - Math.round(score / 10)));
     const extraStr = extra ? chalk.hex(PALETTE.dim)(` ${extra}`) : "";
-    L.push(row(`${chalk.hex(labelColor)(label.padEnd(16))} ${chalk.hex(sc).bold(`${score}`.padStart(3))}/100 ${miniBar}${extraStr}`));
+    L.push(
+      row(
+        `${chalk.hex(labelColor)(label.padEnd(16))} ${chalk.hex(sc).bold(`${score}`.padStart(3))}/100 ${miniBar}${extraStr}`,
+      ),
+    );
   };
 
   const totalA11yIssues = report.a11y.reduce((sum, r) => sum + r.issues.length, 0);
@@ -270,7 +306,12 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
   addScoreRow("Accessibility", PALETTE.pink, avgA11y, `${totalA11yIssues} issues`);
 
   if (report.security) {
-    addScoreRow("Security", PALETTE.rose, report.security.score, `${report.security.issues.length} issues`);
+    addScoreRow(
+      "Security",
+      PALETTE.rose,
+      report.security.score,
+      `${report.security.issues.length} issues`,
+    );
   }
 
   if (report.performance && report.performance.length > 0) {
@@ -295,12 +336,17 @@ function printConsoleSummary(report: TestReport, onProgress: ProgressCallback): 
   const failed = report.summary.failed;
   const total = report.summary.total;
   let summaryParts = `${chalk.hex(PALETTE.green).bold(`${ICONS.pass} ${passed} passed`)}`;
-  if (failed > 0) summaryParts += `  ${chalk.hex(PALETTE.red).bold(`${ICONS.fail} ${failed} failed`)}`;
+  if (failed > 0)
+    summaryParts += `  ${chalk.hex(PALETTE.red).bold(`${ICONS.fail} ${failed} failed`)}`;
   summaryParts += `  ${chalk.hex(PALETTE.dim)(`of ${total} steps`)}`;
   L.push(row(summaryParts));
 
   if (report.cost) {
-    L.push(row(`${chalk.hex(PALETTE.amber)(`${ICONS.lightning} ${report.cost.tokens.toLocaleString()} tokens`)} ${chalk.hex(PALETTE.dim)(`(~$${report.cost.estimatedCost.toFixed(4)})`)}`));
+    L.push(
+      row(
+        `${chalk.hex(PALETTE.amber)(`${ICONS.lightning} ${report.cost.tokens.toLocaleString()} tokens`)} ${chalk.hex(PALETTE.dim)(`(~$${report.cost.estimatedCost.toFixed(4)})`)}`,
+      ),
+    );
   }
 
   L.push(bot);

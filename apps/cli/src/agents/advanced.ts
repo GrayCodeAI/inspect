@@ -2,7 +2,7 @@
 // Advanced Testing Agent — PDF, email, scheduling, self-healing selectors
 // ============================================================================
 
-import type { LLMCall, TestPlan, ProgressCallback } from "./types.js";
+import type { LLMCall, TestPlan } from "./types.js";
 import { writeFileSync, readFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -47,6 +47,7 @@ export interface SelfHealResult {
 // ---------------------------------------------------------------------------
 
 export async function testPDFDownload(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<PDFTestResult> {
@@ -213,7 +214,7 @@ function cleanup(filePath: string, dirPath: string): void {
   try {
     if (dirPath && existsSync(dirPath)) {
       // Best-effort directory removal
-      const { rmdirSync } = require("node:fs");
+      const { rmdirSync } = require("node:fs"); // eslint-disable-line @typescript-eslint/no-require-imports
       rmdirSync(dirPath, { recursive: true });
     }
   } catch {
@@ -341,6 +342,7 @@ export function generateCronExpression(
 // ---------------------------------------------------------------------------
 
 export async function selfHealSelector(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   failedSelector: string,
   description: string,
@@ -433,7 +435,10 @@ Reply with ONLY the selector string, nothing else.`;
 
   try {
     const llmResponse = await llm([
-      { role: "system", content: "You are a selector healing assistant. Reply with ONLY a single selector string." },
+      {
+        role: "system",
+        content: "You are a selector healing assistant. Reply with ONLY a single selector string.",
+      },
       { role: "user", content: llmPrompt },
     ]);
 
@@ -521,7 +526,10 @@ Reply with ONLY the JSON object, no other text.`;
 
   try {
     const llmResponse = await llm([
-      { role: "system", content: "You are a test plan healing assistant. Reply with ONLY valid JSON." },
+      {
+        role: "system",
+        content: "You are a test plan healing assistant. Reply with ONLY valid JSON.",
+      },
       { role: "user", content: prompt },
     ]);
 
@@ -685,7 +693,9 @@ function extractAriaHint(selector: string, description: string): string | null {
 
   // Try to derive a hint from the description
   // e.g. "Click the Submit button" -> "Submit"
-  const buttonMatch = description.match(/(?:click|press|tap)\s+(?:the\s+)?["']?(\w[\w\s]*?)["']?\s*(?:button|link|tab|menu|icon)/i);
+  const buttonMatch = description.match(
+    /(?:click|press|tap)\s+(?:the\s+)?["']?(\w[\w\s]*?)["']?\s*(?:button|link|tab|menu|icon)/i,
+  );
   if (buttonMatch) return buttonMatch[1].trim();
 
   return null;
@@ -696,11 +706,33 @@ function buildRoleSelector(description: string): string | null {
 
   // Map description keywords to ARIA roles and names
   const rolePatterns: Array<{ pattern: RegExp; role: string; nameGroup?: number }> = [
-    { pattern: /(?:click|press|tap)\s+(?:the\s+)?["']?(.+?)["']?\s+button/i, role: "button", nameGroup: 1 },
-    { pattern: /(?:click|press|tap)\s+(?:the\s+)?["']?(.+?)["']?\s+link/i, role: "link", nameGroup: 1 },
-    { pattern: /(?:fill|type|enter)\s+(?:in(?:to)?\s+)?(?:the\s+)?["']?(.+?)["']?\s+(?:field|input|textbox)/i, role: "textbox", nameGroup: 1 },
-    { pattern: /(?:select|choose)\s+.*?\s+(?:from\s+)?(?:the\s+)?["']?(.+?)["']?\s+(?:dropdown|select|combobox)/i, role: "combobox", nameGroup: 1 },
-    { pattern: /(?:check|toggle)\s+(?:the\s+)?["']?(.+?)["']?\s+checkbox/i, role: "checkbox", nameGroup: 1 },
+    {
+      pattern: /(?:click|press|tap)\s+(?:the\s+)?["']?(.+?)["']?\s+button/i,
+      role: "button",
+      nameGroup: 1,
+    },
+    {
+      pattern: /(?:click|press|tap)\s+(?:the\s+)?["']?(.+?)["']?\s+link/i,
+      role: "link",
+      nameGroup: 1,
+    },
+    {
+      pattern:
+        /(?:fill|type|enter)\s+(?:in(?:to)?\s+)?(?:the\s+)?["']?(.+?)["']?\s+(?:field|input|textbox)/i,
+      role: "textbox",
+      nameGroup: 1,
+    },
+    {
+      pattern:
+        /(?:select|choose)\s+.*?\s+(?:from\s+)?(?:the\s+)?["']?(.+?)["']?\s+(?:dropdown|select|combobox)/i,
+      role: "combobox",
+      nameGroup: 1,
+    },
+    {
+      pattern: /(?:check|toggle)\s+(?:the\s+)?["']?(.+?)["']?\s+checkbox/i,
+      role: "checkbox",
+      nameGroup: 1,
+    },
   ];
 
   for (const { pattern, role, nameGroup } of rolePatterns) {
@@ -715,11 +747,13 @@ function buildRoleSelector(description: string): string | null {
   if (lower.includes("button")) return `role=button`;
   if (lower.includes("link")) return `role=link`;
   if (lower.includes("checkbox")) return `role=checkbox`;
-  if (lower.includes("textbox") || lower.includes("input") || lower.includes("field")) return `role=textbox`;
+  if (lower.includes("textbox") || lower.includes("input") || lower.includes("field"))
+    return `role=textbox`;
 
   return null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function safeQuerySelector(page: any, selector: string): Promise<boolean> {
   try {
     const element = await page.$(selector);

@@ -19,7 +19,15 @@
   },
   "dependencies": {
     "@inspect/observability": "workspace:*",
-    "@inspect/shared": "workspace:*"
+    "@inspect/shared": "workspace:*",
+    "effect": "4.0.0-beta.35",
+    "@effect/platform-node": "4.0.0-beta.35",
+    "@agentclientprotocol/sdk": "^0.16.1",
+    "@ai-sdk/provider": "^3.0.8",
+    "@github/copilot": "^1.0.12",
+    "@google/gemini-cli": "^0.35.3",
+    "@zed-industries/claude-agent-acp": "^0.22.2",
+    "@zed-industries/codex-acp": "^0.10.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

@@ -54,6 +54,7 @@ export interface WebSocketLog {
 // 1. Network logger — captures all HTTP traffic via Playwright events
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createNetworkLogger(page: any): {
   start: () => void;
   stop: () => NetworkLog;
@@ -64,11 +65,15 @@ export function createNetworkLogger(page: any): {
   const failures: Array<{ url: string; error: string }> = [];
   const requestTimings = new Map<string, number>();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let onRequest: ((req: any) => void) | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let onResponse: ((res: any) => void) | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let onRequestFailed: ((req: any) => void) | null = null;
 
   function start(): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onRequest = (req: any) => {
       const url = req.url() as string;
       const timestamp = Date.now();
@@ -97,6 +102,7 @@ export function createNetworkLogger(page: any): {
       });
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onResponse = (res: any) => {
       const url = res.url() as string;
       const startTime = requestTimings.get(url);
@@ -122,6 +128,7 @@ export function createNetworkLogger(page: any): {
       });
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onRequestFailed = (req: any) => {
       const url = req.url() as string;
       requestTimings.delete(url);
@@ -166,12 +173,14 @@ export function createNetworkLogger(page: any): {
 // 2. WebSocket logger — uses CDP to intercept WebSocket frames
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createWebSocketLogger(page: any): {
   start: () => void;
   stop: () => WebSocketLog[];
   getLogs: () => WebSocketLog[];
 } {
   const logsByUrl = new Map<string, WebSocketLog>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let cdpSession: any = null;
   let started = false;
 
@@ -528,6 +537,7 @@ export async function discoverAPIEndpoints(
 // ---------------------------------------------------------------------------
 
 export async function mockAPIResponse(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   urlPattern: string,
   response: {
@@ -536,6 +546,7 @@ export async function mockAPIResponse(
     headers?: Record<string, string>;
   },
 ): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await page.route(urlPattern, (route: any) => {
     route.fulfill({
       status: response.status,
@@ -554,10 +565,12 @@ export async function mockAPIResponse(
 // ---------------------------------------------------------------------------
 
 export async function simulateNetworkError(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   urlPattern: string,
   errorType: "timeout" | "abort" | "500",
 ): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await page.route(urlPattern, async (route: any) => {
     switch (errorType) {
       case "abort":
@@ -593,6 +606,7 @@ export async function simulateNetworkError(
 // ---------------------------------------------------------------------------
 
 export async function testCORS(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<{ valid: boolean; issues: string[] }> {
@@ -712,6 +726,7 @@ const SLOW_THRESHOLD_MS = 3000;
 const LARGE_PAYLOAD_BYTES = 1024 * 1024; // 1 MB
 
 export async function runAPIAudit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   onProgress: ProgressCallback,

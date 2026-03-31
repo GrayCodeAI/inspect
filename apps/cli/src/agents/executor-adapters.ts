@@ -133,11 +133,13 @@ export function createStepExecutor(
         browser: config.browser,
         headless: !config.headed,
         viewport: config.device.viewport,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       sharedState.page = browserManager.newPage();
 
       if (config.url) {
         const navStart = Date.now();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sharedState.page as any).goto(config.url, {
           waitUntil: "domcontentloaded",
           timeout: 30000,
@@ -151,6 +153,7 @@ export function createStepExecutor(
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const page = sharedState.page as any;
     const llmCall = createLLMCall(router, config.agent);
     const noopProgress = () => {};
@@ -178,6 +181,7 @@ export function createStepExecutor(
     };
 
     const { executeStep } = await import("./tester.js");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await executeStep(testStep as any, page, snapshotText, llmCall, noopProgress);
 
     // Record tool calls from the step execution
@@ -265,6 +269,7 @@ function createRecoveryExecutorsFromState(
         if (!sharedState.page) return false;
         const { AriaSnapshotBuilder } = await import("@inspect/browser");
         const builder = new AriaSnapshotBuilder();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await builder.buildTree(sharedState.page as any);
         return true;
       } catch {
@@ -275,6 +280,7 @@ function createRecoveryExecutorsFromState(
     waitForLoad: async () => {
       try {
         if (!sharedState.page) return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sharedState.page as any).waitForLoadState?.("domcontentloaded", {
           timeout: 5000,
         });
@@ -289,6 +295,7 @@ function createRecoveryExecutorsFromState(
     scrollIntoView: async (selector?: string) => {
       try {
         if (!sharedState.page || !selector) return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sharedState.page as any).locator(selector).scrollIntoViewIfNeeded({ timeout: 3000 });
         return true;
       } catch {
@@ -299,6 +306,7 @@ function createRecoveryExecutorsFromState(
     dismissOverlay: async () => {
       try {
         if (!sharedState.page) return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ctx = sharedState.page as any;
         const dismissSelectors = [
           'button:has-text("Accept")',
@@ -330,6 +338,7 @@ function createRecoveryExecutorsFromState(
     refreshPage: async () => {
       try {
         if (!sharedState.page) return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sharedState.page as any).reload?.({
           waitUntil: "domcontentloaded",
           timeout: 10000,
@@ -343,6 +352,7 @@ function createRecoveryExecutorsFromState(
     clearState: async () => {
       try {
         if (!sharedState.page) return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (sharedState.page as any).evaluate(() => {
           localStorage.clear();
           sessionStorage.clear();

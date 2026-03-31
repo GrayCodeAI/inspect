@@ -11,6 +11,7 @@ const DEFAULT_TIMEOUT = 10_000;
  * it rejects after the timeout instead of blocking forever.
  */
 export async function safeEvaluate<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   script: string,
   fallback: T,
@@ -34,6 +35,7 @@ export async function safeEvaluate<T>(
  * Silently catches errors and timeouts.
  */
 export async function safeEvaluateVoid(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   script: string,
   timeout = DEFAULT_TIMEOUT,

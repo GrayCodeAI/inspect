@@ -57,7 +57,7 @@ function serveFixtures(): Promise<Server> {
 
 // Skip E2E tests if playwright is not available
 let playwright: typeof import("playwright") | null = null;
-let browser: any = null;
+let browser: unknown = null;
 
 beforeAll(async () => {
   try {

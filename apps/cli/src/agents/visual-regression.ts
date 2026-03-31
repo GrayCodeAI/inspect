@@ -242,6 +242,7 @@ const DEFAULT_DYNAMIC_SELECTORS = [
  * Inject CSS and JS to freeze all page animations, transitions, auto-playing
  * videos, smooth scrolling, and requestAnimationFrame loops.
  */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function freezeAnimations(page: any): Promise<void> {
   // Inject a <style> that kills all CSS animations and transitions
   await safeEvaluate<void>(
@@ -298,6 +299,7 @@ export async function freezeAnimations(page: any): Promise<void> {
  * blocks so they do not cause false positives in visual comparisons.
  */
 export async function maskDynamicContent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   selectors?: string[],
 ): Promise<void> {
@@ -351,6 +353,7 @@ export async function maskDynamicContent(
  * @returns The absolute path to the saved baseline image.
  */
 export async function captureBaseline(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   viewport: { width: number; height: number },
@@ -404,6 +407,7 @@ export async function captureBaseline(
  * that highlights the changed pixels in red against a dimmed background.
  */
 export async function compareScreenshot(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   viewport: { width: number; height: number },
@@ -606,6 +610,7 @@ export async function updateBaseline(
  * Reports progress through the `onProgress` callback.
  */
 export async function runVisualRegression(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   urls: string[],
   viewports: Array<{ width: number; height: number; label: string }>,

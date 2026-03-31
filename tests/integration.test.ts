@@ -5,7 +5,6 @@
 
 import { describe, it, expect } from "vitest";
 import { ServiceRegistry } from "../packages/services/src/registry.js";
-import { AxeAuditService } from "../packages/services/src/services/axe-audit.js";
 import { MiniWoBEnvironments } from "../packages/services/src/services/benchmark-env.js";
 import { BatchScraper } from "../packages/services/src/services/batch-scraper.js";
 import { GraphQLMockService } from "../packages/services/src/services/graphql-mock.js";
@@ -15,7 +14,7 @@ import { ToolRegistry } from "../packages/agent/src/tools/registry.js";
 import { StealthEngine } from "../packages/network/src/stealth/stealth.js";
 import { ProxyServer, TOXICITY_PRESETS } from "../packages/quality/src/resilience/proxy-server.js";
 import { Snapshotter, Differ } from "../packages/data/src/tracking/tracker.js";
-import { RewardShaper, BuiltinRewards } from "../evals/benchmarks/reward.js";
+import { RewardShaper} from "../evals/benchmarks/reward.js";
 import { BenchmarkRunner } from "../evals/benchmarks/runner.js";
 
 describe("End-to-End Integration", () => {

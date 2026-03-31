@@ -1,5 +1,5 @@
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 
 export interface TestStepResult {
   action: string;
@@ -129,7 +129,7 @@ function formatJSON(result: TestRunResult): string {
 // ── JUnit XML reporter ─────────────────────────────────────────────────
 
 function formatJUnit(result: TestRunResult): string {
-  const passed = result.steps.filter(s => s.result === "pass").length;
+  const _passed = result.steps.filter(s => s.result === "pass").length;
   const failed = result.steps.filter(s => s.result === "fail").length;
   const skipped = result.steps.filter(s => s.result === "skip" || s.result === "info").length;
 
@@ -183,7 +183,7 @@ function formatHTML(result: TestRunResult): string {
   // Simple inline version for CLI
   const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const passed = result.steps.filter(s => s.result === "pass").length;
-  const failed = result.steps.filter(s => s.result === "fail").length;
+  const _failed = result.steps.filter(s => s.result === "fail").length;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Inspect Report</title>

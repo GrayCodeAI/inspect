@@ -1,6 +1,4 @@
 import type {
-  TestPlan,
-  TestStep,
   A11yReport,
   TestReport,
   ProgressCallback,
@@ -13,7 +11,6 @@ import type {
   FormTestResult,
   SiteAnalysis,
 } from "./types.js";
-import { planTests, generateTestData } from "./planner.js";
 import { executeStep } from "./tester.js";
 import {
   validateStep,
@@ -98,6 +95,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   } = options;
 
   // Mode-aware snapshot builder — hybrid merges ARIA+DOM (Stagehand pattern)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const captureSnapshot = async (page: any, builder: any): Promise<string> => {
     if (mode === "hybrid") {
       const { formatted } = await builder.buildHybridTree(page);
@@ -195,6 +193,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   await browserMgr.launchBrowser({
     headless: !headed,
     viewport,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   const page = await browserMgr.newPage();
 
@@ -346,7 +345,9 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           try {
             const rebuildSnap = new AriaSnapshotBuilder();
             snapshotText = await captureSnapshot(page, rebuildSnap);
-          } catch {}
+          } catch {
+            /* intentionally empty */
+          }
         }
       } catch (err: unknown) {
         onProgress(
@@ -366,7 +367,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     const consoleMonitor = createConsoleMonitor(page);
     networkMonitor.start();
     consoleMonitor.start();
-    const urlTracker = trackUrlChanges(page);
+    const _urlTracker = trackUrlChanges(page);
 
     const agentResult = await runAgentLoop({
       page,
@@ -393,7 +394,9 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     try {
       const finalBuilder = new AriaSnapshotBuilder();
       snapshotText = await captureSnapshot(page, finalBuilder);
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
 
     // Collect screenshots from results
     for (const r of results) {

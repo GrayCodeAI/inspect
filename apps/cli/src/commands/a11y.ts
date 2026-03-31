@@ -35,6 +35,7 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
     await browserMgr.launchBrowser({
       headless: !(options.headed ?? false),
       viewport: { width: 1920, height: 1080 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     const page = await browserMgr.newPage();
 
@@ -71,6 +72,7 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
 
     // Cast page to the auditor's PageHandle interface
     const pageHandle = page as unknown as Parameters<typeof auditor.audit>[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const report = await auditor.audit(pageHandle, auditOptions as any);
 
     // Display results
@@ -79,7 +81,10 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
     const incomplete = report.incomplete ?? [];
 
     if (options.json) {
-      process.stdout.write(JSON.stringify({ score: report.score ?? null, violations, passes, incomplete }, null, 2) + "\n");
+      process.stdout.write(
+        JSON.stringify({ score: report.score ?? null, violations, passes, incomplete }, null, 2) +
+          "\n",
+      );
       await browserMgr.closeBrowser();
       return;
     }
@@ -90,15 +95,21 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
     if (violations.length > 0) {
       console.log(chalk.red(`  ${violations.length} Violations\n`));
       for (const v of violations.slice(0, 20)) {
-        const impact = v.impact === "critical"
-          ? chalk.red(v.impact)
-          : v.impact === "serious"
-            ? chalk.yellow(v.impact)
-            : chalk.dim(v.impact ?? "minor");
+        const impact =
+          v.impact === "critical"
+            ? chalk.red(v.impact)
+            : v.impact === "serious"
+              ? chalk.yellow(v.impact)
+              : chalk.dim(v.impact ?? "minor");
         console.log(`  ${impact.padEnd(20)} ${v.id ?? "unknown"}`);
-        if (v.description) console.log(chalk.dim(`  ${"".padEnd(12)} ${v.description.slice(0, 100)}`));
+        if (v.description)
+          console.log(chalk.dim(`  ${"".padEnd(12)} ${v.description.slice(0, 100)}`));
         if (v.nodes && v.nodes.length > 0) {
-          console.log(chalk.dim(`  ${"".padEnd(12)} Affected: ${v.nodes.length} element${v.nodes.length !== 1 ? "s" : ""}`));
+          console.log(
+            chalk.dim(
+              `  ${"".padEnd(12)} Affected: ${v.nodes.length} element${v.nodes.length !== 1 ? "s" : ""}`,
+            ),
+          );
         }
       }
       if (violations.length > 20) {
@@ -123,6 +134,7 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
         writeFileSync(outputPath, JSON.stringify(report, null, 2), "utf-8");
       } else {
         const reportData = JSON.stringify(report, null, 2);
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const html = `<!DOCTYPE html>
 <html><head><title>A11y Report - ${url}</title>
 <style>body{font-family:system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}
@@ -137,6 +149,7 @@ ${violations.map((v: any) => `<div class="violation"><strong>${v.id ?? v.rule ??
 <h2>Passed (${passes.length})</h2>
 <pre>${reportData}</pre>
 </body></html>`;
+        /* eslint-enable @typescript-eslint/no-explicit-any */
         writeFileSync(outputPath, html, "utf-8");
       }
       console.log(chalk.green(`\nReport saved to: ${outputPath}`));

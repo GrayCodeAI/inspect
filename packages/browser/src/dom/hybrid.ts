@@ -2,7 +2,7 @@
 // HybridTree - Merge ARIA + DOM trees into a unified representation
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { ElementSnapshot, DOMNode, HybridNode, BoundingBox } from "@inspect/shared";
+import type { ElementSnapshot, DOMNode, HybridNode} from "@inspect/shared";
 import { RefManager } from "../aria/refs.js";
 
 /** Tag names that indicate interactive elements */

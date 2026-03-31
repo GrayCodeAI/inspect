@@ -14,6 +14,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function runPerformanceAudit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   onProgress: ProgressCallback,
@@ -30,6 +31,7 @@ export async function runPerformanceAudit(
   const redirectChains: RedirectChain[] = [];
   const redirectMap = new Map<string, string[]>();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("request", (req: any) => {
     const redirected = req.redirectedFrom();
     if (redirected) {
@@ -72,14 +74,13 @@ export async function runPerformanceAudit(
 
   // Run all checks in parallel
   onProgress("step", "  Measuring Core Web Vitals...");
-  const [metrics, resources, jsErrors, slowApis, mixedContent] =
-    await Promise.all([
-      measureCoreWebVitals(page),
-      analyzeResources(page),
-      jsErrorsPromise,
-      apiCallsPromise,
-      detectMixedContent(page),
-    ]);
+  const [metrics, resources, jsErrors, slowApis, mixedContent] = await Promise.all([
+    measureCoreWebVitals(page),
+    analyzeResources(page),
+    jsErrorsPromise,
+    apiCallsPromise,
+    detectMixedContent(page),
+  ]);
 
   // Calculate score using weighted average
   const score = calculateScore(metrics, resources);
@@ -114,10 +115,7 @@ export async function runPerformanceAudit(
     onProgress("warn", `    FID: ${metrics.fid}ms (should be <200ms)`);
   }
   if (resources.unoptimizedImages.length > 0) {
-    onProgress(
-      "warn",
-      `    ${resources.unoptimizedImages.length} unoptimized image(s)`,
-    );
+    onProgress("warn", `    ${resources.unoptimizedImages.length} unoptimized image(s)`);
   }
   if (slowApis.length > 0) {
     onProgress("warn", `    ${slowApis.length} slow/failed API call(s)`);
@@ -137,17 +135,22 @@ export async function runPerformanceAudit(
 // Core Web Vitals
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
   // Simulate a user interaction to trigger FID measurement
   try {
     await page.mouse.click(0, 0); // click at top-left (usually safe)
     await page.waitForTimeout(100);
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   // Wait for page to fully settle (images, fonts, lazy content)
   try {
     await page.waitForLoadState("networkidle", { timeout: 5000 });
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   // Scroll to trigger layout shifts and lazy content
   await safeEvaluate<void>(page, "window.scrollTo(0, document.body.scrollHeight / 2)", undefined);
@@ -155,7 +158,9 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
   await safeEvaluate<void>(page, "window.scrollTo(0, 0)", undefined);
   await page.waitForTimeout(300).catch(() => {});
 
-  const vitals = await safeEvaluate<CoreWebVitals>(page, `
+  const vitals = await safeEvaluate<CoreWebVitals>(
+    page,
+    `
     (async () => {
       const result = {
         lcp: 0,
@@ -296,16 +301,20 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
 
       return result;
     })()
-  `, { lcp: 0, cls: 0, fid: 0, fcp: 0, ttfb: 0, domContentLoaded: 0, fullLoad: 0 });
+  `,
+    { lcp: 0, cls: 0, fid: 0, fcp: 0, ttfb: 0, domContentLoaded: 0, fullLoad: 0 },
+  );
 
   // CDP fallback for headless Chromium where PerformanceObserver may not fire
   if (vitals.lcp === 0 || vitals.fcp === 0 || vitals.ttfb === 0) {
     try {
       const client = await page.context().newCDPSession(page);
       await client.send("Performance.enable");
-      const { metrics } = await client.send("Performance.getMetrics") as { metrics: Array<{ name: string; value: number }> };
+      const { metrics } = (await client.send("Performance.getMetrics")) as {
+        metrics: Array<{ name: string; value: number }>;
+      };
 
-      const cdpMap = new Map(metrics.map(m => [m.name, m.value]));
+      const cdpMap = new Map(metrics.map((m) => [m.name, m.value]));
 
       // NavigationStart is the epoch reference
       const navStart = cdpMap.get("NavigationStart") ?? 0;
@@ -347,13 +356,18 @@ export async function measureCoreWebVitals(page: any): Promise<CoreWebVitals> {
 // Resource analysis
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
-  const rawResources = await safeEvaluate<Array<{
-    name: string;
-    type: string;
-    size: number;
-    duration: number;
-  }>>(page, `
+  const rawResources = await safeEvaluate<
+    Array<{
+      name: string;
+      type: string;
+      size: number;
+      duration: number;
+    }>
+  >(
+    page,
+    `
     (() => {
       const entries = performance.getEntriesByType("resource");
       return entries.map(e => ({
@@ -363,7 +377,9 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
         duration: e.duration,
       }));
     })()
-  `, []);
+  `,
+    [],
+  );
 
   let jsSize = 0;
   let cssSize = 0;
@@ -377,10 +393,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
       jsSize += r.size;
     } else if (r.type === "css" || r.name.match(/\.css(\?|$)/i)) {
       cssSize += r.size;
-    } else if (
-      r.type === "img" ||
-      r.name.match(/\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?|$)/i)
-    ) {
+    } else if (r.type === "img" || r.name.match(/\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?|$)/i)) {
       imageSize += r.size;
     } else if (r.name.match(/\.(woff2?|ttf|otf|eot)(\?|$)/i)) {
       fontSize += r.size;
@@ -390,9 +403,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
   // Identify unoptimized images
   const unoptimizedImages: UnoptimizedImage[] = [];
   const imageEntries = rawResources.filter(
-    (r) =>
-      r.type === "img" ||
-      r.name.match(/\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?|$)/i),
+    (r) => r.type === "img" || r.name.match(/\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?|$)/i),
   );
 
   for (const img of imageEntries) {
@@ -415,7 +426,9 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
   }
 
   // Check for images without lazy loading below the fold
-  const lazyIssues = await safeEvaluate<Array<{ url: string; width: number; height: number }>>(page, `
+  const lazyIssues = await safeEvaluate<Array<{ url: string; width: number; height: number }>>(
+    page,
+    `
     (() => {
       const results = [];
       const viewportHeight = window.innerHeight;
@@ -434,7 +447,9 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
       }
       return results.slice(0, 10);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const img of lazyIssues) {
     // Avoid duplicates if already flagged for size
@@ -443,13 +458,15 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
         url: img.url,
         size: 0, // Size unknown from DOM
         format: "unknown",
-        suggestion: "Add loading=\"lazy\" (image is below the fold)",
+        suggestion: 'Add loading="lazy" (image is below the fold)',
       });
     }
   }
 
   // Identify render-blocking resources
-  const renderBlocking = await safeEvaluate<string[]>(page, `
+  const renderBlocking = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const blocking = [];
       // Synchronous scripts in <head>
@@ -467,7 +484,9 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
       }
       return blocking.filter(Boolean).map(u => u.length > 120 ? u.slice(0, 120) + "..." : u);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   return {
     totalRequests: rawResources.length,
@@ -485,6 +504,7 @@ export async function analyzeResources(page: any): Promise<ResourceAnalysis> {
 // JavaScript error capture
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function captureJsErrors(page: any): Promise<string[]> {
   const errors: string[] = [];
 
@@ -492,6 +512,7 @@ export async function captureJsErrors(page: any): Promise<string[]> {
     errors.push(`[PageError] ${error.message}`);
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("console", (msg: any) => {
     if (msg.type() === "error") {
       const text = msg.text();
@@ -512,14 +533,16 @@ export async function captureJsErrors(page: any): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 export async function monitorApiCalls(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
-  url: string,
+  _url: string,
 ): Promise<SlowApiCall[]> {
   const slowCalls: SlowApiCall[] = [];
   const requestTimings = new Map<string, { method: string; start: number }>();
 
   const SLOW_THRESHOLD_MS = 3000;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("request", (request: any) => {
     const resourceType = request.resourceType();
     if (resourceType === "xhr" || resourceType === "fetch") {
@@ -530,6 +553,7 @@ export async function monitorApiCalls(
     }
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("response", (response: any) => {
     const reqUrl = response.url();
     const timing = requestTimings.get(reqUrl);
@@ -554,6 +578,7 @@ export async function monitorApiCalls(
   });
 
   // Also capture timed-out requests that never got a response
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("requestfailed", (request: any) => {
     const reqUrl = request.url();
     const timing = requestTimings.get(reqUrl);
@@ -577,6 +602,7 @@ export async function monitorApiCalls(
 // Mixed content detection
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function detectMixedContent(page: any): Promise<string[]> {
   const pageUrl = page.url() as string;
 
@@ -585,7 +611,9 @@ export async function detectMixedContent(page: any): Promise<string[]> {
     return [];
   }
 
-  const mixedUrls = await safeEvaluate<string[]>(page, `
+  const mixedUrls = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const mixed = new Set();
 
@@ -633,7 +661,9 @@ export async function detectMixedContent(page: any): Promise<string[]> {
 
       return Array.from(mixed);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   return mixedUrls;
 }
@@ -642,10 +672,7 @@ export async function detectMixedContent(page: any): Promise<string[]> {
 // Scoring
 // ---------------------------------------------------------------------------
 
-function calculateScore(
-  metrics: CoreWebVitals,
-  resources: ResourceAnalysis,
-): number {
+function calculateScore(metrics: CoreWebVitals, resources: ResourceAnalysis): number {
   // LCP scoring (30% weight)
   // Good: <2500ms, Needs improvement: 2500-4000ms, Poor: >4000ms
   let lcpScore: number;
@@ -711,11 +738,7 @@ function calculateScore(
 
   // Weighted average
   const score =
-    lcpScore * 0.3 +
-    clsScore * 0.25 +
-    fcpScore * 0.2 +
-    ttfbScore * 0.15 +
-    resourceScore * 0.1;
+    lcpScore * 0.3 + clsScore * 0.25 + fcpScore * 0.2 + ttfbScore * 0.15 + resourceScore * 0.1;
 
   return Math.round(Math.max(0, Math.min(100, score)));
 }

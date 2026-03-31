@@ -38,6 +38,7 @@ async function runChaos(url: string | undefined, options: ChaosOptions): Promise
     await browserMgr.launchBrowser({
       headless: !(options.headed ?? false),
       viewport: { width: 1920, height: 1080 },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     const page = await browserMgr.newPage();
 

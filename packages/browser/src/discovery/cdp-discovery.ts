@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { createLogger } from "@inspect/observability";
 
-const logger = createLogger("browser/cdp-discovery");
+const _logger = createLogger("browser/cdp-discovery");
 
 export interface CdpEndpoint {
   url: string;

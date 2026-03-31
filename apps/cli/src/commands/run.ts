@@ -163,10 +163,12 @@ async function runYamlTest(file: string, options: RunOptions): Promise<void> {
     let viewport = { width: 1920, height: 1080 };
     if (testDef.device) {
       const { DEVICE_PRESETS } = await import("@inspect/shared");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const preset = (DEVICE_PRESETS as Record<string, any>)[testDef.device];
       if (preset) viewport = { width: preset.width, height: preset.height };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await browserMgr.launchBrowser({ headless: true, viewport } as any);
     const page = await browserMgr.newPage();
 

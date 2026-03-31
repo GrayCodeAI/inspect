@@ -21,10 +21,27 @@ interface BuiltStep {
   assertion: string;
 }
 
-type BuilderPhase = "name" | "url" | "steps" | "step-action" | "step-target" | "step-value" | "step-assertion" | "devices" | "agent" | "review";
+type BuilderPhase =
+  | "name"
+  | "url"
+  | "steps"
+  | "step-action"
+  | "step-target"
+  | "step-value"
+  | "step-assertion"
+  | "devices"
+  | "agent"
+  | "review";
 
 const ACTIONS = ["click", "type", "navigate", "scroll", "wait", "verify", "select", "hover"];
-const DEVICES = ["desktop-chrome", "desktop-firefox", "desktop-safari", "iphone-15", "pixel-8", "ipad-pro"];
+const DEVICES = [
+  "desktop-chrome",
+  "desktop-firefox",
+  "desktop-safari",
+  "iphone-15",
+  "pixel-8",
+  "ipad-pro",
+];
 const AGENTS = ["claude", "gpt", "gemini", "deepseek"];
 
 export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.ReactElement {
@@ -51,15 +68,29 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
     }
 
     // Text input phases
-    if (phase === "name" || phase === "url" || phase === "step-target" || phase === "step-value" || phase === "step-assertion") {
+    if (
+      phase === "name" ||
+      phase === "url" ||
+      phase === "step-target" ||
+      phase === "step-value" ||
+      phase === "step-assertion"
+    ) {
       if (key.return) {
         const val = inputBuffer.trim();
         switch (phase) {
           case "name":
-            if (val) { setName(val); setInputBuffer(""); setPhase("url"); }
+            if (val) {
+              setName(val);
+              setInputBuffer("");
+              setPhase("url");
+            }
             break;
           case "url":
-            if (val) { setUrl(val); setInputBuffer(""); setPhase("steps"); }
+            if (val) {
+              setUrl(val);
+              setInputBuffer("");
+              setPhase("steps");
+            }
             break;
           case "step-target":
             setCurrentStep((s) => ({ ...s, target: val }));
@@ -71,7 +102,7 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
             setInputBuffer("");
             setPhase("step-assertion");
             break;
-          case "step-assertion":
+          case "step-assertion": {
             const newStep: BuiltStep = {
               action: currentStep.action ?? "click",
               target: currentStep.target ?? "",
@@ -83,6 +114,7 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
             setInputBuffer("");
             setPhase("steps");
             break;
+          }
         }
         return;
       }
@@ -182,15 +214,27 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text color={PALETTE.brand} bold>{ICONS.diamond} Test Builder</Text>
+        <Text color={PALETTE.brand} bold>
+          {ICONS.diamond} Test Builder
+        </Text>
         <Text color={PALETTE.muted}> — build a test step by step</Text>
       </Box>
 
       {/* Progress indicator */}
       <Box marginBottom={1} gap={1}>
         {["name", "url", "steps", "devices", "agent", "review"].map((p) => (
-          <Text key={p} color={phase === p || (phase.startsWith("step-") && p === "steps") ? PALETTE.brand : PALETTE.dim}>
-            {phase === p || (phase.startsWith("step-") && p === "steps") ? ICONS.gem : ICONS.pending} {p}
+          <Text
+            key={p}
+            color={
+              phase === p || (phase.startsWith("step-") && p === "steps")
+                ? PALETTE.brand
+                : PALETTE.dim
+            }
+          >
+            {phase === p || (phase.startsWith("step-") && p === "steps")
+              ? ICONS.gem
+              : ICONS.pending}{" "}
+            {p}
           </Text>
         ))}
       </Box>
@@ -200,7 +244,10 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
         <Box flexDirection="column">
           <Text color={PALETTE.text}>Test name:</Text>
           <Box borderStyle="round" borderColor={PALETTE.brand} paddingX={1}>
-            <Text color={PALETTE.text}>{inputBuffer}<Text color={PALETTE.brand}>|</Text></Text>
+            <Text color={PALETTE.text}>
+              {inputBuffer}
+              <Text color={PALETTE.brand}>|</Text>
+            </Text>
           </Box>
         </Box>
       )}
@@ -209,30 +256,47 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
         <Box flexDirection="column">
           <Text color={PALETTE.text}>Target URL:</Text>
           <Box borderStyle="round" borderColor={PALETTE.brand} paddingX={1}>
-            <Text color={PALETTE.cyan}>{inputBuffer}<Text color={PALETTE.brand}>|</Text></Text>
+            <Text color={PALETTE.cyan}>
+              {inputBuffer}
+              <Text color={PALETTE.brand}>|</Text>
+            </Text>
           </Box>
         </Box>
       )}
 
       {(phase === "steps" || phase.startsWith("step-")) && (
         <Box flexDirection="column">
-          <Text color={PALETTE.text} bold>Steps ({steps.length}):</Text>
+          <Text color={PALETTE.text} bold>
+            Steps ({steps.length}):
+          </Text>
           {steps.map((s, i) => (
             <Box key={i} gap={1} marginLeft={1}>
               <Text color={PALETTE.dim}>{i + 1}.</Text>
               <Text color={PALETTE.orange}>{s.action}</Text>
               {s.target && <Text color={PALETTE.cyan}>{s.target}</Text>}
               {s.value && <Text color={PALETTE.text}>= "{s.value}"</Text>}
-              {s.assertion && <Text color={PALETTE.green}>{ICONS.arrow} {s.assertion}</Text>}
+              {s.assertion && (
+                <Text color={PALETTE.green}>
+                  {ICONS.arrow} {s.assertion}
+                </Text>
+              )}
             </Box>
           ))}
 
           {phase === "steps" && (
             <Box marginTop={1} gap={2}>
-              <Text color={PALETTE.muted}><Text color={PALETTE.dim}>[A]</Text> add step</Text>
-              <Text color={PALETTE.muted}><Text color={PALETTE.dim}>[D]</Text> devices</Text>
-              <Text color={PALETTE.muted}><Text color={PALETTE.dim}>[R]</Text> review</Text>
-              <Text color={PALETTE.muted}><Text color={PALETTE.dim}>[Bksp]</Text> remove last</Text>
+              <Text color={PALETTE.muted}>
+                <Text color={PALETTE.dim}>[A]</Text> add step
+              </Text>
+              <Text color={PALETTE.muted}>
+                <Text color={PALETTE.dim}>[D]</Text> devices
+              </Text>
+              <Text color={PALETTE.muted}>
+                <Text color={PALETTE.dim}>[R]</Text> review
+              </Text>
+              <Text color={PALETTE.muted}>
+                <Text color={PALETTE.dim}>[Bksp]</Text> remove last
+              </Text>
             </Box>
           )}
 
@@ -253,7 +317,10 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
             <Box flexDirection="column" marginTop={1}>
               <Text color={PALETTE.text}>Target (selector, text, or ref):</Text>
               <Box borderStyle="round" borderColor={PALETTE.cyan} paddingX={1}>
-                <Text color={PALETTE.cyan}>{inputBuffer}<Text color={PALETTE.brand}>|</Text></Text>
+                <Text color={PALETTE.cyan}>
+                  {inputBuffer}
+                  <Text color={PALETTE.brand}>|</Text>
+                </Text>
               </Box>
             </Box>
           )}
@@ -262,7 +329,10 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
             <Box flexDirection="column" marginTop={1}>
               <Text color={PALETTE.text}>Value (text to type, or empty):</Text>
               <Box borderStyle="round" borderColor={PALETTE.orange} paddingX={1}>
-                <Text color={PALETTE.orange}>{inputBuffer}<Text color={PALETTE.brand}>|</Text></Text>
+                <Text color={PALETTE.orange}>
+                  {inputBuffer}
+                  <Text color={PALETTE.brand}>|</Text>
+                </Text>
               </Box>
               <Text color={PALETTE.muted}>Press Enter to skip</Text>
             </Box>
@@ -272,7 +342,10 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
             <Box flexDirection="column" marginTop={1}>
               <Text color={PALETTE.text}>Assertion (what to verify, or empty):</Text>
               <Box borderStyle="round" borderColor={PALETTE.green} paddingX={1}>
-                <Text color={PALETTE.green}>{inputBuffer}<Text color={PALETTE.brand}>|</Text></Text>
+                <Text color={PALETTE.green}>
+                  {inputBuffer}
+                  <Text color={PALETTE.brand}>|</Text>
+                </Text>
               </Box>
               <Text color={PALETTE.muted}>Press Enter to skip</Text>
             </Box>
@@ -309,18 +382,51 @@ export function TestBuilderScreen({ onDone }: TestBuilderScreenProps): React.Rea
       {phase === "review" && (
         <Box flexDirection="column">
           <Box borderStyle="round" borderColor={PALETTE.brand} paddingX={1} flexDirection="column">
-            <Text color={PALETTE.brand} bold>Review Test</Text>
-            <Box gap={2}><Box width={10}><Text color={PALETTE.dim}>Name</Text></Box><Text color={PALETTE.text}>{name}</Text></Box>
-            <Box gap={2}><Box width={10}><Text color={PALETTE.dim}>URL</Text></Box><Text color={PALETTE.cyan}>{url}</Text></Box>
-            <Box gap={2}><Box width={10}><Text color={PALETTE.dim}>Agent</Text></Box><Text color={PALETTE.orange}>{agent}</Text></Box>
-            <Box gap={2}><Box width={10}><Text color={PALETTE.dim}>Devices</Text></Box><Text color={PALETTE.text}>{[...selectedDevices].join(", ")}</Text></Box>
-            <Box gap={2}><Box width={10}><Text color={PALETTE.dim}>Steps</Text></Box><Text color={PALETTE.text}>{steps.length}</Text></Box>
+            <Text color={PALETTE.brand} bold>
+              Review Test
+            </Text>
+            <Box gap={2}>
+              <Box width={10}>
+                <Text color={PALETTE.dim}>Name</Text>
+              </Box>
+              <Text color={PALETTE.text}>{name}</Text>
+            </Box>
+            <Box gap={2}>
+              <Box width={10}>
+                <Text color={PALETTE.dim}>URL</Text>
+              </Box>
+              <Text color={PALETTE.cyan}>{url}</Text>
+            </Box>
+            <Box gap={2}>
+              <Box width={10}>
+                <Text color={PALETTE.dim}>Agent</Text>
+              </Box>
+              <Text color={PALETTE.orange}>{agent}</Text>
+            </Box>
+            <Box gap={2}>
+              <Box width={10}>
+                <Text color={PALETTE.dim}>Devices</Text>
+              </Box>
+              <Text color={PALETTE.text}>{[...selectedDevices].join(", ")}</Text>
+            </Box>
+            <Box gap={2}>
+              <Box width={10}>
+                <Text color={PALETTE.dim}>Steps</Text>
+              </Box>
+              <Text color={PALETTE.text}>{steps.length}</Text>
+            </Box>
           </Box>
 
           <Box marginTop={1} gap={2}>
-            <Text color={PALETTE.green}><Text color={PALETTE.dim}>[Enter]</Text> run test</Text>
-            <Text color={PALETTE.muted}><Text color={PALETTE.dim}>[B]</Text> back to edit</Text>
-            <Text color={PALETTE.muted}><Text color={PALETTE.dim}>[Esc]</Text> cancel</Text>
+            <Text color={PALETTE.green}>
+              <Text color={PALETTE.dim}>[Enter]</Text> run test
+            </Text>
+            <Text color={PALETTE.muted}>
+              <Text color={PALETTE.dim}>[B]</Text> back to edit
+            </Text>
+            <Text color={PALETTE.muted}>
+              <Text color={PALETTE.dim}>[Esc]</Text> cancel
+            </Text>
           </Box>
         </Box>
       )}

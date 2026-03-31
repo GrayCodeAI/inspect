@@ -132,8 +132,7 @@ export function registerDecoratedTools(
  * Note: This is a marker decorator - use registerDecoratedTools() to actually register tools.
  */
 export function toolProvider(_options?: { namespace?: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (target: any): any {
+  return function (target: unknown): unknown {
     // Add a helper method to the prototype
     target.prototype.getToolMetadata = function (): ToolActionMetadata[] {
       const metadata: ToolActionMetadata[] = [];

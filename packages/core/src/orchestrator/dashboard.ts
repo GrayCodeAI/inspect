@@ -20,7 +20,6 @@ import type {
   Unsubscribe,
 } from "@inspect/shared";
 import { FlakinessDetector } from "../testing/flakiness.js";
-import type { TestExecution } from "../testing/flakiness.js";
 import type { ExecutionConfig, ExecutionProgress, ExecutorDependencies, StepResult } from "./executor.js";
 import { TestScheduler } from "./scheduler.js";
 import type { DeviceConfig } from "../devices/presets.js";

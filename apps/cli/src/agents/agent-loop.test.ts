@@ -5,7 +5,7 @@
 // DOMDiff (two-step), AnnotatedScreenshot (vision fallback)
 // ============================================================================
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { ActionLoopDetector, ActionCache } from "@inspect/agent";
 import { SpeculativePlanner, RunCache } from "@inspect/core";
 

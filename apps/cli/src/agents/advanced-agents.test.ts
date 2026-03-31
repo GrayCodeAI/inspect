@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { describe, it, expect, vi } from "vitest";
-import type { LLMCall, ProgressCallback, TestStep, TestPlan } from "./types.js";
+import type { LLMCall, ProgressCallback, TestPlan } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -17,6 +17,7 @@ function mockLlm(response: string): LLMCall {
   return vi.fn().mockResolvedValue(response);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mockPage(overrides: Record<string, unknown> = {}): any {
   return {
     goto: vi.fn().mockResolvedValue(null),
@@ -39,15 +40,42 @@ function mockPage(overrides: Record<string, unknown> = {}): any {
     addScriptTag: vi.fn().mockResolvedValue(null),
     route: vi.fn().mockResolvedValue(undefined),
     unroute: vi.fn().mockResolvedValue(undefined),
-    getByText: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined), fill: vi.fn().mockResolvedValue(undefined) }) }),
-    getByRole: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined) }) }),
-    getByLabel: vi.fn().mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined), fill: vi.fn().mockResolvedValue(undefined), check: vi.fn().mockResolvedValue(undefined) }) }),
-    locator: vi.fn().mockReturnValue({ first: () => ({ dragTo: vi.fn().mockResolvedValue(undefined), boundingBox: vi.fn().mockResolvedValue({ x: 10, y: 10, width: 50, height: 50 }) }) }),
+    getByText: vi.fn().mockReturnValue({
+      first: () => ({
+        click: vi.fn().mockResolvedValue(undefined),
+        fill: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+    getByRole: vi
+      .fn()
+      .mockReturnValue({ first: () => ({ click: vi.fn().mockResolvedValue(undefined) }) }),
+    getByLabel: vi.fn().mockReturnValue({
+      first: () => ({
+        click: vi.fn().mockResolvedValue(undefined),
+        fill: vi.fn().mockResolvedValue(undefined),
+        check: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+    locator: vi.fn().mockReturnValue({
+      first: () => ({
+        dragTo: vi.fn().mockResolvedValue(undefined),
+        boundingBox: vi.fn().mockResolvedValue({ x: 10, y: 10, width: 50, height: 50 }),
+      }),
+    }),
     click: vi.fn().mockResolvedValue(undefined),
     fill: vi.fn().mockResolvedValue(undefined),
     dragAndDrop: vi.fn().mockResolvedValue(undefined),
-    keyboard: { press: vi.fn().mockResolvedValue(undefined), type: vi.fn().mockResolvedValue(undefined) },
-    mouse: { click: vi.fn().mockResolvedValue(undefined), move: vi.fn().mockResolvedValue(undefined), down: vi.fn().mockResolvedValue(undefined), up: vi.fn().mockResolvedValue(undefined), wheel: vi.fn().mockResolvedValue(undefined) },
+    keyboard: {
+      press: vi.fn().mockResolvedValue(undefined),
+      type: vi.fn().mockResolvedValue(undefined),
+    },
+    mouse: {
+      click: vi.fn().mockResolvedValue(undefined),
+      move: vi.fn().mockResolvedValue(undefined),
+      down: vi.fn().mockResolvedValue(undefined),
+      up: vi.fn().mockResolvedValue(undefined),
+      wheel: vi.fn().mockResolvedValue(undefined),
+    },
     on: vi.fn(),
     off: vi.fn(),
     removeListener: vi.fn(),
@@ -102,7 +130,10 @@ describe("spa", () => {
   it("testBackForward returns result object", async () => {
     const { testBackForward } = await import("./spa.js");
     const page = mockPage();
-    const result = await testBackForward(page, ["https://example.com", "https://example.com/about"]);
+    const result = await testBackForward(page, [
+      "https://example.com",
+      "https://example.com/about",
+    ]);
     expect(result).toHaveProperty("passed");
     expect(result).toHaveProperty("issues");
     expect(Array.isArray(result.issues)).toBe(true);
@@ -139,9 +170,14 @@ describe("auth", () => {
     const { detectAuthState } = await import("./auth.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue({
-        hasAvatar: false, hasUsername: false, hasLogout: false,
-        hasDashboard: false, hasLoginForm: true,
-        authCookies: [], storageTokens: [], indicators: [],
+        hasAvatar: false,
+        hasUsername: false,
+        hasLogout: false,
+        hasDashboard: false,
+        hasLoginForm: true,
+        authCookies: [],
+        storageTokens: [],
+        indicators: [],
       }),
       context: vi.fn().mockReturnValue({
         cookies: vi.fn().mockResolvedValue([]),
@@ -223,7 +259,8 @@ describe("visual-regression", () => {
     });
     const progress = mockProgress();
     const reports = await runVisualRegression(
-      page, ["https://example.com"],
+      page,
+      ["https://example.com"],
       [{ width: 1440, height: 900, label: "Desktop" }],
       "/tmp/inspect-test-baselines",
       progress,
@@ -283,9 +320,30 @@ describe("api-testing", () => {
     const log = {
       requests: [],
       responses: [
-        { url: "https://example.com/api/users", status: 200, headers: {}, body: "[]", duration: 100, contentType: "application/json" },
-        { url: "https://example.com/style.css", status: 200, headers: {}, body: "", duration: 50, contentType: "text/css" },
-        { url: "https://example.com/logo.png", status: 200, headers: {}, body: "", duration: 30, contentType: "image/png" },
+        {
+          url: "https://example.com/api/users",
+          status: 200,
+          headers: {},
+          body: "[]",
+          duration: 100,
+          contentType: "application/json",
+        },
+        {
+          url: "https://example.com/style.css",
+          status: 200,
+          headers: {},
+          body: "",
+          duration: 50,
+          contentType: "text/css",
+        },
+        {
+          url: "https://example.com/logo.png",
+          status: 200,
+          headers: {},
+          body: "",
+          duration: 30,
+          contentType: "image/png",
+        },
       ],
       failures: [],
     };
@@ -317,7 +375,9 @@ describe("logic-testing", () => {
   it("testBehavior returns structured result", async () => {
     const { testBehavior } = await import("./logic-testing.js");
     const page = mockPage({ evaluate: vi.fn().mockResolvedValue("page content") });
-    const llm = mockLlm('{"steps": ["click button"], "expected": "dialog appears", "passed": true, "observation": "Dialog opened successfully"}');
+    const llm = mockLlm(
+      '{"steps": ["click button"], "expected": "dialog appears", "passed": true, "observation": "Dialog opened successfully"}',
+    );
     const progress = mockProgress();
 
     const result = await testBehavior(page, "click the submit button", "snapshot", llm, progress);
@@ -358,7 +418,12 @@ describe("logic-testing", () => {
     const page = mockPage({
       evaluate: vi.fn().mockImplementation((script: string) => {
         if (typeof script === "string" && script.includes("undo")) {
-          return Promise.resolve({ undoSelector: null, redoSelector: null, hasUndoButton: false, hasRedoButton: false });
+          return Promise.resolve({
+            undoSelector: null,
+            redoSelector: null,
+            hasUndoButton: false,
+            hasRedoButton: false,
+          });
         }
         return Promise.resolve(null);
       }),
@@ -390,12 +455,22 @@ describe("cross-browser", () => {
     const { testRTL } = await import("./cross-browser.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue({
-        computedDirection: "ltr", htmlDir: null, hasRTLContent: false,
-        ltrAlignedElements: 0, unmirroredIcons: 0, overflowingElements: [],
-        detectedDates: [], timezoneAbbreviations: [], invalidDates: false,
-        nanFormatting: false, epochTimestamps: false,
-        hasLangAttribute: true, langValue: "en", textDirection: "ltr",
-        hasEncodingIssues: false, overlapIssues: [],
+        computedDirection: "ltr",
+        htmlDir: null,
+        hasRTLContent: false,
+        ltrAlignedElements: 0,
+        unmirroredIcons: 0,
+        overflowingElements: [],
+        detectedDates: [],
+        timezoneAbbreviations: [],
+        invalidDates: false,
+        nanFormatting: false,
+        epochTimestamps: false,
+        hasLangAttribute: true,
+        langValue: "en",
+        textDirection: "ltr",
+        hasEncodingIssues: false,
+        overlapIssues: [],
       }),
     });
     const result = await testRTL(page, "https://example.com");
@@ -407,8 +482,11 @@ describe("cross-browser", () => {
     const { testTimezone } = await import("./cross-browser.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue({
-        detectedDates: [], timezoneAbbreviations: [], invalidDates: false,
-        nanFormatting: false, epochTimestamps: false,
+        detectedDates: [],
+        timezoneAbbreviations: [],
+        invalidDates: false,
+        nanFormatting: false,
+        epochTimestamps: false,
       }),
     });
     const result = await testTimezone(page, "America/New_York", "https://example.com");
@@ -420,8 +498,11 @@ describe("cross-browser", () => {
     const { testLocale } = await import("./cross-browser.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue({
-        hasLangAttribute: true, langValue: "en", textDirection: "ltr",
-        hasEncodingIssues: false, overlapIssues: [],
+        hasLangAttribute: true,
+        langValue: "en",
+        textDirection: "ltr",
+        hasEncodingIssues: false,
+        overlapIssues: [],
       }),
     });
     const result = await testLocale(page, "fr-FR", "https://example.com");
@@ -480,7 +561,9 @@ describe("load-testing", () => {
   it("testServiceWorker checks SW registration", async () => {
     const { testServiceWorker } = await import("./load-testing.js");
     const page = mockPage({
-      evaluate: vi.fn().mockResolvedValue({ hasServiceWorker: false, scope: null, scriptURL: null }),
+      evaluate: vi
+        .fn()
+        .mockResolvedValue({ hasServiceWorker: false, scope: null, scriptURL: null }),
     });
     const result = await testServiceWorker(page, "https://example.com");
     expect(result).toHaveProperty("hasServiceWorker");
@@ -527,7 +610,10 @@ describe("advanced-security", () => {
     const { runAdvancedSecurityAudit } = await import("./advanced-security.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue(null),
-      goto: vi.fn().mockResolvedValue({ status: vi.fn().mockReturnValue(200), headers: vi.fn().mockReturnValue({}) }),
+      goto: vi.fn().mockResolvedValue({
+        status: vi.fn().mockReturnValue(200),
+        headers: vi.fn().mockReturnValue({}),
+      }),
     });
     const progress = mockProgress();
     const results = await runAdvancedSecurityAudit(page, "https://example.com", progress);
@@ -585,7 +671,9 @@ describe("ci-integration", () => {
       url: "https://example.com",
       title: "Test",
       plan: { url: "", title: "", steps: [], createdAt: 0 },
-      results: [{ id: 1, action: "assert", description: "Check", status: "pass" as const, duration: 100 }],
+      results: [
+        { id: 1, action: "assert", description: "Check", status: "pass" as const, duration: 100 },
+      ],
       a11y: [{ url: "", issues: [], score: 90 }],
       summary: { total: 1, passed: 1, failed: 0, skipped: 0, duration: 1000, overallScore: 90 },
       screenshots: [],
@@ -622,13 +710,17 @@ describe("ci-integration", () => {
 
   it("saveTrendEntry and loadTrend round-trip", async () => {
     const { saveTrendEntry, loadTrend } = await import("./ci-integration.js");
-    const { mkdirSync, existsSync, unlinkSync } = await import("node:fs");
+    const { _mkdirSync, _existsSync, unlinkSync } = await import("node:fs");
     const { join } = await import("node:path");
 
     const trendFile = join(process.cwd(), ".inspect", "test-trend.json");
 
     // Clean up from previous runs
-    try { unlinkSync(trendFile); } catch {}
+    try {
+      unlinkSync(trendFile);
+    } catch {
+      /* intentionally empty */
+    }
 
     const report = {
       url: "https://example.com",
@@ -649,7 +741,11 @@ describe("ci-integration", () => {
     expect(trend[trend.length - 1].scores.overall).toBe(88);
 
     // Clean up
-    try { unlinkSync(trendFile); } catch {}
+    try {
+      unlinkSync(trendFile);
+    } catch {
+      /* intentionally empty */
+    }
   });
 });
 
@@ -668,7 +764,9 @@ describe("advanced", () => {
 
   it("createScheduleConfig builds config object", async () => {
     const { createScheduleConfig } = await import("./advanced.js");
-    const config = createScheduleConfig("https://example.com", "0 9 * * *", { tiers: ["a11y", "seo"] });
+    const config = createScheduleConfig("https://example.com", "0 9 * * *", {
+      tiers: ["a11y", "seo"],
+    });
     expect(config.url).toBe("https://example.com");
     expect(config.cron).toBe("0 9 * * *");
     expect(config.tiers).toContain("a11y");
@@ -677,14 +775,21 @@ describe("advanced", () => {
   it("selfHealSelector attempts recovery", async () => {
     const { selfHealSelector } = await import("./advanced.js");
     const page = mockPage({
-      $: vi.fn()
+      $: vi
+        .fn()
         .mockResolvedValueOnce(null) // first attempt fails
         .mockResolvedValueOnce(null) // second fails
         .mockResolvedValueOnce({ tagName: "BUTTON" }), // third succeeds
     });
     const llm = mockLlm('button:has-text("Submit")');
 
-    const result = await selfHealSelector(page, "#old-button", "submit button", 'button "Submit"', llm);
+    const result = await selfHealSelector(
+      page,
+      "#old-button",
+      "submit button",
+      'button "Submit"',
+      llm,
+    );
     expect(result).toHaveProperty("healed");
     expect(result).toHaveProperty("confidence");
     expect(result).toHaveProperty("strategy");
@@ -696,12 +801,21 @@ describe("advanced", () => {
       url: "https://example.com",
       title: "Test",
       steps: [
-        { id: 1, action: "click", description: "Click login", target: "#login-btn", status: "fail", error: "Element not found" },
+        {
+          id: 1,
+          action: "click",
+          description: "Click login",
+          target: "#login-btn",
+          status: "fail",
+          error: "Element not found",
+        },
         { id: 2, action: "fill", description: "Fill email", target: "Email", status: "pending" },
       ],
       createdAt: Date.now(),
     };
-    const llm = mockLlm('{"strategy": "fix-target", "fixedStep": {"id": 1, "action": "click", "description": "Click login", "target": "Login"}}');
+    const llm = mockLlm(
+      '{"strategy": "fix-target", "fixedStep": {"id": 1, "action": "click", "description": "Click login", "target": "Login"}}',
+    );
 
     const healed = await selfHealPlan(plan, 1, "Element not found", "snapshot", llm);
     expect(healed.steps.length).toBeGreaterThanOrEqual(1);

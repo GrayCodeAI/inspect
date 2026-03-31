@@ -2,7 +2,6 @@
 // @inspect/shared - Miscellaneous Shared Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { LLMProviderName } from "./agent.js";
 
 /** Analytics event categories */
 export type AnalyticsEventCategory =

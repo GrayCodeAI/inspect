@@ -225,7 +225,7 @@ export class MCPServer {
       config.proxy = args["proxy"] as { server: string; username?: string; password?: string };
     }
 
-    const context = await this.browserManager.launchBrowser(config);
+    const _context = await this.browserManager.launchBrowser(config);
     const page = await this.browserManager.newPage();
     this.pageManager = new PageManager(page);
 
@@ -279,7 +279,7 @@ export class MCPServer {
 
     const tree = await this.snapshotBuilder.buildTree(page);
     const interactiveOnly = args["interactiveOnly"] as boolean;
-    const elements = interactiveOnly ? this.snapshotBuilder.getInteractiveElements() : tree;
+    const _elements = interactiveOnly ? this.snapshotBuilder.getInteractiveElements() : tree;
     const formatted = this.snapshotBuilder.getFormattedTree();
     const stats = this.snapshotBuilder.getStats();
 
@@ -296,7 +296,7 @@ export class MCPServer {
     const page = this.pageManager!.getPage();
 
     // Build snapshot to get element positions
-    const tree = await this.snapshotBuilder.buildTree(page);
+    const _tree = await this.snapshotBuilder.buildTree(page);
     const interactive = this.snapshotBuilder.getInteractiveElements();
 
     // Take annotated screenshot

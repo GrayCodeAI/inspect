@@ -2,8 +2,8 @@
 // Playwright Code Export — Generate standard .spec.ts from test execution results
 // ============================================================================
 
-import type { ExecutionResult, StepResult } from "../orchestrator/executor.js";
-import type { GeneratedTestSuite, GeneratedTest, GeneratedStep } from "../testing/generator.js";
+import type { ExecutionResult} from "../orchestrator/executor.js";
+import type { GeneratedTestSuite, GeneratedStep } from "../testing/generator.js";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 

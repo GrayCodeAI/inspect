@@ -6,7 +6,7 @@
 // recording to capture the rrweb-player replay.
 // ============================================================================
 
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser } from "playwright";
 import { writeFileSync, mkdirSync, readFileSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";

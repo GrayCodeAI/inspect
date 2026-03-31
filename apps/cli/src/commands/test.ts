@@ -1,15 +1,13 @@
 import type { Command } from "commander";
-import { render } from "ink";
-import React from "react";
+import _React from "react";
 import chalk from "chalk";
-import { TestingScreen } from "../tui/screens/TestingScreen.js";
-import { ResultsScreen } from "../tui/screens/ResultsScreen.js";
 
 export interface TestOptions {
   message?: string;
   flow?: string;
   yes?: boolean;
   agent?: string;
+  acpAgent?: string;
   target?: string;
   verbose?: boolean;
   headed?: boolean;
@@ -209,6 +207,7 @@ export async function runTest(options: TestOptions): Promise<void> {
   if (options.project) {
     const { loadConfig } = await import("../utils/config.js");
     const config = loadConfig();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const projects = (config as any)?.projects as
       | Record<string, Record<string, unknown>>
       | undefined;
@@ -319,7 +318,7 @@ export async function runTest(options: TestOptions): Promise<void> {
 
       // Inject diff plan summary into the prompt
       const diffInstructions = planGenerator.formatAsInstructions(diffPlan);
-      const enhancedPrompt = `${buildPrompt(instruction, context)}\n\n${diffInstructions}`;
+      const _enhancedPrompt = `${buildPrompt(instruction, context)}\n\n${diffInstructions}`;
 
       if (options.verbose) {
         console.log(
@@ -535,6 +534,7 @@ export async function runTest(options: TestOptions): Promise<void> {
       });
       const provider = router.getProvider(providerName as PN);
       const llm = async (messages: Array<{ role: string; content: string }>) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const resp = await provider.chat(messages as any);
         return resp.content;
       };
@@ -634,6 +634,7 @@ export async function runTest(options: TestOptions): Promise<void> {
       }
 
       process.exit(report.summary.failed > 0 ? EXIT_CODES.TEST_FAILURE : EXIT_CODES.SUCCESS);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(chalk.red(`\nAgent pipeline failed: ${err.message}`));
       if (options.verbose) console.error(err.stack);
@@ -692,6 +693,7 @@ export async function runTest(options: TestOptions): Promise<void> {
     const browserMgr = new BrowserManager();
 
     // Optional credential vault
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let credentialVault: any = undefined;
     try {
       const { CredentialVault } = await import("@inspect/credentials");
@@ -716,6 +718,7 @@ export async function runTest(options: TestOptions): Promise<void> {
         agent: config.agent,
         mode: config.mode as "dom" | "hybrid" | "cua",
         url: config.url,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         device: devicePreset as any,
         browser: config.browser as "chromium" | "firefox" | "webkit",
         headed: config.headed,
@@ -814,6 +817,7 @@ export async function runTest(options: TestOptions): Promise<void> {
     // Generate report if reporter specified
     if (options.reporter) {
       const { formatResults, writeReport } = await import("../utils/reporters.js");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reporterType = options.reporter as any;
       const runResult = {
         instruction,
@@ -825,6 +829,7 @@ export async function runTest(options: TestOptions): Promise<void> {
         status: (failed > 0 ? "fail" : "pass") as "pass" | "fail",
         steps: result.steps.map((s) => ({
           action: s.description,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           result: (s.status === "skipped" ? "skip" : s.status) as any,
           evidence: s.toolCalls.map((t) => `${t.tool}(${JSON.stringify(t.args)})`).join(", "),
           error: s.error,
@@ -931,6 +936,10 @@ export function registerTestCommand(program: Command): void {
     .option("-f, --flow <file>", "Replay a saved flow file")
     .option("-y, --yes", "Skip confirmation and run immediately")
     .option("-a, --agent <agent>", "AI agent to use: claude, gpt, gemini, deepseek", "claude")
+    .option(
+      "--acp-agent <agent>",
+      "Use external coding agent via ACP: claude, codex, copilot, gemini, cursor, opencode, droid",
+    )
     .option(
       "-t, --target <target>",
       "Git scope: unstaged, branch, commit:<sha>, changes",

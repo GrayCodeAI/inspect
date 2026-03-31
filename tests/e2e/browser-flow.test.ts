@@ -20,7 +20,7 @@ describe("E2E: Browser Flow", () => {
     await browserMgr.launchBrowser({
       headless: true,
       viewport: { width: 1280, height: 720 },
-    } as any);
+    } as unknown);
 
     page = await browserMgr.newPage();
     expect(page).toBeDefined();

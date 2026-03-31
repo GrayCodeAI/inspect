@@ -40,8 +40,8 @@ export class DragDrop {
     options: DragDropOptions = {},
   ): Promise<DragDropResult> {
     const start = Date.now();
-    const steps = options.steps ?? 10;
-    const duration = options.durationMs ?? 500;
+    const _steps = options.steps ?? 10;
+    const _duration = options.durationMs ?? 500;
 
     try {
       const source = page.locator(sourceSelector).first();

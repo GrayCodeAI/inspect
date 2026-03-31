@@ -13,7 +13,7 @@ export function ProgressBar({ summary, width = 40 }: ProgressBarProps): React.Re
   const completed = passed + failed;
 
   // Build the bar segments
-  const ratio = totalRuns > 0 ? completed / totalRuns : 0;
+  const _ratio = totalRuns > 0 ? completed / totalRuns : 0;
   const passedRatio = totalRuns > 0 ? passed / totalRuns : 0;
   const failedRatio = totalRuns > 0 ? failed / totalRuns : 0;
 

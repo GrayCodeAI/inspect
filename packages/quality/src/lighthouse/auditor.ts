@@ -81,7 +81,7 @@ export class LighthouseAuditor {
    * runs Lighthouse via dynamic import, and returns a structured report.
    */
   async run(url: string, options: LighthouseOptions = {}): Promise<LighthouseReport> {
-    const timer = createTimer();
+    const _timer = createTimer();
     const mergedOptions = { ...this.defaultOptions, ...options };
     const device = mergedOptions.device ?? "mobile";
     const port = mergedOptions.port ?? 9222;
@@ -270,7 +270,7 @@ export class LighthouseAuditor {
    */
   private async importLighthouse(): Promise<LighthouseFn> {
     try {
-      // @ts-ignore - lighthouse may not be installed; dynamic import
+      // @ts-expect-error - lighthouse may not be installed; dynamic import
       const mod = await import("lighthouse");
       return mod.default ?? mod;
     } catch (error) {

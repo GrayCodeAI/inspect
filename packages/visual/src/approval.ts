@@ -2,7 +2,7 @@
 // @inspect/visual - Approval Workflow
 // ============================================================================
 
-import { readFile, writeFile, mkdir, readdir, unlink, copyFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { createLogger } from "@inspect/observability";
@@ -108,7 +108,7 @@ export class ApprovalWorkflow {
     const state = await this.loadState();
     let count = 0;
 
-    for (const [testId, entry] of Object.entries(state.entries)) {
+    for (const [_testId, entry] of Object.entries(state.entries)) {
       if (entry.status === "pending") {
         if (existsSync(entry.currentImagePath)) {
           await mkdir(dirname(entry.baselineImagePath), { recursive: true });

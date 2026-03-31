@@ -113,6 +113,7 @@ async function runWorkflow(filePath: string): Promise<void> {
           const { AgentRouter } = await import("@inspect/agent");
 
           const browserMgr = new BrowserManager();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
           const page = await browserMgr.newPage();
 
@@ -132,9 +133,12 @@ async function runWorkflow(filePath: string): Promise<void> {
           if (apiKey) {
             const providerName = process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.OPENAI_API_KEY ? "openai" : "gemini";
             const router = new AgentRouter({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               keys: { [providerName]: apiKey } as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               defaultProvider: providerName as any,
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const provider = router.getProvider(providerName as any);
             const response = await provider.chat([
               { role: "system", content: "You are a browser testing agent. Analyze the page snapshot and respond with JSON: { \"passed\": boolean, \"evidence\": \"what you found\" }" },
@@ -161,6 +165,7 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "navigate": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
           const page = await browserMgr.newPage();
           const url = (step.config.url ?? step.config.value) as string | undefined;
@@ -179,6 +184,7 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "a11y": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
           const page = await browserMgr.newPage();
           if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -186,6 +192,7 @@ async function runWorkflow(filePath: string): Promise<void> {
           try {
             const { AccessibilityAuditor } = await import("@inspect/quality");
             const auditor = new AccessibilityAuditor();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const report = await auditor.audit(page as any);
             const minScore = (step.config.threshold as number) ?? 80;
             stepResult.status = report.score >= minScore ? "pass" : "fail";
@@ -221,6 +228,7 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "visual": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
           const page = await browserMgr.newPage();
           if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "networkidle", timeout: 30000 });
@@ -262,6 +270,7 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "extract": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
           const page = await browserMgr.newPage();
           if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -285,6 +294,7 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "script": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
           const page = await browserMgr.newPage();
           if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -464,6 +474,7 @@ async function observeWorkflow(): Promise<void> {
 
   const { BrowserManager } = await import("@inspect/browser");
   const browserMgr = new BrowserManager();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await browserMgr.launchBrowser({ headless: false, viewport: { width: 1920, height: 1080 } } as any);
   const page = await browserMgr.newPage();
 
@@ -471,6 +482,7 @@ async function observeWorkflow(): Promise<void> {
   let stepCounter = 0;
 
   // Listen for navigations
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("framenavigated", (frame: any) => {
     if (frame === page.mainFrame()) {
       const url = frame.url();
@@ -487,6 +499,7 @@ async function observeWorkflow(): Promise<void> {
   });
 
   // Listen for console messages that act as test markers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("console", (msg: any) => {
     const text = msg.text();
     if (text.startsWith("inspect:test:")) {
@@ -590,6 +603,7 @@ async function scheduleWorkflow(
   try {
      
     const cronModuleName = "node-cron";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cron: any = await import(cronModuleName);
     if (!cron.validate(schedule)) {
       console.error(chalk.red(`Invalid cron expression: ${schedule}`));

@@ -38,7 +38,7 @@ export interface RawImage {
 
 const DEFAULT_THRESHOLD = 10;
 const DEFAULT_DIFF_COLOR: [number, number, number, number] = [255, 0, 0, 200];
-const DEFAULT_MOVED_COLOR: [number, number, number, number] = [255, 165, 0, 200];
+const _DEFAULT_MOVED_COLOR: [number, number, number, number] = [255, 165, 0, 200];
 
 /**
  * VisualDiff performs pixel-by-pixel RGBA comparison between two images
@@ -317,7 +317,7 @@ export class VisualDiff {
     const regions: BoundingBox[] = [];
     const visited = new Set<string>();
 
-    for (const [key, pixels] of grid) {
+    for (const [key, _pixels] of grid) {
       if (visited.has(key)) continue;
 
       // BFS to find connected grid cells

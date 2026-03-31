@@ -22,6 +22,7 @@ import { safeEvaluate } from "./evaluate.js";
 
 export async function analyzeSite(
   siteMap: SiteMap,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any, // Playwright Page
   llm: LLMCall,
   onProgress: ProgressCallback,
@@ -138,6 +139,7 @@ interface PageFeatures {
   hasPayment: boolean;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function detectPageFeatures(page: any): Promise<PageFeatures> {
   return await safeEvaluate<PageFeatures>(page, `
       (() => {
@@ -212,6 +214,7 @@ async function detectPageFeatures(page: any): Promise<PageFeatures> {
 // Tech stack detection
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function detectTechStack(page: any): Promise<string[]> {
   return await safeEvaluate<string[]>(page, `
       (() => {
@@ -446,7 +449,7 @@ function buildFeatureInventory(analyses: PageAnalysis[], siteMap: SiteMap): Feat
   }
 
   // Detect protected routes: pages that redirected to an auth page
-  const authUrls = new Set(authFlows);
+  const _authUrls = new Set(authFlows);
   for (const pageInfo of siteMap.pages) {
     // A protected route is one where the final URL (after redirects) lands on an auth page
     // We check if the page's URL pattern suggests it should be non-auth, but it was classified as auth

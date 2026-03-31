@@ -5,7 +5,7 @@
 import type { Middleware, APIRequest, APIResponse } from "../server.js";
 
 /** Metric entry */
-interface MetricEntry {
+interface _MetricEntry {
   name: string;
   help: string;
   type: "counter" | "gauge" | "histogram";
@@ -57,7 +57,7 @@ export class MetricsCollector {
     lines.push("# HELP inspect_http_requests_total Total HTTP requests");
     lines.push("# TYPE inspect_http_requests_total counter");
     for (const [key, value] of this.counters) {
-      const { name, labels } = this.parseKey(key);
+      const { _name, labels } = this.parseKey(key);
       const labelStr = Object.entries(labels)
         .map(([k, v]) => `${k}="${v}"`)
         .join(",");

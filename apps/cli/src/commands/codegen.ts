@@ -31,10 +31,12 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
   }
   if (options.device) {
     const { DEVICE_PRESETS } = await import("@inspect/shared");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const preset = (DEVICE_PRESETS as Record<string, any>)[options.device];
     if (preset) viewport = { width: preset.width, height: preset.height };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await browserMgr.launchBrowser({ headless: false, viewport } as any);
   const page = await browserMgr.newPage();
 
@@ -128,6 +130,7 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
   `);
 
   // Track navigations
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("framenavigated", (frame: any) => {
     if (frame === page.mainFrame()) {
       const navUrl = page.url();
@@ -150,6 +153,7 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
         // Just display new actions
       }
       // Merge page actions into our list (avoiding duplicates of navigations we already track)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newActions = pageActions.filter((a: any) => a.type !== "navigate");
       if (newActions.length > actions.filter(a => a.type !== "navigate").length) {
         const added = newActions.slice(actions.filter(a => a.type !== "navigate").length);
@@ -179,6 +183,7 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
   try {
     const finalActions = await page.evaluate(`window.__inspectActions || []`) as RecordedAction[];
     const navActions = actions.filter(a => a.type === "navigate");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pageOnlyActions = finalActions.filter((a: any) => a.type !== "navigate");
     actions.length = 0;
     actions.push(...navActions);
@@ -267,7 +272,7 @@ function generateYAML(actions: RecordedAction[], startUrl?: string): string {
   return lines.join("\n") + "\n";
 }
 
-function generateTypeScript(actions: RecordedAction[], startUrl?: string): string {
+function generateTypeScript(actions: RecordedAction[], _startUrl?: string): string {
   const lines: string[] = [];
   lines.push(`import { test, expect } from "@playwright/test";`);
   lines.push(``);

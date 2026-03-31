@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect} from "vitest";
 import { AgentRouter } from "./router.js";
 import { LLMError } from "./base.js";
 import { ClaudeProvider } from "./claude.js";

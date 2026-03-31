@@ -6,9 +6,21 @@ import type { AgentMode, VisionMode, VisionDetail } from "./element.js";
 
 /** Supported LLM provider names */
 export type LLMProviderName =
-  | 'anthropic' | 'openai' | 'google' | 'deepseek' | 'mistral'
-  | 'groq' | 'together' | 'ollama' | 'azure-openai' | 'aws-bedrock'
-  | 'fireworks' | 'perplexity' | 'cohere' | 'openrouter' | 'custom';
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "deepseek"
+  | "mistral"
+  | "groq"
+  | "together"
+  | "ollama"
+  | "azure-openai"
+  | "aws-bedrock"
+  | "fireworks"
+  | "perplexity"
+  | "cohere"
+  | "openrouter"
+  | "custom";
 
 /** Configuration for a single LLM provider */
 export interface LLMProvider {
@@ -92,9 +104,18 @@ export interface FunctionMetrics {
 
 /** Agent event types emitted during execution */
 export type AgentEventType =
-  | 'thought' | 'tool_call' | 'tool_result' | 'action' | 'observation'
-  | 'plan' | 'error' | 'complete' | 'screenshot' | 'loop_detected'
-  | 'recovery' | 'model_switch';
+  | "thought"
+  | "tool_call"
+  | "tool_result"
+  | "action"
+  | "observation"
+  | "plan"
+  | "error"
+  | "complete"
+  | "screenshot"
+  | "loop_detected"
+  | "recovery"
+  | "model_switch";
 
 /** Agent event emitted during execution */
 export interface AgentEvent {
@@ -126,25 +147,38 @@ export interface LoopInfo {
 
 /** Recovery strategy types */
 export type RecoveryStrategyType =
-  | 'rescan' | 'use_vision' | 'heal_selector' | 'wait_and_retry'
-  | 'switch_model' | 'restart_browser' | 'restore_snapshot'
-  | 'extend_timeout' | 'skip' | 'fail';
+  | "rescan"
+  | "use_vision"
+  | "heal_selector"
+  | "wait_and_retry"
+  | "switch_model"
+  | "restart_browser"
+  | "restore_snapshot"
+  | "extend_timeout"
+  | "skip"
+  | "fail";
 
 /** Failure type classification */
 export type FailureType =
-  | 'element_not_found' | 'navigation_failed' | 'rate_limited'
-  | 'page_crashed' | 'timeout' | 'authentication_failed'
-  | 'captcha_blocked' | 'network_error' | 'unknown';
+  | "element_not_found"
+  | "navigation_failed"
+  | "rate_limited"
+  | "page_crashed"
+  | "timeout"
+  | "authentication_failed"
+  | "captcha_blocked"
+  | "network_error"
+  | "unknown";
 
 /** CUA provider identifiers */
-export type CUAProvider = 'anthropic' | 'google' | 'microsoft' | 'openai';
+export type CUAProvider = "anthropic" | "google" | "microsoft" | "openai";
 
 /** CUA environment types */
-export type CUAEnvironment = 'mac' | 'windows' | 'ubuntu' | 'browser';
+export type CUAEnvironment = "mac" | "windows" | "ubuntu" | "browser";
 
 /** CUA action returned by vision analysis */
 export interface CUAAction {
-  type: 'click' | 'type' | 'scroll' | 'key' | 'screenshot' | 'wait' | 'drag';
+  type: "click" | "type" | "scroll" | "key" | "screenshot" | "wait" | "drag";
   coordinates?: { x: number; y: number };
   text?: string;
   key?: string;
@@ -174,4 +208,56 @@ export interface ModelDefinition {
   supportsFunctionCalling: boolean;
   costPer1kInput: number;
   costPer1kOutput: number;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ACP Agent Provider Types (ported from expect)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type AgentProvider =
+  | "claude"
+  | "codex"
+  | "copilot"
+  | "gemini"
+  | "cursor"
+  | "opencode"
+  | "droid";
+
+export const AGENT_PROVIDER_DISPLAY_NAMES: Record<AgentProvider, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  copilot: "GitHub Copilot",
+  gemini: "Gemini",
+  cursor: "Cursor",
+  opencode: "OpenCode",
+  droid: "Factory Droid",
+};
+
+export type AcpConfigOptionCategory = "mode" | "model" | "thought_level" | string;
+
+export interface AcpConfigSelectOption {
+  value: string;
+  name: string;
+  description?: string | null;
+}
+
+export interface AcpConfigSelectGroup {
+  group: string;
+  name: string;
+  options: AcpConfigSelectOption[];
+}
+
+export interface AcpConfigOption {
+  id: string;
+  name: string;
+  category?: AcpConfigOptionCategory | null;
+  description?: string | null;
+  type: "select" | "boolean";
+  currentValue: string | boolean;
+  options?: (AcpConfigSelectOption | AcpConfigSelectGroup)[];
+}
+
+export interface ModelPreference {
+  configId: string;
+  value: string;
 }

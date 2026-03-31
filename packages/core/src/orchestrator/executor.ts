@@ -1,6 +1,6 @@
 import type { DeviceConfig } from "../devices/presets.js";
 import type { AgentRouter } from "@inspect/agent";
-import { LoopDetector, type LoopNudge } from "@inspect/agent";
+import { LoopDetector } from "@inspect/agent";
 import { ContextCompactor } from "@inspect/agent";
 import { SensitiveDataMasker } from "@inspect/agent";
 import { RecoveryManager } from "./recovery.js";

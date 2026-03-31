@@ -22,10 +22,7 @@ export interface ScheduledWorkflow {
 }
 
 /** Callback invoked when a scheduled workflow fires */
-export type ScheduleCallback = (
-  workflowId: string,
-  scheduleId: string,
-) => void | Promise<void>;
+export type ScheduleCallback = (workflowId: string, scheduleId: string) => void | Promise<void>;
 
 /**
  * WorkflowScheduler manages cron-based scheduling of workflows.
@@ -46,10 +43,7 @@ export class WorkflowScheduler {
     validate: (expr: string) => boolean;
   } | null = null;
 
-  constructor(
-    basePath: string = process.cwd(),
-    callback?: ScheduleCallback,
-  ) {
+  constructor(basePath: string = process.cwd(), callback?: ScheduleCallback) {
     this.schedulesDir = path.join(basePath, ".inspect", "schedules");
     this.callback = callback;
     this.ensureDir(this.schedulesDir);
@@ -152,10 +146,7 @@ export class WorkflowScheduler {
   /**
    * Update the cron expression for a schedule.
    */
-  async updateCron(
-    id: string,
-    cronExpression: string,
-  ): Promise<ScheduledWorkflow | null> {
+  async updateCron(id: string, cronExpression: string): Promise<ScheduledWorkflow | null> {
     const cron = await this.getCronModule();
     if (!cron.validate(cronExpression)) {
       throw new Error(`Invalid cron expression: ${cronExpression}`);
@@ -186,9 +177,7 @@ export class WorkflowScheduler {
    * Get schedules for a specific workflow.
    */
   getSchedulesForWorkflow(workflowId: string): ScheduledWorkflow[] {
-    return Array.from(this.schedules.values()).filter(
-      (s) => s.workflowId === workflowId,
-    );
+    return Array.from(this.schedules.values()).filter((s) => s.workflowId === workflowId);
   }
 
   /**
@@ -228,7 +217,7 @@ export class WorkflowScheduler {
   }> {
     if (!this.cronModule) {
       try {
-        // @ts-ignore - node-cron has no type declarations
+        // @ts-expect-error - node-cron has no type declarations
         this.cronModule = await import("node-cron");
       } catch (error) {
         logger.debug("node-cron not available, using fallback", { error });
@@ -258,14 +247,12 @@ export class WorkflowScheduler {
           this.persistSchedule(entry);
 
           if (this.callback) {
-            Promise.resolve(this.callback(entry.workflowId, entry.id)).catch(
-              (err) => {
-                logger.error("Schedule callback failed", {
-                  scheduleId: entry.id,
-                  error: err,
-                });
-              },
-            );
+            Promise.resolve(this.callback(entry.workflowId, entry.id)).catch((err) => {
+              logger.error("Schedule callback failed", {
+                scheduleId: entry.id,
+                error: err,
+              });
+            });
           }
         },
         { scheduled: true },

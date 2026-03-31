@@ -1,7 +1,10 @@
 import type { Command } from "commander";
 import chalk from "chalk";
 
-async function runInstall(browsers: string[], options: { withDeps?: boolean; force?: boolean }): Promise<void> {
+async function runInstall(
+  browsers: string[],
+  options: { withDeps?: boolean; force?: boolean },
+): Promise<void> {
   const { execFile: execFileCb } = await import("node:child_process");
   const { promisify } = await import("node:util");
   const execFile = promisify(execFileCb);
@@ -27,7 +30,9 @@ async function runInstall(browsers: string[], options: { withDeps?: boolean; for
   for (const browser of browsersToInstall) {
     const validBrowsers = ["chromium", "firefox", "webkit", "chrome", "msedge"];
     if (!validBrowsers.includes(browser)) {
-      console.log(chalk.yellow(`  Unknown browser: ${browser}. Valid: ${validBrowsers.join(", ")}`));
+      console.log(
+        chalk.yellow(`  Unknown browser: ${browser}. Valid: ${validBrowsers.join(", ")}`),
+      );
       continue;
     }
 
@@ -41,10 +46,21 @@ async function runInstall(browsers: string[], options: { withDeps?: boolean; for
       const candidates = [
         joinPath(process.cwd(), "node_modules", "playwright", "cli.js"),
         joinPath(process.cwd(), "node_modules", "playwright-core", "cli.js"),
-        joinPath(process.cwd(), "node_modules", ".pnpm", "playwright-core@1.58.2", "node_modules", "playwright-core", "cli.js"),
+        joinPath(
+          process.cwd(),
+          "node_modules",
+          ".pnpm",
+          "playwright-core@1.58.2",
+          "node_modules",
+          "playwright-core",
+          "cli.js",
+        ),
       ];
       for (const c of candidates) {
-        if (fileExists(c)) { playwrightCli = c; break; }
+        if (fileExists(c)) {
+          playwrightCli = c;
+          break;
+        }
       }
 
       let args: string[];
@@ -59,7 +75,7 @@ async function runInstall(browsers: string[], options: { withDeps?: boolean; for
       if (options.withDeps) args.push("--with-deps");
       if (options.force) args.push("--force");
 
-      const { stdout, stderr } = await execFile(cmd, args, { timeout: 300000 });
+      const { stdout, stderr: _stderr } = await execFile(cmd, args, { timeout: 300000 });
       if (stdout.trim()) console.log(chalk.dim(`    ${stdout.trim()}`));
       console.log(chalk.green(`  ✓ ${browser} installed`));
     } catch (err) {
@@ -78,13 +94,16 @@ export function registerInstallCommand(program: Command): void {
     .argument("[browsers...]", "Browsers to install: chromium, firefox, webkit, chrome, msedge")
     .option("--with-deps", "Also install system dependencies (may require sudo)")
     .option("--force", "Force reinstall even if already present")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect install                    Install Chromium (default)
   $ inspect install chromium firefox   Install Chromium and Firefox
   $ inspect install --with-deps        Install browser + system dependencies
   $ inspect install webkit --force     Force reinstall WebKit
-`)
+`,
+    )
     .action(async (browsers: string[], opts) => {
       try {
         await runInstall(browsers, opts);

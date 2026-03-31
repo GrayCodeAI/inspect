@@ -1,13 +1,15 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { createServer as createNetServer } from "node:net";
 
 // Lazy-initialized shared browser session for MCP tool calls
 let browserSessionPromise: Promise<BrowserSession> | null = null;
 
 interface BrowserSession {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   browserManager: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   snapshotBuilder: any;
   consoleLogs: Array<{ level: string; text: string; timestamp: number }>;
 }
@@ -20,12 +22,14 @@ async function getOrCreateBrowserSession(): Promise<BrowserSession> {
       await browserManager.launchBrowser({
         headless: true,
         viewport: { width: 1280, height: 720 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       const page = await browserManager.newPage();
       const snapshotBuilder = new AriaSnapshotBuilder();
 
       // Capture console logs
       const consoleLogs: Array<{ level: string; text: string; timestamp: number }> = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       page.on("console", (msg: any) => {
         consoleLogs.push({
           level: msg.type(),
@@ -240,7 +244,9 @@ async function executeBrowserTool(
         const cookies = await page.context().cookies();
         return JSON.stringify(cookies, null, 2);
       } else if (action === "set" && toolArgs.cookies) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await page.context().addCookies(toolArgs.cookies as any[]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return `Set ${(toolArgs.cookies as any[]).length} cookies`;
       } else if (action === "clear") {
         await page.context().clearCookies();

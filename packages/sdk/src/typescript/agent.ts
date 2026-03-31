@@ -2,19 +2,14 @@
 // @inspect/sdk - Agent Handler: Multi-step autonomous browser agent
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type {
-  AgentAction,
-  TokenMetrics,
-  TestStep,
-  PageSnapshot,
-} from "@inspect/shared";
+import type { AgentAction, TokenMetrics, PageSnapshot } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("sdk/agent");
 import type { LLMClient, PageInterface } from "./act.js";
 import { ActHandler, type ActResult } from "./act.js";
-import { ExtractHandler, type ExtractResult } from "./extract.js";
-import { ObserveHandler, type ObserveResult, type ActionSuggestion } from "./observe.js";
+import { ExtractHandler } from "./extract.js";
+import { ObserveHandler, type ActionSuggestion } from "./observe.js";
 
 /** Agent execution options */
 export interface AgentOptions {
@@ -70,7 +65,15 @@ export interface AgentStep {
 
 /** Streaming event from the agent */
 export interface AgentStreamEvent {
-  type: "thought" | "action" | "observation" | "screenshot" | "complete" | "error" | "step_start" | "step_end";
+  type:
+    | "thought"
+    | "action"
+    | "observation"
+    | "screenshot"
+    | "complete"
+    | "error"
+    | "step_start"
+    | "step_end";
   data: unknown;
   stepIndex: number;
   timestamp: number;
@@ -298,11 +301,9 @@ export class AgentHandler {
           });
 
           // Execute via ActHandler
-          actResult = await this.actHandler.execute(
-            page,
-            plan.action.instruction,
-            { variables: options?.variables },
-          );
+          actResult = await this.actHandler.execute(page, plan.action.instruction, {
+            variables: options?.variables,
+          });
 
           totalTokens = addTokens(totalTokens, actResult.tokenUsage);
 
@@ -466,9 +467,7 @@ Rules:
     parts.push(`Title: ${snapshot.title}`);
     parts.push("");
 
-    const elements = snapshot.elements
-      .filter((e) => e.visible)
-      .slice(0, 100);
+    const elements = snapshot.elements.filter((e) => e.visible).slice(0, 100);
 
     const interactable = elements.filter((e) => e.interactable);
     const nonInteractable = elements.filter((e) => !e.interactable && e.textContent);
@@ -541,10 +540,7 @@ Rules:
     }
   }
 
-  private emitEvent(
-    options: AgentOptions | undefined,
-    event: AgentStreamEvent,
-  ): void {
+  private emitEvent(options: AgentOptions | undefined, event: AgentStreamEvent): void {
     if (options?.onEvent) {
       try {
         options.onEvent(event);

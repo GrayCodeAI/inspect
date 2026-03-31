@@ -109,7 +109,7 @@ export class SitemapAuditor {
 
         const report = await this.auditor.audit(page, options);
         pages.set(url, report);
-      } catch (error) {
+      } catch (_error) {
         failedPages.push(url);
         pages.set(url, {
           violations: [],

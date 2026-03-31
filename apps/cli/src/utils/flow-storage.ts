@@ -135,7 +135,7 @@ export class FlowStorage {
         devices: data["devices"],
         tags: data["tags"]
           ? data["tags"]
-              .replace(/[\[\]]/g, "")
+              .replace(/[[\]]/g, "")
               .split(", ")
               .map((t) => t.trim())
           : [],

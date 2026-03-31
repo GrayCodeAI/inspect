@@ -57,6 +57,7 @@ async function openDashboard(options: DashboardOptions): Promise<void> {
     const sseManager = new SSEManager({ keepAliveMs: 30_000 });
 
     const orchestrator = new DashboardOrchestrator({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router: null as any,
       browserManager: null,
     });

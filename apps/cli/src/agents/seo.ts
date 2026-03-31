@@ -9,6 +9,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function runSEOAudit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   onProgress: ProgressCallback,
@@ -89,6 +90,7 @@ export async function runSEOAudit(
 // Meta tags
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function auditMetaTags(page: any): Promise<MetaTagAudit> {
   const data = await safeEvaluate<MetaTagAudit>(page, `
     (() => {
@@ -234,6 +236,7 @@ function metaTagIssues(meta: MetaTagAudit, url: string): SEOIssue[] {
 // Robots.txt
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function auditRobotsTxt(page: any, baseUrl: string): Promise<RobotsTxtAudit> {
   const robotsUrl = `${baseUrl}/robots.txt`;
   const result: RobotsTxtAudit = {
@@ -319,6 +322,7 @@ function robotsTxtIssues(audit: RobotsTxtAudit, url: string): SEOIssue[] {
 // Sitemap
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function auditSitemap(page: any, baseUrl: string): Promise<SitemapAudit> {
   const sitemapUrl = `${baseUrl}/sitemap.xml`;
   const result: SitemapAudit = {
@@ -430,6 +434,7 @@ function sitemapIssues(audit: SitemapAudit, url: string): SEOIssue[] {
 // Structured data (JSON-LD & microdata)
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function auditStructuredData(page: any): Promise<StructuredDataAudit> {
   // Navigate back is not needed — we'll re-evaluate on the current page.
   // The caller is responsible for ensuring the page is on the target URL.
@@ -524,6 +529,7 @@ function structuredDataIssues(audit: StructuredDataAudit, url: string): SEOIssue
 // Canonical URLs
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function auditCanonicals(page: any, url: string): Promise<CanonicalAudit> {
   const canonicalData = await safeEvaluate<string | null>(page, `
     (() => {

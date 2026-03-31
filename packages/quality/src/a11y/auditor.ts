@@ -9,8 +9,8 @@ import type {
   A11yCheckResult,
   A11yImpact,
 } from "@inspect/shared";
-import { createTimer, generateId } from "@inspect/shared";
-import { ALL_A11Y_RULES, type A11yRuleDefinition } from "./rules.js";
+import { createTimer} from "@inspect/shared";
+import { type A11yRuleDefinition } from "./rules.js";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("quality/a11y");
@@ -77,7 +77,7 @@ export class AccessibilityAuditor {
    * Injects axe-core via CDN and executes axe.run() with the given options.
    */
   async audit(page: PageHandle, options: A11yAuditOptions = {}): Promise<A11yReport> {
-    const timer = createTimer();
+    const _timer = createTimer();
     const url = page.url();
     const standard = options.standard ?? "wcag2aa";
     const timeout = options.timeout ?? DEFAULT_TIMEOUT;
@@ -180,7 +180,7 @@ export class AccessibilityAuditor {
         }
         const report = await this.audit(page, options);
         results.set(url, report);
-      } catch (error) {
+      } catch (_error) {
         // Create an error report for this URL
         results.set(url, {
           violations: [],

@@ -1,6 +1,5 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { resolve } from "node:path";
 
 export interface BenchmarkOptions {
   suite?: string;

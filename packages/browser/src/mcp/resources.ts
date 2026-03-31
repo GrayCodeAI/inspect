@@ -37,7 +37,7 @@ export function createPageResources(page: Page): MCPResource[] {
       read: async () => {
         try {
           const errors = await page.evaluate(() => {
-            return (window as any).__inspectConsoleErrors ?? [];
+            return (window as unknown).__inspectConsoleErrors ?? [];
           });
           return { errors };
         } catch {
@@ -53,7 +53,7 @@ export function createPageResources(page: Page): MCPResource[] {
       read: async () => {
         try {
           const requests = await page.evaluate(() => {
-            return (window as any).__inspectNetworkRequests ?? [];
+            return (window as unknown).__inspectNetworkRequests ?? [];
           });
           return { requests: requests.slice(-50) };
         } catch {

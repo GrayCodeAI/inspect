@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { LLMProvider, LLMMessage } from "../providers/base.js";
-import type { ActionCache, CachedAction } from "./action-cache.js";
+import type { ActionCache} from "./action-cache.js";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/cache-healing");

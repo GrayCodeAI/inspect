@@ -9,6 +9,7 @@ import { safeEvaluate } from "./evaluate.js";
 
 /** Find by CSS selector (LLM-generated) */
 async function findBySelector(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   description: string,
   snapshot: string,
@@ -51,6 +52,7 @@ One selector only, no explanation.`,
 // ---------------------------------------------------------------------------
 
 async function clickElement(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   target: string,
   snapshot: string,
@@ -101,6 +103,7 @@ async function clickElement(
 }
 
 async function fillElement(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   target: string,
   value: string,
@@ -155,6 +158,7 @@ async function fillElement(
 }
 
 async function selectElement(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   target: string,
   value: string,
@@ -198,6 +202,7 @@ const MAX_RETRIES = 2;
 
 export async function executeStep(
   step: TestStep,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   snapshotText: string,
   llm: LLMCall,
@@ -260,6 +265,7 @@ export async function executeStep(
 
 async function executeAction(
   step: TestStep,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   snapshotText: string,
   llm: LLMCall,
@@ -527,6 +533,7 @@ async function executeAction(
 
 async function verifyAssertion(
   assertion: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   snapshot: string,
   llm: LLMCall,

@@ -145,7 +145,7 @@ export class DevicePool {
       .filter((r) => r.status === "error")
       .map((r) => r.device.name);
 
-    const successes = results.filter(
+    const _successes = results.filter(
       (r) => r.status === "success"
     );
 

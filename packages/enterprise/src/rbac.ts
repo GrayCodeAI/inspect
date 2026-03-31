@@ -1,6 +1,6 @@
 import { createLogger } from "@inspect/observability";
 
-const logger = createLogger("enterprise/rbac");
+const _logger = createLogger("enterprise/rbac");
 
 export enum Role {
   VIEWER = "viewer",

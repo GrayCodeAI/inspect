@@ -28,6 +28,7 @@ const VIEWPORTS: ViewportDef[] = [
 const MOBILE_BREAKPOINT = 768;
 
 export async function runResponsiveAudit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   onProgress: ProgressCallback,
@@ -108,6 +109,7 @@ export async function runResponsiveAudit(
 }
 
 export async function testViewport(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   width: number,
@@ -168,6 +170,7 @@ export async function testViewport(
   };
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function checkHorizontalOverflow(page: any): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
@@ -238,6 +241,7 @@ export async function checkHorizontalOverflow(page: any): Promise<ResponsiveIssu
   return issues;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function checkTouchTargets(page: any, isMobile: boolean): Promise<ResponsiveIssue[]> {
   if (!isMobile) {
     return [];
@@ -291,6 +295,7 @@ export async function checkTouchTargets(page: any, isMobile: boolean): Promise<R
   return issues;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function checkFontReadability(page: any, isMobile: boolean): Promise<ResponsiveIssue[]> {
   if (!isMobile) {
     return [];
@@ -343,6 +348,7 @@ export async function checkFontReadability(page: any, isMobile: boolean): Promis
   return issues;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function checkImageScaling(page: any): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
@@ -429,6 +435,7 @@ export async function checkImageScaling(page: any): Promise<ResponsiveIssue[]> {
   return issues;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]> {
   const issues: ResponsiveIssue[] = [];
 
@@ -553,6 +560,7 @@ export async function checkStickyElements(page: any): Promise<ResponsiveIssue[]>
   return issues;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function testMobileMenu(page: any): Promise<boolean | undefined> {
   // Look for common hamburger menu selectors
   const menuButton = await safeEvaluate<{ found: boolean; selector: string | null }>(page, `

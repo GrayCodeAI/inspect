@@ -382,7 +382,7 @@ export class SecurityProxy {
       res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
       const body = await response.arrayBuffer();
       res.end(Buffer.from(body));
-    } catch (error) {
+    } catch (_error) {
       res.writeHead(502, { "Content-Type": "text/plain" });
       res.end("Bad Gateway");
     }

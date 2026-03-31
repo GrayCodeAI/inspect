@@ -30,10 +30,7 @@ const COMMON_INSTRUCTIONS = [
  * Get suggestions based on partial input text.
  * Searches: instruction history, saved flows, common instructions.
  */
-export function getSuggestions(
-  partial: string,
-  maxResults: number = 5,
-): Suggestion[] {
+export function getSuggestions(partial: string, maxResults: number = 5): Suggestion[] {
   if (!partial || partial.length < 2) return [];
 
   const lower = partial.toLowerCase();
@@ -82,7 +79,9 @@ function loadHistory(): string[] {
     if (existsSync(histPath)) {
       return JSON.parse(readFileSync(histPath, "utf-8"));
     }
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
   return [];
 }
 
@@ -96,7 +95,7 @@ function loadFlowNames(): FlowInfo[] {
     const flowsDir = join(process.cwd(), ".inspect", "flows");
     if (!existsSync(flowsDir)) return [];
 
-    const files = readdirSync(flowsDir).filter(f => f.endsWith(".json"));
+    const files = readdirSync(flowsDir).filter((f) => f.endsWith(".json"));
     const flows: FlowInfo[] = [];
 
     for (const file of files.slice(0, 20)) {

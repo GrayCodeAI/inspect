@@ -14,7 +14,7 @@ interface WatchOptions {
 
 async function runWatch(options: WatchOptions): Promise<void> {
   const { watch } = await import("node:fs");
-  const { join, resolve, extname } = await import("node:path");
+  const { join, resolve: _resolve, extname } = await import("node:path");
 
   const instruction = options.message ?? "Test the recent changes";
   const pattern = options.pattern ?? "src/**/*.{ts,tsx,js,jsx}";
@@ -44,7 +44,11 @@ async function runWatch(options: WatchOptions): Promise<void> {
     console.log(chalk.blue(`\n--- Run #${runCount} (${new Date().toLocaleTimeString()}) ---\n`));
 
     if (changedFiles.length > 0) {
-      console.log(chalk.dim(`Changed files: ${changedFiles.slice(0, 5).join(", ")}${changedFiles.length > 5 ? ` (+${changedFiles.length - 5} more)` : ""}`));
+      console.log(
+        chalk.dim(
+          `Changed files: ${changedFiles.slice(0, 5).join(", ")}${changedFiles.length > 5 ? ` (+${changedFiles.length - 5} more)` : ""}`,
+        ),
+      );
     }
 
     // Smart prioritization if enabled
@@ -57,7 +61,9 @@ async function runWatch(options: WatchOptions): Promise<void> {
           changedFiles,
         });
         if (result.ranked.length > 0) {
-          console.log(chalk.dim(`Priority score: ${result.ranked[0].score} (${result.ranked[0].reason})`));
+          console.log(
+            chalk.dim(`Priority score: ${result.ranked[0].score} (${result.ranked[0].reason})`),
+          );
         }
       } catch {
         // Prioritization is best-effort
@@ -69,6 +75,7 @@ async function runWatch(options: WatchOptions): Promise<void> {
       await executeTest({
         message: instruction,
         agent: options.agent ?? "claude",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mode: (options.mode as any) ?? "dom",
         url: options.url,
         devices: options.devices ?? "desktop-chrome",
@@ -96,7 +103,8 @@ async function runWatch(options: WatchOptions): Promise<void> {
       const watcher = watch(dir, { recursive: true }, (eventType, filename) => {
         if (!filename) return;
         const ext = extname(filename);
-        if (![".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte", ".css", ".html"].includes(ext)) return;
+        if (![".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte", ".css", ".html"].includes(ext))
+          return;
 
         // Track changed files for prioritization
         changedFilesSinceLastRun.add(filename);
@@ -145,12 +153,15 @@ export function registerWatchCommand(program: Command): void {
     .option("--browser <browser>", "Browser", "chromium")
     .option("--pattern <glob>", "File glob pattern to watch", "src/**/*.{ts,tsx,js,jsx}")
     .option("--prioritize", "Use smart test prioritization based on changed files")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect watch -m "test the login page"
   $ inspect watch -m "check homepage" --url http://localhost:3000
   $ inspect watch --agent gemini --mode dom
-`)
+`,
+    )
     .action(async (opts: WatchOptions) => {
       try {
         await runWatch(opts);

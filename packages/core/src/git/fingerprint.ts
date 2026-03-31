@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join} from "node:path";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("core/git");

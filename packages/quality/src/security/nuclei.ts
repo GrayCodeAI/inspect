@@ -125,21 +125,23 @@ export class NucleiScanner {
         timeout: 10_000,
       });
 
-      let stderr = "";
+      const _stderr = "";
       proc.stderr?.on("data", (data: Buffer) => {
         stderr += data.toString();
       });
 
-      proc.on("close", (code) => {
+      proc.on("close", (_code) => {
         // nuclei -version outputs to stderr and returns 0
         resolve();
       });
 
       proc.on("error", () => {
-        reject(new Error(
-          `nuclei binary not found at "${this.binaryPath}". ` +
-          "Install it from: https://github.com/projectdiscovery/nuclei"
-        ));
+        reject(
+          new Error(
+            `nuclei binary not found at "${this.binaryPath}". ` +
+              "Install it from: https://github.com/projectdiscovery/nuclei",
+          ),
+        );
       });
     });
   }
@@ -148,13 +150,7 @@ export class NucleiScanner {
    * Build nuclei command-line arguments.
    */
   private buildArgs(url: string, options: NucleiOptions): string[] {
-    const args: string[] = [
-      "-u", url,
-      "-jsonl",
-      "-silent",
-      "-no-color",
-      "-stats-interval", "0",
-    ];
+    const args: string[] = ["-u", url, "-jsonl", "-silent", "-no-color", "-stats-interval", "0"];
 
     if (options.templates?.length) {
       for (const t of options.templates) {
@@ -239,7 +235,11 @@ export class NucleiScanner {
 
       // Handle timeout
       setTimeout(() => {
-        try { proc.kill("SIGTERM"); } catch (error) { logger.debug("Failed to kill nuclei process on timeout", { error }); }
+        try {
+          proc.kill("SIGTERM");
+        } catch (error) {
+          logger.debug("Failed to kill nuclei process on timeout", { error });
+        }
         reject(new Error(`nuclei scan timed out after ${timeout}ms`));
       }, timeout);
     });

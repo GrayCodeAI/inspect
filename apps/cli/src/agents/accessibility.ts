@@ -5,6 +5,7 @@ import { safeEvaluate } from "./evaluate.js";
 // axe-core injection and execution
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runAxeCore(page: any, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
@@ -125,6 +126,7 @@ function extractWcag(tags: string[]): string | undefined {
 // Manual accessibility checks (run always, augment axe results)
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
   const results = await safeEvaluate<Array<{ src: string; html: string }>>(page, `
     (() => {
@@ -150,6 +152,7 @@ async function checkImagesAlt(page: any, url: string): Promise<A11yIssue[]> {
   }));
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
   const results = await safeEvaluate<Array<{ tag: string; type: string; name: string; id: string; html: string }>>(page, `
     (() => {
@@ -184,6 +187,7 @@ async function checkFormLabels(page: any, url: string): Promise<A11yIssue[]> {
   }));
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
@@ -238,6 +242,7 @@ async function checkHeadingHierarchy(page: any, url: string): Promise<A11yIssue[
   return issues;
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> {
   const results = await safeEvaluate<Array<{ text: string; ratio: string; required: string; color: string; bgColor: string; html: string }>>(page, `
     (() => {
@@ -311,6 +316,7 @@ async function checkColorContrast(page: any, url: string): Promise<A11yIssue[]> 
   }));
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> {
   const hasLang = await safeEvaluate<boolean>(page, `!!document.documentElement.getAttribute("lang")`, false);
   if (!hasLang) {
@@ -339,6 +345,7 @@ async function checkLangAttribute(page: any, url: string): Promise<A11yIssue[]> 
   return [];
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkViewportMeta(page: any, url: string): Promise<A11yIssue[]> {
   const viewport = await safeEvaluate<string | null>(page, `
     (() => {
@@ -389,7 +396,8 @@ async function checkViewportMeta(page: any, url: string): Promise<A11yIssue[]> {
 // Keyboard navigation testing
 // ---------------------------------------------------------------------------
 
-async function testKeyboardNavigation(page: any, url: string): Promise<KeyboardNavResult> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function testKeyboardNavigation(page: any, _url: string): Promise<KeyboardNavResult> {
   // Count total focusable elements
   const focusableCount = await safeEvaluate<number>(page, `
     document.querySelectorAll('a[href], button, input:not([type="hidden"]), textarea, select, [tabindex]:not([tabindex="-1"])').length
@@ -461,6 +469,7 @@ async function testKeyboardNavigation(page: any, url: string): Promise<KeyboardN
 // Skip navigation check
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkSkipNavigation(page: any): Promise<boolean> {
   return safeEvaluate<boolean>(page, `
     (() => {
@@ -480,6 +489,7 @@ async function checkSkipNavigation(page: any): Promise<boolean> {
 // Focus indicator check
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkFocusIndicators(page: any): Promise<boolean> {
   return safeEvaluate<boolean>(page, `
     (() => {
@@ -507,7 +517,8 @@ async function checkFocusIndicators(page: any): Promise<boolean> {
 // ARIA validation
 // ---------------------------------------------------------------------------
 
-async function checkAriaUsage(page: any, url: string): Promise<A11yIssue[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function checkAriaUsage(page: any, _url: string): Promise<A11yIssue[]> {
   return safeEvaluate<A11yIssue[]>(page, `
     (() => {
       const issues = [];
@@ -583,6 +594,7 @@ async function checkAriaUsage(page: any, url: string): Promise<A11yIssue[]> {
 // ---------------------------------------------------------------------------
 
 export async function checkAccessibility(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   onProgress: ProgressCallback,

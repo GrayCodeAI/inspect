@@ -5,7 +5,8 @@ type Screen =
   | { type: "testing"; config: Record<string, unknown> }
   | { type: "results"; results: Record<string, unknown> }
   | { type: "flowPicker" }
-  | { type: "devicePicker" };
+  | { type: "devicePicker" }
+  | { type: "agentPicker" };
 
 interface NavigationState {
   current: Screen;

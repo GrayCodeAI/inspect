@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { readFile } from "node:fs/promises";
-import type { MockHandler, MockRequest, MockResponse } from "./handlers.js";
+import type { MockHandler} from "./handlers.js";
 import { rest, response } from "./handlers.js";
 import { createLogger } from "@inspect/observability";
 

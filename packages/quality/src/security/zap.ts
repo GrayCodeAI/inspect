@@ -281,7 +281,7 @@ export class ZAPScanner {
 
     // Set form-based auth
     const loginParams = Object.entries(options.loginData)
-      .map(([k, v]) => `${encodeURIComponent(k)}={%${encodeURIComponent(k)}%}`)
+      .map(([k, _v]) => `${encodeURIComponent(k)}={%${encodeURIComponent(k)}%}`)
       .join("&");
 
     await this.zapGet("/JSON/authentication/action/setAuthenticationMethod/", {

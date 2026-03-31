@@ -10,7 +10,7 @@ function makeBlock(
 ): WorkflowBlock {
   return {
     id,
-    type: type as any,
+    type: type as unknown,
     label: `Block ${id}`,
     parameters: params,
     ...opts,
@@ -124,7 +124,7 @@ describe("WorkflowExecutor", () => {
       executor.registerBlockHandler("ok", async () => "success");
 
       const workflow = makeWorkflow([
-        makeBlock("b1", "fail", {}, { continueOnFailure: true } as any),
+        makeBlock("b1", "fail", {}, { continueOnFailure: true } as unknown),
         makeBlock("b2", "ok"),
       ]);
       const run = await executor.execute(workflow);

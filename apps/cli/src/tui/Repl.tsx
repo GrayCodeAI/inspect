@@ -22,26 +22,33 @@ function stripEnv(text: string): string {
 
 // Intercept all output streams
 const _origStdoutWrite = process.stdout.write.bind(process.stdout);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (process.stdout as any).write = function (chunk: any, encoding?: any, cb?: any) {
   if (typeof chunk === "string") {
     const cleaned = stripEnv(chunk);
     if (!cleaned.trim()) return typeof encoding === "function" ? encoding() : true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (_origStdoutWrite as any)(cleaned, encoding, cb);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (_origStdoutWrite as any)(chunk, encoding, cb);
 };
 
 const _origStderrWrite = process.stderr.write.bind(process.stderr);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (process.stderr as any).write = function (chunk: any, encoding?: any, cb?: any) {
   if (typeof chunk === "string") {
     const cleaned = stripEnv(chunk);
     if (!cleaned.trim()) return typeof encoding === "function" ? encoding() : true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (_origStderrWrite as any)(cleaned, encoding, cb);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (_origStderrWrite as any)(chunk, encoding, cb);
 };
 
 const _origConsoleLog = console.log;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 console.log = (...args: any[]) => {
   const cleaned = args.map((a) => (typeof a === "string" ? stripEnv(a) : a));
   _origConsoleLog(...cleaned);
@@ -67,7 +74,7 @@ const SLASH_COMMANDS = [
   { name: "quit", desc: "Exit inspect" },
 ];
 
-const CONFIG_PROVIDERS = [
+const _CONFIG_PROVIDERS = [
   {
     key: "ANTHROPIC_API_KEY",
     short: "claude",
@@ -119,11 +126,13 @@ const KEYS_FILE = join(process.cwd(), ".inspect", "keys.json");
 function loadKeys(): Record<string, string> {
   try {
     if (existsSync(KEYS_FILE)) return JSON.parse(readFileSync(KEYS_FILE, "utf-8"));
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
   return {};
 }
 
-function saveKey(envVar: string, value: string): void {
+function _saveKey(envVar: string, value: string): void {
   const keys = loadKeys();
   keys[envVar] = value;
   const dir = join(process.cwd(), ".inspect");
@@ -149,7 +158,9 @@ function loadHist(): string[] {
   try {
     const p = join(process.cwd(), ".inspect", "history.json");
     if (existsSync(p)) return JSON.parse(readFileSync(p, "utf-8"));
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
   return [];
 }
 
@@ -158,7 +169,9 @@ function saveHist(h: string[]): void {
     const d = join(process.cwd(), ".inspect");
     if (!existsSync(d)) mkdirSync(d, { recursive: true });
     writeFileSync(join(d, "history.json"), JSON.stringify(h.slice(0, 20)));
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 }
 
 // ── Spinner ─────────────────────────────────────────────────────────────
@@ -288,6 +301,7 @@ async function handleSlash(
         const cliPath = join(__dirname, "..", "index.js");
         const { stdout } = await execFile(process.execPath, [cliPath, name], { timeout: 15000 });
         return { kind: "cmd", text: stdout.trim() };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         return { kind: "cmd", text: e.stdout?.trim() ?? e.message };
       }
@@ -545,6 +559,7 @@ async function callLLM(instruction: string): Promise<string> {
       return `API error ${res.status}: ${errText.slice(0, 200)}`;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = (await res.json()) as Record<string, any>;
 
     // Parse response based on format
@@ -577,6 +592,7 @@ async function callLLM(instruction: string): Promise<string> {
       result = result.slice(0, envIdx).trim();
     }
     return result;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     if (e.name === "AbortError") return "Request timed out (30s). Try again.";
     return `Error: ${e.message}`;
@@ -585,7 +601,7 @@ async function callLLM(instruction: string): Promise<string> {
 
 // ── Browser test runner ──────────────────────────────────────────────────
 
-async function runBrowserTest(
+async function _runBrowserTest(
   url: string,
   pushMsg: (kind: MsgKind, text: string) => void,
 ): Promise<void> {
@@ -599,6 +615,7 @@ async function runBrowserTest(
     await browserMgr.launchBrowser({
       headless: true,
       viewport: { width: 1920, height: 1080 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     const page = await browserMgr.newPage();
 
@@ -617,6 +634,7 @@ async function runBrowserTest(
 
     // 3. Check console errors
     const consoleErrors: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     page.on("console", (msg: any) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
@@ -705,6 +723,7 @@ async function runBrowserTest(
     }
 
     await browserMgr.closeBrowser();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     pushMsg("error", `Browser test failed: ${err.message}`);
     pushMsg("info", "Make sure Playwright browsers are installed: /install");
@@ -758,7 +777,7 @@ function MarkdownLine({ text }: { text: string }): React.ReactElement {
 
     // Plain text (no more matches)
     parts.push(
-      <Text key={key++} color="#cbd5e1">
+      <Text key={key} color="#cbd5e1">
         {remaining}
       </Text>,
     );
@@ -1039,7 +1058,7 @@ export function Repl(): React.ReactElement {
               /^Performance audit complete/, // duplicate of score line
               /^Responsive audit complete/, // duplicate of score line
               /^No notable features/, // noise
-              /^\[[\d\/]+\] (Visiting|Analyzing):/, // per-page crawl/analyze lines
+              /^\[[\d/]+\] (Visiting|Analyzing):/, // per-page crawl/analyze lines
               /^Analyzing \d+ pages? from/, // "Analyzing 1 pages from..."
               /^Crawling .* \(max \d+/, // "Crawling URL (max 20 pages, depth 3)"
               /^Found robots\.txt/, // robots.txt detection noise
@@ -1135,6 +1154,7 @@ export function Repl(): React.ReactElement {
         const totalSecs = (Date.now() - testStartRef.current) / 1000;
         const c = CRUNCHES[Math.floor(Math.random() * CRUNCHES.length)];
         push("result", `CRUNCH:${c.color}:${c.sym} ${c.verb} in ${formatDuration(totalSecs)}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         push("error", `Agent test failed: ${err.message}`);
         push("info", "Make sure browsers are installed: /install");
@@ -1398,7 +1418,7 @@ export function Repl(): React.ReactElement {
     if (/^Step \d+/.test(t)) {
       const match = t.match(/^Step (\d+)/);
       const num = match?.[1] ?? "?";
-      const rest = t.replace(/^Step \d+\s*[—\-]\s*/, "");
+      const rest = t.replace(/^Step \d+\s*[—-]\s*/, "");
       return (
         <>
           <Text color="#f59e0b" bold>
@@ -1563,7 +1583,7 @@ export function Repl(): React.ReactElement {
     }
 
     // ── Indented sub-items (start with spaces) ─────────────────────────
-    if (text.startsWith("    ") && /^\s+[a-zA-Z\[]/.test(text)) {
+    if (text.startsWith("    ") && /^\s+[a-zA-Z[]/.test(text)) {
       return (
         <>
           <Text color="#475569"> {"\u2502"} </Text>

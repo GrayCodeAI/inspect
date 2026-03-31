@@ -133,7 +133,9 @@ export function clearCache(): void {
     if (file.startsWith("llm-")) {
       try {
         unlinkSync(join(CACHE_DIR, file));
-      } catch {}
+      } catch {
+        /* intentionally empty */
+      }
     }
   }
 }

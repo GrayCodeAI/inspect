@@ -12,15 +12,18 @@ interface NetworkMonitor {
   stop: () => NetworkFailure[];
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createNetworkMonitor(page: any): NetworkMonitor {
   const failures: NetworkFailure[] = [];
   const slowResponses: Array<{ url: string; duration: number }> = [];
   const requestTimings = new Map<string, number>();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onRequest = (request: any) => {
     requestTimings.set(request.url(), Date.now());
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onResponse = (response: any) => {
     const url = response.url();
     const status = response.status();
@@ -55,15 +58,18 @@ export function createNetworkMonitor(page: any): NetworkMonitor {
 // Console error capture
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createConsoleMonitor(page: any): { errors: string[]; start: () => void; stop: () => string[] } {
   const errors: string[] = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onConsole = (msg: any) => {
     if (msg.type() === "error") {
       errors.push(msg.text());
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onPageError = (err: any) => {
     errors.push(err.message ?? String(err));
   };
@@ -86,6 +92,7 @@ export function createConsoleMonitor(page: any): { errors: string[]; start: () =
 // URL change tracking
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function trackUrlChanges(page: any): { getHistory: () => string[] } {
   const history: string[] = [page.url()];
 
@@ -114,6 +121,7 @@ export function trackUrlChanges(page: any): { getHistory: () => string[] } {
 // Error banner/toast detection
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function detectErrorMessages(page: any): Promise<string[]> {
   return safeEvaluate<string[]>(page, `
     (() => {
@@ -210,6 +218,7 @@ export async function validateStep(
     consoleErrors?: string[];
     beforeUrl?: string;
     afterUrl?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     page?: any;
   },
 ): Promise<ValidationResult> {

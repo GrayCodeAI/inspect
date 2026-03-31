@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ServiceRegistry, MessageBus, ApiGateway } from "./registry.js";
-import { MessageBus as MB } from "./bus.js";
-import { ApiGateway as GW } from "./gateway.js";
+import { ServiceRegistry } from "./registry.js";
 import { AxeAuditService } from "./services/axe-audit.js";
 import {
   MiniWoBEnvironments,

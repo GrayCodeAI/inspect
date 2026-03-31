@@ -211,7 +211,7 @@ export class NetworkInterceptor {
         }
 
         return;
-      } catch (error) {
+      } catch (_error) {
         // Handler threw an error, continue with original request
         this.logRequest(mockReq, null, matchedHandler.id, startTime);
       }

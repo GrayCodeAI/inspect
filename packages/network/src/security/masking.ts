@@ -163,16 +163,12 @@ export class SensitiveDataMasker {
    * @param headers - Record of header name -> value
    * @returns A new headers object with sensitive values masked
    */
-  maskInHeaders(
-    headers: Record<string, string | string[]>,
-  ): Record<string, string | string[]> {
+  maskInHeaders(headers: Record<string, string | string[]>): Record<string, string | string[]> {
     const masked: Record<string, string | string[]> = {};
 
     for (const [key, value] of Object.entries(headers)) {
       if (SENSITIVE_HEADERS.has(key.toLowerCase())) {
-        masked[key] = Array.isArray(value)
-          ? value.map(() => "[MASKED]")
-          : "[MASKED]";
+        masked[key] = Array.isArray(value) ? value.map(() => "[MASKED]") : "[MASKED]";
       } else {
         // Also mask sensitive data patterns within non-sensitive headers
         if (Array.isArray(value)) {
@@ -219,34 +215,19 @@ export class SensitiveDataMasker {
     this.addPattern("ssn", /\b\d{3}-\d{2}-\d{4}\b/g);
 
     // Credit card numbers (with optional spaces/dashes)
-    this.addPattern(
-      "credit_card",
-      /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
-    );
+    this.addPattern("credit_card", /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g);
 
     // Email addresses
-    this.addPattern(
-      "email",
-      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
-    );
+    this.addPattern("email", /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g);
 
     // US phone numbers
-    this.addPattern(
-      "phone",
-      /\b(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-    );
+    this.addPattern("phone", /\b(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g);
 
     // API keys (common formats: sk-xxx, pk_xxx, api_xxx, etc.)
-    this.addPattern(
-      "api_key",
-      /\b(sk|pk|api|key|token|secret|password)[_-]?[A-Za-z0-9]{20,}\b/gi,
-    );
+    this.addPattern("api_key", /\b(sk|pk|api|key|token|secret|password)[_-]?[A-Za-z0-9]{20,}\b/gi);
 
     // JWT tokens
-    this.addPattern(
-      "jwt",
-      /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
-    );
+    this.addPattern("jwt", /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g);
 
     // AWS access key IDs
     this.addPattern("aws_key", /\b(AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/g);
@@ -260,9 +241,7 @@ export class SensitiveDataMasker {
 }
 
 /** Parse PNG IHDR chunk to get width and height */
-function parsePngDimensions(
-  buffer: Buffer,
-): { width: number; height: number } | null {
+function parsePngDimensions(buffer: Buffer): { width: number; height: number } | null {
   // PNG signature is 8 bytes, then first chunk should be IHDR
   if (buffer.length < 24) return null;
 
@@ -286,6 +265,7 @@ function applyMasksToPng(
   dimensions: { width: number; height: number },
   regions: MaskRegion[],
 ): Buffer {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { inflateSync, deflateSync } = require("node:zlib");
 
   // Collect all IDAT chunks
@@ -329,11 +309,20 @@ function applyMasksToPng(
   let bytesPerPixel: number;
 
   switch (colorType) {
-    case 2: bytesPerPixel = 3 * (bitDepth / 8); break; // RGB
-    case 6: bytesPerPixel = 4 * (bitDepth / 8); break; // RGBA
-    case 0: bytesPerPixel = 1 * (bitDepth / 8); break; // Grayscale
-    case 4: bytesPerPixel = 2 * (bitDepth / 8); break; // Grayscale + Alpha
-    default: return buffer; // Unsupported color type for masking
+    case 2:
+      bytesPerPixel = 3 * (bitDepth / 8);
+      break; // RGB
+    case 6:
+      bytesPerPixel = 4 * (bitDepth / 8);
+      break; // RGBA
+    case 0:
+      bytesPerPixel = 1 * (bitDepth / 8);
+      break; // Grayscale
+    case 4:
+      bytesPerPixel = 2 * (bitDepth / 8);
+      break; // Grayscale + Alpha
+    default:
+      return buffer; // Unsupported color type for masking
   }
 
   const rowBytes = 1 + dimensions.width * bytesPerPixel; // +1 for filter byte
@@ -389,10 +378,7 @@ function applyMasksToPng(
         newIdatHeader.writeUInt32BE(recompressed.length, 0);
         newIdatHeader.write("IDAT", 4);
 
-        const crcData = Buffer.concat([
-          Buffer.from("IDAT"),
-          recompressed,
-        ]);
+        const crcData = Buffer.concat([Buffer.from("IDAT"), recompressed]);
         const crc = crc32(crcData);
         const crcBuf = Buffer.alloc(4);
         crcBuf.writeUInt32BE(crc, 0);

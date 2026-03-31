@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import { PALETTE, ICONS } from "../../utils/theme.js";
 import { ProgressBar } from "../components/ProgressBar.js";
@@ -8,7 +8,7 @@ import { RunComparison } from "../components/RunComparison.js";
 import { FlakinessPanel } from "../components/FlakinessPanel.js";
 import { useDashboardStore } from "../stores/dashboard.js";
 import type { DashboardOrchestrator } from "@inspect/core";
-import type { DashboardEvent, DashboardSnapshot } from "@inspect/shared";
+import type { DashboardEvent } from "@inspect/shared";
 
 interface DashboardScreenProps {
   orchestrator?: DashboardOrchestrator;

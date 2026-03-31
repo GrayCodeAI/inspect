@@ -50,6 +50,7 @@ async function openBrowser(url: string | undefined, options: OpenOptions): Promi
   // Apply device preset
   if (options.device) {
     const { DEVICE_PRESETS } = await import("@inspect/shared");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const preset = (DEVICE_PRESETS as Record<string, any>)[options.device];
     if (preset) {
       viewport = { width: preset.width, height: preset.height };
@@ -62,6 +63,7 @@ async function openBrowser(url: string | undefined, options: OpenOptions): Promi
   await browserMgr.launchBrowser({
     headless: false,
     viewport,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
   const page = await browserMgr.newPage();

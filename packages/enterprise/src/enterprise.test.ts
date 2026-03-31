@@ -49,8 +49,8 @@ describe("RBACManager", () => {
 });
 
 describe("HybridRouter", () => {
-  const mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as any;
-  const mockCloudProvider = { getName: () => "anthropic", getModel: () => "claude-sonnet" } as any;
+  const mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as unknown;
+  const mockCloudProvider = { getName: () => "anthropic", getModel: () => "claude-sonnet" } as unknown;
 
   it("should route sensitive data to local", async () => {
     const router = new HybridRouter({

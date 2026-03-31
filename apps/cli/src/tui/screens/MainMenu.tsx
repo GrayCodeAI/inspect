@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Box, Text, useInput, useApp } from "ink";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
 
@@ -50,9 +52,9 @@ const DEVICES = [
 // ── Colors ─────────────────────────────────────────────────────────────
 
 const C = {
-  brand: "#a855f7",       // purple
+  brand: "#a855f7", // purple
   brandDim: "#7c3aed",
-  accent: "#6366f1",      // indigo
+  accent: "#6366f1", // indigo
   green: "#22c55e",
   red: "#ef4444",
   yellow: "#eab308",
@@ -69,71 +71,98 @@ const C = {
 
 function loadHistory(): string[] {
   try {
-    const { readFileSync, existsSync } = require("node:fs");
-    const { join } = require("node:path");
     const histPath = join(process.cwd(), ".inspect", "history.json");
     if (existsSync(histPath)) {
       return JSON.parse(readFileSync(histPath, "utf-8"));
     }
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
   return [];
 }
 
 function saveHistory(history: string[]): void {
   try {
-    const { writeFileSync, mkdirSync, existsSync } = require("node:fs");
-    const { join } = require("node:path");
     const dir = join(process.cwd(), ".inspect");
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "history.json"), JSON.stringify(history.slice(0, 20)));
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────
 
-function Pill({ label, active, focused }: { label: string; active: boolean; focused?: boolean }): React.ReactElement {
+function Pill({
+  label,
+  active,
+  focused,
+}: {
+  label: string;
+  active: boolean;
+  focused?: boolean;
+}): React.ReactElement {
   if (active) {
     return (
       <Text backgroundColor={C.brand} color="white" bold>
-        {" "}{label}{" "}
+        {" "}
+        {label}{" "}
       </Text>
     );
   }
   if (focused) {
     return (
       <Text color={C.dim} backgroundColor={C.surface}>
-        {" "}{label}{" "}
+        {" "}
+        {label}{" "}
       </Text>
     );
   }
-  return (
-    <Text color={C.muted}>
-      {" "}{label}{" "}
-    </Text>
-  );
+  return <Text color={C.muted}> {label} </Text>;
 }
 
-function Toggle({ label, on, focused }: { label: string; on: boolean; focused?: boolean }): React.ReactElement {
+function Toggle({
+  label,
+  on,
+  focused,
+}: {
+  label: string;
+  on: boolean;
+  focused?: boolean;
+}): React.ReactElement {
   return (
     <Box>
       <Text color={focused ? C.text : C.dim}>{label} </Text>
       {on ? (
-        <Text backgroundColor={C.green} color="white" bold> ON </Text>
+        <Text backgroundColor={C.green} color="white" bold>
+          {" "}
+          ON{" "}
+        </Text>
       ) : (
-        <Text backgroundColor={C.surface} color={C.muted}> OFF </Text>
+        <Text backgroundColor={C.surface} color={C.muted}>
+          {" "}
+          OFF{" "}
+        </Text>
       )}
     </Box>
   );
 }
 
-function FieldLabel({ label, focused, rightText }: { label: string; focused: boolean; rightText?: string }): React.ReactElement {
+function FieldLabel({
+  label,
+  focused,
+  rightText,
+}: {
+  label: string;
+  focused: boolean;
+  rightText?: string;
+}): React.ReactElement {
   return (
     <Box>
-      <Text color={focused ? C.brand : C.muted}>
-        {focused ? "\u276f" : " "}
-      </Text>
+      <Text color={focused ? C.brand : C.muted}>{focused ? "\u276f" : " "}</Text>
       <Text color={focused ? C.text : C.dim} bold={focused}>
-        {" "}{label}
+        {" "}
+        {label}
       </Text>
       {rightText && <Text color={C.muted}> {rightText}</Text>}
     </Box>
@@ -143,9 +172,7 @@ function FieldLabel({ label, focused, rightText }: { label: string; focused: boo
 function Divider(): React.ReactElement {
   return (
     <Box marginY={0}>
-      <Text color={C.border}>
-        {"  \u2500".repeat(30)}
-      </Text>
+      <Text color={C.border}>{"  \u2500".repeat(30)}</Text>
     </Box>
   );
 }
@@ -187,24 +214,24 @@ export function MainMenu(): React.ReactElement {
   const currentField = FIELDS[state.focusedField];
   const canStart = state.instruction.trim().length > 0;
 
-  const cycleOption = useCallback(
-    <T,>(options: readonly T[], current: T, direction: 1 | -1): T => {
-      const idx = options.indexOf(current);
-      return options[(idx + direction + options.length) % options.length];
-    },
-    [],
-  );
+  const cycleOption = useCallback(<T,>(options: readonly T[], current: T, direction: 1 | -1): T => {
+    const idx = options.indexOf(current);
+    return options[(idx + direction + options.length) % options.length];
+  }, []);
 
-  const commitToHistory = useCallback((instruction: string) => {
-    const trimmed = instruction.trim();
-    if (!trimmed) return;
-    const deduped = history.filter((h) => h !== trimmed);
-    deduped.unshift(trimmed);
-    const updated = deduped.slice(0, 20);
-    history.length = 0;
-    history.push(...updated);
-    saveHistory(updated);
-  }, [history]);
+  const commitToHistory = useCallback(
+    (instruction: string) => {
+      const trimmed = instruction.trim();
+      if (!trimmed) return;
+      const deduped = history.filter((h) => h !== trimmed);
+      deduped.unshift(trimmed);
+      const updated = deduped.slice(0, 20);
+      history.length = 0;
+      history.push(...updated);
+      saveHistory(updated);
+    },
+    [history],
+  );
 
   const handleStart = useCallback(() => {
     if (!state.instruction.trim()) return;
@@ -242,7 +269,10 @@ export function MainMenu(): React.ReactElement {
   // ── Input handler ──────────────────────────────────────────────────
 
   useInput((input, key) => {
-    if (key.escape || (key.ctrl && input === "c")) { exit(); return; }
+    if (key.escape || (key.ctrl && input === "c")) {
+      exit();
+      return;
+    }
     if (key.ctrl && input === "l") {
       setState((s) => ({ ...s, instruction: "", url: "", focusedField: 0 }));
       setHistoryIndex(-1);
@@ -267,7 +297,10 @@ export function MainMenu(): React.ReactElement {
       }
       if (key.downArrow) {
         setHistoryIndex((prev) => {
-          if (prev <= 0) { setState((s) => ({ ...s, instruction: historyDraft })); return -1; }
+          if (prev <= 0) {
+            setState((s) => ({ ...s, instruction: historyDraft }));
+            return -1;
+          }
           const next = prev - 1;
           setState((s) => ({ ...s, instruction: history[next] }));
           return next;
@@ -296,7 +329,14 @@ export function MainMenu(): React.ReactElement {
 
     // Text input
     if (currentField === "instruction" || currentField === "url") {
-      if (key.return) { canStart ? handleStart() : setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") })); return; }
+      if (key.return) {
+        if (canStart) {
+          handleStart();
+        } else {
+          setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") }));
+        }
+        return;
+      }
       if (key.backspace || key.delete) {
         setState((s) => ({ ...s, [currentField]: s[currentField].slice(0, -1) }));
         if (currentField === "instruction") setHistoryIndex(-1);
@@ -319,20 +359,38 @@ export function MainMenu(): React.ReactElement {
     if (key.leftArrow || key.rightArrow) {
       const dir = key.rightArrow ? 1 : -1;
       switch (currentField) {
-        case "scope": setState((s) => ({ ...s, scope: cycleOption(SCOPES, s.scope, dir as 1 | -1) })); break;
-        case "agent": setState((s) => ({ ...s, agent: cycleOption(AGENTS, s.agent, dir as 1 | -1) })); break;
-        case "device": setState((s) => ({ ...s, device: cycleOption(DEVICES, s.device, dir as 1 | -1) })); break;
-        case "mode": setState((s) => ({ ...s, mode: cycleOption(MODES, s.mode, dir as 1 | -1) })); break;
-        case "headed": setState((s) => ({ ...s, headed: !s.headed })); break;
-        case "a11y": setState((s) => ({ ...s, a11y: !s.a11y })); break;
-        case "lighthouse": setState((s) => ({ ...s, lighthouse: !s.lighthouse })); break;
+        case "scope":
+          setState((s) => ({ ...s, scope: cycleOption(SCOPES, s.scope, dir as 1 | -1) }));
+          break;
+        case "agent":
+          setState((s) => ({ ...s, agent: cycleOption(AGENTS, s.agent, dir as 1 | -1) }));
+          break;
+        case "device":
+          setState((s) => ({ ...s, device: cycleOption(DEVICES, s.device, dir as 1 | -1) }));
+          break;
+        case "mode":
+          setState((s) => ({ ...s, mode: cycleOption(MODES, s.mode, dir as 1 | -1) }));
+          break;
+        case "headed":
+          setState((s) => ({ ...s, headed: !s.headed }));
+          break;
+        case "a11y":
+          setState((s) => ({ ...s, a11y: !s.a11y }));
+          break;
+        case "lighthouse":
+          setState((s) => ({ ...s, lighthouse: !s.lighthouse }));
+          break;
       }
       return;
     }
 
     // Enter
     if (key.return) {
-      canStart ? handleStart() : setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") }));
+      if (canStart) {
+        handleStart();
+      } else {
+        setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") }));
+      }
     }
   });
 
@@ -342,7 +400,9 @@ export function MainMenu(): React.ReactElement {
     return (
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Box marginBottom={1}>
-          <Text color={C.brand} bold>{"\u25c6"} inspect</Text>
+          <Text color={C.brand} bold>
+            {"\u25c6"} inspect
+          </Text>
           <Text color={C.muted}> v0.1.0</Text>
         </Box>
         <Box
@@ -370,10 +430,11 @@ export function MainMenu(): React.ReactElement {
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-
       {/* ── Header ── */}
       <Box marginBottom={1} paddingX={1} gap={1}>
-        <Text color={C.brand} bold>{"\u25c6"} inspect</Text>
+        <Text color={C.brand} bold>
+          {"\u25c6"} inspect
+        </Text>
         <Text color={C.muted}>v0.1.0</Text>
         <Text color={C.border}>{"\u2502"}</Text>
         <Text color={C.dim}>AI-Powered Browser Testing</Text>
@@ -382,7 +443,8 @@ export function MainMenu(): React.ReactElement {
             <Text color={C.border}>{"\u2502"}</Text>
             {availableAgents.map((a, i) => (
               <Text key={a} color={C.green}>
-                {a}{i < availableAgents.length - 1 ? " " : ""}
+                {a}
+                {i < availableAgents.length - 1 ? " " : ""}
               </Text>
             ))}
           </>
@@ -398,23 +460,24 @@ export function MainMenu(): React.ReactElement {
         marginX={1}
       >
         <Box>
-          <Text color={currentField === "instruction" ? C.brand : C.muted}>
-            {"\u276f"}{" "}
-          </Text>
+          <Text color={currentField === "instruction" ? C.brand : C.muted}>{"\u276f"} </Text>
           <Box flexGrow={1}>
             {state.instruction ? (
               <Text color={C.text}>{state.instruction}</Text>
             ) : (
-              <Text color={C.muted}>
-                What to test? (e.g. "test the login flow")
-              </Text>
+              <Text color={C.muted}>What to test? (e.g. "test the login flow")</Text>
             )}
             {currentField === "instruction" && (
-              <Text backgroundColor={C.brand} color="white">{" "}</Text>
+              <Text backgroundColor={C.brand} color="white">
+                {" "}
+              </Text>
             )}
           </Box>
           {currentField === "instruction" && historyIndex >= 0 && (
-            <Text color={C.muted}> {historyIndex + 1}/{history.length}</Text>
+            <Text color={C.muted}>
+              {" "}
+              {historyIndex + 1}/{history.length}
+            </Text>
           )}
         </Box>
       </Box>
@@ -429,16 +492,16 @@ export function MainMenu(): React.ReactElement {
         marginTop={0}
       >
         <Box>
-          <Text color={currentField === "url" ? C.cyan : C.muted}>
-            {"\u279c"}{" "}
-          </Text>
+          <Text color={currentField === "url" ? C.cyan : C.muted}>{"\u279c"} </Text>
           {state.url ? (
             <Text color={C.cyan}>{state.url}</Text>
           ) : (
             <Text color={C.muted}>Target URL (optional)</Text>
           )}
           {currentField === "url" && (
-            <Text backgroundColor={C.cyan} color="white">{" "}</Text>
+            <Text backgroundColor={C.cyan} color="white">
+              {" "}
+            </Text>
           )}
         </Box>
       </Box>
@@ -452,7 +515,12 @@ export function MainMenu(): React.ReactElement {
           <FieldLabel label="Context" focused={currentField === "scope"} />
           <Box marginLeft={1}>
             {SCOPES.map((s) => (
-              <Pill key={s} label={s} active={s === state.scope} focused={currentField === "scope"} />
+              <Pill
+                key={s}
+                label={s}
+                active={s === state.scope}
+                focused={currentField === "scope"}
+              />
             ))}
           </Box>
         </Box>
@@ -462,7 +530,12 @@ export function MainMenu(): React.ReactElement {
           <FieldLabel label="Agent  " focused={currentField === "agent"} />
           <Box marginLeft={1}>
             {AGENTS.map((a) => (
-              <Pill key={a} label={a} active={a === state.agent} focused={currentField === "agent"} />
+              <Pill
+                key={a}
+                label={a}
+                active={a === state.agent}
+                focused={currentField === "agent"}
+              />
             ))}
           </Box>
         </Box>
@@ -476,11 +549,10 @@ export function MainMenu(): React.ReactElement {
               color="white"
               bold={currentField === "device"}
             >
-              {" "}{state.device}{" "}
+              {" "}
+              {state.device}{" "}
             </Text>
-            {currentField === "device" && (
-              <Text color={C.muted}> {"\u2190\u2192"} cycle</Text>
-            )}
+            {currentField === "device" && <Text color={C.muted}> {"\u2190\u2192"} cycle</Text>}
           </Box>
         </Box>
 
@@ -535,9 +607,7 @@ export function MainMenu(): React.ReactElement {
             </Box>
           )
         ) : (
-          <Text color={C.muted}>
-            {"  \u25b6 Start Testing"}
-          </Text>
+          <Text color={C.muted}>{"  \u25b6 Start Testing"}</Text>
         )}
       </Box>
 

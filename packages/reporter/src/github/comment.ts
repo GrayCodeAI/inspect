@@ -2,7 +2,7 @@
 // @inspect/reporter - GitHub PR Comment Formatter
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { SuiteResult, TestResult, TestStep } from "../formats/markdown.js";
+import type { SuiteResult, TestResult } from "../formats/markdown.js";
 
 /** Options for formatting GitHub comments */
 export interface GitHubCommentOptions {
@@ -80,7 +80,9 @@ export class GitHubCommentFormatter {
     // Truncate if too long
     const maxLen = this.options.maxLength ?? 60_000;
     if (result.length > maxLen) {
-      result = result.slice(0, maxLen - 100) + "\n\n---\n*Report truncated. See full report in artifacts.*";
+      result =
+        result.slice(0, maxLen - 100) +
+        "\n\n---\n*Report truncated. See full report in artifacts.*";
     }
 
     return result;
@@ -120,34 +122,41 @@ export class GitHubCommentFormatter {
   private formatComparison(comparison: ComparisonData): string {
     const lines: string[] = ["### Comparison with Previous Run"];
 
-    const passDelta = comparison.previousPassRate > 0
-      ? `(${comparison.previousPassRate > 0 ? "+" : ""}${(comparison.previousPassRate).toFixed(0)}% change)`
-      : "";
+    const passDelta =
+      comparison.previousPassRate > 0
+        ? `(${comparison.previousPassRate > 0 ? "+" : ""}${comparison.previousPassRate.toFixed(0)}% change)`
+        : "";
     lines.push(`Pass rate change: ${passDelta}`);
 
     if (comparison.fixedTests.length > 0) {
-      lines.push(`\n:white_check_mark: **Fixed** (${comparison.fixedTests.length}): ${comparison.fixedTests.join(", ")}`);
+      lines.push(
+        `\n:white_check_mark: **Fixed** (${comparison.fixedTests.length}): ${comparison.fixedTests.join(", ")}`,
+      );
     }
 
     if (comparison.regressedTests.length > 0) {
-      lines.push(`\n:x: **Regressed** (${comparison.regressedTests.length}): ${comparison.regressedTests.join(", ")}`);
+      lines.push(
+        `\n:x: **Regressed** (${comparison.regressedTests.length}): ${comparison.regressedTests.join(", ")}`,
+      );
     }
 
     if (comparison.newTests.length > 0) {
-      lines.push(`\n:new: **New tests** (${comparison.newTests.length}): ${comparison.newTests.join(", ")}`);
+      lines.push(
+        `\n:new: **New tests** (${comparison.newTests.length}): ${comparison.newTests.join(", ")}`,
+      );
     }
 
     return lines.join("\n");
   }
 
   private formatFailedTests(tests: TestResult[]): string {
-    const lines: string[] = [
-      `### :x: Failed Tests (${tests.length})`,
-    ];
+    const lines: string[] = [`### :x: Failed Tests (${tests.length})`];
 
     for (const test of tests) {
       lines.push(`\n<details>`);
-      lines.push(`<summary><strong>${escapeMarkdown(test.name)}</strong> - ${test.error?.message ?? "Unknown error"}</summary>\n`);
+      lines.push(
+        `<summary><strong>${escapeMarkdown(test.name)}</strong> - ${test.error?.message ?? "Unknown error"}</summary>\n`,
+      );
 
       if (test.error) {
         lines.push("```");
@@ -161,7 +170,12 @@ export class GitHubCommentFormatter {
       if (this.options.includeFailedSteps && test.steps.length > 0) {
         lines.push("\n**Steps:**");
         for (const step of test.steps) {
-          const icon = step.status === "passed" ? ":white_check_mark:" : step.status === "failed" ? ":x:" : ":yellow_circle:";
+          const icon =
+            step.status === "passed"
+              ? ":white_check_mark:"
+              : step.status === "failed"
+                ? ":x:"
+                : ":yellow_circle:";
           const detail = step.target ? ` on \`${step.target}\`` : "";
           const value = step.value ? ` "${truncate(step.value, 40)}"` : "";
           lines.push(`${step.index}. ${icon} \`${step.action}\`${detail}${value}`);
@@ -211,7 +225,9 @@ export class GitHubCommentFormatter {
   private getStats(results: SuiteResult) {
     const total = results.tests.length;
     const passed = results.tests.filter((t) => t.status === "passed").length;
-    const failed = results.tests.filter((t) => t.status === "failed" || t.status === "error").length;
+    const failed = results.tests.filter(
+      (t) => t.status === "failed" || t.status === "error",
+    ).length;
     const skipped = results.tests.filter((t) => t.status === "skipped").length;
     const totalSteps = results.tests.reduce((sum, t) => sum + t.steps.length, 0);
     const duration = results.finishedAt - results.startedAt;
@@ -230,7 +246,7 @@ export class GitHubCommentFormatter {
 }
 
 function escapeMarkdown(str: string): string {
-  return str.replace(/([_*\[\]()~`>#+=|{}.!\\-])/g, "\\$1");
+  return str.replace(/(_*[\]()~`>#+=|{}.!\\-])/g, "\\$1");
 }
 
 function truncate(str: string, maxLen: number): string {

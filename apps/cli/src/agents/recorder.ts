@@ -27,10 +27,13 @@ export interface RecordedAction {
  * on the given page. Returns a stop function that removes all listeners.
  */
 export async function startRecording(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   onAction: (action: RecordedAction) => void,
 ): Promise<() => void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const listeners: Array<{ event: string; handler: (...args: any[]) => void }> = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let cdpSession: any = null;
   let stopped = false;
 
@@ -152,6 +155,7 @@ export async function startRecording(
   // -----------------------------------------------------------------------
   // 3. Listen for page-level navigation events
   // -----------------------------------------------------------------------
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onFrameNavigated = (frame: any): void => {
     if (stopped) return;
     try {
@@ -179,6 +183,7 @@ export async function startRecording(
     await cdpSession.send("DOM.enable");
     await cdpSession.send("Input.setInterceptDrags", { enabled: false }).catch(() => {});
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cdpSession.on("DOM.attributeModified", (params: any) => {
       if (stopped) return;
       onAction({
@@ -218,8 +223,11 @@ export async function startRecording(
     }
 
     // Clean up in-page state
-    safeEvaluate(page, `(() => { window.__inspectRecording = false; window.__inspectActions = []; })()`, undefined)
-      .catch(() => {});
+    safeEvaluate(
+      page,
+      `(() => { window.__inspectRecording = false; window.__inspectActions = []; })()`,
+      undefined,
+    ).catch(() => {});
   };
 }
 
@@ -420,6 +428,7 @@ function actionToYAMLBlock(action: RecordedAction): string[] | null {
  */
 function yamlString(value: string): string {
   if (/[:#\[\]{}&*!|>'"%@`,?]/.test(value) || value.includes("\n")) {
+    // eslint-disable-line no-useless-escape
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
   }
   return value || '""';
@@ -439,6 +448,7 @@ function truncate(str: string, max: number): string {
  * then stop and return the collected actions.
  */
 export async function recordSession(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   duration: number,
@@ -453,7 +463,10 @@ export async function recordSession(
 
   const stop = await startRecording(page, (action) => {
     actions.push(action);
-    onProgress("step", `  [${action.type}] ${action.target}${action.value ? ` = "${truncate(action.value, 30)}"` : ""}`);
+    onProgress(
+      "step",
+      `  [${action.type}] ${action.target}${action.value ? ` = "${truncate(action.value, 30)}"` : ""}`,
+    );
   });
 
   // Wait for the specified duration

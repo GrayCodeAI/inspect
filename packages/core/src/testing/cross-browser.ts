@@ -5,7 +5,7 @@
 // TestScheduler and compares results to detect browser-specific issues.
 // ============================================================================
 
-import type { ExecutionResult, StepResult } from "../orchestrator/executor.js";
+import type { ExecutionResult} from "../orchestrator/executor.js";
 
 export interface CrossBrowserConfig {
   browsers: Array<"chromium" | "firefox" | "webkit">;

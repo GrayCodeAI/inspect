@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
  */
 export function supportsInlineImages(): { supported: boolean; protocol: "iterm" | "kitty" | "sixel" | "none" } {
   const term = process.env.TERM_PROGRAM ?? "";
-  const termEnv = process.env.TERM ?? "";
+  const _termEnv = process.env.TERM ?? "";
 
   // iTerm2
   if (term === "iTerm.app" || process.env.ITERM_SESSION_ID) {

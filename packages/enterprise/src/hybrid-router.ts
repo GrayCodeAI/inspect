@@ -1,7 +1,7 @@
 import { createLogger } from "@inspect/observability";
 import type { LLMProvider } from "@inspect/agent";
 
-const logger = createLogger("enterprise/hybrid-router");
+const _logger = createLogger("enterprise/hybrid-router");
 
 export interface HybridRouterConfig {
   /** Local provider (Ollama) */

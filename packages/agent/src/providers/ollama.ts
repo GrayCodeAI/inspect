@@ -11,7 +11,6 @@ import {
   type LLMRequestOptions,
   type LLMResponse,
   type LLMChunk,
-  type LLMContentPart,
   type LLMToolCall,
 } from "./base.js";
 import { createLogger } from "@inspect/observability";
@@ -82,9 +81,13 @@ const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 
 /** Models known to support vision */
 const VISION_MODELS = new Set([
-  "llava", "llava:13b", "llava:34b",
-  "llava-llama3", "llava-phi3",
-  "moondream", "moondream2",
+  "llava",
+  "llava:13b",
+  "llava:34b",
+  "llava-llama3",
+  "llava-phi3",
+  "moondream",
+  "moondream2",
   "bakllava",
 ]);
 
@@ -110,10 +113,12 @@ export class OllamaProvider extends LLMProvider {
 
   supportsVision(): boolean {
     const model = this.config.model.toLowerCase();
-    return VISION_MODELS.has(model) ||
+    return (
+      VISION_MODELS.has(model) ||
       model.includes("llava") ||
       model.includes("moondream") ||
-      model.includes("vision");
+      model.includes("vision")
+    );
   }
 
   supportsThinking(): boolean {
@@ -129,10 +134,7 @@ export class OllamaProvider extends LLMProvider {
     const body = this.buildRequestBody(messages, tools, options);
     body.stream = false;
 
-    const response = await this.fetchJSON<OllamaChatResponse>(
-      `${this.baseUrl}/api/chat`,
-      body,
-    );
+    const response = await this.fetchJSON<OllamaChatResponse>(`${this.baseUrl}/api/chat`, body);
 
     return this.parseResponse(response);
   }
@@ -178,7 +180,7 @@ export class OllamaProvider extends LLMProvider {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let totalContent = "";
+      let _totalContent = "";
       let lastEvalCount = 0;
       let lastPromptEvalCount = 0;
 
@@ -197,12 +199,14 @@ export class OllamaProvider extends LLMProvider {
           try {
             chunk = JSON.parse(line);
           } catch (error) {
-            logger.debug("Failed to parse Ollama stream chunk", { err: error instanceof Error ? error.message : String(error) });
+            logger.debug("Failed to parse Ollama stream chunk", {
+              err: error instanceof Error ? error.message : String(error),
+            });
             continue;
           }
 
           if (chunk.message.content) {
-            totalContent += chunk.message.content;
+            _totalContent += chunk.message.content;
             yield { content: chunk.message.content, done: false };
           }
 
@@ -279,7 +283,9 @@ export class OllamaProvider extends LLMProvider {
         clearTimeout(timer);
       }
     } catch (error) {
-      logger.debug("Ollama server not reachable", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Ollama server not reachable", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -351,9 +357,10 @@ export class OllamaProvider extends LLMProvider {
       if (msg.role === "system") {
         converted.push({
           role: "system",
-          content: typeof msg.content === "string"
-            ? msg.content
-            : msg.content.map((p) => (p as { text: string }).text).join("\n"),
+          content:
+            typeof msg.content === "string"
+              ? msg.content
+              : msg.content.map((p) => (p as { text: string }).text).join("\n"),
         });
       } else if (msg.role === "tool") {
         converted.push({

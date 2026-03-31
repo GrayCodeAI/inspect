@@ -168,7 +168,7 @@ export async function fetchOpenAPISpec(
         if (requestBody) {
           const content = requestBody["content"] as Record<string, unknown> | undefined;
           if (content) {
-            for (const [mediaType, schemaWrapper] of Object.entries(content)) {
+            for (const [_mediaType, schemaWrapper] of Object.entries(content)) {
               const wrapper = schemaWrapper as Record<string, unknown>;
               const schema = wrapper["schema"] as Record<string, unknown> | undefined;
               if (schema && schema["properties"]) {
@@ -670,7 +670,7 @@ export async function scanGraphQLSecurity(
   onProgress("step", "  Testing batch query limits...");
 
   // Send 50 queries in a single batch
-  const batchQueries = Array.from({ length: 50 }, (_, i) => ({
+  const batchQueries = Array.from({ length: 50 }, (_, _i) => ({
     query: `{ __typename }`,
     operationName: null,
   }));
@@ -975,6 +975,7 @@ async function discoverEndpointsFromTraffic(
     /\.(js|css|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|map|mp4|webm|ogg|mp3|wav|pdf|zip|wasm)(\?|#|$)/i;
 
   // Set up response listener before navigation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onResponse = (response: any): void => {
     try {
       const resUrl = response.url() as string;

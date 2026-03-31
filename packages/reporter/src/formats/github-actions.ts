@@ -5,8 +5,7 @@
 // ::notice) and generates a Job Summary (GITHUB_STEP_SUMMARY) markdown table.
 // ============================================================================
 
-import { appendFileSync, writeFileSync } from "node:fs";
-import type { TestResult, TestStep } from "./markdown.js";
+import { appendFileSync} from "node:fs";
 
 export interface GitHubActionsReporterOptions {
   /** Write to GITHUB_STEP_SUMMARY. Default: true if env var is set */

@@ -21,6 +21,7 @@ async function generatePDF(url: string, output: string, options: PDFOptions): Pr
   await browserMgr.launchBrowser({
     headless: true,
     viewport: { width: 1280, height: 720 },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   const page = await browserMgr.newPage();
 
@@ -43,6 +44,7 @@ async function generatePDF(url: string, output: string, options: PDFOptions): Pr
 
   await page.pdf({
     path: output,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     format: (options.format ?? "A4") as any,
     landscape: options.landscape ?? false,
     printBackground: options.printBackground ?? true,

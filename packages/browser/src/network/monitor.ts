@@ -119,7 +119,7 @@ export class NetworkMonitor {
     this.isActive = true;
 
     // Monitor requests
-    page.on("request", (req: any) => {
+    page.on("request", (req: unknown) => {
       if (!this.isActive) return;
 
       const request: RecordedRequest = {
@@ -137,7 +137,7 @@ export class NetworkMonitor {
     });
 
     // Monitor responses
-    page.on("response", (res: any) => {
+    page.on("response", (res: unknown) => {
       if (!this.isActive) return;
 
       const url = res.url?.() ?? "";

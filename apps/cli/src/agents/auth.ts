@@ -14,6 +14,7 @@ import { safeEvaluate, safeEvaluateVoid } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function injectCookies(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   cookies: Array<{ name: string; value: string; domain: string; path?: string }>,
 ): Promise<void> {
@@ -35,6 +36,7 @@ export async function injectCookies(
 // ---------------------------------------------------------------------------
 
 export async function injectStorage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   storage: {
     localStorage?: Record<string, string>;
@@ -72,6 +74,7 @@ export async function injectStorage(
 // saveSession — Export cookies + localStorage + sessionStorage to a JSON file
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function saveSession(page: any, filePath: string): Promise<void> {
   const context = page.context();
   const cookies = await context.cookies();
@@ -126,9 +129,11 @@ export async function saveSession(page: any, filePath: string): Promise<void> {
 // loadSession — Read a session JSON file and inject cookies + storage
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loadSession(page: any, filePath: string): Promise<void> {
   const raw = fs.readFileSync(filePath, "utf-8");
   const session = JSON.parse(raw) as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cookies?: any[];
     localStorage?: Record<string, string>;
     sessionStorage?: Record<string, string>;
@@ -225,6 +230,7 @@ const AUTH_INDICATORS_SCRIPT = `(() => {
 })()`;
 
 export async function detectAuthState(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
 ): Promise<{ loggedIn: boolean; indicators: string[] }> {
   const indicators: string[] = await safeEvaluate(page, AUTH_INDICATORS_SCRIPT, [] as string[]);
@@ -306,13 +312,14 @@ const CAPTCHA_DETECT_SCRIPT = `(() => {
 })()`;
 
 export async function detectCaptcha(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
 ): Promise<{ found: boolean; type: string | null; element: string | null }> {
-  const result = await safeEvaluate(
-    page,
-    CAPTCHA_DETECT_SCRIPT,
-    { found: false, type: null, element: null } as { found: boolean; type: string | null; element: string | null },
-  );
+  const result = await safeEvaluate(page, CAPTCHA_DETECT_SCRIPT, {
+    found: false,
+    type: null,
+    element: null,
+  } as { found: boolean; type: string | null; element: string | null });
 
   return result;
 }
@@ -380,12 +387,19 @@ export async function generateTOTP(secret: string): Promise<string> {
 // ---------------------------------------------------------------------------
 
 export async function testMultiRole(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   roles: Array<{ name: string; cookies?: any[]; storage?: any }>,
   url: string,
   onProgress: ProgressCallback,
 ): Promise<Array<{ role: string; accessible: boolean; redirected: boolean; finalUrl: string }>> {
-  const results: Array<{ role: string; accessible: boolean; redirected: boolean; finalUrl: string }> = [];
+  const results: Array<{
+    role: string;
+    accessible: boolean;
+    redirected: boolean;
+    finalUrl: string;
+  }> = [];
 
   onProgress("info", `Testing ${roles.length} role(s) against ${url}`);
 
@@ -414,8 +428,8 @@ export async function testMultiRole(
     }
 
     // Navigate to the target URL
-    let finalUrl = url;
-    let accessible = false;
+    let finalUrl: string;
+    let accessible: boolean;
     let redirected = false;
 
     try {
@@ -487,7 +501,10 @@ export async function testMultiRole(
     });
   }
 
-  onProgress("done", `Multi-role test complete: ${results.filter((r) => r.accessible).length}/${results.length} roles have access`);
+  onProgress(
+    "done",
+    `Multi-role test complete: ${results.filter((r) => r.accessible).length}/${results.length} roles have access`,
+  );
 
   return results;
 }

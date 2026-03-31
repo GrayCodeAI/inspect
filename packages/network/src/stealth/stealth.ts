@@ -5,7 +5,6 @@
 import type {
   StealthConfig,
   FingerprintConfig,
-  StealthHeaderConfig,
   StealthPreset,
   CaptchaDetectionResult,
 } from "@inspect/shared";
@@ -91,7 +90,7 @@ export class StealthEngine {
     }
 
     if (this.config.headers?.addClientHints) {
-      const ua = headers["User-Agent"] ?? USER_AGENT_POOL[0];
+      const _ua = headers["User-Agent"] ?? USER_AGENT_POOL[0];
       headers["sec-ch-ua"] = '"Chromium";v="125", "Google Chrome";v="125"';
       headers["sec-ch-ua-mobile"] = "?0";
       headers["sec-ch-ua-platform"] = '"Windows"';

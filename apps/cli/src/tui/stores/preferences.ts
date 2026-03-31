@@ -1,23 +1,27 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { create } from "zustand";
+import type { AgentBackend } from "@inspect/acp";
+import type { ModelPreference } from "@inspect/shared";
 
 interface Preferences {
-  agentBackend: string;
+  agentBackend: AgentBackend;
   browserHeaded: boolean;
   defaultDevice: string;
   defaultMode: string;
   instructionHistory: string[];
   notifications: boolean;
+  modelPreferences: Record<AgentBackend, ModelPreference | undefined>;
 }
 
 interface PreferencesState extends Preferences {
-  setAgent: (agent: string) => void;
+  setAgent: (agent: AgentBackend) => void;
   setHeaded: (headed: boolean) => void;
   setDevice: (device: string) => void;
   setMode: (mode: string) => void;
   addToHistory: (instruction: string) => void;
   setNotifications: (enabled: boolean) => void;
+  setModelPreference: (agent: AgentBackend, configId: string, modelValue: string) => void;
   loadFromDisk: () => void;
   saveToDisk: () => void;
 }
@@ -28,9 +32,7 @@ function loadPersistedPreferences(): Partial<Preferences> {
     if (existsSync(prefPath)) {
       return JSON.parse(readFileSync(prefPath, "utf-8")) as Partial<Preferences>;
     }
-  } catch {
-    // Ignore read errors
-  }
+  } catch {}
   return {};
 }
 
@@ -39,20 +41,27 @@ function persistPreferences(prefs: Partial<Preferences>): void {
     const dir = join(process.cwd(), ".inspect");
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "preferences.json"), JSON.stringify(prefs, null, 2));
-  } catch {
-    // Ignore write errors
-  }
+  } catch {}
 }
 
 const persisted = loadPersistedPreferences();
 
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
-  agentBackend: persisted.agentBackend ?? "claude",
+  agentBackend: (persisted.agentBackend as AgentBackend) ?? "claude",
   browserHeaded: persisted.browserHeaded ?? false,
   defaultDevice: persisted.defaultDevice ?? "desktop-chrome",
   defaultMode: persisted.defaultMode ?? "hybrid",
   instructionHistory: persisted.instructionHistory ?? [],
   notifications: persisted.notifications ?? true,
+  modelPreferences: {
+    claude: undefined,
+    codex: undefined,
+    copilot: undefined,
+    gemini: undefined,
+    cursor: undefined,
+    opencode: undefined,
+    droid: undefined,
+  },
 
   setAgent: (agent) => {
     set({ agentBackend: agent });
@@ -90,15 +99,31 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     get().saveToDisk();
   },
 
+  setModelPreference: (agent, configId, modelValue) => {
+    set((state) => ({
+      modelPreferences: { ...state.modelPreferences, [agent]: { configId, value: modelValue } },
+    }));
+    get().saveToDisk();
+  },
+
   loadFromDisk: () => {
     const loaded = loadPersistedPreferences();
     set({
-      agentBackend: loaded.agentBackend ?? "claude",
+      agentBackend: (loaded.agentBackend as AgentBackend) ?? "claude",
       browserHeaded: loaded.browserHeaded ?? false,
       defaultDevice: loaded.defaultDevice ?? "desktop-chrome",
       defaultMode: loaded.defaultMode ?? "hybrid",
       instructionHistory: loaded.instructionHistory ?? [],
       notifications: loaded.notifications ?? true,
+      modelPreferences: loaded.modelPreferences ?? {
+        claude: undefined,
+        codex: undefined,
+        copilot: undefined,
+        gemini: undefined,
+        cursor: undefined,
+        opencode: undefined,
+        droid: undefined,
+      },
     });
   },
 
@@ -111,6 +136,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
       defaultMode: state.defaultMode,
       instructionHistory: state.instructionHistory,
       notifications: state.notifications,
+      modelPreferences: state.modelPreferences,
     });
   },
 }));

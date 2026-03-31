@@ -25,7 +25,7 @@ function parseLLMJson<T>(raw: string, fallback: T): T {
 }
 
 /** Parse a JSON array from an LLM response. */
-function parseLLMArray<T>(raw: string, fallback: T[]): T[] {
+function _parseLLMArray<T>(raw: string, fallback: T[]): T[] {
   try {
     let trimmed = raw.trim();
     const match = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -39,6 +39,7 @@ function parseLLMArray<T>(raw: string, fallback: T[]): T[] {
 }
 
 /** Take a text snapshot of the current page using ARIA tree if available, else innerHTML summary. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function takeSnapshot(page: any): Promise<string> {
   try {
     const { AriaSnapshotBuilder } = await import("@inspect/browser");
@@ -47,7 +48,9 @@ async function takeSnapshot(page: any): Promise<string> {
     return builder.getFormattedTree();
   } catch {
     // Fallback: grab a condensed text representation
-    return await safeEvaluate<string>(page, `
+    return await safeEvaluate<string>(
+      page,
+      `
       (() => {
         const walk = (el, depth) => {
           if (depth > 4) return "";
@@ -61,7 +64,9 @@ async function takeSnapshot(page: any): Promise<string> {
         };
         return walk(document.body, 0).slice(0, 6000);
       })()
-    `, "[snapshot unavailable]");
+    `,
+      "[snapshot unavailable]",
+    );
   }
 }
 
@@ -75,6 +80,7 @@ function delay(ms: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function testBehavior(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   instruction: string,
   snapshot: string,
@@ -84,9 +90,10 @@ export async function testBehavior(
   onProgress("info", `Testing behavior: ${instruction}`);
 
   // Step 1: Ask LLM to produce a plan
-  const planResponse = await llm([{
-    role: "user",
-    content: `You are a browser test automation assistant. Given the user instruction and the current page snapshot, produce a JSON plan.
+  const planResponse = await llm([
+    {
+      role: "user",
+      content: `You are a browser test automation assistant. Given the user instruction and the current page snapshot, produce a JSON plan.
 
 Instruction: "${instruction}"
 
@@ -98,7 +105,8 @@ Respond with JSON only:
   "steps": ["click X", "fill Y with Z", "assert W"],
   "expected": "description of what should happen"
 }`,
-  }]);
+    },
+  ]);
 
   const plan = parseLLMJson<{ steps: string[]; expected: string }>(planResponse, {
     steps: [],
@@ -123,9 +131,10 @@ Respond with JSON only:
   // Step 3: Take a new snapshot and ask LLM to verify
   const newSnapshot = await takeSnapshot(page);
 
-  const verifyResponse = await llm([{
-    role: "user",
-    content: `You executed these steps on a web page:
+  const verifyResponse = await llm([
+    {
+      role: "user",
+      content: `You executed these steps on a web page:
 ${executedSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 
 Expected outcome: "${plan.expected}"
@@ -135,7 +144,8 @@ ${newSnapshot.slice(0, 5000)}
 
 Did the expected behavior occur? Respond with JSON only:
 {"passed": true/false, "observation": "what you observed"}`,
-  }]);
+    },
+  ]);
 
   const result = parseLLMJson<{ passed: boolean; observation: string }>(verifyResponse, {
     passed: false,
@@ -157,6 +167,7 @@ Did the expected behavior occur? Respond with JSON only:
 
 /** Execute a single natural-language step against the page. */
 async function executeNaturalStep(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   step: string,
   snapshot: string,
@@ -166,21 +177,32 @@ async function executeNaturalStep(
 
   // Detect action type from the natural language step
   if (lower.startsWith("click ") || lower.startsWith("tap ")) {
-    const target = step.replace(/^(click|tap)\s+/i, "").replace(/^on\s+/i, "").replace(/^the\s+/i, "").replace(/["']/g, "");
+    const target = step
+      .replace(/^(click|tap)\s+/i, "")
+      .replace(/^on\s+/i, "")
+      .replace(/^the\s+/i, "")
+      .replace(/["']/g, "");
     await smartClick(page, target, snapshot, llm);
   } else if (lower.startsWith("fill ") || lower.startsWith("type ") || lower.startsWith("enter ")) {
     // Parse "fill X with Y" or "type Y into X"
-    const fillMatch = step.match(/(?:fill|type|enter)\s+['"]?(.+?)['"]?\s+(?:with|into|in|=)\s+['"]?(.+?)['"]?$/i);
+    const fillMatch = step.match(
+      /(?:fill|type|enter)\s+['"]?(.+?)['"]?\s+(?:with|into|in|=)\s+['"]?(.+?)['"]?$/i,
+    );
     if (fillMatch) {
       const [, target, value] = fillMatch;
       await smartFill(page, target!, value!, snapshot, llm);
     } else {
       // Try LLM to interpret
-      const interpreted = await llm([{
-        role: "user",
-        content: `Interpret this step as a fill action: "${step}". Respond with JSON: {"target": "field name", "value": "value to fill"}`,
-      }]);
-      const parsed = parseLLMJson<{ target: string; value: string }>(interpreted, { target: "", value: "" });
+      const interpreted = await llm([
+        {
+          role: "user",
+          content: `Interpret this step as a fill action: "${step}". Respond with JSON: {"target": "field name", "value": "value to fill"}`,
+        },
+      ]);
+      const parsed = parseLLMJson<{ target: string; value: string }>(interpreted, {
+        target: "",
+        value: "",
+      });
       if (parsed.target && parsed.value) {
         await smartFill(page, parsed.target, parsed.value, snapshot, llm);
       }
@@ -202,7 +224,12 @@ async function executeNaturalStep(
         }
       }
     }
-  } else if (lower.startsWith("assert ") || lower.startsWith("verify ") || lower.startsWith("check that ") || lower.startsWith("expect ")) {
+  } else if (
+    lower.startsWith("assert ") ||
+    lower.startsWith("verify ") ||
+    lower.startsWith("check that ") ||
+    lower.startsWith("expect ")
+  ) {
     // Assertions are verified later by the LLM; skip execution
   } else if (lower.startsWith("wait")) {
     const msMatch = step.match(/(\d+)/);
@@ -221,14 +248,19 @@ async function executeNaturalStep(
     }
   } else {
     // Let LLM interpret the step
-    const interpreted = await llm([{
-      role: "user",
-      content: `Interpret this browser automation step: "${step}"
+    const interpreted = await llm([
+      {
+        role: "user",
+        content: `Interpret this browser automation step: "${step}"
 Page snapshot: ${snapshot.slice(0, 2000)}
 
 Respond with JSON: {"action": "click|fill|press|scroll|wait", "target": "selector or element description", "value": "optional value"}`,
-    }]);
-    const parsed = parseLLMJson<{ action: string; target: string; value?: string }>(interpreted, { action: "wait", target: "" });
+      },
+    ]);
+    const parsed = parseLLMJson<{ action: string; target: string; value?: string }>(interpreted, {
+      action: "wait",
+      target: "",
+    });
     if (parsed.action === "click" && parsed.target) {
       await smartClick(page, parsed.target, snapshot, llm);
     } else if (parsed.action === "fill" && parsed.target && parsed.value) {
@@ -240,85 +272,118 @@ Respond with JSON: {"action": "click|fill|press|scroll|wait", "target": "selecto
 }
 
 /** Click an element using multiple strategies. */
-async function smartClick(page: any, target: string, snapshot: string, llm: LLMCall): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function smartClick(
+  page: any,
+  target: string,
+  snapshot: string,
+  llm: LLMCall,
+): Promise<void> {
   // Strategy 1: Text match
   try {
     await page.getByText(target, { exact: false }).first().click({ timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 2: Role match
   for (const role of ["button", "link", "menuitem", "tab", "checkbox"] as const) {
     try {
       await page.getByRole(role, { name: target }).first().click({ timeout: 2000 });
       return;
-    } catch { /* next */ }
+    } catch {
+      /* next */
+    }
   }
 
   // Strategy 3: Label match
   try {
     await page.getByLabel(target, { exact: false }).first().click({ timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 4: LLM-generated selector
-  const selectorResponse = await llm([{
-    role: "user",
-    content: `Given this page snapshot, provide a Playwright selector for: "${target}"
+  const selectorResponse = await llm([
+    {
+      role: "user",
+      content: `Given this page snapshot, provide a Playwright selector for: "${target}"
 
 Snapshot:
 ${snapshot.slice(0, 4000)}
 
 Respond with ONLY a valid Playwright selector. One selector only, no explanation.`,
-  }]);
+    },
+  ]);
   const selector = selectorResponse.trim().replace(/^["']|["']$/g, "");
   if (selector && selector !== "null" && selector.length < 200) {
     try {
       await page.waitForSelector(selector, { timeout: 3000 });
       await page.click(selector, { timeout: 3000 });
       return;
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
 
   throw new Error(`Could not find element to click: ${target}`);
 }
 
 /** Fill an input field using multiple strategies. */
-async function smartFill(page: any, target: string, value: string, snapshot: string, llm: LLMCall): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function smartFill(
+  page: any,
+  target: string,
+  value: string,
+  snapshot: string,
+  llm: LLMCall,
+): Promise<void> {
   // Strategy 1: Label
   try {
     await page.getByLabel(target, { exact: false }).first().fill(value, { timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 2: Placeholder
   try {
     await page.getByPlaceholder(target, { exact: false }).first().fill(value, { timeout: 3000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 3: Role textbox
   try {
     await page.getByRole("textbox", { name: target }).first().fill(value, { timeout: 2000 });
     return;
-  } catch { /* next */ }
+  } catch {
+    /* next */
+  }
 
   // Strategy 4: LLM selector
-  const selectorResponse = await llm([{
-    role: "user",
-    content: `Given this page snapshot, provide a Playwright selector for the input field: "${target}"
+  const selectorResponse = await llm([
+    {
+      role: "user",
+      content: `Given this page snapshot, provide a Playwright selector for the input field: "${target}"
 
 Snapshot:
 ${snapshot.slice(0, 4000)}
 
 Respond with ONLY a valid Playwright selector. One selector only, no explanation.`,
-  }]);
+    },
+  ]);
   const selector = selectorResponse.trim().replace(/^["']|["']$/g, "");
   if (selector && selector !== "null" && selector.length < 200) {
     try {
       await page.fill(selector, value, { timeout: 3000 });
       return;
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
 
   throw new Error(`Could not find input to fill: ${target}`);
@@ -329,10 +394,17 @@ Respond with ONLY a valid Playwright selector. One selector only, no explanation
 // ---------------------------------------------------------------------------
 
 export async function testCRUD(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   llm: LLMCall,
   onProgress: ProgressCallback,
-): Promise<{ created: boolean; read: boolean; updated: boolean; deleted: boolean; issues: string[] }> {
+): Promise<{
+  created: boolean;
+  read: boolean;
+  updated: boolean;
+  deleted: boolean;
+  issues: string[];
+}> {
   onProgress("info", "Testing CRUD operations...");
   const issues: string[] = [];
   let created = false;
@@ -343,9 +415,10 @@ export async function testCRUD(
   const snapshot = await takeSnapshot(page);
 
   // Ask LLM to analyze the page for CRUD affordances
-  const analysisResponse = await llm([{
-    role: "user",
-    content: `Analyze this page for CRUD (Create, Read, Update, Delete) capabilities.
+  const analysisResponse = await llm([
+    {
+      role: "user",
+      content: `Analyze this page for CRUD (Create, Read, Update, Delete) capabilities.
 
 Page snapshot:
 ${snapshot.slice(0, 5000)}
@@ -362,7 +435,8 @@ Respond with JSON:
   "deleteSelector": "text or selector for delete button",
   "formFields": [{"name": "field label", "value": "realistic test value"}]
 }`,
-  }]);
+    },
+  ]);
 
   const analysis = parseLLMJson<{
     hasCreate: boolean;
@@ -435,7 +509,9 @@ Respond with JSON:
   onProgress("step", "  Testing Read...");
   try {
     const readSnapshot = await takeSnapshot(page);
-    const listItems = await safeEvaluate<number>(page, `
+    const listItems = await safeEvaluate<number>(
+      page,
+      `
       (() => {
         const selectors = [
           "table tbody tr",
@@ -452,22 +528,26 @@ Respond with JSON:
         }
         return 0;
       })()
-    `, 0);
+    `,
+      0,
+    );
 
     if (listItems > 0) {
       read = true;
       onProgress("pass", `    Read: ${listItems} item(s) visible`);
     } else if (analysis.hasList) {
       // LLM detected a list but we couldn't count items — ask LLM
-      const verifyResponse = await llm([{
-        role: "user",
-        content: `Does this page display any list of items or data records?
+      const verifyResponse = await llm([
+        {
+          role: "user",
+          content: `Does this page display any list of items or data records?
 
 Page snapshot:
 ${readSnapshot.slice(0, 4000)}
 
 Respond with JSON: {"hasItems": true/false, "count": number, "description": "what items"}`,
-      }]);
+        },
+      ]);
       const verification = parseLLMJson<{ hasItems: boolean; count: number; description: string }>(
         verifyResponse,
         { hasItems: false, count: 0, description: "" },
@@ -509,7 +589,9 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
             if (firstInput) {
               await firstInput.fill("Updated by Inspect test");
             }
-          } catch { /* continue */ }
+          } catch {
+            /* continue */
+          }
         }
       }
 
@@ -541,7 +623,9 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
   if (analysis.hasDelete && analysis.deleteSelector) {
     onProgress("step", "  Testing Delete...");
     try {
-      const beforeCount = await safeEvaluate<number>(page, `
+      const beforeCount = await safeEvaluate<number>(
+        page,
+        `
         (() => {
           const selectors = ["table tbody tr", "[role='listitem']", "ul li", ".card", ".item", ".list-item"];
           for (const sel of selectors) {
@@ -550,7 +634,9 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
           }
           return 0;
         })()
-      `, 0);
+      `,
+        0,
+      );
 
       await smartClick(page, analysis.deleteSelector, snapshot, llm);
       await delay(500);
@@ -568,14 +654,18 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
           } catch {
             try {
               await smartClick(page, "OK", confirmSnapshot, llm);
-            } catch { /* no confirmation needed */ }
+            } catch {
+              /* no confirmation needed */
+            }
           }
         }
       }
 
       await delay(1000);
 
-      const afterCount = await safeEvaluate<number>(page, `
+      const afterCount = await safeEvaluate<number>(
+        page,
+        `
         (() => {
           const selectors = ["table tbody tr", "[role='listitem']", "ul li", ".card", ".item", ".list-item"];
           for (const sel of selectors) {
@@ -584,7 +674,9 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
           }
           return 0;
         })()
-      `, 0);
+      `,
+        0,
+      );
 
       if (afterCount < beforeCount || beforeCount === 0) {
         deleted = true;
@@ -612,42 +704,64 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
 // ---------------------------------------------------------------------------
 
 export async function testDragDrop(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   source: string,
   target: string,
 ): Promise<boolean> {
   // Locate source and target elements
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let sourceLocator: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let targetLocator: any = null;
 
   // Try CSS selector first, then text
   for (const [sel, setter] of [
-    [source, (v: any) => { sourceLocator = v; }],
-    [target, (v: any) => { targetLocator = v; }],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [
+      source,
+      (v: any) => {
+        sourceLocator = v;
+      },
+    ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [
+      target,
+      (v: any) => {
+        targetLocator = v;
+      },
+    ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ] as Array<[string, (v: any) => void]>) {
     try {
       const bySelector = page.locator(sel);
-      if (await bySelector.count() > 0) {
+      if ((await bySelector.count()) > 0) {
         setter(bySelector.first());
         continue;
       }
-    } catch { /* not a valid selector */ }
+    } catch {
+      /* not a valid selector */
+    }
 
     try {
       const byText = page.getByText(sel, { exact: false }).first();
-      if (await byText.count() > 0) {
+      if ((await byText.count()) > 0) {
         setter(byText);
         continue;
       }
-    } catch { /* not found by text */ }
+    } catch {
+      /* not found by text */
+    }
 
     try {
       const byRole = page.getByRole("listitem", { name: sel }).first();
-      if (await byRole.count() > 0) {
+      if ((await byRole.count()) > 0) {
         setter(byRole);
         continue;
       }
-    } catch { /* not found by role */ }
+    } catch {
+      /* not found by role */
+    }
   }
 
   if (!sourceLocator || !targetLocator) {
@@ -698,12 +812,15 @@ export async function testDragDrop(
 // ---------------------------------------------------------------------------
 
 export async function testNotifications(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
 ): Promise<Array<{ type: string; text: string; dismissed: boolean }>> {
   const notifications: Array<{ type: string; text: string; dismissed: boolean }> = [];
 
   // Scan for visible notification elements
-  const found = await safeEvaluate<Array<{ type: string; text: string; selector: string }>>(page, `
+  const found = await safeEvaluate<Array<{ type: string; text: string; selector: string }>>(
+    page,
+    `
     (() => {
       const results = [];
       const selectors = [
@@ -742,7 +859,9 @@ export async function testNotifications(
         return true;
       });
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const item of found) {
     let dismissed = false;
@@ -750,7 +869,9 @@ export async function testNotifications(
     // Try to dismiss each notification
     try {
       // Look for a close button within or near the notification
-      const closeClicked = await safeEvaluate<boolean>(page, `
+      const closeClicked = await safeEvaluate<boolean>(
+        page,
+        `
         (() => {
           const container = document.querySelector('${item.selector.replace(/'/g, "\\'")}');
           if (!container) return false;
@@ -765,19 +886,25 @@ export async function testNotifications(
           }
           return false;
         })()
-      `, false);
+      `,
+        false,
+      );
 
       if (closeClicked) {
         await delay(300);
         // Verify it was actually dismissed
-        const stillVisible = await safeEvaluate<boolean>(page, `
+        const stillVisible = await safeEvaluate<boolean>(
+          page,
+          `
           (() => {
             const container = document.querySelector('${item.selector.replace(/'/g, "\\'")}');
             if (!container) return false;
             const style = window.getComputedStyle(container);
             return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
           })()
-        `, false);
+        `,
+          false,
+        );
         dismissed = !stillVisible;
       }
     } catch {
@@ -799,13 +926,18 @@ export async function testNotifications(
 // ---------------------------------------------------------------------------
 
 export async function testDataPersistence(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<{ persisted: boolean; lostFields: string[] }> {
   const lostFields: string[] = [];
 
   // Step 1: Find all form inputs and their current state
-  const inputs = await safeEvaluate<Array<{ selector: string; name: string; type: string; tagName: string }>>(page, `
+  const inputs = await safeEvaluate<
+    Array<{ selector: string; name: string; type: string; tagName: string }>
+  >(
+    page,
+    `
     (() => {
       const els = Array.from(document.querySelectorAll(
         'input[type="text"], input[type="email"], input[type="url"], input[type="tel"], ' +
@@ -824,7 +956,9 @@ export async function testDataPersistence(
         };
       });
     })()
-  `, []);
+  `,
+    [],
+  );
 
   if (inputs.length === 0) {
     return { persisted: true, lostFields: [] };
@@ -841,12 +975,16 @@ export async function testDataPersistence(
     try {
       if (input.tagName === "select") {
         // For selects, record the current value instead of filling
-        const currentValue = await safeEvaluate<string>(page, `
+        const currentValue = await safeEvaluate<string>(
+          page,
+          `
           (() => {
             const el = document.querySelector('${input.selector.replace(/'/g, "\\'")}');
             return el ? el.value : "";
           })()
-        `, "");
+        `,
+          "",
+        );
         testValues.set(input.selector, currentValue);
       } else {
         await page.fill(input.selector, testValue, { timeout: 2000 });
@@ -873,12 +1011,16 @@ export async function testDataPersistence(
   let retainedCount = 0;
 
   for (const [selector, expectedValue] of testValues) {
-    const actualValue = await safeEvaluate<string>(page, `
+    const actualValue = await safeEvaluate<string>(
+      page,
+      `
       (() => {
         const el = document.querySelector('${selector.replace(/'/g, "\\'")}');
         return el ? el.value : "";
       })()
-    `, "");
+    `,
+      "",
+    );
 
     if (actualValue === expectedValue) {
       retainedCount++;
@@ -899,6 +1041,7 @@ export async function testDataPersistence(
 // ---------------------------------------------------------------------------
 
 export async function testConditionalUI(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   trigger: string,
   expected: string,
@@ -906,7 +1049,7 @@ export async function testConditionalUI(
   llm: LLMCall,
 ): Promise<{ passed: boolean; details: string }> {
   // Step 1: Take snapshot before action
-  const beforeSnapshot = snapshot || await takeSnapshot(page);
+  const beforeSnapshot = snapshot || (await takeSnapshot(page));
 
   // Step 2: Execute the trigger action
   try {
@@ -922,9 +1065,10 @@ export async function testConditionalUI(
   const afterSnapshot = await takeSnapshot(page);
 
   // Step 4: Ask LLM if the expected change occurred
-  const verifyResponse = await llm([{
-    role: "user",
-    content: `A trigger action was performed on the page: "${trigger}"
+  const verifyResponse = await llm([
+    {
+      role: "user",
+      content: `A trigger action was performed on the page: "${trigger}"
 The expected UI change is: "${expected}"
 
 Page BEFORE trigger:
@@ -935,7 +1079,8 @@ ${afterSnapshot.slice(0, 3000)}
 
 Did the expected UI change occur? Respond with JSON:
 {"passed": true/false, "details": "description of what changed or why it failed"}`,
-  }]);
+    },
+  ]);
 
   return parseLLMJson<{ passed: boolean; details: string }>(verifyResponse, {
     passed: false,
@@ -948,15 +1093,18 @@ Did the expected UI change occur? Respond with JSON:
 // ---------------------------------------------------------------------------
 
 export async function testUndoRedo(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
 ): Promise<{ hasUndo: boolean; hasRedo: boolean; undoWorks: boolean; redoWorks: boolean }> {
-  let hasUndo = false;
-  let hasRedo = false;
+  let hasUndo: boolean;
+  let hasRedo: boolean;
   let undoWorks = false;
   let redoWorks = false;
 
   // Detect undo/redo buttons
-  const buttons = await safeEvaluate<{ undoSelector: string | null; redoSelector: string | null }>(page, `
+  const buttons = await safeEvaluate<{ undoSelector: string | null; redoSelector: string | null }>(
+    page,
+    `
     (() => {
       const allButtons = Array.from(document.querySelectorAll("button, [role='button'], a"));
       let undoSelector = null;
@@ -983,13 +1131,17 @@ export async function testUndoRedo(
       }
       return { undoSelector, redoSelector };
     })()
-  `, { undoSelector: null, redoSelector: null });
+  `,
+    { undoSelector: null, redoSelector: null },
+  );
 
   hasUndo = buttons.undoSelector !== null;
   hasRedo = buttons.redoSelector !== null;
 
   // Find a text input to test undo/redo with
-  const inputSelector = await safeEvaluate<string | null>(page, `
+  const inputSelector = await safeEvaluate<string | null>(
+    page,
+    `
     (() => {
       const input = document.querySelector(
         'input[type="text"], textarea, [contenteditable="true"], input:not([type])'
@@ -999,7 +1151,9 @@ export async function testUndoRedo(
       if (input.name) return input.tagName.toLowerCase() + "[name='" + CSS.escape(input.name) + "']";
       return input.tagName.toLowerCase();
     })()
-  `, null);
+  `,
+    null,
+  );
 
   if (!inputSelector) {
     // No input field to test with — can only report button presence
@@ -1007,13 +1161,17 @@ export async function testUndoRedo(
   }
 
   // Perform an action: type text into the input
-  const originalValue = await safeEvaluate<string>(page, `
+  const originalValue = await safeEvaluate<string>(
+    page,
+    `
     (() => {
       const el = document.querySelector('${inputSelector.replace(/'/g, "\\'")}');
       if (!el) return "";
       return el.value !== undefined ? el.value : (el.textContent || "");
     })()
-  `, "");
+  `,
+    "",
+  );
 
   try {
     await page.click(inputSelector, { timeout: 2000 });
@@ -1025,13 +1183,17 @@ export async function testUndoRedo(
   await delay(200);
 
   // Get the value after typing
-  const afterTyping = await safeEvaluate<string>(page, `
+  const afterTyping = await safeEvaluate<string>(
+    page,
+    `
     (() => {
       const el = document.querySelector('${inputSelector.replace(/'/g, "\\'")}');
       if (!el) return "";
       return el.value !== undefined ? el.value : (el.textContent || "");
     })()
-  `, "");
+  `,
+    "",
+  );
 
   if (afterTyping === originalValue) {
     // Typing had no effect
@@ -1045,15 +1207,21 @@ export async function testUndoRedo(
   try {
     await page.keyboard.press(`${modifier}+z`);
     await delay(300);
-  } catch { /* continue */ }
+  } catch {
+    /* continue */
+  }
 
-  const afterUndo = await safeEvaluate<string>(page, `
+  const afterUndo = await safeEvaluate<string>(
+    page,
+    `
     (() => {
       const el = document.querySelector('${inputSelector.replace(/'/g, "\\'")}');
       if (!el) return "";
       return el.value !== undefined ? el.value : (el.textContent || "");
     })()
-  `, "");
+  `,
+    "",
+  );
 
   if (afterUndo !== afterTyping) {
     undoWorks = true;
@@ -1064,15 +1232,21 @@ export async function testUndoRedo(
   try {
     await page.keyboard.press(`${modifier}+y`);
     await delay(300);
-  } catch { /* continue */ }
+  } catch {
+    /* continue */
+  }
 
-  const afterRedo = await safeEvaluate<string>(page, `
+  const afterRedo = await safeEvaluate<string>(
+    page,
+    `
     (() => {
       const el = document.querySelector('${inputSelector.replace(/'/g, "\\'")}');
       if (!el) return "";
       return el.value !== undefined ? el.value : (el.textContent || "");
     })()
-  `, "");
+  `,
+    "",
+  );
 
   if (afterRedo !== afterUndo) {
     redoWorks = true;
@@ -1082,15 +1256,21 @@ export async function testUndoRedo(
     try {
       await page.keyboard.press(`${modifier}+Shift+z`);
       await delay(300);
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
 
-    const afterRedoAlt = await safeEvaluate<string>(page, `
+    const afterRedoAlt = await safeEvaluate<string>(
+      page,
+      `
       (() => {
         const el = document.querySelector('${inputSelector.replace(/'/g, "\\'")}');
         if (!el) return "";
         return el.value !== undefined ? el.value : (el.textContent || "");
       })()
-    `, "");
+    `,
+      "",
+    );
 
     if (afterRedoAlt !== afterUndo) {
       redoWorks = true;
@@ -1107,17 +1287,23 @@ export async function testUndoRedo(
       await delay(200);
       await page.click(buttons.undoSelector, { timeout: 2000 });
       await delay(300);
-      const afterBtnUndo = await safeEvaluate<string>(page, `
+      const afterBtnUndo = await safeEvaluate<string>(
+        page,
+        `
         (() => {
           const el = document.querySelector('${inputSelector.replace(/'/g, "\\'")}');
           if (!el) return "";
           return el.value !== undefined ? el.value : (el.textContent || "");
         })()
-      `, "");
+      `,
+        "",
+      );
       if (!afterBtnUndo.includes("UndoBtnTest")) {
         undoWorks = true;
       }
-    } catch { /* button undo failed */ }
+    } catch {
+      /* button undo failed */
+    }
   }
 
   if (buttons.redoSelector && !redoWorks) {
@@ -1125,7 +1311,9 @@ export async function testUndoRedo(
       await page.click(buttons.redoSelector, { timeout: 2000 });
       await delay(300);
       redoWorks = true; // If we could click it without error, it likely worked
-    } catch { /* button redo failed */ }
+    } catch {
+      /* button redo failed */
+    }
   }
 
   return { hasUndo, hasRedo, undoWorks, redoWorks };
@@ -1136,6 +1324,7 @@ export async function testUndoRedo(
 // ---------------------------------------------------------------------------
 
 export async function testGameLogic(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   llm: LLMCall,
   onProgress: ProgressCallback,
@@ -1152,7 +1341,9 @@ export async function testGameLogic(
     hasBoard: boolean;
     canvasCount: number;
     interactiveElements: number;
-  }>(page, `
+  }>(
+    page,
+    `
     (() => {
       const canvases = document.querySelectorAll("canvas");
       const svgs = document.querySelectorAll("svg");
@@ -1182,36 +1373,42 @@ export async function testGameLogic(
         interactiveElements: interactive.length,
       };
     })()
-  `, {
-    hasCanvas: false,
-    hasSvg: false,
-    hasGrid: false,
-    hasScore: false,
-    hasBoard: false,
-    canvasCount: 0,
-    interactiveElements: 0,
-  });
+  `,
+    {
+      hasCanvas: false,
+      hasSvg: false,
+      hasGrid: false,
+      hasScore: false,
+      hasBoard: false,
+      canvasCount: 0,
+      interactiveElements: 0,
+    },
+  );
 
-  const gameDetected = gameInfo.hasCanvas || gameInfo.hasGrid || gameInfo.hasBoard || gameInfo.hasScore;
+  const gameDetected =
+    gameInfo.hasCanvas || gameInfo.hasGrid || gameInfo.hasBoard || gameInfo.hasScore;
 
   if (!gameDetected) {
     onProgress("warn", "  No game elements detected on page");
-    observations.push("No game elements detected (no canvas, grid, board, or score elements found)");
+    observations.push(
+      "No game elements detected (no canvas, grid, board, or score elements found)",
+    );
     return { gameDetected: false, playable: false, observations };
   }
 
   onProgress("pass", "  Game elements detected");
   observations.push(
     `Detected: canvas=${gameInfo.hasCanvas}, grid=${gameInfo.hasGrid}, ` +
-    `board=${gameInfo.hasBoard}, score=${gameInfo.hasScore}, ` +
-    `interactive elements=${gameInfo.interactiveElements}`,
+      `board=${gameInfo.hasBoard}, score=${gameInfo.hasScore}, ` +
+      `interactive elements=${gameInfo.interactiveElements}`,
   );
 
   // Step 2: Ask LLM to analyze the game
   const snapshot = await takeSnapshot(page);
-  const gameAnalysis = await llm([{
-    role: "user",
-    content: `Analyze this web page which appears to contain a game.
+  const gameAnalysis = await llm([
+    {
+      role: "user",
+      content: `Analyze this web page which appears to contain a game.
 
 Page snapshot:
 ${snapshot.slice(0, 5000)}
@@ -1228,7 +1425,8 @@ Respond with JSON:
 }
 
 Suggest up to 5 initial moves.`,
-  }]);
+    },
+  ]);
 
   const analysis = parseLLMJson<{
     gameType: string;
@@ -1258,9 +1456,10 @@ Suggest up to 5 initial moves.`,
     } else {
       // Re-snapshot and ask LLM for next move
       const currentSnapshot = await takeSnapshot(page);
-      const nextMoveResponse = await llm([{
-        role: "user",
-        content: `You are playing a game (${analysis.gameType}). Here is the current state:
+      const nextMoveResponse = await llm([
+        {
+          role: "user",
+          content: `You are playing a game (${analysis.gameType}). Here is the current state:
 
 ${currentSnapshot.slice(0, 4000)}
 
@@ -1274,7 +1473,8 @@ Respond with JSON:
   "observation": "what you see on the screen",
   "moves": [{"action": "click", "target": "what to click", "reasoning": "why"}]
 }`,
-      }]);
+        },
+      ]);
 
       const nextMove = parseLLMJson<{
         gameOver: boolean;
@@ -1339,9 +1539,10 @@ Respond with JSON:
 
   // Step 4: Final assessment
   const finalSnapshot = await takeSnapshot(page);
-  const finalResponse = await llm([{
-    role: "user",
-    content: `You attempted to play a game (${analysis.gameType}) on a web page.
+  const finalResponse = await llm([
+    {
+      role: "user",
+      content: `You attempted to play a game (${analysis.gameType}) on a web page.
 You made ${moveCount} moves. Here are the observations:
 ${observations.join("\n")}
 
@@ -1350,7 +1551,8 @@ ${finalSnapshot.slice(0, 3000)}
 
 Provide a brief final assessment. Respond with JSON:
 {"summary": "one sentence summary", "score": "any score visible on page or 'N/A'"}`,
-  }]);
+    },
+  ]);
 
   const finalAssessment = parseLLMJson<{ summary: string; score: string }>(finalResponse, {
     summary: `Attempted ${moveCount} moves`,

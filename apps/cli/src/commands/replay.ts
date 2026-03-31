@@ -65,6 +65,7 @@ async function runReplay(file: string, options: ReplayOptions): Promise<void> {
     let isMobile = false;
     if (device) {
       const { DEVICE_PRESETS } = await import("@inspect/shared");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const preset = (DEVICE_PRESETS as Record<string, any>)[device];
       if (preset) {
         viewport = { width: preset.width, height: preset.height };
@@ -81,6 +82,7 @@ async function runReplay(file: string, options: ReplayOptions): Promise<void> {
       slowMo,
       viewport,
       isMobile,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     const page = await browserMgr.newPage();
 

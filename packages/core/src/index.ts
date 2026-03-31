@@ -223,3 +223,14 @@ export {
   type EventHandlerInfo,
   type StaticAnalysisResult,
 } from "./analysis/static-analyzer.js";
+
+// Watch mode
+export {
+  WatchManager,
+  type WatchConfig,
+  type WatchEvent,
+  type WatchDecision,
+} from "./watch/watch.js";
+
+// Saved flows
+export { FlowManager, type SavedFlow } from "./flows/flows.js";

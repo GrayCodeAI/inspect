@@ -188,19 +188,32 @@ describe("CredentialVault", () => {
   describe("PBKDF2 migration", () => {
     it("decrypts data encrypted with legacy 100K iterations", () => {
       // Simulate legacy encryption: encrypt with 100K iterations using raw crypto
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require("node:crypto");
       const passphrase = "test-master-key-12345";
       const salt = crypto.randomBytes(32);
       const key = crypto.pbkdf2Sync(passphrase, salt, 100_000, 32, "sha512");
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-      const plaintext = JSON.stringify([{ id: "legacy-1", provider: "native", type: "password", label: "Legacy Cred", data: { username: "old" }, createdAt: 1, updatedAt: 1 }]);
+      const plaintext = JSON.stringify([
+        {
+          id: "legacy-1",
+          provider: "native",
+          type: "password",
+          label: "Legacy Cred",
+          data: { username: "old" },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ]);
       const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
       const tag = cipher.getAuthTag();
       const legacyData = Buffer.concat([salt, iv, tag, encrypted]);
 
       // Write legacy-encrypted data to the storage path
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require("node:fs");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const path = require("node:path");
       const storagePath = path.join(testDir, ".inspect", "credentials.enc");
       fs.mkdirSync(path.dirname(storagePath), { recursive: true });
@@ -218,15 +231,28 @@ describe("CredentialVault", () => {
 
     it("auto-upgrades legacy vaults to current iteration count", () => {
       // Simulate legacy encryption
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require("node:crypto");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require("node:fs");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pathMod = require("node:path");
       const passphrase = "test-master-key-12345";
       const salt = crypto.randomBytes(32);
       const key = crypto.pbkdf2Sync(passphrase, salt, 100_000, 32, "sha512");
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-      const plaintext = JSON.stringify([{ id: "upgrade-1", provider: "native", type: "password", label: "Upgrade Me", data: {}, createdAt: 1, updatedAt: 1 }]);
+      const plaintext = JSON.stringify([
+        {
+          id: "upgrade-1",
+          provider: "native",
+          type: "password",
+          label: "Upgrade Me",
+          data: {},
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ]);
       const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
       const tag = cipher.getAuthTag();
       const legacyData = Buffer.concat([salt, iv, tag, encrypted]);
@@ -261,7 +287,10 @@ describe("CredentialVault", () => {
       const currentKey = crypto.pbkdf2Sync(passphrase, upgradedSalt, 600_000, 32, "sha512");
       const currentDecipher = crypto.createDecipheriv("aes-256-gcm", currentKey, upgradedIv);
       currentDecipher.setAuthTag(upgradedTag);
-      const decrypted = Buffer.concat([currentDecipher.update(upgradedEnc), currentDecipher.final()]).toString("utf-8");
+      const decrypted = Buffer.concat([
+        currentDecipher.update(upgradedEnc),
+        currentDecipher.final(),
+      ]).toString("utf-8");
       const creds = JSON.parse(decrypted);
       expect(creds).toHaveLength(1);
       expect(creds[0].label).toBe("Upgrade Me");

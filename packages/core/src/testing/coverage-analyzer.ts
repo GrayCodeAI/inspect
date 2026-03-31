@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, extname, relative, resolve } from "node:path";
 import { createLogger } from "@inspect/observability";
 
-const logger = createLogger("core/coverage-analyzer");
+const _logger = createLogger("core/coverage-analyzer");
 
 export interface CoverageReport {
   changedFiles: string[];

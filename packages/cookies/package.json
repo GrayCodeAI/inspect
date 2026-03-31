@@ -1,0 +1,35 @@
+{
+  "name": "@inspect/cookies",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@inspect/shared": "workspace:*",
+    "@inspect/observability": "workspace:*",
+    "effect": "4.0.0-beta.35",
+    "@effect/platform-node": "4.0.0-beta.35",
+    "default-browser": "^5.5.0",
+    "get-port": "^7.1.0",
+    "ini": "^6.0.0",
+    "libsql": "^0.5.22"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
+    "@types/ini": "^4.1.1"
+  }
+}

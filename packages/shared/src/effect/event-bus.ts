@@ -11,7 +11,7 @@ export type Unsubscribe = () => void;
 export type EventHandler<T> = (event: T) => void;
 
 export class EventBus<TEvent extends { type: string }> {
-  private listeners = new Map<string, Set<EventHandler<any>>>();
+  private listeners = new Map<string, Set<EventHandler<TEvent>>>();
   private wildcardListeners = new Set<EventHandler<TEvent>>();
 
   /**
@@ -26,9 +26,9 @@ export class EventBus<TEvent extends { type: string }> {
       set = new Set();
       this.listeners.set(type, set);
     }
-    set.add(handler);
+    set.add(handler as EventHandler<TEvent>);
     return () => {
-      set!.delete(handler);
+      set!.delete(handler as EventHandler<TEvent>);
       if (set!.size === 0) this.listeners.delete(type);
     };
   }

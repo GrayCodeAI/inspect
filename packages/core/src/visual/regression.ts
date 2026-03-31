@@ -5,7 +5,7 @@
 
 import { existsSync } from "node:fs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { join, dirname } from "node:path";
+import { join} from "node:path";
 import type { PRInfo } from "../github/pr.js";
 import { createLogger } from "@inspect/observability";
 

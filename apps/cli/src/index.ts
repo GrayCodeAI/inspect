@@ -59,6 +59,19 @@ import { registerPermissionsCommand } from "./commands/permissions.js";
 import { registerRBACCommand } from "./commands/rbac.js";
 import { registerTenantCommand } from "./commands/tenant.js";
 import { registerSSOCommand } from "./commands/sso.js";
+import { registerAcpAgentsCommand } from "./commands/acp-agents.js";
+import { registerWatchCmdCommand } from "./commands/watch-cmd.js";
+import { registerFlowCmdCommand } from "./commands/flow-cmd.js";
+
+// Command group routers (organize subcommands under parent commands)
+import { registerChaosGroupCommand } from "./commands/chaos-group.js";
+import { registerEnterpriseGroupCommand } from "./commands/enterprise-group.js";
+import { registerWorkflowGroupCommand } from "./commands/workflow-group.js";
+import { registerGovernanceCommand } from "./commands/governance.js";
+import { registerInfraCommand } from "./commands/infra.js";
+import { registerQualityCommand } from "./commands/quality.js";
+import { registerDataCommand } from "./commands/data.js";
+import { registerDevCommand } from "./commands/dev.js";
 
 const VERSION = "0.1.0";
 
@@ -172,6 +185,21 @@ registerShowReportCommand(program);
 registerShowTraceCommand(program);
 registerAliasCommand(program);
 
+// ── ACP & Coding Agent Commands ─────────────────────────────────────────
+registerAcpAgentsCommand(program);
+registerWatchCmdCommand(program);
+registerFlowCmdCommand(program);
+
+// ── Command Groups (organize subcommands under parents) ──────────────────
+registerChaosGroupCommand(program);
+registerEnterpriseGroupCommand(program);
+registerWorkflowGroupCommand(program);
+registerGovernanceCommand(program);
+registerInfraCommand(program);
+registerQualityCommand(program);
+registerDataCommand(program);
+registerDevCommand(program);
+
 // Inline utility commands (no external deps needed)
 program
   .command("devices")
@@ -188,6 +216,7 @@ program
     lines.push("");
     lines.push(`${chalk.hex("#a855f7").bold("  \u25c6 Available Device Presets")}`);
     lines.push("");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const entries = Object.entries(DEVICE_PRESETS) as [string, any][];
     const filtered = opts.category
       ? entries.filter(([, d]) => {
@@ -245,6 +274,7 @@ program
       opencode: "#6366f1",
     };
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "unknown";
       if (!byProvider.has(provider)) byProvider.set(provider, []);
@@ -289,6 +319,7 @@ program
     );
     modelLines.push(chalk.hex("#334155")("  " + "\u2500".repeat(70)));
     for (const [id, model] of Object.entries(SUPPORTED_MODELS)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const m = model as any;
       const provider = m.provider ?? id.split("/")[0] ?? "?";
       const providerColors: Record<string, string> = {

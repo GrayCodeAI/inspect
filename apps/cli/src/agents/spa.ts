@@ -11,10 +11,7 @@ import { safeEvaluate } from "./evaluate.js";
 // monkey-patching History API, and clicking internal links
 // ---------------------------------------------------------------------------
 
-export async function discoverSPARoutes(
-  page: Page,
-  baseUrl: string,
-): Promise<string[]> {
+export async function discoverSPARoutes(page: Page, baseUrl: string): Promise<string[]> {
   const origin = new URL(baseUrl).origin;
 
   // Step 1: Install history/hashchange interceptors and collect routes from
@@ -210,7 +207,9 @@ export async function discoverSPARoutes(
       if (url.origin === origin) {
         allRoutes.add(url.href);
       }
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
   }
 
   for (const captured of capturedRoutes) {
@@ -239,10 +238,7 @@ export async function discoverSPARoutes(
 // are unavailable (production builds, minified bundles, etc.)
 // ---------------------------------------------------------------------------
 
-async function discoverRoutesFallback(
-  page: Page,
-  baseUrl: string,
-): Promise<string[]> {
+async function discoverRoutesFallback(page: Page, baseUrl: string): Promise<string[]> {
   const discovered = new Set<string>();
 
   // --- 1. Source scanning: extract route patterns from HTML/script content ---
@@ -273,9 +269,20 @@ async function discoverRoutesFallback(
 
   // --- 2. Common path probing: try well-known paths and check for non-404 ---
   const commonPaths = [
-    "/about", "/login", "/signup", "/dashboard", "/settings",
-    "/profile", "/search", "/contact", "/pricing", "/docs",
-    "/blog", "/faq", "/terms", "/privacy",
+    "/about",
+    "/login",
+    "/signup",
+    "/dashboard",
+    "/settings",
+    "/profile",
+    "/search",
+    "/contact",
+    "/pricing",
+    "/docs",
+    "/blog",
+    "/faq",
+    "/terms",
+    "/privacy",
   ];
 
   for (const path of commonPaths) {
@@ -331,7 +338,7 @@ async function discoverRoutesFallback(
       );
 
       // Extract page routes from build manifest (keys like "/about", "/blog/[slug]")
-      const routePattern = new RegExp("\"(/[^\"]*?)\"\\s*:", "g");
+      const routePattern = new RegExp('"(/[^"]*?)"\\s*:', "g");
       let routeMatch: RegExpExecArray | null;
       while ((routeMatch = routePattern.exec(manifestContent)) !== null) {
         const route = routeMatch[1];
@@ -359,10 +366,7 @@ async function discoverRoutesFallback(
 // waitForHydration — Wait for framework hydration to complete
 // ---------------------------------------------------------------------------
 
-export async function waitForHydration(
-  page: Page,
-  timeout: number = 10_000,
-): Promise<void> {
+export async function waitForHydration(page: Page, timeout: number = 10_000): Promise<void> {
   const deadline = Date.now() + timeout;
 
   // Check for React hydration
@@ -580,10 +584,7 @@ export async function waitForHydration(
 // pierceShadowDOM — Recursively traverse shadow roots, collecting text content
 // ---------------------------------------------------------------------------
 
-export async function pierceShadowDOM(
-  page: Page,
-  selector: string,
-): Promise<string[]> {
+export async function pierceShadowDOM(page: Page, selector: string): Promise<string[]> {
   const results = await safeEvaluate<string[]>(
     page,
     `(() => {

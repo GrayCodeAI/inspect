@@ -99,6 +99,7 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
         await browserMgr.launchBrowser({
           headless: !(options.headed ?? false),
           viewport,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         const sessionId = randomUUID();

@@ -1,4 +1,12 @@
-import type { TestPlan, TestStep, TestFlow, TestDataSet, PageType, LLMCall, ProgressCallback } from "./types.js";
+import type {
+  TestPlan,
+  TestStep,
+  TestFlow,
+  TestDataSet,
+  PageType,
+  LLMCall,
+  ProgressCallback,
+} from "./types.js";
 import { generateTestData } from "./form-filler.js";
 
 // ---------------------------------------------------------------------------
@@ -78,7 +86,8 @@ export function detectPageType(url: string, snapshot: string): PageType {
   // Snapshot-based detection
   const lower = snapshot.toLowerCase();
   if (lower.includes('input[type="password"]') || lower.includes("password")) {
-    if (lower.includes("confirm") || lower.includes("register") || lower.includes("sign up")) return "auth";
+    if (lower.includes("confirm") || lower.includes("register") || lower.includes("sign up"))
+      return "auth";
     if (lower.includes("login") || lower.includes("sign in")) return "auth";
   }
   if (lower.includes('[role="search"]') || lower.includes("search")) return "search";
@@ -88,7 +97,9 @@ export function detectPageType(url: string, snapshot: string): PageType {
   try {
     const path = new URL(url).pathname;
     if (path === "/" || path === "") return "landing";
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   return "unknown";
 }
@@ -102,77 +113,79 @@ function detectFlows(steps: TestStep[], snapshot: string): TestFlow[] {
   const lower = snapshot.toLowerCase();
 
   // Auth flow detection
-  const authSteps = steps.filter(s =>
-    s.description.toLowerCase().includes("login") ||
-    s.description.toLowerCase().includes("signup") ||
-    s.description.toLowerCase().includes("sign") ||
-    s.description.toLowerCase().includes("password") ||
-    s.description.toLowerCase().includes("email") ||
-    s.action === "fill",
+  const authSteps = steps.filter(
+    (s) =>
+      s.description.toLowerCase().includes("login") ||
+      s.description.toLowerCase().includes("signup") ||
+      s.description.toLowerCase().includes("sign") ||
+      s.description.toLowerCase().includes("password") ||
+      s.description.toLowerCase().includes("email") ||
+      s.action === "fill",
   );
   if (authSteps.length >= 2) {
     flows.push({
       name: "Authentication",
       description: "Login/signup flow",
-      steps: authSteps.map(s => s.id),
+      steps: authSteps.map((s) => s.id),
       type: "auth",
     });
   }
 
   // Navigation flow
-  const navSteps = steps.filter(s =>
-    s.action === "click" && (
-      s.description.toLowerCase().includes("nav") ||
-      s.description.toLowerCase().includes("menu") ||
-      s.description.toLowerCase().includes("link")
-    ),
+  const navSteps = steps.filter(
+    (s) =>
+      s.action === "click" &&
+      (s.description.toLowerCase().includes("nav") ||
+        s.description.toLowerCase().includes("menu") ||
+        s.description.toLowerCase().includes("link")),
   );
   if (navSteps.length >= 2) {
     flows.push({
       name: "Navigation",
       description: "Menu and link navigation",
-      steps: navSteps.map(s => s.id),
+      steps: navSteps.map((s) => s.id),
       type: "navigation",
     });
   }
 
   // Form flow
-  const formSteps = steps.filter(s =>
-    s.action === "fill" || s.action === "select" || s.action === "check" ||
-    (s.action === "click" && s.description.toLowerCase().includes("submit")),
+  const formSteps = steps.filter(
+    (s) =>
+      s.action === "fill" ||
+      s.action === "select" ||
+      s.action === "check" ||
+      (s.action === "click" && s.description.toLowerCase().includes("submit")),
   );
   if (formSteps.length >= 2) {
     flows.push({
       name: "Form Interaction",
       description: "Form filling and submission",
-      steps: formSteps.map(s => s.id),
+      steps: formSteps.map((s) => s.id),
       type: "form",
     });
   }
 
   // Content verification flow
-  const contentSteps = steps.filter(s =>
-    s.action === "assert" || s.action === "screenshot" || s.action === "scroll",
+  const contentSteps = steps.filter(
+    (s) => s.action === "assert" || s.action === "screenshot" || s.action === "scroll",
   );
   if (contentSteps.length >= 2) {
     flows.push({
       name: "Content Verification",
       description: "Page content and visual checks",
-      steps: contentSteps.map(s => s.id),
+      steps: contentSteps.map((s) => s.id),
       type: "content",
     });
   }
 
   // Search flow
   if (lower.includes("search")) {
-    const searchSteps = steps.filter(s =>
-      s.description.toLowerCase().includes("search"),
-    );
+    const searchSteps = steps.filter((s) => s.description.toLowerCase().includes("search"));
     if (searchSteps.length >= 1) {
       flows.push({
         name: "Search",
         description: "Search functionality testing",
-        steps: searchSteps.map(s => s.id),
+        steps: searchSteps.map((s) => s.id),
         type: "search",
       });
     }
@@ -188,32 +201,30 @@ export { generateTestData } from "./form-filler.js";
 // Form-aware step generation
 // ---------------------------------------------------------------------------
 
-function generateFormSteps(
-  snapshot: string,
-  startId: number,
-  testData: TestDataSet,
-): TestStep[] {
+function generateFormSteps(snapshot: string, startId: number, testData: TestDataSet): TestStep[] {
   const steps: TestStep[] = [];
   let id = startId;
 
   // Detect form fields from snapshot
   const lines = snapshot.split("\n");
-  const inputLines = lines.filter(l =>
-    l.includes("textbox") || l.includes("input") || l.includes("combobox"),
+  const inputLines = lines.filter(
+    (l) => l.includes("textbox") || l.includes("input") || l.includes("combobox"),
   );
-  const passwordLines = lines.filter(l => l.includes("password") || l.includes('type="password"'));
-  const buttonLines = lines.filter(l => l.includes("button") || l.includes("submit"));
+  const passwordLines = lines.filter(
+    (l) => l.includes("password") || l.includes('type="password"'),
+  );
+  const buttonLines = lines.filter((l) => l.includes("button") || l.includes("submit"));
 
   // Detect login form
   const hasPassword = passwordLines.length > 0;
-  const hasEmailInput = inputLines.some(l =>
-    l.toLowerCase().includes("email") || l.toLowerCase().includes("username"),
+  const hasEmailInput = inputLines.some(
+    (l) => l.toLowerCase().includes("email") || l.toLowerCase().includes("username"),
   );
 
   if (hasEmailInput && hasPassword) {
     // Login form detected
-    const emailLabel = inputLines.find(l =>
-      l.toLowerCase().includes("email") || l.toLowerCase().includes("username"),
+    const emailLabel = inputLines.find(
+      (l) => l.toLowerCase().includes("email") || l.toLowerCase().includes("username"),
     );
     const emailName = emailLabel?.match(/"([^"]+)"/)?.[1] ?? "Email";
 
@@ -240,9 +251,12 @@ function generateFormSteps(
     });
 
     // Look for submit button
-    const submitBtn = buttonLines.find(l =>
-      l.toLowerCase().includes("log in") || l.toLowerCase().includes("login") ||
-      l.toLowerCase().includes("sign in") || l.toLowerCase().includes("submit"),
+    const submitBtn = buttonLines.find(
+      (l) =>
+        l.toLowerCase().includes("log in") ||
+        l.toLowerCase().includes("login") ||
+        l.toLowerCase().includes("sign in") ||
+        l.toLowerCase().includes("submit"),
     );
     const submitName = submitBtn?.match(/"([^"]+)"/)?.[1] ?? "Submit";
 
@@ -260,8 +274,8 @@ function generateFormSteps(
 
   // Detect signup form (more fields than login)
   if (hasEmailInput && hasPassword && inputLines.length > 3) {
-    const nameInput = inputLines.find(l =>
-      l.toLowerCase().includes("name") && !l.toLowerCase().includes("username"),
+    const nameInput = inputLines.find(
+      (l) => l.toLowerCase().includes("name") && !l.toLowerCase().includes("username"),
     );
     if (nameInput) {
       const label = nameInput.match(/"([^"]+)"/)?.[1] ?? "Name";
@@ -279,8 +293,8 @@ function generateFormSteps(
   }
 
   // Detect search form
-  const searchLine = lines.find(l =>
-    l.toLowerCase().includes("search") && (l.includes("textbox") || l.includes("input")),
+  const searchLine = lines.find(
+    (l) => l.toLowerCase().includes("search") && (l.includes("textbox") || l.includes("input")),
   );
   if (searchLine) {
     const searchLabel = searchLine.match(/"([^"]+)"/)?.[1] ?? "Search";
@@ -307,10 +321,13 @@ function generateFormSteps(
   }
 
   // Detect contact/general forms
-  const textareaLine = lines.find(l => l.includes("textarea") || l.toLowerCase().includes("message"));
+  const textareaLine = lines.find(
+    (l) => l.includes("textarea") || l.toLowerCase().includes("message"),
+  );
   if (textareaLine && !hasPassword) {
+    const stepId = id++; // eslint-disable-line no-useless-assignment
     steps.push({
-      id: id++,
+      id: stepId,
       action: "fill",
       description: "Fill contact form message",
       target: "Message",
@@ -345,26 +362,37 @@ export async function planTests(
   const testData = generateTestData();
 
   // Extract interactive elements for LLM context
-  const elements = snapshot.split("\n").filter(l => l.includes("[e")).slice(0, 40).join("\n");
+  const elements = snapshot
+    .split("\n")
+    .filter((l) => l.includes("[e"))
+    .slice(0, 40)
+    .join("\n");
 
   // Build a smarter prompt based on page type
   const typeInstructions: Record<string, string> = {
     auth: "This is an auth page. Focus on testing login/signup forms, password validation, OAuth buttons, and error handling.",
-    dashboard: "This is a dashboard. Test navigation items, data displays, interactive widgets, and logout functionality.",
-    landing: "This is a landing page. Test navigation, CTAs, content sections, forms (newsletter/contact), and links.",
-    search: "This is a search page. Test search input, result display, filters, sorting, and pagination.",
-    checkout: "This is a checkout page. Test payment form, cart display, address input, and validation.",
+    dashboard:
+      "This is a dashboard. Test navigation items, data displays, interactive widgets, and logout functionality.",
+    landing:
+      "This is a landing page. Test navigation, CTAs, content sections, forms (newsletter/contact), and links.",
+    search:
+      "This is a search page. Test search input, result display, filters, sorting, and pagination.",
+    checkout:
+      "This is a checkout page. Test payment form, cart display, address input, and validation.",
     form: "This page has forms. Test form filling, validation, submission, and error messages.",
     list: "This is a list/catalog page. Test pagination, filtering, sorting, and item selection.",
     detail: "This is a detail page. Test content display, images, related items, and actions.",
-    settings: "This is a settings page. Test form fields, save/cancel, toggles, and confirmation dialogs.",
+    settings:
+      "This is a settings page. Test form fields, save/cancel, toggles, and confirmation dialogs.",
     profile: "This is a profile page. Test editable fields, avatar upload, and save functionality.",
     blog: "This is a blog/content page. Test article display, navigation, comments, and sharing.",
     docs: "This is a documentation page. Test navigation, search, code blocks, and table of contents.",
-    pricing: "This is a pricing page. Test plan comparison, CTA buttons, and toggle (monthly/annual).",
+    pricing:
+      "This is a pricing page. Test plan comparison, CTA buttons, and toggle (monthly/annual).",
     contact: "This is a contact page. Test contact form, email/phone display, and map embed.",
     admin: "This is an admin page. Test CRUD operations, user management, and access controls.",
-    error: "This is an error page. Test error message display, navigation links, and retry actions.",
+    error:
+      "This is an error page. Test error message display, navigation links, and retry actions.",
     unknown: "Analyze the page carefully and test all visible interactive elements.",
   };
 
@@ -399,17 +427,29 @@ Cover these areas:
 6. Keyboard accessibility (tab navigation)
 7. Visual verification (screenshots at key points)
 
-${pageType === "auth" ? `
+${
+  pageType === "auth"
+    ? `
 Use this test data for forms:
 - Email: ${testData.email}
 - Password: ${testData.password}
 - Name: ${testData.name.full}
-` : ""}
-${spaRoutes.length > 0 ? `
+`
+    : ""
+}
+${
+  spaRoutes.length > 0
+    ? `
 SPA Routes discovered (test navigation to these):
-${spaRoutes.filter(r => !r.includes(":") && !r.includes("[")).slice(0, 8).map(r => `- ${r}`).join("\n")}
+${spaRoutes
+  .filter((r) => !r.includes(":") && !r.includes("["))
+  .slice(0, 8)
+  .map((r) => `- ${r}`)
+  .join("\n")}
 Include "navigate" steps to visit the most important routes above and verify they load correctly.
-` : ""}
+`
+    : ""
+}
 IMPORTANT: Return ONLY a JSON array. No markdown, no explanation. Start with [ end with ].`;
 
   const response = await llm([{ role: "user", content: prompt }]);
@@ -439,7 +479,7 @@ ${response.slice(0, 1500)}`;
   }
 
   // Inject form-aware steps if the planner missed them
-  const hasFormSteps = steps.some(s => s.action === "fill");
+  const hasFormSteps = steps.some((s) => s.action === "fill");
   if (!hasFormSteps) {
     const formSteps = generateFormSteps(snapshot, steps.length + 1, testData);
     if (formSteps.length > 0) {
@@ -448,7 +488,7 @@ ${response.slice(0, 1500)}`;
   }
 
   // Ensure we always have screenshots
-  const hasScreenshots = steps.some(s => s.action === "screenshot");
+  const hasScreenshots = steps.some((s) => s.action === "screenshot");
   if (!hasScreenshots) {
     steps.unshift({
       id: 0,
@@ -465,7 +505,9 @@ ${response.slice(0, 1500)}`;
       priority: 4,
     });
     // Renumber
-    steps.forEach((s, i) => { s.id = i + 1; });
+    steps.forEach((s, i) => {
+      s.id = i + 1;
+    });
   }
 
   // Detect flows
@@ -501,23 +543,37 @@ function buildFallbackPlan(
 
   // Always: page load verification
   steps.push({
-    id: id++, action: "screenshot", description: "Capture initial page state",
-    status: "pending", priority: 4,
+    id: id++,
+    action: "screenshot",
+    description: "Capture initial page state",
+    status: "pending",
+    priority: 4,
   });
   steps.push({
-    id: id++, action: "assert", description: "Verify page loads with correct title",
-    assertion: "Page has a title and content", status: "pending", priority: 1,
+    id: id++,
+    action: "assert",
+    description: "Verify page loads with correct title",
+    assertion: "Page has a title and content",
+    status: "pending",
+    priority: 1,
   });
 
   // Always: accessibility basics
   steps.push({
-    id: id++, action: "assert", description: "Check all images have alt text",
-    assertion: "All images have alt text attributes", status: "pending", priority: 2,
+    id: id++,
+    action: "assert",
+    description: "Check all images have alt text",
+    assertion: "All images have alt text attributes",
+    status: "pending",
+    priority: 2,
   });
   steps.push({
-    id: id++, action: "assert", description: "Check heading hierarchy",
+    id: id++,
+    action: "assert",
+    description: "Check heading hierarchy",
     assertion: "Page has proper heading hierarchy (H1 followed by H2, etc.)",
-    status: "pending", priority: 3,
+    status: "pending",
+    priority: 3,
   });
 
   // ----- Interactive elements from snapshot -----
@@ -525,32 +581,44 @@ function buildFallbackPlan(
   const snapshotLines = snapshot.split("\n");
 
   // Button clicks — click these FIRST (primary interactions on the page)
-  const buttonLines = snapshotLines.filter(l => l.includes("button") && l.includes('"'));
+  const buttonLines = snapshotLines.filter((l) => l.includes("button") && l.includes('"'));
   for (const line of buttonLines.slice(0, 5)) {
     const nameMatch = line.match(/"([^"]+)"/);
     if (nameMatch && !nameMatch[1].toLowerCase().includes("close")) {
       steps.push({
-        id: id++, action: "click", description: `Click "${nameMatch[1]}" button`,
-        target: nameMatch[1], assertion: "Button responds to click and UI updates",
-        status: "pending", priority: 2,
+        id: id++,
+        action: "click",
+        description: `Click "${nameMatch[1]}" button`,
+        target: nameMatch[1],
+        assertion: "Button responds to click and UI updates",
+        status: "pending",
+        priority: 2,
       });
       // Screenshot after important button clicks to capture state changes
       steps.push({
-        id: id++, action: "screenshot", description: `Capture state after clicking "${nameMatch[1]}"`,
-        status: "pending", priority: 4,
+        id: id++,
+        action: "screenshot",
+        description: `Capture state after clicking "${nameMatch[1]}"`,
+        status: "pending",
+        priority: 4,
       });
     }
   }
 
   // Navigation links
-  const linkLines = snapshotLines.filter(l => l.includes("link") && l.includes('"'));
+  const linkLines = snapshotLines.filter((l) => l.includes("link") && l.includes('"'));
   for (const line of linkLines.slice(0, 5)) {
     const nameMatch = line.match(/"([^"]+)"/);
     if (nameMatch) {
       steps.push({
-        id: id++, action: "click", description: `Click "${nameMatch[1]}" link`,
-        target: nameMatch[1], assertion: `Navigation works for ${nameMatch[1]}`,
-        status: "pending", flow: "navigation", priority: 2,
+        id: id++,
+        action: "click",
+        description: `Click "${nameMatch[1]}" link`,
+        target: nameMatch[1],
+        assertion: `Navigation works for ${nameMatch[1]}`,
+        status: "pending",
+        flow: "navigation",
+        priority: 2,
       });
     }
   }
@@ -566,7 +634,7 @@ function buildFallbackPlan(
   if (spaRoutes.length > 0) {
     // Filter out parametric routes and the current URL, take top routes
     const routesToTest = spaRoutes
-      .filter(r => {
+      .filter((r) => {
         if (r === url) return false;
         // Skip parametric patterns like /users/:id or /blog/[slug]
         if (r.includes(":") || r.includes("[")) return false;
@@ -574,7 +642,9 @@ function buildFallbackPlan(
         try {
           const path = new URL(r).pathname;
           if (/\.(js|css|png|jpg|svg|ico|woff|json)$/i.test(path)) return false;
-        } catch {}
+        } catch {
+          /* intentionally empty */
+        }
         return true;
       })
       .slice(0, 6);
@@ -588,14 +658,22 @@ function buildFallbackPlan(
           label = route;
         }
         steps.push({
-          id: id++, action: "navigate", description: `Navigate to SPA route: ${label}`,
-          target: route, value: route,
+          id: id++,
+          action: "navigate",
+          description: `Navigate to SPA route: ${label}`,
+          target: route,
+          value: route,
           assertion: "Page loads with content and no JavaScript errors",
-          status: "pending", flow: "navigation", priority: 2,
+          status: "pending",
+          flow: "navigation",
+          priority: 2,
         });
         steps.push({
-          id: id++, action: "screenshot", description: `Capture ${label}`,
-          status: "pending", priority: 4,
+          id: id++,
+          action: "screenshot",
+          description: `Capture ${label}`,
+          status: "pending",
+          priority: 4,
         });
       }
     }
@@ -603,39 +681,58 @@ function buildFallbackPlan(
 
   // Scroll and screenshot
   steps.push({
-    id: id++, action: "scroll", description: "Scroll to bottom of page",
-    status: "pending", priority: 3,
+    id: id++,
+    action: "scroll",
+    description: "Scroll to bottom of page",
+    status: "pending",
+    priority: 3,
   });
   steps.push({
-    id: id++, action: "screenshot", description: "Capture scrolled page state",
-    status: "pending", priority: 4,
+    id: id++,
+    action: "screenshot",
+    description: "Capture scrolled page state",
+    status: "pending",
+    priority: 4,
   });
 
   // Keyboard navigation
   steps.push({
-    id: id++, action: "tab", description: "Test keyboard navigation (Tab through elements)",
+    id: id++,
+    action: "tab",
+    description: "Test keyboard navigation (Tab through elements)",
     assertion: "Focus moves through interactive elements in logical order",
-    status: "pending", priority: 3,
+    status: "pending",
+    priority: 3,
   });
 
   // Meta verification
   steps.push({
-    id: id++, action: "assert", description: "Verify meta tags present",
+    id: id++,
+    action: "assert",
+    description: "Verify meta tags present",
     assertion: "Page has viewport and description meta tags",
-    status: "pending", priority: 3,
+    status: "pending",
+    priority: 3,
   });
 
   // Console errors
   steps.push({
-    id: id++, action: "assert", description: "Check for JavaScript errors",
+    id: id++,
+    action: "assert",
+    description: "Check for JavaScript errors",
     assertion: "No JavaScript errors in console",
-    status: "pending", priority: 2,
+    status: "pending",
+    priority: 2,
   });
 
   // Final screenshot
+  const finalId = id++; // eslint-disable-line no-useless-assignment
   steps.push({
-    id: id++, action: "screenshot", description: "Capture final page state",
-    status: "pending", priority: 4,
+    id: finalId,
+    action: "screenshot",
+    description: "Capture final page state",
+    status: "pending",
+    priority: 4,
   });
 
   return steps;

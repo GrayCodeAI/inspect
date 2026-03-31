@@ -2,7 +2,7 @@
 // @inspect/data - Zod Extractor
 // ============================================================================
 
-import type { z, ZodType, ZodError } from "zod";
+import type { ZodType, ZodError } from "zod";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("data/zod-extractor");

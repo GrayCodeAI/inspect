@@ -8,6 +8,7 @@
 //   k6 run --vus 10 --duration 30s --stage 30s:50 --stage 1m:100 tests/load/api-load-test.js
 //
 
+/* global __ENV */
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Rate, Trend } from "k6/metrics";
@@ -32,7 +33,7 @@ export const options = {
 
 // ── Custom Metrics ──────────────────────────────────────────────────────────
 
-const errorRate = new Rate("http_req_failed");
+const _errorRate = new Rate("http_req_failed");
 const healthDuration = new Trend("health_check", true);
 const taskCreateDuration = new Trend("task_create", true);
 const taskGetDuration = new Trend("task_get", true);
@@ -119,7 +120,9 @@ export function createTask() {
       const getRes = http.get(`${BASE_URL}/api/tasks/${taskId}`);
       taskGetDuration.add(getRes.timings.duration);
       check(getRes, { "task get status 200": (r) => r.status === 200 });
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
   }
 }
 

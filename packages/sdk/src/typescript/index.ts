@@ -11,9 +11,8 @@ import type {
   FunctionMetrics,
   AgentAction,
   PageSnapshot,
-  ViewportConfig,
 } from "@inspect/shared";
-import { DEFAULT_BROWSER_CONFIG, DEFAULT_AGENT_CONFIG, DEFAULT_VIEWPORT } from "@inspect/shared";
+import { DEFAULT_BROWSER_CONFIG, DEFAULT_AGENT_CONFIG } from "@inspect/shared";
 
 import {
   ActHandler,
@@ -29,19 +28,8 @@ import {
   type ExtractOptions,
   type SchemaLike,
 } from "./extract.js";
-import {
-  ObserveHandler,
-  type ObserveResult,
-  type ObserveOptions,
-  type ActionSuggestion,
-} from "./observe.js";
-import {
-  AgentHandler,
-  type AgentResult,
-  type AgentOptions,
-  type AgentStep,
-  type AgentStreamEvent,
-} from "./agent.js";
+import { ObserveHandler, type ObserveResult, type ObserveOptions } from "./observe.js";
+import { AgentHandler, type AgentResult, type AgentOptions } from "./agent.js";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("sdk");
@@ -602,7 +590,11 @@ export class Inspect {
     return {
       status: () => server.getStatus() as unknown as Record<string, unknown>,
       addFault: (type: string, attributes: Record<string, unknown>) => {
-        server.addToxic({ type: type as unknown as import("@inspect/shared").ToxicType, name: `sdk-${type}`, attributes });
+        server.addToxic({
+          type: type as unknown as import("@inspect/shared").ToxicType,
+          name: `sdk-${type}`,
+          attributes,
+        });
       },
       stop: async () => {
         await server.stop();
@@ -619,7 +611,7 @@ export class Inspect {
    */
   async testAllBrowsers(
     url: string,
-    instruction: string,
+    _instruction: string,
   ): Promise<Array<{ engine: string; passed: boolean; durationMs: number; error?: string }>> {
     const { CrossBrowserManager } = await import("@inspect/browser");
     const manager = new CrossBrowserManager();
@@ -650,6 +642,7 @@ export class Inspect {
    * @returns Flakiness score or null if insufficient data
    */
   getFlakiness(testId: string): { score: number; passRate: number; recommendation: string } | null {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { FlakinessDetector } = require("@inspect/core");
     const detector = new FlakinessDetector();
     const score = detector.getScore(testId);

@@ -22,6 +22,7 @@ function mockLlm(response: string): LLMCall {
 }
 
 /** Create a mock Playwright Page object */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mockPage(overrides: Record<string, unknown> = {}): any {
   const evaluateResults: Record<string, unknown> = {};
   return {

@@ -1,4 +1,11 @@
-import type { FormInfo, FormField, FormTestResult, TestDataSet, LLMCall, ProgressCallback } from "./types.js";
+import type {
+  FormInfo,
+  FormField,
+  FormTestResult,
+  TestDataSet,
+  LLMCall,
+  ProgressCallback,
+} from "./types.js";
 import { randomUUID } from "node:crypto";
 import { safeEvaluate } from "./evaluate.js";
 
@@ -8,13 +15,38 @@ import { safeEvaluate } from "./evaluate.js";
 // ============================================================================
 
 const FIRST_NAMES = [
-  "Emma", "Liam", "Olivia", "Noah", "Ava", "James", "Sophia", "Oliver",
-  "Isabella", "Benjamin", "Mia", "Elijah", "Charlotte", "Lucas", "Amelia",
+  "Emma",
+  "Liam",
+  "Olivia",
+  "Noah",
+  "Ava",
+  "James",
+  "Sophia",
+  "Oliver",
+  "Isabella",
+  "Benjamin",
+  "Mia",
+  "Elijah",
+  "Charlotte",
+  "Lucas",
+  "Amelia",
 ];
 
 const LAST_NAMES = [
-  "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
-  "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Wilson", "Anderson",
+  "Smith",
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones",
+  "Garcia",
+  "Miller",
+  "Davis",
+  "Rodriguez",
+  "Martinez",
+  "Hernandez",
+  "Lopez",
+  "Wilson",
+  "Anderson",
 ];
 
 function randomPick<T>(arr: T[]): T {
@@ -65,6 +97,7 @@ export function generateTestData(): TestDataSet {
 // detectForms
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function detectForms(page: any): Promise<FormInfo[]> {
   const rawForms: Array<{
     action: string | null;
@@ -82,7 +115,9 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
       autocomplete: string | null;
     }>;
     hasSubmitButton: boolean;
-  }> = await safeEvaluate(page, `
+  }> = await safeEvaluate(
+    page,
+    `
     (() => {
       const forms = Array.from(document.querySelectorAll("form"));
       return forms.map((form) => {
@@ -124,7 +159,10 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
         };
       });
     })()
-  `, [] as any);
+  `,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [] as any,
+  );
 
   const currentUrl: string = page.url();
 
@@ -153,28 +191,49 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
     };
   });
 
-  const nativeForms = rawForms.length > 0 ? rawForms.map((raw) => {
-    const fields: FormField[] = raw.fields.map((f) => ({
-      name: f.name, type: f.type, label: f.label ?? undefined,
-      placeholder: f.placeholder ?? undefined, required: f.required,
-      pattern: f.pattern ?? undefined, minLength: f.minLength ?? undefined,
-      maxLength: f.maxLength ?? undefined,
-      options: f.options.length > 0 ? f.options : undefined,
-      autocomplete: f.autocomplete ?? undefined,
-    }));
-    return {
-      action: raw.action ?? undefined, method: raw.method, fields,
-      hasSubmitButton: raw.hasSubmitButton,
-      formType: classifyForm(fields, raw.action, raw.hasSubmitButton, currentUrl),
-    };
-  }) : [];
+  const nativeForms =
+    rawForms.length > 0
+      ? rawForms.map((raw) => {
+          const fields: FormField[] = raw.fields.map((f) => ({
+            name: f.name,
+            type: f.type,
+            label: f.label ?? undefined,
+            placeholder: f.placeholder ?? undefined,
+            required: f.required,
+            pattern: f.pattern ?? undefined,
+            minLength: f.minLength ?? undefined,
+            maxLength: f.maxLength ?? undefined,
+            options: f.options.length > 0 ? f.options : undefined,
+            autocomplete: f.autocomplete ?? undefined,
+          }));
+          return {
+            action: raw.action ?? undefined,
+            method: raw.method,
+            fields,
+            hasSubmitButton: raw.hasSubmitButton,
+            formType: classifyForm(fields, raw.action, raw.hasSubmitButton, currentUrl),
+          };
+        })
+      : [];
 
   // SPA form detection: find input groups NOT inside native <form> elements
   if (nativeForms.length === 0) {
-    const spaForms = await safeEvaluate<Array<{
-      fields: Array<{ name: string; type: string; label: string | null; placeholder: string | null; required: boolean; options: string[]; autocomplete: string | null }>;
-      hasSubmitButton: boolean;
-    }>>(page, `
+    const spaForms = await safeEvaluate<
+      Array<{
+        fields: Array<{
+          name: string;
+          type: string;
+          label: string | null;
+          placeholder: string | null;
+          required: boolean;
+          options: string[];
+          autocomplete: string | null;
+        }>;
+        hasSubmitButton: boolean;
+      }>
+    >(
+      page,
+      `
       (() => {
         const orphanInputs = Array.from(document.querySelectorAll("input, textarea, select")).filter(el => !el.closest("form"));
         if (orphanInputs.length === 0) return [];
@@ -200,17 +259,25 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
         }
         return results;
       })()
-    `, []);
+    `,
+      [],
+    );
 
     for (const spa of spaForms) {
-      const fields: FormField[] = spa.fields.map(f => ({
-        name: f.name, type: f.type, label: f.label ?? undefined,
-        placeholder: f.placeholder ?? undefined, required: f.required,
+      const fields: FormField[] = spa.fields.map((f) => ({
+        name: f.name,
+        type: f.type,
+        label: f.label ?? undefined,
+        placeholder: f.placeholder ?? undefined,
+        required: f.required,
         options: f.options.length > 0 ? f.options : undefined,
         autocomplete: f.autocomplete ?? undefined,
       }));
       nativeForms.push({
-        action: undefined, method: "POST", fields, hasSubmitButton: spa.hasSubmitButton,
+        action: undefined,
+        method: "POST",
+        fields,
+        hasSubmitButton: spa.hasSubmitButton,
         formType: classifyForm(fields, null, spa.hasSubmitButton, currentUrl),
       });
     }
@@ -221,15 +288,21 @@ export async function detectForms(page: any): Promise<FormInfo[]> {
   // Return forms from the first mapping (with proper types)
   return rawForms.map((raw) => {
     const fields: FormField[] = raw.fields.map((f) => ({
-      name: f.name, type: f.type, label: f.label ?? undefined,
-      placeholder: f.placeholder ?? undefined, required: f.required,
-      pattern: f.pattern ?? undefined, minLength: f.minLength ?? undefined,
+      name: f.name,
+      type: f.type,
+      label: f.label ?? undefined,
+      placeholder: f.placeholder ?? undefined,
+      required: f.required,
+      pattern: f.pattern ?? undefined,
+      minLength: f.minLength ?? undefined,
       maxLength: f.maxLength ?? undefined,
       options: f.options.length > 0 ? f.options : undefined,
       autocomplete: f.autocomplete ?? undefined,
     }));
     return {
-      action: raw.action ?? undefined, method: raw.method, fields,
+      action: raw.action ?? undefined,
+      method: raw.method,
+      fields,
       hasSubmitButton: raw.hasSubmitButton,
       formType: classifyForm(fields, raw.action, raw.hasSubmitButton, currentUrl),
     };
@@ -253,8 +326,10 @@ function classifyForm(
   const hasUsername = allText.includes("user") || allText.includes("login");
   const hasName = allText.includes("name") && !allText.includes("username");
   const hasSearch = types.includes("search") || allText.includes("search");
-  const hasMessage = types.includes("textarea") || allText.includes("message") || allText.includes("comment");
-  const hasCreditCard = allText.includes("card") || allText.includes("payment") || allText.includes("cc-number");
+  const hasMessage =
+    types.includes("textarea") || allText.includes("message") || allText.includes("comment");
+  const hasCreditCard =
+    allText.includes("card") || allText.includes("payment") || allText.includes("cc-number");
   const hasCheckbox = types.includes("checkbox");
   const hasSelect = types.includes("select");
 
@@ -271,7 +346,12 @@ function classifyForm(
 
   // Signup: password + email + name, or action hints
   if (hasPassword && hasEmail && (hasName || fields.length > 3)) return "signup";
-  if (actionLower.includes("register") || actionLower.includes("signup") || actionLower.includes("sign-up")) return "signup";
+  if (
+    actionLower.includes("register") ||
+    actionLower.includes("signup") ||
+    actionLower.includes("sign-up")
+  )
+    return "signup";
 
   // Checkout: credit card fields
   if (hasCreditCard) return "checkout";
@@ -280,7 +360,12 @@ function classifyForm(
   if (hasMessage && hasEmail) return "contact";
 
   // Settings: URL path or lots of diverse fields
-  if (currentUrl.includes("/settings") || currentUrl.includes("/preferences") || currentUrl.includes("/account")) return "settings";
+  if (
+    currentUrl.includes("/settings") ||
+    currentUrl.includes("/preferences") ||
+    currentUrl.includes("/account")
+  )
+    return "settings";
 
   // Filter: checkboxes / selects without password
   if ((hasCheckbox || hasSelect) && !hasPassword && !hasEmail) return "filter";
@@ -296,6 +381,7 @@ function classifyForm(
 // ---------------------------------------------------------------------------
 
 export async function fillForm(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   formInfo: FormInfo,
   testData: TestDataSet,
@@ -326,7 +412,9 @@ export async function fillForm(
         onProgress("step", `  Checked ${field.name}`);
       } else if (field.type === "radio") {
         if (field.options && field.options.length > 0) {
-          await page.check(`input[name="${field.name}"][value="${field.options[0]}"]`, { timeout: 3000 });
+          await page.check(`input[name="${field.name}"][value="${field.options[0]}"]`, {
+            timeout: 3000,
+          });
         } else {
           await page.check(selector, { timeout: 3000 });
         }
@@ -391,7 +479,9 @@ export async function fillForm(
   }
 
   // Check for validation errors on the page
-  const validationErrors: string[] = await safeEvaluate<string[]>(page, `
+  const validationErrors: string[] = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const errorSelectors = [
         ".error", ".error-message", ".field-error", ".validation-error",
@@ -415,7 +505,9 @@ export async function fillForm(
       }
       return found;
     })()
-  `, []);
+  `,
+    [],
+  );
 
   errors.push(...validationErrors);
 
@@ -444,6 +536,7 @@ export async function fillForm(
 // ---------------------------------------------------------------------------
 
 export async function testFormValidation(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   formInfo: FormInfo,
   llm: LLMCall,
@@ -493,15 +586,21 @@ export async function testFormValidation(
       onProgress("pass", "  Invalid data correctly rejected");
     } else {
       // Use LLM to check if the page shows any non-standard error indicators
-      const pageText = await safeEvaluate<string>(page, `document.body.innerText.slice(0, 2000)`, "");
-      const llmResult = await llm([{
-        role: "user",
-        content: `I submitted a form with invalid data (bad email "not-an-email", password "x", etc.).
+      const pageText = await safeEvaluate<string>(
+        page,
+        `document.body.innerText.slice(0, 2000)`,
+        "",
+      );
+      const llmResult = await llm([
+        {
+          role: "user",
+          content: `I submitted a form with invalid data (bad email "not-an-email", password "x", etc.).
 The page now shows this content:
 ${pageText.slice(0, 1500)}
 
 Does the page show any validation error messages or rejection? Answer JSON: {"hasErrors": true/false, "errors": ["list of error messages found"]}`,
-      }]);
+        },
+      ]);
 
       try {
         const match = llmResult.match(/\{[\s\S]*\}/);
@@ -550,7 +649,11 @@ Does the page show any validation error messages or rejection? Answer JSON: {"ha
 
     // Boundary test passes if the form handles edge cases gracefully (errors or accepts)
     // It fails only if the page crashes or shows unexpected behavior
-    const pageOk = await safeEvaluate<boolean>(page, `!document.querySelector(".error-500, .fatal-error")`, false);
+    const pageOk = await safeEvaluate<boolean>(
+      page,
+      `!document.querySelector(".error-500, .fatal-error")`,
+      false,
+    );
     boundaryResult.passed = pageOk as boolean;
     if (boundaryResult.passed) {
       onProgress("pass", "  Boundary data handled gracefully");
@@ -582,7 +685,13 @@ function buildFieldSelector(field: FormField): string {
 
 /** Map a form field to the appropriate test data value */
 function resolveFieldValue(field: FormField, data: TestDataSet): string | null {
-  const nameLC = (field.name + " " + (field.label ?? "") + " " + (field.placeholder ?? "")).toLowerCase();
+  const nameLC = (
+    field.name +
+    " " +
+    (field.label ?? "") +
+    " " +
+    (field.placeholder ?? "")
+  ).toLowerCase();
   const type = field.type.toLowerCase();
 
   // File inputs cannot be filled via text
@@ -601,10 +710,17 @@ function resolveFieldValue(field: FormField, data: TestDataSet): string | null {
   if (type === "password" || nameLC.includes("password")) return data.password;
 
   // Username
-  if (nameLC.includes("username") || nameLC.includes("user name") || nameLC.includes("login")) return data.username;
+  if (nameLC.includes("username") || nameLC.includes("user name") || nameLC.includes("login"))
+    return data.username;
 
   // Phone / tel
-  if (type === "tel" || nameLC.includes("phone") || nameLC.includes("mobile") || nameLC.includes("tel")) return data.phone;
+  if (
+    type === "tel" ||
+    nameLC.includes("phone") ||
+    nameLC.includes("mobile") ||
+    nameLC.includes("tel")
+  )
+    return data.phone;
 
   // URL
   if (type === "url" || nameLC.includes("website") || nameLC.includes("url")) return data.url;
@@ -613,13 +729,25 @@ function resolveFieldValue(field: FormField, data: TestDataSet): string | null {
   if (type === "date" || nameLC.includes("birth") || nameLC.includes("dob")) return data.date;
 
   // Credit card number
-  if (nameLC.includes("card number") || nameLC.includes("cc-number") || nameLC.includes("cardnumber")) return data.creditCard.number;
+  if (
+    nameLC.includes("card number") ||
+    nameLC.includes("cc-number") ||
+    nameLC.includes("cardnumber")
+  )
+    return data.creditCard.number;
 
   // Credit card expiry
-  if (nameLC.includes("expir") || nameLC.includes("exp-date") || nameLC.includes("cc-exp")) return data.creditCard.expiry;
+  if (nameLC.includes("expir") || nameLC.includes("exp-date") || nameLC.includes("cc-exp"))
+    return data.creditCard.expiry;
 
   // Credit card CVV
-  if (nameLC.includes("cvv") || nameLC.includes("cvc") || nameLC.includes("security code") || nameLC.includes("cc-csc")) return data.creditCard.cvv;
+  if (
+    nameLC.includes("cvv") ||
+    nameLC.includes("cvc") ||
+    nameLC.includes("security code") ||
+    nameLC.includes("cc-csc")
+  )
+    return data.creditCard.cvv;
 
   // Name fields
   if (nameLC.includes("first") && nameLC.includes("name")) return data.name.first;
@@ -628,24 +756,40 @@ function resolveFieldValue(field: FormField, data: TestDataSet): string | null {
   if (nameLC.includes("name") && !nameLC.includes("user")) return data.name.full;
 
   // Company
-  if (nameLC.includes("company") || nameLC.includes("organization") || nameLC.includes("org")) return data.company;
+  if (nameLC.includes("company") || nameLC.includes("organization") || nameLC.includes("org"))
+    return data.company;
 
   // Address parts
-  if (nameLC.includes("street") || nameLC.includes("address line") || nameLC.includes("address1")) return data.address.street;
+  if (nameLC.includes("street") || nameLC.includes("address line") || nameLC.includes("address1"))
+    return data.address.street;
   if (nameLC.includes("city") || nameLC.includes("town")) return data.address.city;
-  if (nameLC.includes("state") || nameLC.includes("province") || nameLC.includes("region")) return data.address.state;
+  if (nameLC.includes("state") || nameLC.includes("province") || nameLC.includes("region"))
+    return data.address.state;
   if (nameLC.includes("zip") || nameLC.includes("postal")) return data.address.zip;
   if (nameLC.includes("country")) return data.address.country;
-  if (nameLC.includes("address")) return `${data.address.street}, ${data.address.city}, ${data.address.state} ${data.address.zip}`;
+  if (nameLC.includes("address"))
+    return `${data.address.street}, ${data.address.city}, ${data.address.state} ${data.address.zip}`;
 
   // Number input
   if (type === "number") return "42";
 
   // Search
-  if (type === "search" || nameLC.includes("search") || nameLC.includes("query") || nameLC.includes("q")) return "test search query";
+  if (
+    type === "search" ||
+    nameLC.includes("search") ||
+    nameLC.includes("query") ||
+    nameLC.includes("q")
+  )
+    return "test search query";
 
   // Message / comment / textarea
-  if (type === "textarea" || nameLC.includes("message") || nameLC.includes("comment") || nameLC.includes("description") || nameLC.includes("bio")) {
+  if (
+    type === "textarea" ||
+    nameLC.includes("message") ||
+    nameLC.includes("comment") ||
+    nameLC.includes("description") ||
+    nameLC.includes("bio")
+  ) {
     return "This is an automated test message from Inspect Testing. Please disregard.";
   }
 
@@ -729,10 +873,11 @@ function generateBoundaryData(formInfo: FormInfo): TestDataSet {
 
 /** Submit the form without filling and collect validation errors */
 async function submitAndCollectErrors(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   formInfo: FormInfo,
-  onProgress: ProgressCallback,
+  _onProgress: ProgressCallback,
 ): Promise<FormTestResult> {
   const startTime = Date.now();
 
@@ -775,7 +920,9 @@ async function submitAndCollectErrors(
     // ignore
   }
 
-  const validationErrors: string[] = await safeEvaluate<string[]>(page, `
+  const validationErrors: string[] = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const errorSelectors = [
         ".error", ".error-message", ".field-error", ".validation-error",
@@ -799,7 +946,9 @@ async function submitAndCollectErrors(
       }
       return found;
     })()
-  `, []);
+  `,
+    [],
+  );
 
   return {
     formUrl: url,
@@ -816,10 +965,11 @@ async function submitAndCollectErrors(
 
 /** Fill a form with arbitrary data and submit, returning the result */
 async function fillAndSubmit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   formInfo: FormInfo,
   data: TestDataSet,
-  onProgress: ProgressCallback,
+  _onProgress: ProgressCallback,
 ): Promise<FormTestResult> {
   const startTime = Date.now();
   const url: string = page.url();
@@ -842,7 +992,9 @@ async function fillAndSubmit(
         fieldsFilled++;
       } else if (field.type === "radio") {
         if (field.options && field.options.length > 0) {
-          await page.check(`input[name="${field.name}"][value="${field.options[0]}"]`, { timeout: 3000 });
+          await page.check(`input[name="${field.name}"][value="${field.options[0]}"]`, {
+            timeout: 3000,
+          });
         } else {
           await page.check(selector, { timeout: 3000 });
         }
@@ -902,7 +1054,9 @@ async function fillAndSubmit(
     // ignore
   }
 
-  const validationErrors: string[] = await safeEvaluate<string[]>(page, `
+  const validationErrors: string[] = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const errorSelectors = [
         ".error", ".error-message", ".field-error", ".validation-error",
@@ -926,7 +1080,9 @@ async function fillAndSubmit(
       }
       return found;
     })()
-  `, []);
+  `,
+    [],
+  );
 
   return {
     formUrl: url,

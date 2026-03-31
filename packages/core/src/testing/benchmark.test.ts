@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { BenchmarkTracker } from "./benchmark.js";
 import type { BenchmarkEntry } from "./benchmark.js";
-import { existsSync, unlinkSync, mkdirSync } from "node:fs";
+import { existsSync, unlinkSync} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 

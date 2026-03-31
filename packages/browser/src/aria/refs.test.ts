@@ -66,7 +66,7 @@ describe("RefManager", () => {
   });
 
   it("resolveLocator throws for missing ref", () => {
-    const fakePage = {} as any;
+    const fakePage = {} as unknown;
     expect(() => mgr.resolveLocator(fakePage, "e99")).toThrow('Reference "e99" not found');
   });
 });

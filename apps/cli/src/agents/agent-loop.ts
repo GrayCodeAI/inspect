@@ -10,7 +10,7 @@
 
 import type { Page } from "@inspect/browser";
 import { AnnotatedScreenshot, DOMDiff } from "@inspect/browser";
-import type { TestStep, TestPlan, LLMCall, ProgressCallback, ValidationResult } from "./types.js";
+import type { TestStep, TestPlan, LLMCall, ProgressCallback } from "./types.js";
 import { detectPageType } from "./planner.js";
 import { ActionLoopDetector, ActionCache } from "@inspect/agent";
 import type { SpeculativePlanner } from "@inspect/core";
@@ -194,8 +194,11 @@ export async function runAgentLoop(opts: {
   executeStep: typeof import("./tester.js").executeStep;
   validateStep: typeof import("./validator.js").validateStep;
   screenshotDir: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AriaSnapshotBuilder: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   networkMonitor: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   consoleMonitor: any;
   specPlanner?: SpeculativePlanner;
 }): Promise<AgentLoopResult> {
@@ -238,7 +241,9 @@ export async function runAgentLoop(opts: {
     const ssPath = join(screenshotDir, `step-0-${Date.now()}.png`);
     await page.screenshot({ path: ssPath });
     initialResult.screenshot = ssPath;
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   let consecutiveFailures = 0;
 
@@ -268,7 +273,7 @@ export async function runAgentLoop(opts: {
     // --- Cache lookup: skip LLM if we have a cached action for this state ---
     const cacheInstruction = `${currentUrl}|${snapshotText.slice(0, 200)}`;
     const cached = await actionCache.get(cacheInstruction, currentUrl);
-    let action: AgentAction | null = null;
+    let action: AgentAction | null;
 
     if (cached) {
       action = {
@@ -463,7 +468,9 @@ export async function runAgentLoop(opts: {
       const ssPath = join(screenshotDir, `step-${step.id}-${Date.now()}.png`);
       await page.screenshot({ path: ssPath });
       result.screenshot = ssPath;
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
 
     // Record history for context in next iteration
     history.push({

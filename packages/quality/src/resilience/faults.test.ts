@@ -1,16 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { FaultInjector } from "./faults.js";
-import type { FaultConfig, FaultStats } from "./faults.js";
 
 /** Create a mock PageHandle for testing. */
 function mockPage() {
-  const routes: Array<{ pattern: string | RegExp; handler: (route: any) => Promise<void> }> = [];
+  const routes: Array<{ pattern: string | RegExp; handler: (route: unknown) => Promise<void> }> = [];
 
   return {
     routes,
     async route(
       urlOrPredicate: string | RegExp | ((url: URL) => boolean),
-      handler: (route: any) => Promise<void>,
+      handler: (route: unknown) => Promise<void>,
     ) {
       routes.push({ pattern: urlOrPredicate as string | RegExp, handler });
     },
@@ -150,7 +149,7 @@ describe("FaultInjector", () => {
       const page = mockPage();
       injector.addFault({ fault: { type: "latency", delay: 10 } });
 
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       expect(page.routes.length).toBe(1);
       expect(page.routes[0].pattern).toBe("**/*");
@@ -158,7 +157,7 @@ describe("FaultInjector", () => {
 
     it("stops fault injection and unroutes", async () => {
       const page = mockPage();
-      await injector.start(page as any);
+      await injector.start(page as unknown);
       await injector.stop();
 
       expect(page.routes.length).toBe(0);
@@ -181,7 +180,7 @@ describe("FaultInjector", () => {
     it("resets stats", async () => {
       const page = mockPage();
       injector.addFault({ fault: { type: "latency", delay: 1 } });
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       // Simulate a route interception
       const route = mockRoute();
@@ -200,12 +199,12 @@ describe("FaultInjector", () => {
 
     it("tracks per-fault stats", async () => {
       const page = mockPage();
-      const id = injector.addFault({
+      const _id = injector.addFault({
         id: "test-fault",
         fault: { type: "latency", delay: 1 },
         toxicity: 100,
       });
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       const route = mockRoute();
       await page.routes[0].handler(route);
@@ -225,7 +224,7 @@ describe("FaultInjector", () => {
         urlPattern: "https://other.example.com/*",
         toxicity: 100,
       });
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       const route = mockRoute("https://api.example.com/data");
       await page.routes[0].handler(route);
@@ -237,11 +236,11 @@ describe("FaultInjector", () => {
 
     it("skips disabled faults", async () => {
       const page = mockPage();
-      const id = injector.addFault({
+      const _id = injector.addFault({
         fault: { type: "reset_peer", timeout: 0 },
         enabled: false,
       });
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       const route = mockRoute();
       await page.routes[0].handler(route);
@@ -259,7 +258,7 @@ describe("FaultInjector", () => {
         resourceTypes: ["image"],
         toxicity: 100,
       });
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       // This is a "fetch" type request, not "image"
       const route = mockRoute("https://api.example.com/data", "GET", "fetch");
@@ -277,7 +276,7 @@ describe("FaultInjector", () => {
         methods: ["POST"],
         toxicity: 100,
       });
-      await injector.start(page as any);
+      await injector.start(page as unknown);
 
       // This is a GET request, fault only applies to POST
       const route = mockRoute("https://api.example.com/data", "GET", "fetch");

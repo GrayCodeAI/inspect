@@ -2,7 +2,7 @@
 // @inspect/visual - Interactive Slider Report Generator
 // ============================================================================
 
-import type { VisualDiffResult, ViewportConfig } from "@inspect/shared";
+import type { ViewportConfig } from "@inspect/shared";
 
 /** A single visual comparison result for the report */
 export interface VisualReportEntry {

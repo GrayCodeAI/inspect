@@ -4,7 +4,6 @@
 
 import type { ServerResponse } from "node:http";
 import { generateId } from "@inspect/shared";
-import type { SSEEvent } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("api/sse");

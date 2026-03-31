@@ -5,7 +5,6 @@
 import { createLogger } from "@inspect/observability";
 import {
   LLMProvider,
-  LLMError,
   type ProviderConfig,
   type LLMMessage,
   type LLMToolDefinition,
@@ -39,7 +38,9 @@ interface AnthropicToolUseBlock {
 interface AnthropicToolResultBlock {
   type: "tool_result";
   tool_use_id: string;
-  content: string | Array<{ type: "text"; text: string } | { type: "image"; source: AnthropicImageSource }>;
+  content:
+    | string
+    | Array<{ type: "text"; text: string } | { type: "image"; source: AnthropicImageSource }>;
   is_error?: boolean;
 }
 
@@ -49,10 +50,7 @@ interface AnthropicImageSource {
   data: string;
 }
 
-type AnthropicContentBlock =
-  | AnthropicTextBlock
-  | AnthropicThinkingBlock
-  | AnthropicToolUseBlock;
+type AnthropicContentBlock = AnthropicTextBlock | AnthropicThinkingBlock | AnthropicToolUseBlock;
 
 interface AnthropicResponse {
   id: string;
@@ -122,9 +120,11 @@ export class ClaudeProvider extends LLMProvider {
   }
 
   supportsThinking(): boolean {
-    return THINKING_MODELS.has(this.config.model) ||
+    return (
+      THINKING_MODELS.has(this.config.model) ||
       this.config.model.startsWith("claude-sonnet-4") ||
-      this.config.model.startsWith("claude-opus-4");
+      this.config.model.startsWith("claude-opus-4")
+    );
   }
 
   async chat(
@@ -154,8 +154,8 @@ export class ClaudeProvider extends LLMProvider {
     let toolCallName = "";
     let toolCallArgs = "";
     const toolCalls: LLMToolCall[] = [];
-    let totalContent = "";
-    let totalThinking = "";
+    let _totalContent = "";
+    let _totalThinking = "";
     let inputTokens = 0;
     let outputTokens = 0;
 
@@ -169,7 +169,10 @@ export class ClaudeProvider extends LLMProvider {
       try {
         event = JSON.parse(line);
       } catch (error) {
-        logger.debug("Skipping unparseable SSE line", { line: line.slice(0, 100), err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Skipping unparseable SSE line", {
+          line: line.slice(0, 100),
+          err: error instanceof Error ? error.message : String(error),
+        });
         continue;
       }
 
@@ -194,10 +197,10 @@ export class ClaudeProvider extends LLMProvider {
           if (!delta) break;
 
           if (delta.type === "text_delta" && delta.text) {
-            totalContent += delta.text;
+            _totalContent += delta.text;
             yield { content: delta.text, done: false };
           } else if (delta.type === "thinking_delta" && delta.thinking) {
-            totalThinking += delta.thinking;
+            _totalThinking += delta.thinking;
             yield { thinking: delta.thinking, done: false };
           } else if (delta.type === "input_json_delta" && delta.partial_json) {
             toolCallArgs += delta.partial_json;
@@ -219,7 +222,10 @@ export class ClaudeProvider extends LLMProvider {
             try {
               parsedArgs = JSON.parse(toolCallArgs || "{}");
             } catch (error) {
-              logger.warn("Malformed tool call args from model", { toolCallName, err: error instanceof Error ? error.message : String(error) });
+              logger.warn("Malformed tool call args from model", {
+                toolCallName,
+                err: error instanceof Error ? error.message : String(error),
+              });
             }
             toolCalls.push({
               id: toolCallId,
@@ -314,7 +320,9 @@ export class ClaudeProvider extends LLMProvider {
     if (tools?.length) {
       const convertedTools = tools.map(this.convertTool);
       // Add cache_control to the last tool for prompt caching
-      (convertedTools[convertedTools.length - 1] as unknown as Record<string, unknown>).cache_control = { type: "ephemeral" };
+      (
+        convertedTools[convertedTools.length - 1] as unknown as Record<string, unknown>
+      ).cache_control = { type: "ephemeral" };
       body.tools = convertedTools;
     }
 
@@ -341,9 +349,13 @@ export class ClaudeProvider extends LLMProvider {
     for (const msg of messages) {
       if (msg.role === "system") {
         // Merge system messages
-        const text = typeof msg.content === "string"
-          ? msg.content
-          : msg.content.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("\n");
+        const text =
+          typeof msg.content === "string"
+            ? msg.content
+            : msg.content
+                .filter((p) => p.type === "text")
+                .map((p) => (p as { text: string }).text)
+                .join("\n");
         systemPrompt = systemPrompt ? `${systemPrompt}\n\n${text}` : text;
         continue;
       }
@@ -354,7 +366,7 @@ export class ClaudeProvider extends LLMProvider {
           content: [
             {
               type: "tool_result",
-              tool_use_id: msg.toolCallId ?? '',
+              tool_use_id: msg.toolCallId ?? "",
               content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
             } satisfies AnthropicToolResultBlock,
           ],
@@ -373,9 +385,7 @@ export class ClaudeProvider extends LLMProvider {
     return { systemPrompt, converted };
   }
 
-  private convertContent(
-    content: string | LLMContentPart[],
-  ): string | unknown[] {
+  private convertContent(content: string | LLMContentPart[]): string | unknown[] {
     if (typeof content === "string") return content;
 
     return content.map((part) => {

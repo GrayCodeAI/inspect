@@ -20,6 +20,7 @@ import { safeEvaluate } from "./evaluate.js";
 // ---------------------------------------------------------------------------
 
 export async function runSecurityAudit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   onProgress: ProgressCallback,
@@ -77,10 +78,7 @@ export async function runSecurityAudit(
   if (issues.length === 0) {
     onProgress("pass", `  ✓ Security: No issues found (${score}/100)`);
   } else {
-    onProgress(
-      "warn",
-      `  ⚠ Security: ${issues.length} issue(s) found (${score}/100)`,
-    );
+    onProgress("warn", `  ⚠ Security: ${issues.length} issue(s) found (${score}/100)`);
     for (const issue of issues.slice(0, 8)) {
       onProgress("warn", `    [${issue.severity}] ${issue.title}`);
     }
@@ -95,6 +93,7 @@ export async function runSecurityAudit(
 // ---------------------------------------------------------------------------
 
 export async function checkSecurityHeaders(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<SecurityHeaders> {
@@ -117,8 +116,7 @@ export async function checkSecurityHeaders(
     hsts: !!responseHeaders["strict-transport-security"],
     csp: responseHeaders["content-security-policy"] ?? null,
     xFrameOptions: responseHeaders["x-frame-options"] ?? null,
-    xContentTypeOptions:
-      responseHeaders["x-content-type-options"]?.toLowerCase() === "nosniff",
+    xContentTypeOptions: responseHeaders["x-content-type-options"]?.toLowerCase() === "nosniff",
     referrerPolicy: responseHeaders["referrer-policy"] ?? null,
     permissionsPolicy: responseHeaders["permissions-policy"] ?? null,
   };
@@ -126,10 +124,7 @@ export async function checkSecurityHeaders(
   return headers;
 }
 
-function collectHeaderIssues(
-  headers: SecurityHeaders,
-  url: string,
-): SecurityIssue[] {
+function collectHeaderIssues(headers: SecurityHeaders, url: string): SecurityIssue[] {
   const issues: SecurityIssue[] = [];
 
   if (!headers.hsts) {
@@ -140,7 +135,7 @@ function collectHeaderIssues(
       description:
         "The server does not send the HSTS header. Browsers will not enforce HTTPS, making the site vulnerable to protocol downgrade and cookie hijacking attacks.",
       url,
-      fix: 'Add header: Strict-Transport-Security: max-age=63072000; includeSubDomains; preload',
+      fix: "Add header: Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
     });
   }
 
@@ -164,7 +159,7 @@ function collectHeaderIssues(
       description:
         "The page can be embedded in iframes on any origin, making it vulnerable to clickjacking attacks.",
       url,
-      fix: 'Add header: X-Frame-Options: DENY (or SAMEORIGIN if embedding is needed).',
+      fix: "Add header: X-Frame-Options: DENY (or SAMEORIGIN if embedding is needed).",
     });
   }
 
@@ -176,7 +171,7 @@ function collectHeaderIssues(
       description:
         "Without this header, browsers may MIME-sniff responses, potentially executing content as a different type than declared.",
       url,
-      fix: 'Add header: X-Content-Type-Options: nosniff',
+      fix: "Add header: X-Content-Type-Options: nosniff",
     });
   }
 
@@ -188,7 +183,7 @@ function collectHeaderIssues(
       description:
         "Without a Referrer-Policy, the full URL (including query params) may be leaked to third-party sites via the Referer header.",
       url,
-      fix: 'Add header: Referrer-Policy: strict-origin-when-cross-origin',
+      fix: "Add header: Referrer-Policy: strict-origin-when-cross-origin",
     });
   }
 
@@ -200,7 +195,7 @@ function collectHeaderIssues(
       description:
         "Without a Permissions-Policy, the page does not restrict access to browser features like camera, microphone, or geolocation.",
       url,
-      fix: 'Add header: Permissions-Policy: camera=(), microphone=(), geolocation=()',
+      fix: "Add header: Permissions-Policy: camera=(), microphone=(), geolocation=()",
     });
   }
 
@@ -212,6 +207,7 @@ function collectHeaderIssues(
 // ---------------------------------------------------------------------------
 
 export async function checkHttps(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<HttpsStatus> {
@@ -224,7 +220,7 @@ export async function checkHttps(
   if (isHttps) {
     try {
       const httpUrl = url.replace(/^https:/, "http:");
-      const response = await page.goto(httpUrl, {
+      const _response = await page.goto(httpUrl, {
         waitUntil: "domcontentloaded",
         timeout: 10_000,
       });
@@ -242,7 +238,9 @@ export async function checkHttps(
   // Scan for mixed content (HTTP resources on an HTTPS page)
   let mixedContent: string[] = [];
   if (isHttps) {
-    mixedContent = await safeEvaluate<string[]>(page, `
+    mixedContent = await safeEvaluate<string[]>(
+      page,
+      `
       (() => {
         const mixed = [];
         const elements = document.querySelectorAll("[src], [href]");
@@ -263,7 +261,9 @@ export async function checkHttps(
         }
         return mixed.slice(0, 20);
       })()
-    `, []);
+    `,
+      [],
+    );
   }
 
   return {
@@ -273,10 +273,7 @@ export async function checkHttps(
   };
 }
 
-function collectHttpsIssues(
-  https: HttpsStatus,
-  url: string,
-): SecurityIssue[] {
+function collectHttpsIssues(https: HttpsStatus, url: string): SecurityIssue[] {
   const issues: SecurityIssue[] = [];
 
   if (!https.enforced) {
@@ -323,6 +320,7 @@ function collectHttpsIssues(
 // 3. Cookie audit
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function auditCookies(page: any): Promise<CookieAudit[]> {
   let rawCookies: Array<{
     name: string;
@@ -330,7 +328,7 @@ export async function auditCookies(page: any): Promise<CookieAudit[]> {
     httpOnly: boolean;
     sameSite: string;
     domain: string;
-  }> = [];
+  }>;
 
   try {
     const ctx = page.context();
@@ -354,9 +352,7 @@ export async function auditCookies(page: any): Promise<CookieAudit[]> {
     }
 
     if (isSessionCookie && !cookie.httpOnly) {
-      cookieIssues.push(
-        "Session cookie missing HttpOnly flag (accessible to JavaScript)",
-      );
+      cookieIssues.push("Session cookie missing HttpOnly flag (accessible to JavaScript)");
     }
 
     const sameSite = (cookie.sameSite || "").toLowerCase();
@@ -379,10 +375,7 @@ export async function auditCookies(page: any): Promise<CookieAudit[]> {
   return audits;
 }
 
-function collectCookieIssues(
-  cookies: CookieAudit[],
-  url: string,
-): SecurityIssue[] {
+function collectCookieIssues(cookies: CookieAudit[], url: string): SecurityIssue[] {
   const issues: SecurityIssue[] = [];
   const SESSION_PATTERNS = /session|auth|token|sid|jwt|login|user/i;
 
@@ -411,21 +404,34 @@ function collectCookieIssues(
 
 // Multiple XSS payloads to test different injection vectors
 const XSS_PAYLOADS = [
-  { payload: '<img src=x onerror=alert(1)>', check: '<img src=x onerror=alert(1)>', name: "img-onerror" },
-  { payload: '"><script>alert(1)</script>', check: '<script>alert(1)</script>', name: "script-inject" },
+  {
+    payload: "<img src=x onerror=alert(1)>",
+    check: "<img src=x onerror=alert(1)>",
+    name: "img-onerror",
+  },
+  {
+    payload: '"><script>alert(1)</script>',
+    check: "<script>alert(1)</script>",
+    name: "script-inject",
+  },
   { payload: "javascript:alert(1)", check: "javascript:alert(1)", name: "js-protocol" },
   { payload: "'-alert(1)-'", check: "'-alert(1)-'", name: "attr-break" },
-  { payload: '<svg onload=alert(1)>', check: '<svg onload=alert(1)>', name: "svg-onload" },
+  { payload: "<svg onload=alert(1)>", check: "<svg onload=alert(1)>", name: "svg-onload" },
 ];
 
 export async function testXss(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<XssTestResult[]> {
   const results: XssTestResult[] = [];
 
   // Find text input fields
-  const inputFields = await safeEvaluate<Array<{ selector: string; name: string; formAction: string | null }>>(page, `
+  const inputFields = await safeEvaluate<
+    Array<{ selector: string; name: string; formAction: string | null }>
+  >(
+    page,
+    `
     (() => {
       const inputs = Array.from(document.querySelectorAll(
         'input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), textarea'
@@ -441,7 +447,9 @@ export async function testXss(
         return { selector, name, formAction };
       });
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const field of inputFields) {
     for (const xss of XSS_PAYLOADS) {
@@ -467,21 +475,29 @@ export async function testXss(
           await input.press("Enter");
         } catch {
           try {
-            const submitBtn = await page.$('button[type="submit"], input[type="submit"], button:not([type])');
+            const submitBtn = await page.$(
+              'button[type="submit"], input[type="submit"], button:not([type])',
+            );
             if (submitBtn) await submitBtn.click();
-          } catch {}
+          } catch {
+            /* intentionally empty */
+          }
         }
 
         await page.waitForTimeout(1_000);
 
         // Check reflected XSS — payload appears unescaped in DOM
         const checkStr = xss.check.replace(/'/g, "\\'");
-        const reflected = await safeEvaluate<boolean>(page, `
+        const reflected = await safeEvaluate<boolean>(
+          page,
+          `
           (() => {
             const html = document.body.innerHTML;
             return html.includes('${checkStr}');
           })()
-        `, false);
+        `,
+          false,
+        );
 
         result.reflected = reflected;
 
@@ -490,10 +506,16 @@ export async function testXss(
           try {
             await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 });
             await page.waitForTimeout(500);
-          } catch {}
-          const storedReflected = await safeEvaluate<boolean>(page, `
+          } catch {
+            /* intentionally empty */
+          }
+          const storedReflected = await safeEvaluate<boolean>(
+            page,
+            `
             (() => document.body.innerHTML.includes('${checkStr}'))()
-          `, false);
+          `,
+            false,
+          );
           if (storedReflected) {
             result.executed = true; // stored XSS is more severe
           }
@@ -512,33 +534,41 @@ export async function testXss(
   // Check DOM-based XSS: test URL hash/query parameter injection
   try {
     const testUrl = new URL(url);
-    testUrl.searchParams.set("q", '<img src=x onerror=alert(1)>');
-    testUrl.hash = '<img src=x onerror=alert(1)>';
+    testUrl.searchParams.set("q", "<img src=x onerror=alert(1)>");
+    testUrl.hash = "<img src=x onerror=alert(1)>";
     await page.goto(testUrl.toString(), { waitUntil: "domcontentloaded", timeout: 10_000 });
     await page.waitForTimeout(500);
 
-    const domXss = await safeEvaluate<boolean>(page, `
+    const domXss = await safeEvaluate<boolean>(
+      page,
+      `
       (() => {
         const html = document.body.innerHTML;
         return html.includes('<img src=x onerror=alert(1)>');
       })()
-    `, false);
+    `,
+      false,
+    );
 
     if (domXss) {
       results.push({
         url: testUrl.toString(),
         field: "url-parameter",
-        payload: '<img src=x onerror=alert(1)>',
+        payload: "<img src=x onerror=alert(1)>",
         reflected: true,
         executed: false,
       });
     }
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   // Navigate back
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10_000 });
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   return results;
 }
@@ -605,9 +635,10 @@ const SENSITIVE_PATTERNS: Array<{
   },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function scanExposedData(page: any): Promise<ExposedData[]> {
   const findings: ExposedData[] = [];
-  let html = "";
+  let html: string;
 
   try {
     html = (await page.content()) as string;
@@ -625,19 +656,14 @@ export async function scanExposedData(page: any): Promise<ExposedData[]> {
         Math.max(0, match.index - 60),
         match.index + match[0].length + 20,
       );
-      if (
-        pattern.type === "password" &&
-        /type\s*=\s*['"]password['"]/i.test(surroundingContext)
-      ) {
+      if (pattern.type === "password" && /type\s*=\s*['"]password['"]/i.test(surroundingContext)) {
         continue;
       }
 
       // Truncate the matched value for safety
       const rawValue = match[0];
       const truncated =
-        rawValue.length > 40
-          ? rawValue.slice(0, 20) + "..." + rawValue.slice(-8)
-          : rawValue;
+        rawValue.length > 40 ? rawValue.slice(0, 20) + "..." + rawValue.slice(-8) : rawValue;
 
       findings.push({
         type: pattern.type,
@@ -649,7 +675,9 @@ export async function scanExposedData(page: any): Promise<ExposedData[]> {
 
   // Also check console messages for leaked data
   // We use page.evaluate to check for common debug patterns in scripts
-  const debugPatterns = await safeEvaluate<string[]>(page, `
+  const debugPatterns = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const scripts = Array.from(document.querySelectorAll("script:not([src])"));
       const inlineCode = scripts.map(s => s.textContent || "").join("\\n");
@@ -662,7 +690,9 @@ export async function scanExposedData(page: any): Promise<ExposedData[]> {
       }
       return findings;
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const msg of debugPatterns) {
     findings.push({
@@ -675,10 +705,7 @@ export async function scanExposedData(page: any): Promise<ExposedData[]> {
   return findings;
 }
 
-function collectExposureIssues(
-  exposedData: ExposedData[],
-  url: string,
-): SecurityIssue[] {
+function collectExposureIssues(exposedData: ExposedData[], url: string): SecurityIssue[] {
   const issues: SecurityIssue[] = [];
 
   for (const data of exposedData) {

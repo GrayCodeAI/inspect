@@ -41,6 +41,7 @@ export async function runCrossBrowser(
   onProgress("info", "Running cross-browser compatibility tests...");
 
   // Dynamically import playwright to avoid hard dependency at module level
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let playwright: any;
   try {
     // @ts-expect-error — playwright is an optional peer dependency
@@ -56,7 +57,7 @@ export async function runCrossBrowser(
   }
 
   const results: CrossBrowserResult[] = [];
-  const baselineData: {
+  const _baselineData: {
     title: string;
     elementCount: number;
     headings: string[];
@@ -74,9 +75,12 @@ export async function runCrossBrowser(
       issues: [],
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let browser: any = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let context: any = null;
-    let page: any = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let page: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     try {
       // Launch the browser
@@ -125,7 +129,9 @@ export async function runCrossBrowser(
         headings: string[];
         hasViewportMeta: boolean;
         bodyText: string;
-      }>(page, `
+      }>(
+        page,
+        `
         (() => {
           const headings = Array.from(document.querySelectorAll("h1, h2, h3")).map(
             (h) => (h.textContent || "").trim().slice(0, 80)
@@ -139,13 +145,15 @@ export async function runCrossBrowser(
             bodyText: (document.body.textContent || "").trim().slice(0, 200),
           };
         })()
-      `, {
-        title: "",
-        elementCount: 0,
-        headings: [],
-        hasViewportMeta: false,
-        bodyText: "",
-      });
+      `,
+        {
+          title: "",
+          elementCount: 0,
+          headings: [],
+          hasViewportMeta: false,
+          bodyText: "",
+        },
+      );
 
       // Record JS errors
       if (jsErrors.length > 0) {
@@ -158,7 +166,9 @@ export async function runCrossBrowser(
       // Check for blank page
       if (pageData.elementCount < 5) {
         result.passed = false;
-        result.issues.push(`Page rendered very few elements (${pageData.elementCount}) — may be broken`);
+        result.issues.push(
+          `Page rendered very few elements (${pageData.elementCount}) — may be broken`,
+        );
       }
 
       // Check for empty title
@@ -198,10 +208,8 @@ export async function runCrossBrowser(
         }
 
         // Heading mismatch
-        const baselineHeadingSet = new Set(baseline.headings);
-        const missingHeadings = baseline.headings.filter(
-          (h) => !pageData.headings.includes(h),
-        );
+        const _baselineHeadingSet = new Set(baseline.headings);
+        const missingHeadings = baseline.headings.filter((h) => !pageData.headings.includes(h));
         if (missingHeadings.length > 0) {
           result.issues.push(
             `Missing headings compared to ${browsers[0]}: ${missingHeadings.slice(0, 3).join(", ")}`,
@@ -224,10 +232,7 @@ export async function runCrossBrowser(
           mkdirSync(screenshotDir, { recursive: true });
         }
         const timestamp = Date.now();
-        const screenshotPath = join(
-          screenshotDir,
-          `cross-browser-${browserType}-${timestamp}.png`,
-        );
+        const screenshotPath = join(screenshotDir, `cross-browser-${browserType}-${timestamp}.png`);
         await page.screenshot({ path: screenshotPath, fullPage: true });
         result.screenshot = screenshotPath;
       } catch {
@@ -279,6 +284,7 @@ export async function runCrossBrowser(
  * adapts to the locale (e.g. language attribute, text direction, number formats).
  */
 export async function testLocale(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   locale: string,
   url: string,
@@ -287,10 +293,16 @@ export async function testLocale(
 
   // Determine if this locale should be RTL
   const rtlLocales = new Set([
-    "ar", "ar-SA", "ar-EG", "ar-AE",
-    "he", "he-IL",
-    "fa", "fa-IR",
-    "ur", "ur-PK",
+    "ar",
+    "ar-SA",
+    "ar-EG",
+    "ar-AE",
+    "he",
+    "he-IL",
+    "fa",
+    "fa-IR",
+    "ur",
+    "ur-PK",
     "ps", // Pashto
     "sd", // Sindhi
     "yi", // Yiddish
@@ -324,7 +336,9 @@ export async function testLocale(
     contentLength: number;
     numberFormats: string[];
     dateFormats: string[];
-  }>(page, `
+  }>(
+    page,
+    `
     (() => {
       const html = document.documentElement;
       const body = document.body;
@@ -348,24 +362,23 @@ export async function testLocale(
         dateFormats: datePatterns.slice(0, 5),
       };
     })()
-  `, {
-    htmlLang: "",
-    htmlDir: "",
-    bodyDir: "",
-    computedDirection: "ltr",
-    hasLangAttribute: false,
-    contentLength: 0,
-    numberFormats: [],
-    dateFormats: [],
-  });
+  `,
+    {
+      htmlLang: "",
+      htmlDir: "",
+      bodyDir: "",
+      computedDirection: "ltr",
+      hasLangAttribute: false,
+      contentLength: 0,
+      numberFormats: [],
+      dateFormats: [],
+    },
+  );
 
   // Check if lang attribute is set
   if (!localeData.hasLangAttribute) {
     issues.push("Missing lang attribute on <html> element");
-  } else if (
-    localeData.htmlLang &&
-    !localeData.htmlLang.toLowerCase().startsWith(baseLocale)
-  ) {
+  } else if (localeData.htmlLang && !localeData.htmlLang.toLowerCase().startsWith(baseLocale)) {
     // Lang attribute does not match the requested locale — may not support i18n
     issues.push(
       `Page lang attribute "${localeData.htmlLang}" does not match requested locale "${locale}"`,
@@ -373,14 +386,13 @@ export async function testLocale(
   }
 
   // Check RTL direction for RTL locales
-  const actualRTL = localeData.computedDirection === "rtl" ||
+  const actualRTL =
+    localeData.computedDirection === "rtl" ||
     localeData.htmlDir === "rtl" ||
     localeData.bodyDir === "rtl";
 
   if (expectRTL && !actualRTL) {
-    issues.push(
-      `Expected RTL direction for locale "${locale}" but page renders LTR`,
-    );
+    issues.push(`Expected RTL direction for locale "${locale}" but page renders LTR`);
   }
 
   // Check for empty content
@@ -391,13 +403,17 @@ export async function testLocale(
   }
 
   // Check for encoding issues (replacement characters)
-  const encodingIssues = await safeEvaluate<number>(page, `
+  const encodingIssues = await safeEvaluate<number>(
+    page,
+    `
     (() => {
       const text = document.body.textContent || "";
       const replacementChars = (text.match(/\\uFFFD/g) || []).length;
       return replacementChars;
     })()
-  `, 0);
+  `,
+    0,
+  );
 
   if (encodingIssues > 0) {
     issues.push(
@@ -406,7 +422,9 @@ export async function testLocale(
   }
 
   // Check for overlapping text (common i18n issue with longer translations)
-  const overlapIssues = await safeEvaluate<string[]>(page, `
+  const overlapIssues = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const problems = [];
       const elements = Array.from(document.querySelectorAll("button, a, span, label, th, td"));
@@ -425,14 +443,16 @@ export async function testLocale(
           const text = (el.textContent || "").trim().slice(0, 30);
           if (text) {
             problems.push(
-              el.tagName.toLowerCase() + ": \"" + text + "\" is clipped"
+              el.tagName.toLowerCase() + ': "' + text + '" is clipped'
             );
           }
         }
       }
       return problems.slice(0, 10);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const overlap of overlapIssues) {
     issues.push(`Text clipping detected: ${overlap}`);
@@ -450,6 +470,7 @@ export async function testLocale(
  * horizontal overflow or misaligned elements.
  */
 export async function testRTL(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
 ): Promise<{ isRTL: boolean; issues: string[] }> {
@@ -470,12 +491,16 @@ export async function testRTL(
   }
 
   // Simulate Arabic locale by setting dir="rtl" on the document
-  await safeEvaluate<void>(page, `
+  await safeEvaluate<void>(
+    page,
+    `
     (() => {
       document.documentElement.setAttribute("dir", "rtl");
       document.documentElement.setAttribute("lang", "ar");
     })()
-  `, undefined);
+  `,
+    undefined,
+  );
 
   // Wait for reflow
   try {
@@ -492,7 +517,9 @@ export async function testRTL(
     clientWidth: number;
     misalignedElements: string[];
     mirroredIcons: boolean;
-  }>(page, `
+  }>(
+    page,
+    `
     (() => {
       const body = document.body;
       const computedDir = window.getComputedStyle(body).direction;
@@ -549,19 +576,21 @@ export async function testRTL(
         mirroredIcons,
       };
     })()
-  `, {
-    computedDirection: "ltr",
-    hasOverflow: false,
-    scrollWidth: 0,
-    clientWidth: 0,
-    misalignedElements: [],
-    mirroredIcons: true,
-  });
+  `,
+    {
+      computedDirection: "ltr",
+      hasOverflow: false,
+      scrollWidth: 0,
+      clientWidth: 0,
+      misalignedElements: [],
+      mirroredIcons: true,
+    },
+  );
 
   const isRTL = rtlData.computedDirection === "rtl";
 
   if (!isRTL) {
-    issues.push("Page did not switch to RTL direction when dir=\"rtl\" was set");
+    issues.push('Page did not switch to RTL direction when dir="rtl" was set');
   }
 
   if (rtlData.hasOverflow) {
@@ -581,7 +610,9 @@ export async function testRTL(
   }
 
   // Check for text alignment issues in form elements
-  const formRtlIssues = await safeEvaluate<string[]>(page, `
+  const formRtlIssues = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const problems = [];
       const inputs = Array.from(document.querySelectorAll("input[type='text'], input[type='email'], input[type='search'], textarea"));
@@ -589,24 +620,30 @@ export async function testRTL(
         const style = window.getComputedStyle(input);
         if (style.direction !== "rtl" && style.textAlign === "left") {
           const name = input.name || input.id || input.placeholder || "unnamed";
-          problems.push("Input \"" + name.slice(0, 30) + "\" text is left-aligned in RTL context");
+          problems.push('Input "' + name.slice(0, 30) + '" text is left-aligned in RTL context');
         }
       }
       return problems.slice(0, 5);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const issue of formRtlIssues) {
     issues.push(issue);
   }
 
   // Revert direction
-  await safeEvaluate<void>(page, `
+  await safeEvaluate<void>(
+    page,
+    `
     (() => {
       document.documentElement.removeAttribute("dir");
       document.documentElement.removeAttribute("lang");
     })()
-  `, undefined);
+  `,
+    undefined,
+  );
 
   return { isRTL, issues };
 }
@@ -620,6 +657,7 @@ export async function testRTL(
  * render correctly for the given timezone.
  */
 export async function testTimezone(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   timezone: string,
   url: string,
@@ -648,7 +686,9 @@ export async function testTimezone(
     dateElements: Array<{ text: string; tag: string }>;
     jsDateOutput: string;
     intlSupported: boolean;
-  }>(page, `
+  }>(
+    page,
+    `
     (() => {
       // Check if Intl API is supported
       let intlSupported = true;
@@ -703,13 +743,15 @@ export async function testTimezone(
         intlSupported,
       };
     })()
-  `, {
-    currentTimezone: "",
-    detectedDates: [],
-    dateElements: [],
-    jsDateOutput: "",
-    intlSupported: false,
-  });
+  `,
+    {
+      currentTimezone: "",
+      detectedDates: [],
+      dateElements: [],
+      jsDateOutput: "",
+      intlSupported: false,
+    },
+  );
 
   // Record detected dates
   for (const date of timezoneData.detectedDates) {
@@ -729,13 +771,13 @@ export async function testTimezone(
   if (timezoneData.currentTimezone && timezoneData.currentTimezone !== timezone) {
     // The page may not be respecting the requested timezone
     // This is informational — the timezone is set at the context level
-    issues.push(
-      `Browser timezone is "${timezoneData.currentTimezone}" (requested "${timezone}")`,
-    );
+    issues.push(`Browser timezone is "${timezoneData.currentTimezone}" (requested "${timezone}")`);
   }
 
   // Check for hardcoded timezone references
-  const hardcodedTz = await safeEvaluate<string[]>(page, `
+  const hardcodedTz = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const problems = [];
       const bodyText = document.body.textContent || "";
@@ -761,14 +803,18 @@ export async function testTimezone(
 
       return problems.slice(0, 5);
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const tzIssue of hardcodedTz) {
     issues.push(tzIssue);
   }
 
   // Check for invalid date displays
-  const invalidDates = await safeEvaluate<string[]>(page, `
+  const invalidDates = await safeEvaluate<string[]>(
+    page,
+    `
     (() => {
       const problems = [];
       const bodyText = document.body.textContent || "";
@@ -790,7 +836,9 @@ export async function testTimezone(
 
       return problems;
     })()
-  `, []);
+  `,
+    [],
+  );
 
   for (const dateIssue of invalidDates) {
     issues.push(dateIssue);

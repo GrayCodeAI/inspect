@@ -15,7 +15,10 @@ describe("JsonStore", () => {
   let store: JsonStore<TestItem>;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `json-store-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `json-store-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(testDir, { recursive: true });
     store = new JsonStore<TestItem>(testDir, "test-collection");
   });
@@ -23,7 +26,9 @@ describe("JsonStore", () => {
   afterEach(() => {
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   });
 
   describe("basic CRUD", () => {
@@ -117,9 +122,9 @@ describe("JsonStore", () => {
       expect(existsSync(join(nestedDir, "collection.json"))).toBe(true);
     });
 
-    it("handles empty file gracefully", () => {
-      const { writeFileSync } = require("node:fs");
-      writeFileSync(join(testDir, "empty.json"), "", "utf-8");
+    it("handles empty file gracefully", async () => {
+      const { writeFileSync: writeSync } = await import("node:fs");
+      writeSync(join(testDir, "empty.json"), "", "utf-8");
       // Should not throw
       const emptyStore = new JsonStore<TestItem>(testDir, "empty");
       expect(emptyStore.size).toBe(0);

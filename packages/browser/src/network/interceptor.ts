@@ -4,7 +4,7 @@
 // Mock API responses, block requests, and record HAR during testing.
 // ============================================================================
 
-import type { Page, Route, Request } from "playwright";
+import type { Page, Route} from "playwright";
 
 export interface MockRoute {
   /** URL pattern to match (glob or regex) */

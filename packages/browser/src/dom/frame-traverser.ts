@@ -2,7 +2,7 @@
 // @inspect/browser - iFrame Traversal Module
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { FrameInfo, ElementSnapshot, BoundingBox } from "@inspect/shared";
+import type { FrameInfo, ElementSnapshot} from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("browser/dom/frame-traverser");

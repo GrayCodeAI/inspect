@@ -373,7 +373,7 @@ For each finding, report:
 
     // Rapid clicking on buttons
     steps.push({
-      index: index++,
+      index: index,
       description: "Rapidly click all interactive buttons in quick succession",
       type: "interact",
       assertion: "No duplicate actions, proper debouncing/throttling",
@@ -412,7 +412,7 @@ For each finding, report:
 
     // Refresh during loading
     steps.push({
-      index: index++,
+      index: index,
       description: "Refresh the page while content is still loading",
       type: "interact",
       assertion: "Page recovers and loads correctly after refresh",
@@ -451,7 +451,7 @@ For each finding, report:
 
     // Cookie security
     steps.push({
-      index: index++,
+      index: index,
       description: "Verify authentication cookies have Secure, HttpOnly, and SameSite flags",
       type: "verify",
       assertion: "Auth cookies have proper security flags set",

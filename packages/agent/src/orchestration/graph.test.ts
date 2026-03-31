@@ -188,7 +188,7 @@ describe("AgentGraph", () => {
     graph.addEdge({
       from: "source",
       to: "consumer",
-      transform: (output: any) => ({ doubled: output.count * 2 }),
+      transform: (output: unknown) => ({ doubled: output.count * 2 }),
     });
 
     const result = await graph.execute();

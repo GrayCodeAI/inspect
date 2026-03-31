@@ -2,7 +2,7 @@
 // @inspect/quality - Fault Injector
 // ============================================================================
 
-import type { NetworkFault, NetworkFaultConfig } from "@inspect/shared";
+import type { NetworkFault} from "@inspect/shared";
 import { generateId } from "@inspect/shared";
 import { createToxic, type Toxic } from "./toxics.js";
 import { createLogger } from "@inspect/observability";

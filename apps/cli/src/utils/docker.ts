@@ -1,4 +1,4 @@
-import { execFile as execFileCb, spawn, type ChildProcess } from "node:child_process";
+import { execFile as execFileCb, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -46,14 +46,16 @@ export async function hasImage(): Promise<boolean> {
 /**
  * Build the Inspect Docker image from the project root.
  */
-export async function buildImage(projectRoot: string, onProgress?: (line: string) => void): Promise<void> {
+export async function buildImage(
+  projectRoot: string,
+  onProgress?: (line: string) => void,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn("docker", [
-      "build",
-      "-f", join(projectRoot, "docker", "Dockerfile"),
-      "-t", IMAGE_NAME,
-      projectRoot,
-    ], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(
+      "docker",
+      ["build", "-f", join(projectRoot, "docker", "Dockerfile"), "-t", IMAGE_NAME, projectRoot],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
 
     child.stdout.on("data", (data: Buffer) => {
       const line = data.toString().trim();
@@ -80,7 +82,11 @@ export async function buildImage(projectRoot: string, onProgress?: (line: string
 export async function getRunningContainer(): Promise<DockerState | null> {
   try {
     const { stdout } = await execFile("docker", [
-      "ps", "--filter", `name=${CONTAINER_NAME}`, "--format", "{{.ID}}",
+      "ps",
+      "--filter",
+      `name=${CONTAINER_NAME}`,
+      "--format",
+      "{{.ID}}",
     ]);
     const id = stdout.trim();
     if (!id) return null;
@@ -91,7 +97,9 @@ export async function getRunningContainer(): Promise<DockerState | null> {
 
     // Container exists but no state — inspect it
     const { stdout: portOut } = await execFile("docker", [
-      "port", CONTAINER_NAME, String(CONTAINER_PORT),
+      "port",
+      CONTAINER_NAME,
+      String(CONTAINER_PORT),
     ]);
     const portMatch = portOut.match(/:(\d+)/);
     const port = portMatch ? parseInt(portMatch[1], 10) : HOST_PORT_DEFAULT;
@@ -125,8 +133,8 @@ export async function ensureContainer(options?: {
   if (!(await isDockerAvailable())) {
     throw new Error(
       "Docker is not installed or not running.\n" +
-      "Install Docker: https://docs.docker.com/get-docker/\n" +
-      "Or run without Docker (Playwright must be installed locally)."
+        "Install Docker: https://docs.docker.com/get-docker/\n" +
+        "Or run without Docker (Playwright must be installed locally).",
     );
   }
 
@@ -139,7 +147,7 @@ export async function ensureContainer(options?: {
     } else {
       throw new Error(
         `Docker image "${IMAGE_NAME}" not found.\n` +
-        "Build it with: docker build -f docker/Dockerfile -t inspect ."
+          "Build it with: docker build -f docker/Dockerfile -t inspect .",
       );
     }
   }
@@ -147,7 +155,9 @@ export async function ensureContainer(options?: {
   // Remove stopped container with same name
   try {
     await execFile("docker", ["rm", "-f", CONTAINER_NAME], { timeout: 5000 });
-  } catch { /* may not exist */ }
+  } catch {
+    /* may not exist */
+  }
 
   const port = options?.port ?? HOST_PORT_DEFAULT;
 
@@ -162,13 +172,19 @@ export async function ensureContainer(options?: {
 
   // Start container
   const { stdout } = await execFile("docker", [
-    "run", "-d",
-    "--name", CONTAINER_NAME,
-    "-p", `${port}:${CONTAINER_PORT}`,
+    "run",
+    "-d",
+    "--name",
+    CONTAINER_NAME,
+    "-p",
+    `${port}:${CONTAINER_PORT}`,
     ...envArgs,
-    "-e", "NODE_ENV=production",
-    "-e", "IN_DOCKER=true",
-    "--restart", "unless-stopped",
+    "-e",
+    "NODE_ENV=production",
+    "-e",
+    "IN_DOCKER=true",
+    "--restart",
+    "unless-stopped",
     IMAGE_NAME,
   ]);
 
@@ -200,15 +216,18 @@ export async function execInContainer(
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const container = await getRunningContainer();
   if (!container) {
-    throw new Error("Inspect container is not running. It will start automatically on next command.");
+    throw new Error(
+      "Inspect container is not running. It will start automatically on next command.",
+    );
   }
 
   if (options?.stream) {
     return new Promise((resolve, reject) => {
-      const child = spawn("docker", [
-        "exec", CONTAINER_NAME,
-        "node", "apps/cli/dist/index.js", ...args,
-      ], { stdio: ["ignore", "pipe", "pipe"] });
+      const child = spawn(
+        "docker",
+        ["exec", CONTAINER_NAME, "node", "apps/cli/dist/index.js", ...args],
+        { stdio: ["ignore", "pipe", "pipe"] },
+      );
 
       let stdout = "";
       let stderr = "";
@@ -234,10 +253,11 @@ export async function execInContainer(
   }
 
   try {
-    const { stdout, stderr } = await execFile("docker", [
-      "exec", CONTAINER_NAME,
-      "node", "apps/cli/dist/index.js", ...args,
-    ], { timeout: options?.timeout ?? 300000 });
+    const { stdout, stderr } = await execFile(
+      "docker",
+      ["exec", CONTAINER_NAME, "node", "apps/cli/dist/index.js", ...args],
+      { timeout: options?.timeout ?? 300000 },
+    );
 
     return { stdout, stderr, exitCode: 0 };
   } catch (err: unknown) {
@@ -253,7 +273,9 @@ export async function stopContainer(): Promise<void> {
   try {
     await execFile("docker", ["stop", CONTAINER_NAME], { timeout: 15000 });
     await execFile("docker", ["rm", CONTAINER_NAME], { timeout: 5000 });
-  } catch { /* container may not exist */ }
+  } catch {
+    /* container may not exist */
+  }
   clearState();
 }
 
@@ -300,19 +322,17 @@ async function waitForHealthy(port: number, timeoutMs: number): Promise<void> {
         signal: AbortSignal.timeout(2000),
       });
       if (res.ok) return;
-    } catch { /* not ready yet */ }
-    await new Promise(r => setTimeout(r, 1000));
+    } catch {
+      /* not ready yet */
+    }
+    await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error(`Container failed to become healthy within ${timeoutMs / 1000}s`);
 }
 
 function findProjectRoot(): string | null {
   // Look for docker/Dockerfile relative to cwd or script location
-  const candidates = [
-    process.cwd(),
-    join(process.cwd(), ".."),
-    join(__dirname, "../../../.."),
-  ];
+  const candidates = [process.cwd(), join(process.cwd(), ".."), join(__dirname, "../../../..")];
   for (const dir of candidates) {
     if (existsSync(join(dir, "docker", "Dockerfile"))) return dir;
   }
@@ -324,7 +344,9 @@ function loadState(): DockerState | null {
     if (existsSync(STATE_FILE)) {
       return JSON.parse(readFileSync(STATE_FILE, "utf-8"));
     }
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
   return null;
 }
 
@@ -333,12 +355,16 @@ function saveState(state: DockerState): void {
     const dir = join(homedir(), ".inspect");
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 }
 
 function clearState(): void {
   try {
-    const { unlinkSync } = require("node:fs");
+    const { unlinkSync } = require("node:fs"); // eslint-disable-line @typescript-eslint/no-require-imports
     if (existsSync(STATE_FILE)) unlinkSync(STATE_FILE);
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 }

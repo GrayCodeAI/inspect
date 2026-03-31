@@ -96,6 +96,7 @@ export async function runLoadTest(
 
   onProgress("info", `Running load test: ${concurrency} concurrent users for ${Math.round(duration / 1000)}s...`);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let playwright: any;
   try {
     // @ts-expect-error — playwright is an optional peer dependency
@@ -117,7 +118,8 @@ export async function runLoadTest(
   const startTime = Date.now();
 
   // Worker function — each concurrent "user" runs this
-  async function worker(workerId: number): Promise<void> {
+  async function worker(_workerId: number): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let browser: any = null;
 
     try {
@@ -245,6 +247,7 @@ export async function detectMemoryLeak(
   }
 
   // Get CDP session for memory metrics
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let client: any;
   try {
     client = await page.context().newCDPSession(page);
@@ -385,6 +388,7 @@ export async function stressTest(
     errors.push(`[PageError] ${error.message.slice(0, 150)}`);
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page.on("console", (msg: any) => {
     if (msg.type() === "error") {
       const text = msg.text();
@@ -414,6 +418,7 @@ export async function stressTest(
   }
 
   // Measure initial memory via CDP
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let client: any = null;
   let initialMemory = 0;
   let peakMemory = 0;
@@ -678,9 +683,11 @@ export async function testWithThrottling(
   page: Page,
   url: string,
   profile: "3g" | "4g" | "wifi",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<{ loadTime: number; metrics: any }> {
   const throttle = THROTTLE_PROFILES[profile];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let client: any = null;
 
   try {
@@ -841,6 +848,7 @@ export async function testServiceWorker(
 
   // Test offline functionality using CDP
   let offlineWorks = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let client: any = null;
 
   try {

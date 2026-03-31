@@ -153,8 +153,8 @@ export class DiffPlanGenerator {
 
   private detectChangeType(
     fileDiff: string,
-    filePath: string,
-    changedFiles: string[],
+    _filePath: string,
+    _changedFiles: string[],
   ): DiffHunk["changeType"] {
     if (fileDiff.includes("new file mode")) return "added";
     if (fileDiff.includes("deleted file mode")) return "deleted";
@@ -187,7 +187,7 @@ export class DiffPlanGenerator {
       if (compMatch) identifiers.add(compMatch[1]);
 
       // Function declarations
-      const fnMatch = line.match(/(?:function|const|let|var)\s+(\w+)\s*[\=(]/);
+      const fnMatch = line.match(/(?:function|const|let|var)\s+(\w+)\s*[=(]/);
       if (fnMatch) identifiers.add(fnMatch[1]);
 
       // Route/page patterns
@@ -447,7 +447,7 @@ export class DiffPlanGenerator {
 
     // Always end with error checking
     steps.push({
-      index: index++,
+      index: index,
       description: "Check browser console for errors and network request failures",
       type: "verify",
       assertion: "No unexpected console errors or failed network requests",

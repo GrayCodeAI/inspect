@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { TestGenerator } from "./generator.js";
-import type { PageAnalysis } from "./generator.js";
 
 describe("TestGenerator", () => {
   const generator = new TestGenerator();

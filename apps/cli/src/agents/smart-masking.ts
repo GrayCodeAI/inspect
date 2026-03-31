@@ -3,8 +3,7 @@
 // Auto-detects elements that change between runs and masks them for stable diffs
 // ============================================================================
 
-import { safeEvaluate, safeEvaluateVoid } from "./evaluate.js";
-import type { ProgressCallback } from "./types.js";
+import { safeEvaluate } from "./evaluate.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,6 +64,7 @@ const AVATAR_IMG_PATTERNS = [
 // 1. detectDynamicContent — find elements likely to change between runs
 // ---------------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function detectDynamicContent(page: any): Promise<MaskTarget[]> {
   const targets: MaskTarget[] = [];
   const seenSelectors = new Set<string>();
@@ -331,6 +331,7 @@ export async function detectDynamicContent(page: any): Promise<MaskTarget[]> {
 // ---------------------------------------------------------------------------
 
 export async function applySmartMasks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   targets?: MaskTarget[],
 ): Promise<number> {
@@ -407,6 +408,7 @@ export async function applySmartMasks(
  * @returns MaskTarget array of elements that changed between captures
  */
 export async function learnMasks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   url: string,
   samples = 3,

@@ -37,7 +37,7 @@ function excludeCheck(selectors: string[]): string {
   `;
 }
 
-function markerScript(x: number, y: number, color: string): string {
+function _markerScript(x: number, y: number, color: string): string {
   return `
     (function() {
       var marker = document.createElement('div');
@@ -68,15 +68,19 @@ export class ClickerGremlin implements Gremlin {
         var y = Math.floor(Math.random() * ${maxY});
         var el = document.elementFromPoint(x, y);
         if (!el) return { type: 'clicker', x: x, y: y, target: null, skipped: true };
-        ${options.excludeSelectors?.length ? 'if (isExcluded(el)) return { type: "clicker", x: x, y: y, target: el.tagName, skipped: true };' : ''}
+        ${options.excludeSelectors?.length ? 'if (isExcluded(el)) return { type: "clicker", x: x, y: y, target: el.tagName, skipped: true };' : ""}
 
-        ${showMarkers ? `
+        ${
+          showMarkers
+            ? `
         var marker = document.createElement('div');
         marker.style.cssText = 'position:fixed;left:' + (x-5) + 'px;top:' + (y-5) + 'px;width:10px;height:10px;border-radius:50%;background:red;pointer-events:none;z-index:999999;opacity:0.8;transition:opacity 0.5s;';
         document.body.appendChild(marker);
         setTimeout(function() { marker.style.opacity = '0'; }, 300);
         setTimeout(function() { marker.remove(); }, 800);
-        ` : ''}
+        `
+            : ""
+        }
 
         el.dispatchEvent(new MouseEvent('click', {
           bubbles: true, cancelable: true, view: window,
@@ -96,7 +100,17 @@ export class TyperGremlin implements Gremlin {
   readonly species: GremlinSpecies = "typer";
 
   private static readonly CHARS = "abcdefghijklmnopqrstuvwxyz0123456789 !@#$%^&*()";
-  private static readonly SPECIAL_KEYS = ["Enter", "Tab", "Escape", "Backspace", "Delete", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+  private static readonly SPECIAL_KEYS = [
+    "Enter",
+    "Tab",
+    "Escape",
+    "Backspace",
+    "Delete",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+  ];
 
   getInjectionScript(options: GremlinInjectionOptions): string {
     return `
@@ -117,7 +131,7 @@ export class TyperGremlin implements Gremlin {
           }
         }
 
-        ${options.excludeSelectors?.length ? 'if (isExcluded(activeEl)) return { type: "typer", key: null, target: activeEl.tagName, skipped: true };' : ''}
+        ${options.excludeSelectors?.length ? 'if (isExcluded(activeEl)) return { type: "typer", key: null, target: activeEl.tagName, skipped: true };' : ""}
 
         var key;
         if (Math.random() < 0.1) {
@@ -199,7 +213,7 @@ export class FormFillerGremlin implements Gremlin {
         }
 
         var input = inputs[Math.floor(Math.random() * inputs.length)];
-        ${options.excludeSelectors?.length ? 'if (isExcluded(input)) return { type: "formFiller", filled: 0, skipped: true };' : ''}
+        ${options.excludeSelectors?.length ? 'if (isExcluded(input)) return { type: "formFiller", filled: 0, skipped: true };' : ""}
 
         var type = (input.type || input.tagName).toLowerCase();
         var value;
@@ -276,7 +290,7 @@ export class ToucherGremlin implements Gremlin {
         var y = Math.floor(Math.random() * ${maxY});
         var el = document.elementFromPoint(x, y);
         if (!el) return { type: 'toucher', x: x, y: y, target: null, skipped: true };
-        ${options.excludeSelectors?.length ? 'if (isExcluded(el)) return { type: "toucher", x: x, y: y, target: el.tagName, skipped: true };' : ''}
+        ${options.excludeSelectors?.length ? 'if (isExcluded(el)) return { type: "toucher", x: x, y: y, target: el.tagName, skipped: true };' : ""}
 
         var touchObj = new Touch({
           identifier: Date.now(),

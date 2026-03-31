@@ -2,8 +2,8 @@
 // CI/CD Integration Agent — CI config generation, quality gates, reporting
 // ============================================================================
 
-import type { TestReport, ProgressCallback } from "./types.js";
-import { writeFileSync, readFileSync, existsSync, mkdirSync, appendFileSync } from "node:fs";
+import type { TestReport } from "./types.js";
+import { readFileSync, existsSync, mkdirSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 
 // ---------------------------------------------------------------------------

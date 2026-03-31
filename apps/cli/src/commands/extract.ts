@@ -31,6 +31,7 @@ async function runExtract(url: string | undefined, options: ExtractOptions): Pro
     console.log(chalk.dim("\nLaunching browser..."));
     const { BrowserManager } = await import("@inspect/browser");
     const browserMgr = new BrowserManager();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
     const page = await browserMgr.newPage();
 

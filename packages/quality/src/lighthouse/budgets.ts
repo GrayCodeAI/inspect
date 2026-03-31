@@ -133,7 +133,7 @@ export class BudgetManager {
         : actual - budget.maxValue; // positive means over budget (bad)
 
       const label = budget.label ?? budget.metric;
-      const unit = this.getMetricUnit(budget.metric);
+      const _unit = this.getMetricUnit(budget.metric);
       const message = passed
         ? `${label}: ${this.formatValue(actual, budget.metric)} (budget: ${this.formatValue(budget.maxValue, budget.metric)})`
         : `${label}: ${this.formatValue(actual, budget.metric)} exceeds budget of ${this.formatValue(budget.maxValue, budget.metric)} by ${this.formatValue(Math.abs(overage), budget.metric)}`;
