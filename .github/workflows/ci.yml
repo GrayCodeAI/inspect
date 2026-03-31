@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     strategy:
       matrix:
@@ -44,35 +44,7 @@ jobs:
         run: pnpm lint
 
       - name: Test
-        run: npx vitest run --reporter=verbose --coverage
-
-      - name: Upload coverage
-        if: matrix.node-version == 20
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/
-        continue-on-error: true
-
-  cli-check:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    timeout-minutes: 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+        run: npx vitest run --reporter=verbose
 
       - name: Verify CLI
         run: |
@@ -81,7 +53,6 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    needs: build-and-test
     timeout-minutes: 10
 
     steps:

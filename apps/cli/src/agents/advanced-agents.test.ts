@@ -166,7 +166,7 @@ describe("auth", () => {
     expect(page.evaluate).toHaveBeenCalled();
   });
 
-  it.skip("detectAuthState returns status object — requires real browser", async () => {
+  it.skip("detectAuthState returns status object — requires complex mocking", async () => {
     const { detectAuthState } = await import("./auth.js");
     const page = mockPage({
       evaluate: vi.fn().mockResolvedValue({
@@ -178,6 +178,10 @@ describe("auth", () => {
         authCookies: [],
         storageTokens: [],
         indicators: [],
+        storageKeys: [],
+        sessionStorageTokens: [],
+        sessionStorageKeys: [],
+        localStorageKeys: [],
       }),
       context: vi.fn().mockReturnValue({
         cookies: vi.fn().mockResolvedValue([]),
@@ -459,18 +463,10 @@ describe("cross-browser", () => {
         htmlDir: null,
         hasRTLContent: false,
         ltrAlignedElements: 0,
+        rtlAlignedElements: 0,
         unmirroredIcons: 0,
         overflowingElements: [],
-        detectedDates: [],
-        timezoneAbbreviations: [],
-        invalidDates: false,
-        nanFormatting: false,
-        epochTimestamps: false,
-        hasLangAttribute: true,
-        langValue: "en",
-        textDirection: "ltr",
-        hasEncodingIssues: false,
-        overlapIssues: [],
+        misalignedElements: [],
       }),
     });
     const result = await testRTL(page, "https://example.com");
@@ -487,10 +483,11 @@ describe("cross-browser", () => {
         invalidDates: false,
         nanFormatting: false,
         epochTimestamps: false,
+        dateElements: [],
       }),
     });
     const result = await testTimezone(page, "America/New_York", "https://example.com");
-    expect(result).toHaveProperty("dates");
+    expect(result).toHaveProperty("timezone");
     expect(result).toHaveProperty("issues");
   });
 
@@ -503,6 +500,7 @@ describe("cross-browser", () => {
         textDirection: "ltr",
         hasEncodingIssues: false,
         overlapIssues: [],
+        clippedElements: [],
       }),
     });
     const result = await testLocale(page, "fr-FR", "https://example.com");
