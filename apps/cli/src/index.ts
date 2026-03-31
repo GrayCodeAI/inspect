@@ -59,17 +59,6 @@ import { registerPermissionsCommand } from "./commands/permissions.js";
 import { registerRBACCommand } from "./commands/rbac.js";
 import { registerTenantCommand } from "./commands/tenant.js";
 import { registerSSOCommand } from "./commands/sso.js";
-import { registerAcpAgentsCommand } from "./commands/acp-agents.js";
-
-// Command group routers (organize subcommands under parent commands)
-import { registerChaosGroupCommand } from "./commands/chaos-group.js";
-import { registerEnterpriseGroupCommand } from "./commands/enterprise-group.js";
-import { registerWorkflowGroupCommand } from "./commands/workflow-group.js";
-import { registerGovernanceCommand } from "./commands/governance.js";
-import { registerInfraCommand } from "./commands/infra.js";
-import { registerQualityCommand } from "./commands/quality.js";
-import { registerDataCommand } from "./commands/data.js";
-import { registerDevCommand } from "./commands/dev.js";
 
 const VERSION = "0.1.0";
 
@@ -182,19 +171,6 @@ registerAuditCommand(program);
 registerShowReportCommand(program);
 registerShowTraceCommand(program);
 registerAliasCommand(program);
-
-// ── ACP & Coding Agent Commands ─────────────────────────────────────────
-registerAcpAgentsCommand(program);
-
-// ── Command Groups (organize subcommands under parents) ──────────────────
-registerChaosGroupCommand(program);
-registerEnterpriseGroupCommand(program);
-registerWorkflowGroupCommand(program);
-registerGovernanceCommand(program);
-registerInfraCommand(program);
-registerQualityCommand(program);
-registerDataCommand(program);
-registerDevCommand(program);
 
 // Inline utility commands (no external deps needed)
 program

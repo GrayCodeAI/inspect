@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { create } from "zustand";
-import type { AgentBackend } from "@inspect/acp";
 import type { ModelPreference } from "@inspect/shared";
+
+type AgentBackend = "claude" | "codex" | "copilot" | "gemini" | "cursor" | "droid" | "opencode";
 
 interface Preferences {
   agentBackend: AgentBackend;

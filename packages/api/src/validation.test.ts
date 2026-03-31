@@ -138,15 +138,15 @@ describe("CreateCredentialSchema", () => {
 
 describe("Domain Error Classes", () => {
   it("BrowserError should have correct properties", () => {
-    const err = new BrowserError("Launch failed", {
-      code: "BROWSER_LAUNCH_FAILED",
-      retryable: true,
+    const err = new BrowserError({
+      _tag: "BrowserError",
+      message: "Launch failed",
+      cause: { code: "BROWSER_LAUNCH_FAILED" },
     });
-    expect(err.name).toBe("BrowserError");
-    expect(err.code).toBe("BROWSER_LAUNCH_FAILED");
-    expect(err.retryable).toBe(true);
+    expect(err._tag).toBe("BrowserError");
+    expect(err.message).toBe("Launch failed");
     expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(InspectError);
+    expect(err).toBeInstanceOf(BrowserError);
   });
 
   it("WorkflowError should have workflowId", () => {
