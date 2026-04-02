@@ -969,6 +969,28 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/workflow-recording:
+    dependencies:
+      "@effect/platform-node":
+        specifier: 4.0.0-beta.35
+        version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
+      "@inspect/session-recording":
+        specifier: workspace:*
+        version: link:../session-recording
+      effect:
+        specifier: 4.0.0-beta.35
+        version: 4.0.0-beta.35
+    devDependencies:
+      "@types/node":
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.1
+        version: 4.1.1(@opentelemetry/api@1.9.1)(@types/node@22.19.15)(msw@2.12.14(@types/node@22.19.15)(typescript@5.9.3))(vite@8.0.2(@types/node@22.19.15)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3))
+
 packages:
   "@a2a-js/sdk@0.3.11":
     resolution:
