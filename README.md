@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/tests-1642%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node Version">
-  <img src="https://img.shields.io/badge/packages-34-orange" alt="Packages">
+  <img src="https://img.shields.io/badge/packages-45-orange" alt="Packages">
   <img src="https://img.shields.io/badge/CLI%20commands-76-purple" alt="CLI Commands">
 </p>
 
@@ -45,7 +45,14 @@ Inspect uses AI agents to test websites in real browsers. Give it a natural-lang
 - **CI/CD Ready** -- JUnit/GitHub reporters, sharding, presets, template generation
 - **Agent Governance** -- Audit trail, autonomy levels, permission management, compliance reports
 - **Enterprise** -- RBAC (5 roles), SSO (SAML/OIDC/Azure/Okta), multi-tenancy, hybrid LLM routing
-- **Self-Healing** -- 8 healing strategies, DOM differ, selector recovery
+- **Self-Healing** -- Smart selector healing with similarity matching and recovery
+- **Session Recording** -- rrweb-based session recording with privacy controls
+- **Human-in-the-Loop** -- Human approval checkpoints for autonomous tests
+- **Workflow Recording** -- Record workflows and export to test scripts
+- **Visual Test Builder** -- Drag-and-drop style test step creation
+- **Multi-Agent Scenarios** -- Multi-agent orchestration for complex tests
+- **Sandboxed Execution** -- Isolated test execution with resource limits
+- **Plugin Marketplace** -- Extensible plugin system with hooks
 - **Test Generation** -- Page analysis, sitemap-based generation, YAML/instruction export
 - **MCP Server** -- Standalone Model Context Protocol server (14 browser tools)
 - **SDK** -- 9 methods: `act()`, `extract()`, `observe()`, `agent()`, `navigate()`, `screenshot()`, `crawl()`, `track()`, `createProxy()`
