@@ -55,13 +55,11 @@ describe("MessageManager", () => {
   });
 
   describe("addToolResult", () => {
-    it("adds a tool message with toolCallId", () => {
-      manager.addToolResult("call_123", "result data", "my_tool");
+    it("adds a tool message", () => {
+      manager.addToolResult("result data");
       const msg = manager.getHistory()[0];
       expect(msg.role).toBe("tool");
-      expect(msg.toolCallId).toBe("call_123");
       expect(msg.content).toBe("result data");
-      expect(msg.name).toBe("my_tool");
     });
   });
 

@@ -57,9 +57,9 @@ export class CrossBrowserManager {
       slowMo: config.slowMo,
       proxy: config.proxy
         ? {
-            server: config.proxy.server,
-            username: config.proxy.username,
-            password: config.proxy.password,
+            server: (config.proxy as any).server,
+            username: (config.proxy as any).username,
+            password: (config.proxy as any).password,
           }
         : undefined,
     };

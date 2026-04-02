@@ -49,12 +49,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         executablePath: { type: "string", description: "Custom browser executable path" },
       },
     },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
   },
 
   // ── Navigation ─────────────────────────────────────────────────────────
@@ -74,12 +68,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
       },
       required: ["url"],
     },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
   },
 
   // ── Screenshots ────────────────────────────────────────────────────────
@@ -95,12 +83,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         },
         selector: { type: "string", description: "CSS selector of element to capture (optional)" },
       },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
     },
   },
 
@@ -119,12 +101,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         },
       },
     },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
   },
 
   // ── Annotated Screenshot ───────────────────────────────────────────────
@@ -135,12 +111,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
     },
   },
 
@@ -159,12 +129,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         doubleClick: { type: "boolean", description: "Double-click instead of single click" },
         rightClick: { type: "boolean", description: "Right-click (context menu)" },
       },
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: true,
     },
   },
 
@@ -188,12 +152,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
       },
       required: ["text"],
     },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
   },
 
   // ── Playwright evaluate ────────────────────────────────────────────────
@@ -207,12 +165,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         code: { type: "string", description: "JavaScript code to evaluate in the page context" },
       },
       required: ["code"],
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: true,
     },
   },
 
@@ -231,12 +183,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         },
         limit: { type: "number", description: "Maximum number of messages to return", default: 50 },
       },
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
     },
   },
 
@@ -268,12 +214,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         limit: { type: "number", description: "Maximum number of requests to return", default: 50 },
       },
     },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
   },
 
   // ── Performance metrics ────────────────────────────────────────────────
@@ -284,12 +224,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {},
-    },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
     },
   },
 
@@ -324,12 +258,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
       },
       required: ["action"],
     },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
   },
 
   // ── Page to Markdown ───────────────────────────────────────────────────
@@ -362,12 +290,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
         },
       },
     },
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
   },
 
   // ── Close ──────────────────────────────────────────────────────────────
@@ -377,12 +299,6 @@ export const BROWSER_TOOLS: MCPToolDefinition[] = [
     inputSchema: {
       type: "object",
       properties: {},
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
     },
   },
 ];
@@ -412,7 +328,6 @@ export const QUALITY_TOOLS: MCPToolDefinition[] = [
         },
       },
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: "perf_audit",
@@ -427,7 +342,6 @@ export const QUALITY_TOOLS: MCPToolDefinition[] = [
         },
       },
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: "security_scan",
@@ -443,7 +357,6 @@ export const QUALITY_TOOLS: MCPToolDefinition[] = [
         },
       },
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: "run_test",
@@ -458,7 +371,6 @@ export const QUALITY_TOOLS: MCPToolDefinition[] = [
       },
       required: ["instruction", "url"],
     },
-    annotations: { readOnlyHint: false, openWorldHint: true },
   },
   {
     name: "visual_diff",
@@ -476,7 +388,6 @@ export const QUALITY_TOOLS: MCPToolDefinition[] = [
       },
       required: ["baseline", "current"],
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: "extract_data",
@@ -493,7 +404,6 @@ export const QUALITY_TOOLS: MCPToolDefinition[] = [
         },
       },
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
   },
 ];
 

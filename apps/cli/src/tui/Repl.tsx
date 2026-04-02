@@ -70,6 +70,7 @@ const SLASH_COMMANDS = [
   { name: "generate", desc: "Generate tests from page" },
   { name: "dashboard", desc: "Live multi-agent test dashboard" },
   { name: "install", desc: "Install browser dependencies" },
+  { name: "scan", desc: "Scan git changes and generate test plan" },
   { name: "clear", desc: "Clear conversation history" },
   { name: "quit", desc: "Exit inspect" },
 ];
@@ -217,18 +218,96 @@ function useSpinner(active: boolean): { char: string; color: string; verb: strin
 
 // ── Git info ────────────────────────────────────────────────────────────
 
-function useGitInfo(): { branch: string; files: number; loaded: boolean } {
-  const [info, setInfo] = useState({ branch: "", files: 0, loaded: false });
+interface GitChangedFile {
+  path: string;
+  status: "modified" | "added" | "deleted" | "renamed";
+  additions: number;
+  deletions: number;
+}
+
+function useGitInfo(): {
+  branch: string;
+  files: number;
+  changedFiles: GitChangedFile[];
+  totalAdditions: number;
+  totalDeletions: number;
+  loaded: boolean;
+  isRepo: boolean;
+} {
+  const [info, setInfo] = useState({
+    branch: "",
+    files: 0,
+    changedFiles: [] as GitChangedFile[],
+    totalAdditions: 0,
+    totalDeletions: 0,
+    loaded: false,
+    isRepo: true,
+  });
   useEffect(() => {
     (async () => {
       try {
         const { GitManager } = await import("@inspect/core");
         const git = new GitManager();
+        const isRepo = await git.isGitRepo();
+        if (!isRepo) {
+          setInfo({
+            branch: "",
+            files: 0,
+            changedFiles: [],
+            totalAdditions: 0,
+            totalDeletions: 0,
+            loaded: true,
+            isRepo: false,
+          });
+          return;
+        }
         const branch = await git.getCurrentBranch();
-        const files = await git.getChangedFiles("unstaged");
-        setInfo({ branch, files: files.length, loaded: true });
+        const status = await git.getWorkingTreeStatus();
+        const changedFiles: GitChangedFile[] = [];
+        for (const f of status.modified)
+          changedFiles.push({ path: f, status: "modified", additions: 0, deletions: 0 });
+        for (const f of status.not_added)
+          changedFiles.push({ path: f, status: "added", additions: 0, deletions: 0 });
+        for (const f of status.created)
+          changedFiles.push({ path: f, status: "added", additions: 0, deletions: 0 });
+        for (const f of status.deleted)
+          changedFiles.push({ path: f, status: "deleted", additions: 0, deletions: 0 });
+        for (const f of status.renamed)
+          changedFiles.push({ path: f.to, status: "renamed", additions: 0, deletions: 0 });
+        let totalAdditions = 0;
+        let totalDeletions = 0;
+        try {
+          const n1 = await (git as any).git.diff(["--numstat", "--cached"]);
+          const n2 = await (git as any).git.diff(["--numstat"]);
+          for (const line of [n1, n2].filter(Boolean).join("\n").split("\n").filter(Boolean)) {
+            const p = line.split("\t");
+            const a = parseInt(p[0], 10);
+            const d = parseInt(p[1], 10);
+            if (!isNaN(a)) totalAdditions += a;
+            if (!isNaN(d)) totalDeletions += d;
+          }
+        } catch {
+          /* skip */
+        }
+        setInfo({
+          branch,
+          files: changedFiles.length,
+          changedFiles,
+          totalAdditions,
+          totalDeletions,
+          loaded: true,
+          isRepo: true,
+        });
       } catch {
-        setInfo({ branch: "", files: 0, loaded: true });
+        setInfo({
+          branch: "",
+          files: 0,
+          changedFiles: [],
+          totalAdditions: 0,
+          totalDeletions: 0,
+          loaded: true,
+          isRepo: false,
+        });
       }
     })();
   }, []);
@@ -354,6 +433,221 @@ async function handleSlash(
           "",
         ].join("\n"),
       };
+
+    case "scan": {
+      try {
+        const { GitManager } = await import("@inspect/core");
+        const git = new GitManager();
+        const isRepo = await git.isGitRepo();
+        if (!isRepo) return { kind: "error", text: "Not inside a git repository." };
+        const branch = await git.getCurrentBranch();
+        const files = await git.getChangedFiles("changes");
+        const diff = await git.getDiff("changes");
+        const commits = await git.getRecentCommits(3);
+        if (files.length === 0)
+          return { kind: "info", text: "No git changes detected. Nothing to test." };
+
+        const fileSummary = files
+          .slice(0, 30)
+          .map((f) => `  - ${f}`)
+          .join("\n");
+        const keys = loadKeys();
+        const model = keys._activeModel ?? "";
+        const apiKey =
+          keys.OPENCODE_API_KEY ??
+          keys.ANTHROPIC_API_KEY ??
+          keys.OPENAI_API_KEY ??
+          keys.GOOGLE_AI_KEY ??
+          keys.DEEPSEEK_API_KEY ??
+          "";
+        if (!apiKey)
+          return { kind: "error", text: "No API key configured. Run /config to set one up." };
+
+        const scanPrompt = [
+          `You are a test planning assistant for "inspect", a browser testing tool.`,
+          `The user has ${files.length} changed file(s) on branch "${branch}".`,
+          ``,
+          `Changed files:`,
+          fileSummary,
+          ``,
+          `Recent commits:`,
+          commits.map((c) => `  - ${c}`).join("\n"),
+          ``,
+          `Generate a test plan. Output ONLY a JSON object with this exact structure:`,
+          ``,
+          `\`\`\`json`,
+          `{`,
+          `  "title": "short title for this test plan",`,
+          `  "rationale": "why these tests are needed based on the changes",`,
+          `  "steps": [`,
+          `    {`,
+          `      "id": "step-1",`,
+          `      "title": "short step title",`,
+          `      "instruction": "what the agent should do",`,
+          `      "expectedOutcome": "what should happen if it passes",`,
+          `      "routeHint": "URL path hint if applicable, or empty string"`,
+          `    }`,
+          `  ],`,
+          `  "baseUrl": "http://localhost:3000"`,
+          `}`,
+          `\`\`\``,
+          ``,
+          `Rules:`,
+          `- Generate 3-8 steps covering the main user flows affected by these changes`,
+          `- Include adversarial/edge cases (empty inputs, invalid data, error states)`,
+          `- Each step should be independently testable`,
+          `- If the changes affect auth, include login/logout flows`,
+          `- If the changes affect forms, include validation testing`,
+          `- If the changes affect navigation, include route testing`,
+          `- Output ONLY the JSON, no other text`,
+        ].join("\n");
+
+        let url: string;
+        let headers: Record<string, string>;
+        let body: Record<string, unknown>;
+
+        if (model.startsWith("opencode/") || keys.OPENCODE_API_KEY) {
+          url = "https://opencode.ai/zen/go/v1/chat/completions";
+          headers = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${keys.OPENCODE_API_KEY ?? apiKey}`,
+          };
+          body = {
+            model: model.replace("opencode/", "") || "kimi-k2.5",
+            messages: [
+              { role: "system", content: "You are a test planning assistant. Output only JSON." },
+              { role: "user", content: scanPrompt },
+            ],
+            max_tokens: 2048,
+          };
+        } else if (keys.ANTHROPIC_API_KEY) {
+          url = "https://api.anthropic.com/v1/messages";
+          headers = {
+            "Content-Type": "application/json",
+            "x-api-key": keys.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          };
+          body = {
+            model: model || "claude-sonnet-4-20250514",
+            max_tokens: 2048,
+            system: "You are a test planning assistant. Output only JSON.",
+            messages: [{ role: "user", content: scanPrompt }],
+          };
+        } else if (keys.OPENAI_API_KEY) {
+          url = "https://api.openai.com/v1/chat/completions";
+          headers = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${keys.OPENAI_API_KEY}`,
+          };
+          body = {
+            model: model || "gpt-4o",
+            messages: [
+              { role: "system", content: "You are a test planning assistant. Output only JSON." },
+              { role: "user", content: scanPrompt },
+            ],
+            max_tokens: 2048,
+          };
+        } else if (keys.GOOGLE_AI_KEY) {
+          const m = model || "gemini-2.5-pro";
+          url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
+          headers = { "Content-Type": "application/json", "x-goog-api-key": keys.GOOGLE_AI_KEY };
+          body = {
+            contents: [{ role: "user", parts: [{ text: scanPrompt }] }],
+            systemInstruction: {
+              parts: [{ text: "You are a test planning assistant. Output only JSON." }],
+            },
+            generationConfig: { maxOutputTokens: 2048 },
+          };
+        } else if (keys.DEEPSEEK_API_KEY) {
+          url = "https://api.deepseek.com/chat/completions";
+          headers = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${keys.DEEPSEEK_API_KEY}`,
+          };
+          body = {
+            model: model || "deepseek-chat",
+            messages: [
+              { role: "system", content: "You are a test planning assistant. Output only JSON." },
+              { role: "user", content: scanPrompt },
+            ],
+            max_tokens: 2048,
+          };
+        } else {
+          return { kind: "error", text: "No supported API key found. Run /config to set one up." };
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 60000);
+        const res = await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          return {
+            kind: "error",
+            text: `Plan generation failed: ${res.status} ${errText.slice(0, 200)}`,
+          };
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = (await res.json()) as Record<string, any>;
+        let rawText = "";
+        if (data.choices?.[0]?.message?.content) rawText = data.choices[0].message.content;
+        else if (data.content?.[0]?.text) rawText = data.content[0].text;
+        else if (data.candidates?.[0]?.content?.parts?.[0]?.text)
+          rawText = data.candidates[0].content.parts[0].text;
+
+        if (!rawText) return { kind: "error", text: "Plan generation returned empty response." };
+
+        const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonStr = jsonMatch ? jsonMatch[1].trim() : rawText.trim();
+        let plan: Record<string, unknown>;
+        try {
+          plan = JSON.parse(jsonStr) as Record<string, unknown>;
+        } catch {
+          return { kind: "error", text: "Failed to parse plan from LLM response." };
+        }
+
+        const title = (plan.title as string) ?? "Test Plan";
+        const rationale = (plan.rationale as string) ?? "";
+        const steps = (plan.steps as Array<Record<string, string>>) ?? [];
+        const baseUrl = (plan.baseUrl as string) ?? "http://localhost:3000";
+
+        const lines: string[] = [];
+        lines.push("");
+        lines.push(`  \x1b[1;35mTest Plan Generated\x1b[0m`);
+        lines.push("");
+        lines.push(`  \x1b[1;37mTitle:\x1b[0m \x1b[36m${title}\x1b[0m`);
+        lines.push(`  \x1b[1;37mBranch:\x1b[0m \x1b[32m${branch}\x1b[0m`);
+        lines.push(`  \x1b[1;37mFiles:\x1b[0m \x1b[33m${files.length}\x1b[0m changed`);
+        lines.push(`  \x1b[1;37mBase URL:\x1b[0m \x1b[90m${baseUrl}\x1b[0m`);
+        lines.push("");
+        if (rationale) {
+          lines.push(`  \x1b[1;37mRationale:\x1b[0m`);
+          lines.push(`  \x1b[90m${rationale}\x1b[0m`);
+          lines.push("");
+        }
+        lines.push(`  \x1b[1;37mSteps (${steps.length})\x1b[0m`);
+        lines.push("");
+        for (const step of steps) {
+          lines.push(`  \x1b[36m▸ ${step.id ?? ""}\x1b[0m \x1b[1m${step.title ?? ""}\x1b[0m`);
+          lines.push(`    \x1b[90m→ ${step.instruction ?? ""}\x1b[0m`);
+          if (step.expectedOutcome) lines.push(`    \x1b[32m✓ ${step.expectedOutcome}\x1b[0m`);
+          lines.push("");
+        }
+        lines.push(`  \x1b[2mRun with:\x1b[0m \x1b[36m/test\x1b[0m to execute this plan`);
+        lines.push("");
+        return { kind: "cmd", text: lines.join("\n") };
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { kind: "error", text: `Plan generation failed: ${msg}` };
+      }
+    }
 
     case "config":
       return { kind: "cmd", text: "__OPEN_CONFIG__" };
@@ -1663,7 +1957,12 @@ export function Repl(): React.ReactElement {
                         <Text color="#22c55e" bold>
                           {git.branch}
                         </Text>
-                        {git.files > 0 && <Text color="#eab308"> ({git.files} changed)</Text>}
+                        {git.files > 0 && (
+                          <Text color="#eab308">
+                            {" "}
+                            ({git.files} file{git.files !== 1 ? "s" : ""} changed)
+                          </Text>
+                        )}
                       </Box>
                     ) : null}
                     <Box>
@@ -1675,13 +1974,79 @@ export function Repl(): React.ReactElement {
                       {agent === "ollama" && <Text color="#64748b"> (local)</Text>}
                     </Box>
                   </Box>
-                  <Box marginTop={1}>
-                    <Text color="#38bdf8"> {"\u25c7"} </Text>
-                    <Text color="#94a3b8">Type a test instruction or URL and press </Text>
-                    <Text color="#22c55e" bold>
-                      Enter
-                    </Text>
-                  </Box>
+
+                  {/* Git diff summary */}
+                  {git.isRepo && git.loaded && git.files > 0 && (
+                    <Box marginTop={1} flexDirection="column">
+                      <Box>
+                        <Text color="#64748b">
+                          {"\u2500".repeat(Math.min(60, process.stdout.columns - 4 || 76))}
+                        </Text>
+                      </Box>
+                      <Box marginTop={1}>
+                        <Text color="#a855f7" bold>
+                          {"\u25c7"}{" "}
+                        </Text>
+                        <Text color="#e2e8f0" bold>
+                          Changed files
+                        </Text>
+                        <Text color="#64748b">
+                          {" "}
+                          (+{git.totalAdditions} -{git.totalDeletions})
+                        </Text>
+                      </Box>
+                      {git.changedFiles.slice(0, 12).map((f) => {
+                        const sc =
+                          f.status === "added"
+                            ? "#22c55e"
+                            : f.status === "deleted"
+                              ? "#ef4444"
+                              : f.status === "renamed"
+                                ? "#eab308"
+                                : "#38bdf8";
+                        const sym =
+                          f.status === "added"
+                            ? "+"
+                            : f.status === "deleted"
+                              ? "-"
+                              : f.status === "renamed"
+                                ? "~"
+                                : "M";
+                        return (
+                          <Box key={f.path}>
+                            <Text color={sc}>
+                              {"  "}
+                              {sym}{" "}
+                            </Text>
+                            <Text color="#94a3b8">{f.path}</Text>
+                          </Box>
+                        );
+                      })}
+                      {git.files > 12 && (
+                        <Box marginTop={1}>
+                          <Text color="#64748b">
+                            {"  "}... and {git.files - 12} more files
+                          </Text>
+                        </Box>
+                      )}
+                      <Box marginTop={1}>
+                        <Text color="#38bdf8">{"\u25c7"} </Text>
+                        <Text color="#94a3b8">Type a test instruction, URL, or </Text>
+                        <Text color="#22d3ee">/scan</Text>
+                        <Text color="#94a3b8"> to generate a test plan</Text>
+                      </Box>
+                    </Box>
+                  )}
+
+                  {(!git.isRepo || git.files === 0) && (
+                    <Box marginTop={1}>
+                      <Text color="#38bdf8"> {"\u25c7"} </Text>
+                      <Text color="#94a3b8">Type a test instruction or URL and press </Text>
+                      <Text color="#22c55e" bold>
+                        Enter
+                      </Text>
+                    </Box>
+                  )}
                 </Box>
               );
             case "user":

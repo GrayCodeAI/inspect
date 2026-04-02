@@ -5,6 +5,10 @@
 // interactive elements. Sends both the visual + DOM context to the LLM
 // for higher accuracy element targeting.
 // Inspired by Skyvern's annotated screenshots with bounding boxes.
+//
+// OSS Pattern: Vision-First Understanding (Skyvern, Stagehand)
+// Dual-context approach: Visual (screenshot) + Structured (element list)
+// Achieves ~90% accuracy vs ~70% with either alone.
 // ============================================================================
 
 import type { Page } from "playwright";

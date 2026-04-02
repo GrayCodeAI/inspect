@@ -5,11 +5,23 @@ import { TenantManager } from "./tenant.js";
 import { SSOManager } from "./sso.js";
 import type { LLMProvider } from "@inspect/llm";
 
-const _mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as LLMProvider;
+const _mockLocalProvider = {
+  getName: () => "ollama",
+  getModel: () => "llama3.1",
+  supportsVision: () => false,
+  supportsThinking: () => false,
+  chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+  stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+} as unknown as LLMProvider;
+
 const _mockCloudProvider = {
   getName: () => "anthropic",
   getModel: () => "claude-sonnet",
-} as LLMProvider;
+  supportsVision: () => true,
+  supportsThinking: () => true,
+  chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+  stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+} as unknown as LLMProvider;
 
 describe("RBACManager", () => {
   it("should allow tester to execute test command", () => {
@@ -56,11 +68,22 @@ describe("RBACManager", () => {
 });
 
 describe("HybridRouter", () => {
-  const mockLocalProvider = { getName: () => "ollama", getModel: () => "llama3.1" } as LLMProvider;
+  const mockLocalProvider = {
+    getName: () => "ollama",
+    getModel: () => "llama3.1",
+    supportsVision: () => false,
+    supportsThinking: () => false,
+    chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+  } as unknown as LLMProvider;
   const mockCloudProvider = {
     getName: () => "anthropic",
     getModel: () => "claude-sonnet",
-  } as LLMProvider;
+    supportsVision: () => true,
+    supportsThinking: () => true,
+    chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+  } as unknown as LLMProvider;
 
   it("should route sensitive data to local", async () => {
     const router = new HybridRouter({

@@ -1,14 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type {
   DashboardEvent,
-  DashboardRunState,
-  DashboardSnapshot,
   DashboardCommand,
   DashboardSpawnConfig,
   DashboardLogEntry,
   DashboardStepSnapshot,
   AgentActivityType,
 } from "./dashboard.js";
+import type { DashboardRunState, DashboardSnapshot } from "../models.js";
 
 describe("Dashboard types", () => {
   it("DashboardRunState has all required fields", () => {
@@ -22,10 +21,8 @@ describe("Dashboard types", () => {
       phase: "executing",
       currentStep: 1,
       totalSteps: 5,
-      steps: [],
       tokenCount: 100,
       elapsed: 5000,
-      logs: [],
       startedAt: Date.now(),
     };
     expect(run.runId).toBe("run-1");
@@ -46,10 +43,8 @@ describe("Dashboard types", () => {
           phase: "planning",
           currentStep: 0,
           totalSteps: 0,
-          steps: [],
           tokenCount: 0,
           elapsed: 0,
-          logs: [],
           startedAt: 0,
         },
       },

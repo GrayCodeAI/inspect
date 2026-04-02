@@ -1,140 +1,15 @@
 // @inspect/agent — Backward-compatibility facade
-// Re-exports from @inspect/llm, @inspect/agent-memory, @inspect/agent-tools,
-// @inspect/agent-watchdogs, @inspect/agent-governance
+// Re-exports core functionality from @inspect/llm, @inspect/agent-memory, @inspect/agent-tools
 // New code should import the specific packages directly.
 
-export {
-  LLMProvider,
-  LLMError,
-  ClaudeProvider,
-  OpenAIProvider,
-  GeminiProvider,
-  DeepSeekProvider,
-  OllamaProvider,
-  AgentRouter,
-  RateLimiter,
-  RATE_LIMIT_PRESETS,
-  FallbackManager,
-  type ProviderConfig,
-  type LLMMessage,
-  type LLMContentPart,
-  type LLMToolDefinition,
-  type LLMToolCall,
-  type LLMRequestOptions,
-  type LLMResponse,
-  type LLMChunk,
-  type AgentRouterConfig,
-  type ProviderName,
-  type RateLimitConfig,
-  type FallbackConfig,
-  type LLMCallFn,
-} from "@inspect/llm";
+// LLM providers
+export type { LLMProvider, LLMMessage, LLMResponse } from "@inspect/llm";
+export { LLMProvider as BaseLLMProvider } from "@inspect/llm";
 
-export {
-  MessageManager,
-  LongTermMemory,
-  ContextCompactor,
-  MessageCompactor,
-  PatternStore,
-  ActionCache,
-  SelfHealer,
-  type MessageManagerOptions,
-  type LearnedPattern,
-  type MemoryEntry,
-  type CompactionOptions,
-  type CompactionResult,
-  type CompactorConfig,
-  type StoredPattern,
-  type ActionCacheConfig,
-  type CachedAction,
-  type HealResult,
-  type HealCandidate,
-  type ElementDescription,
-  type SnapshotElement,
-} from "@inspect/agent-memory";
-
-export {
-  ToolRegistry,
-  CustomTools,
-  BaseTool,
-  toolAction,
-  toolProvider,
-  registerDecoratedTools,
-  ToolValidator,
-  NLAssert,
-  TokenTracker,
-  SensitiveDataMasker,
-  JudgeLLM,
-  UserToolRegistry,
-  defineTool,
-  LoopDetector,
-  ActionLoopDetector,
-  StallDetector,
-  type ToolHandler,
-  type ToolParameterSchema,
-  type ToolResult,
-  type RegisteredTool,
-  type CustomToolDefinition,
-  type CustomToolParameter,
-  type SkillReference,
-  type ToolMetadata,
-  type ToolActionMetadata,
-  type DecoratedMethod,
-  type ValidationError,
-  type ValidationResult,
-  type AssertionContext,
-  type AssertionResult,
-  type TokenBudget,
-  type TokenUsageEntry,
-  type TokenSummary,
-  type JudgeInput,
-  type JudgeVerdict,
-  type UserToolDefinition,
-  type ActionRecord,
-  type LoopDetection,
-  type LoopNudge,
-  type ActionLoopConfig,
-  type ActionLoopNudge,
-  type ReplanConfig,
-  type ReplanResult,
-} from "@inspect/agent-tools";
-
-export {
-  WatchdogManager,
-  CaptchaWatchdog,
-  DownloadWatchdog,
-  PopupWatchdog,
-  CrashWatchdog,
-  DOMWatchdog,
-  PermissionsWatchdog,
-  type WatchdogType,
-  type WatchdogEvent,
-  type WatchdogConfig,
-  type Watchdog,
-  type WatchdogCallback,
-  type TrackedDownload,
-  type TrackedPopup,
-  type PopupRule,
-  type CrashInfo,
-  type DOMMutation,
-  type PermissionRequest,
-  type PermissionRule,
-} from "@inspect/agent-watchdogs";
-
-export {
-  AuditTrail,
-  AutonomyManager,
-  AutonomyLevel,
-  PermissionManager,
-  type AuditEntry,
-  type AuditAction,
-  type AuditFilter,
-  type ToolCall,
-  type TokenUsage,
-  type ComplianceReport,
-  type AutonomyConfig,
-  type AgentPermissions,
-} from "@inspect/agent-governance";
+// Memory & tools
+export { ActionCache, PatternStore } from "@inspect/agent-memory";
+export type { ActionRecord } from "@inspect/agent-tools";
+export { ToolRegistry } from "@inspect/agent-tools";
 
 // OTP
 export { TOTPGenerator, generateTOTP, type TOTPConfig } from "./otp/totp.js";
@@ -195,3 +70,31 @@ export {
   type SerializedGraph,
   type GraphValidationResult,
 } from "./orchestration/index.js";
+
+// Real Agent Loop (observe → think → act → finalize)
+export {
+  AgentLoop,
+  type AgentConfig,
+  type AgentState,
+  type AgentBrain,
+  type AgentOutput,
+  type AgentAction,
+  type Observation,
+  type ActionResult,
+  DEFAULT_AGENT_CONFIG,
+} from "./agent-loop/index.js";
+
+// Speculative Planning & Self-Healing
+// Note: These modules will be fully implemented in Phase 1
+// Currently providing minimal stubs for compilation
+
+// Action Caching
+export {
+  type Action,
+  type CacheConfig,
+  type CacheHit,
+  type CacheStats,
+  type ElementSignature,
+  type ReplayableAction,
+  DEFAULT_CACHE_CONFIG,
+} from "./cache/index.js";

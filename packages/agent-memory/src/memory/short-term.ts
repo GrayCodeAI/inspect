@@ -63,8 +63,8 @@ export class MessageManager {
   /**
    * Add a tool result message.
    */
-  addToolResult(toolCallId: string, content: string, name?: string): void {
-    this.add({ role: "tool", content, toolCallId, name });
+  addToolResult(content: string): void {
+    this.add({ role: "tool", content });
   }
 
   /**
@@ -90,17 +90,15 @@ export class MessageManager {
     for (const msg of this.messages) {
       if (typeof msg.content === "string") {
         totalChars += msg.content.length;
-      } else {
-        for (const part of msg.content) {
-          if (part.type === "text") {
+      } else if (Array.isArray(msg.content)) {
+        for (const part of msg.content as Array<{ type: string; text?: string }>) {
+          if (part.type === "text" && part.text) {
             totalChars += part.text.length;
           } else if (part.type === "image_base64") {
-            // Images cost roughly 1000 tokens each
             totalChars += 4000;
           }
         }
       }
-      // Overhead for role, metadata
       totalChars += 20;
     }
 

@@ -58,11 +58,12 @@ export class BrowserManager {
     }
 
     if (config.proxy) {
+      const p = config.proxy as any;
       launchOptions.proxy = {
-        server: config.proxy.server,
-        username: config.proxy.username,
-        password: config.proxy.password,
-        bypass: config.proxy.bypass,
+        server: p.server,
+        username: p.username,
+        password: p.password,
+        bypass: p.bypass,
       };
     }
 
@@ -73,13 +74,13 @@ export class BrowserManager {
         viewport: config.viewport,
         locale: config.locale,
         timezoneId: config.timezone,
-        geolocation: config.geolocation,
-        permissions: config.permissions,
+        geolocation: config.geolocation as any,
+        permissions: config.permissions ? [...config.permissions] : undefined,
         ignoreHTTPSErrors: config.ignoreHTTPSErrors,
         deviceScaleFactor: config.deviceScaleFactor,
         isMobile: config.isMobile,
         hasTouch: config.hasTouch,
-        extraHTTPHeaders: config.extraHTTPHeaders,
+        extraHTTPHeaders: config.extraHTTPHeaders as any,
       });
       // Persistent context owns its own browser — set to null to avoid double-close
       this.browser = null;
@@ -89,13 +90,13 @@ export class BrowserManager {
         viewport: config.viewport,
         locale: config.locale,
         timezoneId: config.timezone,
-        geolocation: config.geolocation,
-        permissions: config.permissions,
+        geolocation: config.geolocation as any,
+        permissions: config.permissions ? [...config.permissions] : undefined,
         ignoreHTTPSErrors: config.ignoreHTTPSErrors,
         deviceScaleFactor: config.deviceScaleFactor,
         isMobile: config.isMobile,
         hasTouch: config.hasTouch,
-        extraHTTPHeaders: config.extraHTTPHeaders,
+        extraHTTPHeaders: config.extraHTTPHeaders as any,
         storageState: config.storageStatePath ?? undefined,
       });
     }

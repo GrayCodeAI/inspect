@@ -1,0 +1,11 @@
+{
+  "name": "@inspect/skill",
+  "version": "0.0.1",
+  "private": true,
+  "description": "AI agent skill for browser testing with inspect",
+  "license": "MIT",
+  "files": [
+    "SKILL.md"
+  ],
+  "type": "module"
+}

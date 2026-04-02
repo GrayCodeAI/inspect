@@ -5,6 +5,8 @@
  * frontend consumers (TUI DashboardScreen, Web Live Dashboard).
  */
 
+import type { DashboardRunState, DashboardSnapshot } from "../models.js";
+
 // ---------------------------------------------------------------------------
 // Agent activity — what an agent is doing right now
 // ---------------------------------------------------------------------------
@@ -51,25 +53,8 @@ export interface DashboardStepSnapshot {
   toolCall?: string;
 }
 
-export interface DashboardRunState {
-  runId: string;
-  testName: string;
-  device: string;
-  browser: string;
-  agent: string;
-  status: DashboardRunStatus;
-  phase: DashboardRunPhase;
-  currentStep: number;
-  totalSteps: number;
-  steps: DashboardStepSnapshot[];
-  tokenCount: number;
-  elapsed: number;
-  screenshot?: string;
-  agentActivity?: DashboardAgentActivity;
-  logs: DashboardLogEntry[];
-  startedAt: number;
-  completedAt?: number;
-}
+// DashboardRunState is defined as Schema.Class in models.ts
+// Import from there to avoid duplication
 
 // ---------------------------------------------------------------------------
 // Aggregate summary
@@ -153,12 +138,5 @@ export interface DashboardFlakinessReport {
   entries: DashboardFlakinessEntry[];
 }
 
-// ---------------------------------------------------------------------------
-// Full snapshot — for initial connection hydration
-// ---------------------------------------------------------------------------
-
-export interface DashboardSnapshot {
-  runs: DashboardRunState[];
-  summary: DashboardSummary;
-  flakiness?: DashboardFlakinessReport;
-}
+// DashboardSnapshot is defined as Schema.Class in models.ts
+// Import from there to avoid duplication

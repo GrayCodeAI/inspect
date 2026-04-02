@@ -6,7 +6,12 @@
 // Inspired by Browser Use's judge_llm.
 // ============================================================================
 
-import type { LLMProvider, LLMMessage } from "@inspect/llm";
+// import type { LLMProvider, LLMMessage } from "@inspect/llm";
+// TODO: Refactor to use Effect-TS LLMProviderService
+interface LLMProvider {
+  chat: (messages: unknown[], options?: { systemPrompt?: string; temperature?: number; maxTokens?: number; responseFormat?: string }) => Promise<{ content: string; usage: { totalTokens: number } }>;
+}
+type LLMMessage = { role: string; content: string };
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/judge");
@@ -89,7 +94,7 @@ export class JudgeLLM {
 
     const messages: LLMMessage[] = [{ role: "user", content: userContent }];
 
-    const response = await this.provider.chat(messages, undefined, {
+    const response = await this.provider.chat(messages, {
       systemPrompt: JUDGE_PROMPT,
       temperature: 0,
       maxTokens: 500,

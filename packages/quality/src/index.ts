@@ -111,3 +111,16 @@ export {
   type FaultStats,
   type Toxic,
 } from "@inspect/resilience";
+
+// Statistical scoring
+export {
+  LogNormalScoringEngine,
+  DEFAULT_LOG_NORMAL_CONFIG,
+  type LogNormalConfig,
+  type ScoringResult,
+  type MetricScore,
+  type StatisticalDetails,
+  type PerformanceSample,
+  type BenchmarkComparison,
+  createLogNormalScoringEngine,
+} from "./scoring/index.js";

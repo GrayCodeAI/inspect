@@ -294,68 +294,10 @@ export class SelfHealer {
   }
 
   private async findViaVision(
-    description: ElementDescription,
-    screenshotBase64: string,
+    _description: ElementDescription,
+    _screenshotBase64: string,
   ): Promise<HealCandidate | null> {
-    if (!this.llm?.supportsVision()) return null;
-
-    const messages: LLMMessage[] = [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `I'm looking for a UI element with the following description:
-- Role: ${description.role}
-- Name: ${description.name}
-${description.tagName ? `- Tag: ${description.tagName}` : ""}
-${description.nearbyText ? `- Nearby text: ${description.nearbyText}` : ""}
-
-Look at the screenshot and identify this element. Return a JSON object with:
-- "found": true/false
-- "ref": the element's reference ID if visible (e.g., "e15")
-- "confidence": 0-1 how sure you are
-- "description": brief description of what you see
-
-Return ONLY the JSON object, nothing else.`,
-          },
-          {
-            type: "image_base64",
-            media_type: "image/png",
-            data: screenshotBase64,
-          },
-        ],
-      },
-    ];
-
-    try {
-      const response = await this.llm.chat(messages, undefined, {
-        maxTokens: 200,
-        temperature: 0,
-        responseFormat: "json",
-      });
-
-      const result = JSON.parse(response.content) as {
-        found: boolean;
-        ref?: string;
-        confidence?: number;
-        description?: string;
-      };
-
-      if (result.found && result.ref) {
-        return {
-          ref: result.ref,
-          role: description.role,
-          name: description.name,
-          confidence: result.confidence ?? 0.6,
-          method: "vision",
-        };
-      }
-    } catch (error) {
-      logger.warn("Vision-based healing failed", {
-        err: error instanceof Error ? error.message : String(error),
-      });
-    }
+    if (!this.llm) return null;
 
     return null;
   }

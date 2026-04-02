@@ -86,7 +86,7 @@ export function registerTaskRoutes(server: APIServer, taskStore: TaskStore): voi
       },
       result: task.result
         ? {
-            passed: task.result.passed,
+            passed: task.result.status === "passed",
             duration: task.result.duration,
             summary: task.result.summary,
             stepsCompleted: task.result.steps.length,

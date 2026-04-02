@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { createInterface } from "node:readline";
-import type { MCPToolResult, CookieParam, BrowserConfig } from "@inspect/shared";
+import type { CookieParam } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 import { BrowserManager } from "../playwright/browser.js";
 
@@ -28,6 +28,23 @@ interface JsonRpcResponse {
   id: number | string;
   result?: unknown;
   error?: { code: number; message: string; data?: unknown };
+}
+
+interface MCPToolResult {
+  content: Array<{ type: string; text?: string; [key: string]: unknown }>;
+  isError?: boolean;
+}
+
+interface BrowserConfig {
+  name: string;
+  headless?: boolean;
+  stealth?: boolean;
+  viewport?: { width: number; height: number };
+  locale?: string;
+  timezone?: string;
+  userDataDir?: string;
+  executablePath?: string;
+  proxy?: { server: string; username?: string; password?: string };
 }
 
 /**
@@ -137,7 +154,6 @@ export class MCPServer {
             name: t.name,
             description: t.description,
             inputSchema: t.inputSchema,
-            annotations: t.annotations,
           })),
         });
         break;
@@ -211,7 +227,8 @@ export class MCPServer {
   private async toolOpen(args: Record<string, unknown>): Promise<MCPToolResult> {
     const vp = args["viewport"] as { width?: number; height?: number } | undefined;
 
-    const config: BrowserConfig = {
+    const config: any = {
+      name: "chromium",
       headless: (args["headless"] as boolean) ?? true,
       stealth: (args["stealth"] as boolean) ?? false,
       viewport: { width: vp?.width ?? 1280, height: vp?.height ?? 720 },
@@ -219,11 +236,8 @@ export class MCPServer {
       timezone: args["timezoneId"] as string | undefined,
       userDataDir: args["userDataDir"] as string | undefined,
       executablePath: args["executablePath"] as string | undefined,
+      proxy: args["proxy"] as { server: string; username?: string; password?: string } | undefined,
     };
-
-    if (args["proxy"]) {
-      config.proxy = args["proxy"] as { server: string; username?: string; password?: string };
-    }
 
     const _context = await this.browserManager.launchBrowser(config);
     const page = await this.browserManager.newPage();

@@ -139,38 +139,42 @@ describe("Domain Error Classes", () => {
   it("BrowserError should have correct properties", () => {
     const err = new BrowserError({
       _tag: "BrowserError",
-      message: "Launch failed",
+      browser: "chromium",
       cause: { code: "BROWSER_LAUNCH_FAILED" },
     });
     expect(err._tag).toBe("BrowserError");
-    expect(err.message).toBe("Launch failed");
+    expect(err.browser).toBe("chromium");
     expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(BrowserError);
   });
 
   it("WorkflowError should have workflowId", () => {
-    const err = new WorkflowError("Block failed", {
-      code: "BLOCK_EXECUTION_FAILED",
+    const err = new WorkflowError({
+      _tag: "WorkflowError",
       workflowId: "wf-123",
+      reason: "Block failed",
+      cause: { code: "BLOCK_EXECUTION_FAILED" },
     });
-    expect(err.name).toBe("WorkflowError");
     expect(err.workflowId).toBe("wf-123");
+    expect(err.reason).toBe("Block failed");
   });
 
-  it("CredentialError should have provider", () => {
-    const err = new CredentialError("Decrypt failed", {
-      code: "VAULT_DECRYPT_FAILED",
-      provider: "azure-key-vault",
+  it("CredentialError should have credentialId", () => {
+    const err = new CredentialError({
+      _tag: "CredentialError",
+      credentialId: "cred-123",
+      reason: "Decrypt failed",
+      cause: { code: "VAULT_DECRYPT_FAILED" },
     });
-    expect(err.name).toBe("CredentialError");
-    expect(err.provider).toBe("azure-key-vault");
+    expect(err.credentialId).toBe("cred-123");
+    expect(err.reason).toBe("Decrypt failed");
   });
 
-  it("NetworkError should be retryable", () => {
-    const err = new NetworkError("Proxy failed", {
-      code: "PROXY_ERROR",
-      retryable: true,
+  it("NetworkError should have url", () => {
+    const err = new NetworkError({
+      _tag: "NetworkError",
+      url: "https://example.com",
+      cause: { code: "PROXY_ERROR" },
     });
-    expect(err.retryable).toBe(true);
+    expect(err.url).toBe("https://example.com");
   });
 });

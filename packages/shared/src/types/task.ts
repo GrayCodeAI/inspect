@@ -3,12 +3,17 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { ProxyConfig } from "./browser-config.js";
-import type { TestResult } from "./test.js";
+import type { TestResult } from "../models.js";
 
 /** Task status */
 export type TaskStatus =
-  | 'created' | 'queued' | 'running' | 'completed'
-  | 'failed' | 'cancelled' | 'timed_out';
+  | "created"
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "timed_out";
 
 /** Task definition for browser automation */
 export interface TaskDefinition {
@@ -27,7 +32,7 @@ export interface TaskDefinition {
 /** Task artifact */
 export interface TaskArtifact {
   id: string;
-  type: 'screenshot' | 'recording' | 'har' | 'pdf' | 'json' | 'html';
+  type: "screenshot" | "recording" | "har" | "pdf" | "json" | "html";
   path: string;
   size: number;
   createdAt: number;
@@ -62,7 +67,7 @@ export interface TestFlow {
   title: string;
   description: string;
   version: number;
-  targetScope: 'unstaged' | 'branch' | 'changes';
+  targetScope: "unstaged" | "branch" | "changes";
   environment: {
     baseUrl: string;
     cookiesRequired: boolean;
@@ -74,11 +79,25 @@ export interface TestFlow {
 
 /** Types of watchdog events */
 export type WatchdogEventType =
-  | 'captcha_detected' | 'captcha_solved' | 'download_started' | 'download_completed'
-  | 'popup_detected' | 'popup_handled' | 'crash_detected' | 'crash_recovered'
-  | 'permission_requested' | 'permission_handled' | 'dom_changed' | 'security_alert'
-  | 'storage_saved' | 'about_blank_handled' | 'action_loop_detected'
-  | 'screenshot_captured' | 'har_entry_recorded' | 'recording_started' | 'recording_stopped';
+  | "captcha_detected"
+  | "captcha_solved"
+  | "download_started"
+  | "download_completed"
+  | "popup_detected"
+  | "popup_handled"
+  | "crash_detected"
+  | "crash_recovered"
+  | "permission_requested"
+  | "permission_handled"
+  | "dom_changed"
+  | "security_alert"
+  | "storage_saved"
+  | "about_blank_handled"
+  | "action_loop_detected"
+  | "screenshot_captured"
+  | "har_entry_recorded"
+  | "recording_started"
+  | "recording_stopped";
 
 /** Watchdog event */
 export interface WatchdogEvent {

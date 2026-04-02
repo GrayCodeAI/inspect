@@ -42,6 +42,65 @@ export type {
   AnnotatedScreenshotResult,
   AnnotatedElement,
 } from "./vision/annotated-screenshot.js";
+export {
+  CoordinateTransformer,
+  CUAActionExecutor,
+  elementIndexToCoordinate,
+  validateCoordinates,
+} from "./vision/coordinate-interaction.js";
+export type {
+  CoordinateConfig,
+  NormalizedCoordinate,
+  CoordinateMapping,
+  ElementInfo,
+} from "./vision/coordinate-interaction.js";
+
+// Multi-tree DOM collection
+export {
+  MultiTreeCollector,
+  type MultiTreeCollection,
+  type DOMTreeNode,
+  type AXTreeNode,
+  type DOMSnapshot,
+  type EnhancedElement,
+  type MultiTreeConfig,
+  DEFAULT_MULTI_TREE_CONFIG,
+} from "./dom/multi-tree.js";
+
+// Two-phase stability detection
+export {
+  StabilityDetector,
+  DEFAULT_STABILITY_CONFIG,
+  type StabilityConfig,
+  type StabilityMetrics,
+  type NetworkStats,
+  waitForStable,
+} from "./stability/index.js";
+
+// Tab activity tracking
+export {
+  TabActivityTracker,
+  DEFAULT_TAB_ACTIVITY_CONFIG,
+  type TabActivityConfig,
+  type TabInfo,
+  type TabStatus,
+  type TabActivity,
+  type ActivityType,
+  type TabSnapshot,
+  type TabGroup,
+  createTabActivityTracker,
+} from "./tabs/index.js";
+
+// Hybrid DOM + Accessibility snapshot
+export {
+  HybridSnapshotBuilder,
+  DEFAULT_HYBRID_CONFIG,
+  type HybridSnapshotConfig,
+  type HybridNode,
+  type HybridSnapshot,
+  type BoundingBox,
+  captureHybridSnapshot,
+} from "./accessibility/index.js";
 
 // Cookie extraction
 export {
@@ -163,10 +222,8 @@ export type {
   ScreenshotOptions,
   PDFOptions,
   ElementSnapshot,
-  BoundingBox,
   SnapshotStats,
   DOMNode,
-  HybridNode,
   FrameInfo,
   VisionAction,
   VisionDetectionRequest,
@@ -177,7 +234,6 @@ export type {
   HARArchive,
   HAREntry,
   MCPToolDefinition,
-  MCPToolResult,
   ConsoleMessage,
   NetworkRequest,
 } from "@inspect/shared";

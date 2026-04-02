@@ -5,7 +5,13 @@
 // given the current page state (ARIA snapshot, screenshot, console logs).
 // ============================================================================
 
-import type { LLMProvider, LLMMessage, LLMContentPart } from "@inspect/llm";
+// import type { LLMProvider, LLMMessage, LLMContentPart } from "@inspect/llm";
+// TODO: Refactor to use Effect-TS LLMProviderService
+interface LLMProvider {
+  chat: (messages: unknown[], options?: { systemPrompt?: string; temperature?: number; maxTokens?: number; responseFormat?: string }) => Promise<{ content: string; usage: { totalTokens: number } }>;
+}
+type LLMMessage = { role: string; content: unknown };
+type LLMContentPart = { type: string; text?: string; media_type?: string; data?: string };
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/nl-assert");
@@ -70,7 +76,7 @@ export class NLAssert {
   async verify(assertion: string, context: AssertionContext): Promise<AssertionResult> {
     const messages = this.buildMessages(assertion, context);
 
-    const response = await this.provider.chat(messages, undefined, {
+    const response = await this.provider.chat(messages, {
       systemPrompt: ASSERTION_SYSTEM_PROMPT,
       temperature: 0,
       maxTokens: 500,
@@ -128,7 +134,7 @@ export class NLAssert {
 
     const messages: LLMMessage[] = [{ role: "user", content: userContent }];
 
-    const response = await this.provider.chat(messages, undefined, {
+    const response = await this.provider.chat(messages, {
       systemPrompt: ASSERTION_SYSTEM_PROMPT + "\n\nFor batch mode: respond with a JSON array of result objects, one per assertion.",
       temperature: 0,
       maxTokens: 1000,

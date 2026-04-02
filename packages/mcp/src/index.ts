@@ -14,8 +14,6 @@ export { BROWSER_TOOLS } from "@inspect/browser";
 // MCP types from shared
 export type {
   MCPToolDefinition,
-  MCPToolParameter,
-  MCPTool,
-  MCPToolCall,
-  MCPToolResult,
+  ToolCall,
+  ToolResult,
 } from "@inspect/shared";

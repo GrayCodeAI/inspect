@@ -1,23 +1,31 @@
 export * from "./types/index.js";
 export * from "./utils/index.js";
 export * from "./constants/index.js";
+export * from "./models.js";
 export {
   InspectError,
   BrowserError,
+  NavigationError,
+  ElementNotFoundError,
   AgentError,
   ConfigError,
+  CookieReadError,
+  CookieDatabaseNotFoundError,
+  LLMProviderError,
+  RateLimitError,
+  TokenBudgetExceededError,
+  LoopDetectedError,
+  TimeoutError,
+  SchemaValidationError,
+  TestError,
+  WorkflowError,
+  CredentialError,
+  NetworkError,
   prettyCause,
   hasStringMessage,
 } from "./effect/index.js";
 export { Unsubscribe, EventBus } from "./effect/event-bus.js";
 export * from "./validation.js";
-export {
-  InspectError as LegacyInspectError,
-  BrowserError as LegacyBrowserError,
-  WorkflowError,
-  CredentialError,
-  NetworkError,
-} from "./errors.js";
 export {
   CircuitBreaker,
   CircuitBreakerOpenError,

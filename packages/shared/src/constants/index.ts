@@ -4,12 +4,12 @@
 
 import type {
   AgentConfig,
-  BrowserConfig,
   DevicePreset,
   LLMProvider,
   ModelDefinition,
   ViewportConfig,
 } from "../types/index.js";
+import type { BrowserConfig } from "../models.js";
 
 // ----------------------------------------------------------------------------
 // Viewport & Timeout Defaults
@@ -329,7 +329,7 @@ export const DEVICE_PRESETS: Record<string, DevicePreset> = {
     platform: "iPad",
   },
   "ipad-pro-11": {
-    name: "iPad Pro 11\"",
+    name: 'iPad Pro 11"',
     width: 834,
     height: 1194,
     dpr: 2,
@@ -339,7 +339,7 @@ export const DEVICE_PRESETS: Record<string, DevicePreset> = {
     platform: "iPad",
   },
   "ipad-pro-12": {
-    name: "iPad Pro 12.9\"",
+    name: 'iPad Pro 12.9"',
     width: 1024,
     height: 1366,
     dpr: 2,
@@ -456,7 +456,7 @@ export const DEVICE_PRESETS: Record<string, DevicePreset> = {
     platform: "macOS",
   },
   "desktop-macbook-air": {
-    name: "MacBook Air 13\"",
+    name: 'MacBook Air 13"',
     width: 1440,
     height: 900,
     dpr: 2,
@@ -466,7 +466,7 @@ export const DEVICE_PRESETS: Record<string, DevicePreset> = {
     platform: "macOS",
   },
   "desktop-macbook-pro-16": {
-    name: "MacBook Pro 16\"",
+    name: 'MacBook Pro 16"',
     width: 1728,
     height: 1117,
     dpr: 2,
@@ -480,7 +480,10 @@ export const DEVICE_PRESETS: Record<string, DevicePreset> = {
     width: 1920,
     height: 1080,
     dpr: 1,
-    userAgent: FIREFOX_DESKTOP_UA.replace("Macintosh; Intel Mac OS X 10.15", "Windows NT 10.0; Win64; x64"),
+    userAgent: FIREFOX_DESKTOP_UA.replace(
+      "Macintosh; Intel Mac OS X 10.15",
+      "Windows NT 10.0; Win64; x64",
+    ),
     touch: false,
     mobile: false,
     platform: "Windows",
@@ -697,6 +700,7 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
 
 /** Default browser configuration */
 export const DEFAULT_BROWSER_CONFIG: BrowserConfig = {
+  name: "chromium",
   headless: true,
   viewport: DEFAULT_VIEWPORT,
   stealth: false,
@@ -832,8 +836,7 @@ export const SENSITIVE_DATA_PATTERNS = {
 // ----------------------------------------------------------------------------
 
 /** Regex to parse GitHub PR URLs */
-export const GITHUB_PR_URL_PATTERN =
-  /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/;
+export const GITHUB_PR_URL_PATTERN = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/;
 
 // ----------------------------------------------------------------------------
 // Browser Cookie Configs

@@ -6,7 +6,7 @@ import type { BoundingBox } from "./element.js";
 import type { ViewportConfig } from "./browser-config.js";
 
 /** Accessibility violation impact level */
-export type A11yImpact = 'critical' | 'serious' | 'moderate' | 'minor';
+export type A11yImpact = "critical" | "serious" | "moderate" | "minor";
 
 /** A single check result within a violation node */
 export interface A11yCheckResult {
@@ -59,7 +59,7 @@ export interface A11yReport {
 }
 
 /** Performance metric rating */
-export type MetricRating = 'good' | 'needs-improvement' | 'poor';
+export type MetricRating = "good" | "needs-improvement" | "poor";
 
 /** Single performance metric */
 export interface PerformanceMetric {
@@ -115,14 +115,14 @@ export interface LighthouseReport {
   };
   opportunities: LighthouseOpportunity[];
   diagnostics: LighthouseDiagnostic[];
-  device: 'mobile' | 'desktop';
+  device: "mobile" | "desktop";
   timestamp: number;
   url: string;
   stackPacks?: StackPackAdvice[];
 }
 
 /** Gremlin species for chaos testing */
-export type GremlinSpecies = 'clicker' | 'formFiller' | 'scroller' | 'typer' | 'toucher';
+export type GremlinSpecies = "clicker" | "formFiller" | "scroller" | "typer" | "toucher";
 
 /** FPS drop event */
 export interface FPSDrop {
@@ -145,19 +145,19 @@ export interface ChaosReport {
 
 /** Network fault injection types */
 export type NetworkFault =
-  | { type: 'latency'; delay: number; jitter?: number }
-  | { type: 'bandwidth'; rate: number }
-  | { type: 'timeout'; timeout: number }
-  | { type: 'reset_peer'; timeout: number }
-  | { type: 'slow_close'; delay: number }
-  | { type: 'slicer'; avgSize: number; sizeVariation: number; delay: number }
-  | { type: 'limit_data'; bytes: number };
+  | { type: "latency"; delay: number; jitter?: number }
+  | { type: "bandwidth"; rate: number }
+  | { type: "timeout"; timeout: number }
+  | { type: "reset_peer"; timeout: number }
+  | { type: "slow_close"; delay: number }
+  | { type: "slicer"; avgSize: number; sizeVariation: number; delay: number }
+  | { type: "limit_data"; bytes: number };
 
 /** Network fault with metadata */
 export interface NetworkFaultConfig {
   id: string;
   fault: NetworkFault;
-  stream: 'upstream' | 'downstream';
+  stream: "upstream" | "downstream";
   toxicity: number;
   enabled: boolean;
 }
@@ -199,7 +199,7 @@ export interface MockResponse {
 
 /** Mock handler definition */
 export interface MockHandlerConfig {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'OPTIONS' | 'HEAD';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
   path: string;
   response: MockResponse;
   matcher?: {

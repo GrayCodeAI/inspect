@@ -2,7 +2,13 @@
 // @inspect/agent - Tool Registry
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { LLMToolDefinition } from "@inspect/llm";
+// import type { LLMToolDefinition } from "@inspect/llm";
+// TODO: Refactor to use Effect-TS
+interface LLMToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
 
 /** JSON Schema for tool parameters */
 export interface ToolParameterSchema {
