@@ -202,37 +202,72 @@ export class YAMLGenerator {
       if (!trimmed || trimmed.startsWith("#")) continue;
 
       if (trimmed.startsWith("name:")) {
-        name = trimmed.slice(5).trim().replace(/^["']|["']$/g, "");
+        name = trimmed
+          .slice(5)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (trimmed.startsWith("description:")) {
-        description = trimmed.slice(12).trim().replace(/^["']|["']$/g, "");
+        description = trimmed
+          .slice(12)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (trimmed.startsWith("baseUrl:") || trimmed.startsWith("base_url:")) {
-        baseUrl = trimmed.split(":").slice(1).join(":").trim().replace(/^["']|["']$/g, "");
+        baseUrl = trimmed
+          .split(":")
+          .slice(1)
+          .join(":")
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (trimmed.startsWith("- action:") || trimmed.startsWith("- type:")) {
         if (currentStep?.action) {
           steps.push(currentStep as YAMLStep);
         }
-        const actionValue = trimmed.replace(/^- (action|type):/, "").trim().replace(/^["']|["']$/g, "");
+        const actionValue = trimmed
+          .replace(/^- (action|type):/, "")
+          .trim()
+          .replace(/^["']|["']$/g, "");
         currentStep = { action: actionValue as YAMLStepType };
       } else if (currentStep && trimmed.startsWith("selector:")) {
-        currentStep.selector = trimmed.slice(9).trim().replace(/^["']|["']$/g, "");
+        currentStep.selector = trimmed
+          .slice(9)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (currentStep && trimmed.startsWith("value:")) {
-        currentStep.value = trimmed.slice(6).trim().replace(/^["']|["']$/g, "");
+        currentStep.value = trimmed
+          .slice(6)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (currentStep && trimmed.startsWith("text:")) {
-        currentStep.text = trimmed.slice(5).trim().replace(/^["']|["']$/g, "");
+        currentStep.text = trimmed
+          .slice(5)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (currentStep && trimmed.startsWith("url:")) {
-        currentStep.url = trimmed.split(":").slice(1).join(":").trim().replace(/^["']|["']$/g, "");
-      } else if (currentStep && trimmed.startsWith("description:")) {
-        currentStep.description = trimmed.slice(12).trim().replace(/^["']|["']$/g, "");
+        currentStep.url = trimmed
+          .split(":")
+          .slice(1)
+          .join(":")
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (currentStep && trimmed.startsWith("key:")) {
-        currentStep.key = trimmed.slice(4).trim().replace(/^["']|["']$/g, "");
+        currentStep.key = trimmed
+          .slice(4)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (currentStep && trimmed.startsWith("timeout:")) {
         currentStep.timeout = parseInt(trimmed.slice(8).trim(), 10);
       } else if (currentStep && trimmed.startsWith("fullPage:")) {
         currentStep.fullPage = trimmed.slice(9).trim() === "true";
       } else if (currentStep && trimmed.startsWith("standard:")) {
-        currentStep.standard = trimmed.slice(9).trim().replace(/^["']|["']$/g, "");
+        currentStep.standard = trimmed
+          .slice(9)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       } else if (currentStep && trimmed.startsWith("path:")) {
-        currentStep.path = trimmed.slice(5).trim().replace(/^["']|["']$/g, "");
+        currentStep.path = trimmed
+          .slice(5)
+          .trim()
+          .replace(/^["']|["']$/g, "");
       }
     }
 

@@ -163,7 +163,8 @@ export class YAMLRunner {
 
     const testStep: TestStep = {
       id: generateId(),
-      instruction: step.description ?? `${step.action}: ${step.selector ?? step.value ?? step.url ?? ""}`,
+      instruction:
+        step.description ?? `${step.action}: ${step.selector ?? step.value ?? step.url ?? ""}`,
       expectedOutcome: `Step "${step.action}" completes successfully`,
       status: "running" as TestStepStatus,
       duration: 0,

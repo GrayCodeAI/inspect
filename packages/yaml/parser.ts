@@ -172,7 +172,10 @@ function parseYAMLLines(lines: string[], startLine: number, baseIndent: number):
               const subTrimmed = subLine.trimStart();
               const subIndent = subLine.length - subTrimmed.length;
 
-              if (subTrimmed === "" || subTrimmed.startsWith("#")) { i++; continue; }
+              if (subTrimmed === "" || subTrimmed.startsWith("#")) {
+                i++;
+                continue;
+              }
               if (subIndent <= indent) break;
               if (subTrimmed.startsWith("- ")) break;
 
@@ -254,7 +257,10 @@ function parseYAMLValue(val: string): unknown {
     try {
       return JSON.parse(val);
     } catch {
-      return val.slice(1, -1).split(",").map((s) => parseYAMLValue(s.trim()));
+      return val
+        .slice(1, -1)
+        .split(",")
+        .map((s) => parseYAMLValue(s.trim()));
     }
   }
 
@@ -342,10 +348,10 @@ export class YAMLParser {
 
     const steps = ((raw.steps ?? []) as Array<Record<string, unknown>>).map(transformStep);
     const setup = raw.setup
-      ? ((raw.setup as Array<Record<string, unknown>>).map(transformStep))
+      ? (raw.setup as Array<Record<string, unknown>>).map(transformStep)
       : undefined;
     const teardown = raw.teardown
-      ? ((raw.teardown as Array<Record<string, unknown>>).map(transformStep))
+      ? (raw.teardown as Array<Record<string, unknown>>).map(transformStep)
       : undefined;
 
     const viewport = raw.viewport as Record<string, unknown> | undefined;
