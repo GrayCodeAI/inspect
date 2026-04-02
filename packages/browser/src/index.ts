@@ -2,6 +2,10 @@
 // @inspect/browser - Browser automation, ARIA snapshots, vision, cookies, MCP
 // ──────────────────────────────────────────────────────────────────────────────
 
+// Effect-TS browser service and session interface
+export type { BrowserSession } from "./browser-service.js";
+export { BrowserManager as BrowserManagerService } from "./browser-service.js";
+
 // Playwright browser/page management
 export { BrowserManager } from "./playwright/browser.js";
 export { PageManager } from "./playwright/page.js";
