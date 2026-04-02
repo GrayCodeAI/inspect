@@ -670,6 +670,9 @@ importers:
       '@inspect/visual':
         specifier: workspace:*
         version: link:../visual
+      effect:
+        specifier: ^4.0.0-beta.35
+        version: 4.0.0-beta.35
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

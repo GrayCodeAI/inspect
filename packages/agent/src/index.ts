@@ -9,7 +9,7 @@ export { LLMProvider as BaseLLMProvider } from "@inspect/llm";
 // Memory & tools
 export { ActionCache, PatternStore } from "@inspect/agent-memory";
 export type { ActionRecord } from "@inspect/agent-tools";
-export { ToolRegistry, ActionLoopDetector } from "@inspect/agent-tools";
+export { ToolRegistry, ActionLoopDetector, ContextCompactor, SensitiveDataMasker, LoopDetector } from "@inspect/agent-tools";
 
 // OTP
 export { TOTPGenerator, generateTOTP, type TOTPConfig } from "./otp/totp.js";
@@ -98,3 +98,17 @@ export {
   type ReplayableAction,
   DEFAULT_CACHE_CONFIG,
 } from "./cache/index.js";
+
+// Self-Healing
+export {
+  type HealResult,
+  type HealCandidate,
+  type ElementDescription,
+  type SnapshotElement,
+} from "./cache/healing.js";
+
+// Provider Router
+export { AgentRouter } from "./providers/router.js";
+
+// Agent Tools (for orchestrator)
+export type { ToolDefinition as LLMToolDefinition } from "@inspect/agent-tools";

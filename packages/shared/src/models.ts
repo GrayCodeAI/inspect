@@ -388,21 +388,31 @@ export function gitScopeDisplayName(scope: GitScope): string {
 // Task 402-412: Diff analysis types
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface LineRange {
+  start: number;
+  end: number;
+}
+
 export class DiffHunk extends Schema.Class<DiffHunk>("DiffHunk")({
-  file: Schema.String,
   filePath: Schema.String,
-  addedLines: Schema.Number,
-  removedLines: Schema.Number,
-  content: Schema.String,
+  addedLines: Schema.optional(Schema.Number),
+  removedLines: Schema.optional(Schema.Number),
+  content: Schema.optional(Schema.String),
+  diffContent: Schema.optional(Schema.String),
+  changeType: Schema.optional(Schema.Literals(["added", "deleted", "modified", "renamed"] as const)),
+  lineRanges: Schema.optional(Schema.Array(Schema.Struct({ start: Schema.Number, end: Schema.Number }))),
+  affectedIdentifiers: Schema.optional(Schema.Array(Schema.String)),
 }) {}
 
 export class ImpactedArea extends Schema.Class<ImpactedArea>("ImpactedArea")({
-  type: Schema.Literals(["component", "page", "api", "style", "config"] as const),
+  type: Schema.Literals(["component", "page", "api", "style", "config", "navigation"] as const),
   name: Schema.String,
   files: Schema.Array(Schema.String),
-  risk: Schema.Literals(["low", "medium", "high"] as const),
-  priority: Schema.Number,
+  risk: Schema.optional(Schema.Literals(["low", "medium", "high", "critical"] as const)),
+  priority: Schema.optional(Schema.Literals(["low", "medium", "high", "critical"] as const)),
+  priorityNum: Schema.optional(Schema.Number),
   changeDescription: Schema.String,
+  testFocus: Schema.optional(Schema.Array(Schema.String)),
 }) {}
 
 export class DiffTestStep extends Schema.Class<DiffTestStep>("DiffTestStep")({
@@ -415,12 +425,23 @@ export class DiffTestStep extends Schema.Class<DiffTestStep>("DiffTestStep")({
   targetArea: Schema.optional(Schema.String),
 }) {}
 
+export const DiffCategories = Schema.Struct({
+  pages: Schema.Array(Schema.String),
+  components: Schema.Array(Schema.String),
+  apiRoutes: Schema.Array(Schema.String),
+  styles: Schema.Array(Schema.String),
+  config: Schema.Array(Schema.String),
+  tests: Schema.optional(Schema.Array(Schema.String)),
+  other: Schema.optional(Schema.Array(Schema.String)),
+});
+export type DiffCategories = typeof DiffCategories.Type;
+
 export class DiffAnalysisResult extends Schema.Class<DiffAnalysisResult>("DiffAnalysisResult")({
   hunks: Schema.Array(DiffHunk),
   impactedAreas: Schema.Array(ImpactedArea),
-  riskLevel: Schema.Literals(["low", "medium", "high"] as const),
+  riskLevel: Schema.Literals(["low", "medium", "high", "critical"] as const),
   confidence: Schema.Number,
-  categories: Schema.Array(Schema.String),
+  categories: DiffCategories,
   summary: Schema.String,
 }) {}
 
@@ -443,6 +464,8 @@ export class DashboardRunState extends Schema.Class<DashboardRunState>("Dashboar
   phase: Schema.Literals(["planning", "executing", "verifying", "done"] as const),
   currentStep: Schema.Number,
   totalSteps: Schema.Number,
+  steps: Schema.optional(Schema.Array(Schema.Unknown)),
+  logs: Schema.optional(Schema.Array(Schema.Unknown)),
   tokenCount: Schema.Number,
   elapsed: Schema.Number,
   screenshot: Schema.optional(Schema.String),
@@ -461,4 +484,5 @@ export class DashboardSnapshot extends Schema.Class<DashboardSnapshot>("Dashboar
     queued: Schema.Number,
     elapsed: Schema.Number,
   }),
+  flakiness: Schema.optional(Schema.Unknown),
 }) {}

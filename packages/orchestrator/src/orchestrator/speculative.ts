@@ -66,18 +66,24 @@ export class SpeculativePlanner extends ServiceMap.Service<SpeculativePlanner>()
         });
       });
 
-      const get = Effect.fn("SpeculativePlanner.get")(function* (
-        stepIndex: number,
-        currentUrl: string,
-      ): Effect.Effect<SpeculativePlan | null> {
-        const plan = plans.get(stepIndex);
-        if (!plan) return null;
+      const get = (stepIndex: number, currentUrl: string): Effect.Effect<SpeculativePlan | null> =>
+        Effect.gen(function* () {
+          const plan = plans.get(stepIndex);
+          if (!plan) return null;
 
-        try {
-          const planPath = new URL(plan.url).pathname;
-          const currentPath = new URL(currentUrl).pathname;
+          try {
+            const planPath = new URL(plan.url).pathname;
+            const currentPath = new URL(currentUrl).pathname;
 
-          if (planPath !== currentPath) {
+            if (planPath !== currentPath) {
+              plans.delete(stepIndex);
+              stats = new SpeculativeStats({
+                ...stats,
+                discarded: stats.discarded + 1,
+              });
+              return null;
+            }
+          } catch {
             plans.delete(stepIndex);
             stats = new SpeculativeStats({
               ...stats,
@@ -85,34 +91,26 @@ export class SpeculativePlanner extends ServiceMap.Service<SpeculativePlanner>()
             });
             return null;
           }
-        } catch {
+
+          if (Date.now() - plan.capturedAt > STALENESS_THRESHOLD_MS) {
+            plans.delete(stepIndex);
+            stats = new SpeculativeStats({
+              ...stats,
+              discarded: stats.discarded + 1,
+            });
+            return null;
+          }
+
           plans.delete(stepIndex);
           stats = new SpeculativeStats({
             ...stats,
-            discarded: stats.discarded + 1,
+            used: stats.used + 1,
+            estimatedTimeSavedMs: stats.estimatedTimeSavedMs + avgPrepTimeMs,
+            hitRate: stats.generated > 0 ? (stats.used + 1) / stats.generated : 0,
           });
-          return null;
-        }
 
-        if (Date.now() - plan.capturedAt > STALENESS_THRESHOLD_MS) {
-          plans.delete(stepIndex);
-          stats = new SpeculativeStats({
-            ...stats,
-            discarded: stats.discarded + 1,
-          });
-          return null;
-        }
-
-        plans.delete(stepIndex);
-        stats = new SpeculativeStats({
-          ...stats,
-          used: stats.used + 1,
-          estimatedTimeSavedMs: stats.estimatedTimeSavedMs + avgPrepTimeMs,
-          hitRate: stats.generated > 0 ? (stats.used + 1) / stats.generated : 0,
+          return new SpeculativePlan({ ...plan, status: "used" });
         });
-
-        return new SpeculativePlan({ ...plan, status: "used" });
-      });
 
       const discardAll = Effect.fn("SpeculativePlanner.discardAll")(function* () {
         for (const plan of plans.values()) {

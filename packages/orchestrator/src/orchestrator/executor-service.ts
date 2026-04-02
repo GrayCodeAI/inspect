@@ -1,15 +1,8 @@
 import { Effect, Layer, Schema, Stream, ServiceMap } from "effect";
 import {
-  AgentState,
-  ExecutionEvent,
-  StepCompleted,
-  StepFailed,
-  StepStarted,
-  TestPlan,
-  TestPlanStep,
-  TestResult,
+  AgentError,
+  TimeoutError,
 } from "@inspect/shared";
-import { AgentError, BrowserError, TimeoutError } from "@inspect/shared";
 
 export class StepPlan extends Schema.Class<StepPlan>("StepPlan")({
   index: Schema.Number,
@@ -79,52 +72,103 @@ export class ExecutionProgress extends Schema.Class<ExecutionProgress>("Executio
   stepResult: Schema.optional(StepResult),
 }) {}
 
-export class TestExecutor extends ServiceMap.Service<
-  TestExecutor,
-  {
-    readonly execute: (
-      config: ExecutionConfig,
-    ) => Effect.Effect<ExecutionResult, AgentError | TimeoutError>;
-    readonly executeStream: (
-      config: ExecutionConfig,
-    ) => Stream.Stream<ExecutionProgress, AgentError>;
-    readonly generatePlan: (
-      config: ExecutionConfig,
-    ) => Effect.Effect<readonly StepPlan[], AgentError>;
-    readonly executeStep: (
-      step: StepPlan,
-      config: ExecutionConfig,
-    ) => Effect.Effect<StepResult, AgentError>;
-    readonly abort: Effect.Effect<void>;
-  }
->()("@inspect/TestExecutor") {
-  static layer = Layer.effect(this, 
-    Effect.gen(function* () {
-      const execute = Effect.fn("TestExecutor.execute")(function* (config: ExecutionConfig) {
-        yield* Effect.annotateCurrentSpan({ instruction: config.instruction, agent: config.agent });
-        const plan = yield* TestExecutor.use((s) => s.generatePlan(config));
-        const steps: StepResult[] = [];
-        for (let i = 0; i < plan.length; i++) {
-          const step = plan[i];
-          const result = yield* TestExecutor.use((s) => s.executeStep(step, config));
-          steps.push(result);
-        }
-        const status = steps.every((s) => s.status === "pass") ? "pass" : ("fail" as const);
-        return new ExecutionResult({
-          status,
-          steps,
-          totalDuration: steps.reduce((sum, s) => sum + s.duration, 0),
-          tokenCount: 0,
-          agent: config.agent,
-          device: "unknown",
-          timestamp: new Date().toISOString(),
-        });
-      });
+export interface TestExecutorService {
+  readonly execute: (
+    config: ExecutionConfig,
+  ) => Effect.Effect<ExecutionResult, AgentError | TimeoutError>;
+  readonly executeStream: (
+    config: ExecutionConfig,
+  ) => Stream.Stream<ExecutionProgress, AgentError>;
+  readonly generatePlan: (
+    config: ExecutionConfig,
+  ) => Effect.Effect<StepPlan[], AgentError>;
+  readonly executeStep: (
+    step: StepPlan,
+    config: ExecutionConfig,
+  ) => Effect.Effect<StepResult, AgentError>;
+  readonly abort: () => Effect.Effect<void>;
+}
 
-      const executeStream = Effect.fn("TestExecutor.executeStream")(function* (
-        config: ExecutionConfig,
-      ) {
-        yield* Effect.annotateCurrentSpan({ instruction: config.instruction });
+export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorService>()("@inspect/TestExecutor") {
+  static layer = Layer.effect(this,
+    Effect.gen(function* () {
+      // Generate plan implementation
+      const generatePlan = function(_config: ExecutionConfig): Effect.Effect<StepPlan[], AgentError> {
+        return Effect.gen(function* () {
+          yield* Effect.logWarning("generatePlan() placeholder — connect LLM provider");
+          return [
+            new StepPlan({ index: 0, description: "Navigate to the target URL", type: "navigate" }),
+            new StepPlan({
+              index: 1,
+              description: "Wait for page to be fully loaded",
+              type: "wait",
+              assertion: "Page loads without errors",
+            }),
+            new StepPlan({ index: 2, description: "Take accessibility snapshot", type: "verify" }),
+            new StepPlan({
+              index: 3,
+              description: "Execute primary interaction",
+              type: "interact",
+              assertion: "Interaction completes successfully",
+            }),
+            new StepPlan({
+              index: 4,
+              description: "Verify state changes",
+              type: "verify",
+              assertion: "Expected state changes occurred",
+            }),
+            new StepPlan({
+              index: 5,
+              description: "Check console errors",
+              type: "verify",
+              assertion: "No unexpected errors",
+            }),
+          ];
+        });
+      };
+
+      // Execute step implementation
+      const executeStep = function(step: StepPlan, _config: ExecutionConfig): Effect.Effect<StepResult, AgentError> {
+        return Effect.gen(function* () {
+          yield* Effect.annotateCurrentSpan({ stepIndex: step.index, stepType: step.type });
+          yield* Effect.logWarning("executeStep() simulation mode — connect browser");
+          return new StepResult({
+            index: step.index,
+            description: step.description,
+            status: "pass",
+            assertion: step.assertion,
+            duration: 0,
+            toolCalls: [],
+          });
+        });
+      };
+
+      // Execute implementation
+      const execute = function(config: ExecutionConfig): Effect.Effect<ExecutionResult, AgentError | TimeoutError> {
+        return Effect.gen(function* () {
+          yield* Effect.annotateCurrentSpan({ instruction: config.instruction, agent: config.agent });
+          const plan = yield* generatePlan(config);
+          const steps: StepResult[] = [];
+          for (let i = 0; i < plan.length; i++) {
+            const step = plan[i];
+            const result = yield* executeStep(step, config);
+            steps.push(result);
+          }
+          const status = steps.every((s) => s.status === "pass") ? "pass" : ("fail" as const);
+          return new ExecutionResult({
+            status,
+            steps,
+            totalDuration: steps.reduce((sum, s) => sum + s.duration, 0),
+            tokenCount: 0,
+            agent: config.agent,
+            device: "unknown",
+            timestamp: new Date().toISOString(),
+          });
+        });
+      };
+
+      // Execute stream implementation
+      const executeStream = function(config: ExecutionConfig): Stream.Stream<ExecutionProgress, AgentError> {
         return Stream.fromEffect(execute(config)).pipe(
           Stream.map(
             (result) =>
@@ -137,61 +181,17 @@ export class TestExecutor extends ServiceMap.Service<
               }),
           ),
         );
-      });
+      };
 
-      const generatePlan = Effect.fn("TestExecutor.generatePlan")(function* (
-        _config: ExecutionConfig,
-      ) {
-        yield* Effect.logWarning("generatePlan() placeholder — connect LLM provider");
-        return [
-          new StepPlan({ index: 0, description: "Navigate to the target URL", type: "navigate" }),
-          new StepPlan({
-            index: 1,
-            description: "Wait for page to be fully loaded",
-            type: "wait",
-            assertion: "Page loads without errors",
-          }),
-          new StepPlan({ index: 2, description: "Take accessibility snapshot", type: "verify" }),
-          new StepPlan({
-            index: 3,
-            description: "Execute primary interaction",
-            type: "interact",
-            assertion: "Interaction completes successfully",
-          }),
-          new StepPlan({
-            index: 4,
-            description: "Verify state changes",
-            type: "verify",
-            assertion: "Expected state changes occurred",
-          }),
-          new StepPlan({
-            index: 5,
-            description: "Check console errors",
-            type: "verify",
-            assertion: "No unexpected errors",
-          }),
-        ] as const;
-      });
-
-      const executeStep = Effect.fn("TestExecutor.executeStep")(function* (
-        step: StepPlan,
-        _config: ExecutionConfig,
-      ) {
-        yield* Effect.annotateCurrentSpan({ stepIndex: step.index, stepType: step.type });
-        yield* Effect.logWarning("executeStep() simulation mode — connect browser");
-        return new StepResult({
-          index: step.index,
-          description: step.description,
-          status: "pass",
-          assertion: step.assertion,
-          duration: 0,
-          toolCalls: [],
-        });
-      });
-
-      const abort = Effect.sync(() => {});
+      // Abort implementation
+      const abort = function(): Effect.Effect<void> {
+        return Effect.sync(() => {});
+      };
 
       return { execute, executeStream, generatePlan, executeStep, abort } as const;
     }),
   );
 }
+
+// Re-export AdversarialFinding from executor.ts for compatibility
+export { AdversarialFinding } from "./executor.js";

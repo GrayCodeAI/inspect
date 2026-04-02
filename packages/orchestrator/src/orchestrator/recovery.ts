@@ -166,10 +166,7 @@ export class RecoveryManager extends ServiceMap.Service<RecoveryManager>()(
           }
 
           const startTime = Date.now();
-
-          const success = yield* executeStrategy(strategy, diagnosis, executors).pipe(
-            Effect.catchAll(() => Effect.succeed(false)),
-          );
+          const success = yield* executeStrategy(strategy, diagnosis, executors);
 
           history = [
             ...history,
@@ -200,11 +197,11 @@ export class RecoveryManager extends ServiceMap.Service<RecoveryManager>()(
   static layer = Layer.effect(this, this.make);
 }
 
-const executeStrategy = Effect.fn("RecoveryManager.executeStrategy")(function* (
+function executeStrategy(
   strategy: RecoveryStrategy,
   diagnosis: DiagnosisResult,
   executors: RecoveryExecutors,
-) {
+): Effect.Effect<boolean> {
   return Match.value(strategy).pipe(
     Match.when("reScan", () => (executors.reScan ? executors.reScan() : Effect.succeed(false))),
     Match.when("useVision", () =>
@@ -240,4 +237,4 @@ const executeStrategy = Effect.fn("RecoveryManager.executeStrategy")(function* (
     Match.when("skip", () => Effect.succeed(false)),
     Match.orElse(() => Effect.succeed(false)),
   );
-});
+}

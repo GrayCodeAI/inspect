@@ -175,11 +175,11 @@ export class DashboardOrchestrator {
     ) {
       return false;
     }
-    run.status = "cancelled";
-    run.completedAt = Date.now();
+    const updatedRun = { ...run, status: "cancelled" as const, completedAt: Date.now() };
+    this.runs.set(runId, updatedRun);
     this.bus.emit({
       type: "run:completed",
-      data: { runId, status: "cancelled", duration: run.elapsed, passed: false },
+      data: { runId, status: "cancelled", duration: updatedRun.elapsed, passed: false },
     });
     this.emitSummary();
     return true;
@@ -190,13 +190,13 @@ export class DashboardOrchestrator {
     for (const scheduler of this.schedulers.values()) {
       scheduler.abort();
     }
-    for (const run of this.runs.values()) {
+    for (const [runId, run] of this.runs) {
       if (run.status === "queued" || run.status === "running") {
-        run.status = "cancelled";
-        run.completedAt = Date.now();
+        const updatedRun = { ...run, status: "cancelled" as const, completedAt: Date.now() };
+        this.runs.set(runId, updatedRun);
         this.bus.emit({
           type: "run:completed",
-          data: { runId: run.runId, status: "cancelled", duration: run.elapsed, passed: false },
+          data: { runId: updatedRun.runId, status: "cancelled", duration: updatedRun.elapsed, passed: false },
         });
       }
     }
@@ -237,7 +237,8 @@ export class DashboardOrchestrator {
     const run = this.runs.get(runId);
     if (!run) return;
 
-    run.status = "running";
+    const runningRun = { ...run, status: "running" as const };
+    this.runs.set(runId, runningRun);
 
     // Lazy-import to avoid circular deps at module-load time
     const { TestExecutor } = await import("./executor.js");
@@ -251,16 +252,19 @@ export class DashboardOrchestrator {
     try {
       const result = await executor.execute();
 
-      run.status = result.status === "pass" ? "completed" : "failed";
-      run.completedAt = Date.now();
-      run.elapsed = result.totalDuration;
-      run.tokenCount = result.tokenCount;
-      run.phase = "done";
-
-      // Sync step results
-      run.steps = result.steps.map((s) => this.toStepSnapshot(s));
-      run.totalSteps = result.steps.length;
-      run.currentStep = result.steps.length;
+      const finalStatus = result.status === "pass" ? "completed" as const : "failed" as const;
+      const completedRun = {
+        ...runningRun,
+        status: finalStatus,
+        completedAt: Date.now(),
+        elapsed: result.totalDuration,
+        tokenCount: result.tokenCount,
+        phase: "done" as const,
+        steps: result.steps.map((s) => this.toStepSnapshot(s)),
+        totalSteps: result.steps.length,
+        currentStep: result.steps.length,
+      };
+      this.runs.set(runId, completedRun);
 
       this.bus.emit({
         type: "run:completed",
@@ -286,16 +290,20 @@ export class DashboardOrchestrator {
       });
       this.emitFlakiness();
     } catch (err) {
-      run.status = "failed";
-      run.completedAt = Date.now();
-      run.phase = "done";
+      const updatedRun = {
+        ...runningRun,
+        status: "failed" as const,
+        completedAt: Date.now(),
+        phase: "done" as const,
+      };
+      this.runs.set(runId, updatedRun);
 
       const message = err instanceof Error ? err.message : String(err);
       this.addLog(runId, "error", message);
 
       this.bus.emit({
         type: "run:completed",
-        data: { runId, status: "failed", duration: run.elapsed, passed: false },
+        data: { runId, status: "failed", duration: updatedRun.elapsed, passed: false },
       });
     }
 
@@ -306,14 +314,17 @@ export class DashboardOrchestrator {
     const run = this.runs.get(runId);
     if (!run) return;
 
-    run.phase = progress.phase as DashboardRunPhase;
-    run.currentStep = progress.currentStep;
-    run.totalSteps = progress.totalSteps;
-    run.tokenCount = progress.tokenCount;
-    run.elapsed = progress.elapsed;
+    const updatedRun = {
+      ...run,
+      phase: progress.phase as DashboardRunPhase,
+      currentStep: progress.currentStep,
+      totalSteps: progress.totalSteps,
+      tokenCount: progress.tokenCount,
+      elapsed: progress.elapsed,
+    };
 
     if (progress.currentToolCall) {
-      run.agentActivity = {
+      (updatedRun as unknown as Record<string, unknown>).agentActivity = {
         type: this.inferActivityType(progress.currentToolCall),
         target: progress.currentToolCall,
         description: progress.currentToolCall,
@@ -324,7 +335,9 @@ export class DashboardOrchestrator {
     // Emit step completion if a stepResult is present
     if (progress.stepResult) {
       const snapshot = this.toStepSnapshot(progress.stepResult);
-      run.steps[snapshot.index] = snapshot;
+      const updatedSteps = [...(updatedRun.steps ?? [])];
+      updatedSteps[snapshot.index] = snapshot;
+      (updatedRun as unknown as { steps: typeof updatedSteps }).steps = updatedSteps;
 
       this.bus.emit({
         type: "run:step_completed",
@@ -338,16 +351,18 @@ export class DashboardOrchestrator {
       );
     }
 
+    this.runs.set(runId, updatedRun);
+
     this.bus.emit({
       type: "run:progress",
       data: {
         runId,
-        phase: run.phase,
-        currentStep: run.currentStep,
-        totalSteps: run.totalSteps,
-        tokenCount: run.tokenCount,
-        elapsed: run.elapsed,
-        agentActivity: run.agentActivity,
+        phase: updatedRun.phase,
+        currentStep: updatedRun.currentStep,
+        totalSteps: updatedRun.totalSteps,
+        tokenCount: updatedRun.tokenCount,
+        elapsed: updatedRun.elapsed,
+        agentActivity: (updatedRun as unknown as { agentActivity?: unknown }).agentActivity,
       },
     });
   }
@@ -376,10 +391,12 @@ export class DashboardOrchestrator {
     const entry: DashboardLogEntry = { runId, level, message, timestamp: Date.now() };
 
     // Cap logs per run
-    if (run.logs.length >= MAX_LOGS_PER_RUN) {
-      run.logs.shift();
+    const updatedLogs = [...(run.logs ?? [])];
+    if (updatedLogs.length >= MAX_LOGS_PER_RUN) {
+      updatedLogs.shift();
     }
-    run.logs.push(entry);
+    updatedLogs.push(entry);
+    this.runs.set(runId, { ...run, logs: updatedLogs });
 
     this.bus.emit({ type: "run:log", data: entry });
   }
@@ -394,7 +411,7 @@ export class DashboardOrchestrator {
 
     const run = this.runs.get(runId);
     if (run) {
-      run.screenshot = screenshot;
+      this.runs.set(runId, { ...run, screenshot });
     }
 
     this.bus.emit({

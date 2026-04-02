@@ -26,6 +26,17 @@ export interface DiffPlanGeneratorConfig {
   targetUrl?: string;
 }
 
+// Mutable categories for internal use
+type MutableCategories = {
+  pages: string[];
+  components: string[];
+  apiRoutes: string[];
+  styles: string[];
+  config: string[];
+  tests: string[];
+  other: string[];
+};
+
 /**
  * DiffPlanGenerator analyzes git diffs and produces targeted test plans.
  *
@@ -63,7 +74,15 @@ export class DiffPlanGenerator {
     else if (categories.pages.length > 0 || categories.apiRoutes.length > 0) riskLevel = "high";
     else if (categories.components.length > 2 || categories.styles.length > 0) riskLevel = "medium";
 
-    return { hunks, categories, impactedAreas, summary, confidence, riskLevel };
+    // Cast mutable categories to the expected type
+    return {
+      hunks,
+      categories: categories as unknown as DiffAnalysisResult["categories"],
+      impactedAreas,
+      summary,
+      confidence,
+      riskLevel,
+    };
   }
 
   /**
@@ -99,11 +118,11 @@ export class DiffPlanGenerator {
     lines.push("");
 
     for (const area of plan.analysis.impactedAreas) {
-      const priority = area.priority.toUpperCase();
+      const priority = (area.priority ?? "medium").toUpperCase();
       lines.push(`**[${priority}] ${area.type}: ${area.name}**`);
       lines.push(`  Files: ${area.files.join(", ")}`);
       lines.push(`  Change: ${area.changeDescription}`);
-      lines.push(`  Test focus: ${area.testFocus.join("; ")}`);
+      lines.push(`  Test focus: ${(area.testFocus ?? []).join("; ")}`);
       lines.push("");
     }
 
@@ -115,7 +134,7 @@ export class DiffPlanGenerator {
       if (step.assertion) {
         lines.push(`   Assert: ${step.assertion}`);
       }
-      lines.push(`   Why: ${step.rationale}`);
+      lines.push(`   Why: ${step.rationale ?? "Ensure functionality works as expected"}`);
       lines.push("");
     }
 
@@ -139,7 +158,7 @@ export class DiffPlanGenerator {
         lineRanges,
         diffContent: fileDiff.slice(0, 5000),
         affectedIdentifiers,
-      });
+      } as DiffHunk);
     }
 
     return hunks;
@@ -171,9 +190,9 @@ export class DiffPlanGenerator {
     return "modified";
   }
 
-  private extractLineRanges(diff: string): DiffHunk["lineRanges"] {
-    const ranges: DiffHunk["lineRanges"] = [];
-    const hunkPattern = /@@ -(\d+),?\d* \+(\d+),?\d* @@/g;
+  private extractLineRanges(diff: string): { start: number; end: number }[] {
+    const ranges: { start: number; end: number }[] = [];
+    const hunkPattern = /@ -(\d+),?\d* \+(\d+),?\d* @/g;
     let match: RegExpExecArray | null;
 
     while ((match = hunkPattern.exec(diff)) !== null) {
@@ -222,8 +241,8 @@ export class DiffPlanGenerator {
 
   // ── Categorization ───────────────────────────────────────────────────────
 
-  private categorizeFiles(files: string[]): DiffAnalysisResult["categories"] {
-    const categories: DiffAnalysisResult["categories"] = {
+  private categorizeFiles(files: string[]): MutableCategories {
+    const categories: MutableCategories = {
       pages: [],
       components: [],
       apiRoutes: [],
@@ -244,7 +263,7 @@ export class DiffPlanGenerator {
         categories.apiRoutes.push(file);
       } else if (/\.(css|scss|less|styl)$/.test(file)) {
         categories.styles.push(file);
-      } else if (/(\.json|\.ya?ml|\.config\.|\.env)/.test(file)) {
+      } else if(/(\.json|\.ya?ml|\.config\.|\.env)/.test(file)) {
         categories.config.push(file);
       } else {
         categories.other.push(file);
@@ -258,7 +277,7 @@ export class DiffPlanGenerator {
 
   private detectImpactedAreas(
     hunks: DiffHunk[],
-    categories: DiffAnalysisResult["categories"],
+    categories: MutableCategories,
   ): ImpactedArea[] {
     const areas: ImpactedArea[] = [];
 
@@ -267,17 +286,18 @@ export class DiffPlanGenerator {
       const pageName = this.extractPageName(page);
       const hunk = hunks.find((h) => h.filePath === page);
       const testFocus: string[] = ["page loads correctly"];
+      const diffContent = hunk?.diffContent ?? "";
 
-      if (hunk?.diffContent.includes("form") || hunk?.diffContent.includes("input")) {
+      if (diffContent.includes("form") || diffContent.includes("input")) {
         testFocus.push("form submission", "input validation");
       }
-      if (hunk?.diffContent.includes("navigate") || hunk?.diffContent.includes("router")) {
+      if (diffContent.includes("navigate") || diffContent.includes("router")) {
         testFocus.push("navigation flow", "route transitions");
       }
-      if (hunk?.diffContent.includes("fetch") || hunk?.diffContent.includes("axios")) {
+      if (diffContent.includes("fetch") || diffContent.includes("axios")) {
         testFocus.push("API integration", "loading states", "error handling");
       }
-      if (hunk?.diffContent.includes("auth") || hunk?.diffContent.includes("login")) {
+      if (diffContent.includes("auth") || diffContent.includes("login")) {
         testFocus.push("authentication flow", "session management");
       }
 
@@ -287,8 +307,9 @@ export class DiffPlanGenerator {
         files: [page],
         changeDescription: `Page modified: ${page}`,
         testFocus,
+        risk: "critical",
         priority: "critical",
-      });
+      } as ImpactedArea);
     }
 
     // Components changed → interaction testing
@@ -296,14 +317,15 @@ export class DiffPlanGenerator {
       const compName = this.extractComponentName(comp);
       const hunk = hunks.find((h) => h.filePath === comp);
       const testFocus: string[] = ["component renders"];
+      const diffContent = hunk?.diffContent ?? "";
 
-      if (hunk?.diffContent.includes("onClick") || hunk?.diffContent.includes("handler")) {
+      if (diffContent?.includes("onClick") || diffContent?.includes("handler")) {
         testFocus.push("click interactions");
       }
-      if (hunk?.diffContent.includes("useState") || hunk?.diffContent.includes("setState")) {
+      if (diffContent?.includes("useState") || diffContent?.includes("setState")) {
         testFocus.push("state changes", "re-rendering");
       }
-      if (hunk?.diffContent.includes("props")) {
+      if (diffContent?.includes("props")) {
         testFocus.push("props handling");
       }
 
@@ -313,8 +335,9 @@ export class DiffPlanGenerator {
         files: [comp],
         changeDescription: `Component modified: ${comp}`,
         testFocus,
+        risk: "high",
         priority: "high",
-      });
+      } as ImpactedArea);
     }
 
     // API routes changed → API testing
@@ -331,32 +354,35 @@ export class DiffPlanGenerator {
           "input validation",
           "status codes",
         ],
+        risk: "high",
         priority: "high",
-      });
+      } as ImpactedArea);
     }
 
     // Styles changed → visual regression
     if (categories.styles.length > 0) {
       areas.push({
-        type: "component",
+        type: "style",
         name: "Visual styling",
         files: categories.styles,
         changeDescription: `${categories.styles.length} style file(s) modified`,
         testFocus: ["visual regression", "layout integrity", "responsive behavior"],
+        risk: "medium",
         priority: "medium",
-      });
+      } as ImpactedArea);
     }
 
     // Config changed → full regression
     if (categories.config.length > 0) {
       areas.push({
-        type: "navigation",
+        type: "config",
         name: "Configuration",
         files: categories.config,
         changeDescription: `${categories.config.length} config file(s) modified`,
         testFocus: ["full regression", "build succeeds", "no runtime errors"],
+        risk: "critical",
         priority: "critical",
-      });
+      } as ImpactedArea);
     }
 
     return areas;
@@ -380,12 +406,12 @@ export class DiffPlanGenerator {
       type: "navigate",
       assertion: "Page loads without console errors or network failures",
       rationale: "Baseline verification before testing changes",
-    });
+    } as DiffTestStep);
 
     // Generate steps for each impacted area, sorted by priority
     const sortedAreas = [...analysis.impactedAreas].sort((a, b) => {
-      const order = { critical: 0, high: 1, medium: 2, low: 3 };
-      return order[a.priority] - order[b.priority];
+      const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+      return order[a.priority ?? "medium"] - order[b.priority ?? "medium"];
     });
 
     for (const area of sortedAreas) {
@@ -398,11 +424,11 @@ export class DiffPlanGenerator {
           type: "navigate",
           targetArea: area.name,
           rationale: `Page was modified: ${area.files.join(", ")}`,
-        });
+        } as DiffTestStep);
       }
 
       // Generate interaction steps based on test focus
-      for (const focus of area.testFocus) {
+      for (const focus of (area.testFocus ?? [])) {
         if (focus.includes("form") || focus.includes("input") || focus.includes("validation")) {
           steps.push({
             id: `step-${index}`,
@@ -412,7 +438,7 @@ export class DiffPlanGenerator {
             targetArea: area.name,
             assertion: `${focus} works correctly`,
             rationale: `Code changes in ${area.files[0]} affect form/input behavior`,
-          });
+          } as DiffTestStep);
         } else if (focus.includes("click") || focus.includes("interaction")) {
           steps.push({
             id: `step-${index}`,
@@ -422,7 +448,7 @@ export class DiffPlanGenerator {
             targetArea: area.name,
             assertion: `Interaction triggers expected behavior`,
             rationale: `Event handlers were modified in ${area.files[0]}`,
-          });
+          } as DiffTestStep);
         } else if (focus.includes("navigation") || focus.includes("route")) {
           steps.push({
             id: `step-${index}`,
@@ -432,7 +458,7 @@ export class DiffPlanGenerator {
             targetArea: area.name,
             assertion: `Navigation works correctly`,
             rationale: `Routing changes detected in ${area.files[0]}`,
-          });
+          } as DiffTestStep);
         } else if (
           focus.includes("API") ||
           focus.includes("request") ||
@@ -446,7 +472,7 @@ export class DiffPlanGenerator {
             targetArea: area.name,
             assertion: `API calls succeed with expected responses`,
             rationale: `API route changes detected in ${area.files[0]}`,
-          });
+          } as DiffTestStep);
         } else if (focus.includes("visual") || focus.includes("layout")) {
           steps.push({
             id: `step-${index}`,
@@ -456,7 +482,7 @@ export class DiffPlanGenerator {
             targetArea: area.name,
             assertion: `Visual appearance matches expected baseline`,
             rationale: `Style changes detected in ${area.files.join(", ")}`,
-          });
+          } as DiffTestStep);
         }
       }
     }
@@ -469,7 +495,7 @@ export class DiffPlanGenerator {
       type: "verify",
       assertion: "No unexpected console errors or failed network requests",
       rationale: "Regression check: ensure changes don't introduce side effects",
-    });
+    } as DiffTestStep);
 
     return steps;
   }
@@ -478,7 +504,7 @@ export class DiffPlanGenerator {
 
   private buildSummary(
     hunks: DiffHunk[],
-    categories: DiffAnalysisResult["categories"],
+    categories: MutableCategories,
     impactedAreas: ImpactedArea[],
   ): string {
     const parts: string[] = [];
@@ -522,7 +548,7 @@ export class DiffPlanGenerator {
       parts.push("The plan focuses on the following changed areas:");
       for (const area of analysis.impactedAreas) {
         parts.push(
-          `- [${area.priority.toUpperCase()}] ${area.type}: ${area.name} (${area.changeDescription})`,
+          `- [${(area.priority ?? "medium").toUpperCase()}] ${area.type}: ${area.name} (${area.changeDescription})`,
         );
       }
     }

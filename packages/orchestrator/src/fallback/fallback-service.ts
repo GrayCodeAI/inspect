@@ -58,152 +58,6 @@ export const DEFAULT_FALLBACK_CONFIG: FallbackConfig = {
 };
 
 /**
- * Pre-built fallback strategies
- */
-export const DEFAULT_STRATEGIES: FallbackStrategy[] = [
-  // LLM Provider Fallback
-  {
-    name: "llm-provider-fallback",
-    description: "Switch to backup LLM provider",
-    priority: 1,
-    canHandle: (error) => {
-      return (
-        error.message.includes("rate limit") ||
-        error.message.includes("timeout") ||
-        error.message.includes("provider error") ||
-        error.message.includes("ECONNREFUSED")
-      );
-    },
-    execute: async (error, context) => {
-      // Try alternative provider
-      const providers = ["openai", "gemini", "deepseek"];
-      const currentProvider = context.metadata.provider as string;
-      const nextProvider = providers.find((p) => p !== currentProvider);
-
-      if (nextProvider) {
-        return {
-          action: "switch-provider",
-          from: currentProvider,
-          to: nextProvider,
-          reason: error.message,
-        };
-      }
-
-      throw new Error("No alternative providers available");
-    },
-  },
-
-  // Retry with backoff
-  {
-    name: "exponential-backoff",
-    description: "Retry with exponential backoff",
-    priority: 2,
-    canHandle: (error) => {
-      return (
-        error.message.includes("timeout") ||
-        error.message.includes("ECONNRESET") ||
-        error.message.includes("ETIMEDOUT") ||
-        error.message.includes("network")
-      );
-    },
-    execute: async (error, context) => {
-      const delay = Math.min(1000 * Math.pow(2, context.attempt - 1), 30000);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      return {
-        action: "retry",
-        delay,
-        attempt: context.attempt,
-      };
-    },
-  },
-
-  // Simplify action
-  {
-    name: "action-simplification",
-    description: "Simplify complex action into smaller steps",
-    priority: 3,
-    canHandle: (error) => {
-      return (
-        error.message.includes("element not found") ||
-        error.message.includes("timeout") ||
-        error.message.includes("complex")
-      );
-    },
-    execute: async (error, context) => {
-      // Break down complex action
-      const subActions = this.breakIntoSubActions(context.action, context.params);
-
-      return {
-        action: "simplify",
-        original: context.action,
-        subActions,
-        reason: error.message,
-      };
-    },
-  },
-
-  // Alternative selector
-  {
-    name: "alternative-selector",
-    description: "Try alternative selectors for element",
-    priority: 4,
-    canHandle: (error) => {
-      return (
-        error.message.includes("element not found") ||
-        error.message.includes("selector") ||
-        error.message.includes("strict mode")
-      );
-    },
-    execute: async (error, context) => {
-      const selector = context.params.selector as string;
-      const alternatives = this.generateAlternativeSelectors(selector);
-
-      return {
-        action: "try-alternatives",
-        original: selector,
-        alternatives,
-        reason: error.message,
-      };
-    },
-  },
-
-  // Skip non-critical
-  {
-    name: "skip-non-critical",
-    description: "Skip non-critical actions",
-    priority: 5,
-    canHandle: (error, context) => {
-      const isCritical = context.metadata.critical === true;
-      return !isCritical && context.attempt >= 2;
-    },
-    execute: async (error, context) => {
-      return {
-        action: "skip",
-        skipped: context.action,
-        reason: "Non-critical action failed after retries",
-      };
-    },
-  },
-
-  // Manual intervention
-  {
-    name: "manual-intervention",
-    description: "Request manual intervention",
-    priority: 10,
-    canHandle: () => true, // Last resort
-    execute: async (error, context) => {
-      return {
-        action: "manual-intervention",
-        error: error.message,
-        context,
-        timestamp: Date.now(),
-      };
-    },
-  },
-];
-
-/**
  * Fallback Execution Service
  */
 export class FallbackService extends EventEmitter {
@@ -213,7 +67,153 @@ export class FallbackService extends EventEmitter {
   constructor(config: Partial<FallbackConfig> = {}) {
     super();
     this.config = { ...DEFAULT_FALLBACK_CONFIG, ...config };
-    this.strategies = [...DEFAULT_STRATEGIES];
+    this.strategies = []; // Will initialize in setupDefaultStrategies
+    this.setupDefaultStrategies();
+  }
+
+  private setupDefaultStrategies(): void {
+    const self = this;
+
+    // LLM Provider Fallback
+    this.strategies.push({
+      name: "llm-provider-fallback",
+      description: "Switch to backup LLM provider",
+      priority: 1,
+      canHandle: (error) => {
+        return (
+          error.message.includes("rate limit") ||
+          error.message.includes("timeout") ||
+          error.message.includes("provider error") ||
+          error.message.includes("ECONNREFUSED")
+        );
+      },
+      execute: async (error, context) => {
+        // Try alternative provider
+        const providers = ["openai", "gemini", "deepseek"];
+        const currentProvider = context.metadata.provider as string;
+        const nextProvider = providers.find((p) => p !== currentProvider);
+
+        if (nextProvider) {
+          return {
+            action: "switch-provider",
+            from: currentProvider,
+            to: nextProvider,
+            reason: error.message,
+          };
+        }
+
+        throw new Error("No alternative providers available");
+      },
+    });
+
+    // Retry with backoff
+    this.strategies.push({
+      name: "exponential-backoff",
+      description: "Retry with exponential backoff",
+      priority: 2,
+      canHandle: (error) => {
+        return (
+          error.message.includes("timeout") ||
+          error.message.includes("ECONNRESET") ||
+          error.message.includes("ETIMEDOUT") ||
+          error.message.includes("network")
+        );
+      },
+      execute: async (error, context) => {
+        const delay = Math.min(1000 * Math.pow(2, context.attempt - 1), 30000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        return {
+          action: "retry",
+          delay,
+          attempt: context.attempt,
+        };
+      },
+    });
+
+    // Simplify action
+    this.strategies.push({
+      name: "action-simplification",
+      description: "Simplify complex action into smaller steps",
+      priority: 3,
+      canHandle: (error) => {
+        return (
+          error.message.includes("element not found") ||
+          error.message.includes("timeout") ||
+          error.message.includes("complex")
+        );
+      },
+      execute: async (error, context) => {
+        // Break down complex action
+        const subActions = self.breakIntoSubActions(context.action, context.params);
+
+        return {
+          action: "simplify",
+          original: context.action,
+          subActions,
+          reason: error.message,
+        };
+      },
+    });
+
+    // Alternative selector
+    this.strategies.push({
+      name: "alternative-selector",
+      description: "Try alternative selectors for element",
+      priority: 4,
+      canHandle: (error) => {
+        return (
+          error.message.includes("element not found") ||
+          error.message.includes("selector") ||
+          error.message.includes("strict mode")
+        );
+      },
+      execute: async (error, context) => {
+        const selector = context.params.selector as string;
+        const alternatives = self.generateAlternativeSelectors(selector);
+
+        return {
+          action: "try-alternatives",
+          original: selector,
+          alternatives,
+          reason: error.message,
+        };
+      },
+    });
+
+    // Skip non-critical
+    this.strategies.push({
+      name: "skip-non-critical",
+      description: "Skip non-critical actions",
+      priority: 5,
+      canHandle: (error, context) => {
+        const isCritical = context.metadata.critical === true;
+        return !isCritical && context.attempt >= 2;
+      },
+      execute: async (error, context) => {
+        return {
+          action: "skip",
+          skipped: context.action,
+          reason: "Non-critical action failed after retries",
+        };
+      },
+    });
+
+    // Manual intervention
+    this.strategies.push({
+      name: "manual-intervention",
+      description: "Request manual intervention",
+      priority: 10,
+      canHandle: () => true, // Last resort
+      execute: async (error, context) => {
+        return {
+          action: "manual-intervention",
+          error: error.message,
+          context,
+          timestamp: Date.now(),
+        };
+      },
+    });
   }
 
   /**
@@ -298,124 +298,90 @@ export class FallbackService extends EventEmitter {
 
           // If fallback returns an action to take, handle it
           if (fallbackResult && typeof fallbackResult === "object") {
-            const result = fallbackResult as Record<string, unknown>;
+            const action = (fallbackResult as { action?: string }).action;
 
-            if (result.action === "retry") {
-              // Continue to next iteration
-              continue;
-            }
-
-            if (result.action === "skip") {
-              // Return skip result
-              return undefined as T;
-            }
-
-            // Emit recovery event
-            this.emit("recovery:success", {
+            this.emit("fallback:action", {
               strategy: strategy.name,
+              action,
               result: fallbackResult,
-              duration: 0,
-              attempts: attempt + 1,
             });
-
-            return fallbackResult as T;
           }
+
+          // Next iteration will retry the original function
         } catch (fallbackError) {
-          // Fallback failed, continue to next attempt
-          continue;
+          // Fallback strategy itself failed, try next strategy
+          this.emit("fallback:failed", {
+            strategy: strategy.name,
+            error: fallbackError,
+          });
         }
       }
     }
 
-    throw new Error(`All fallback attempts exhausted: ${errors[errors.length - 1]?.message}`);
+    throw new Error("Unexpected end of fallback loop");
   }
 
   /**
-   * Find best strategy for error
+   * Find applicable strategy for an error
    */
-  private findStrategy(error: Error, context: ExecutionContext): FallbackStrategy | null {
-    for (const strategy of this.strategies) {
-      if (strategy.canHandle(error, context)) {
-        return strategy;
-      }
-    }
-    return null;
+  private findStrategy(error: Error, context: ExecutionContext): FallbackStrategy | undefined {
+    return this.strategies.find((s) => s.canHandle(error, context));
   }
 
   /**
-   * Break action into sub-actions
+   * Break complex action into sub-actions
    */
-  private static breakIntoSubActions(
-    action: string,
-    params: Record<string, unknown>
-  ): Array<{ action: string; params: Record<string, unknown> }> {
-    // Simple decomposition logic
-    if (action === "fill-form") {
-      const fields = params.fields as Array<{ selector: string; value: string }>;
-      return fields.map((field) => ({
-        action: "fill",
-        params: field,
-      }));
+  private breakIntoSubActions(action: string, params: Record<string, unknown>): string[] {
+    const subActions: string[] = [];
+
+    if (action.includes("form")) {
+      subActions.push("clearForm");
+      subActions.push("fillFormPartial");
+      subActions.push("submitForm");
+    } else if (action.includes("click")) {
+      subActions.push("scrollToElement");
+      subActions.push("hoverElement");
+      subActions.push("clickElement");
+    } else if (action.includes("type")) {
+      subActions.push("focusElement");
+      subActions.push("typePartial");
+      subActions.push("typeRemaining");
+    } else {
+      subActions.push(`${action}_attempt1`);
+      subActions.push(`${action}_attempt2`);
     }
 
-    if (action === "navigate-and-verify") {
-      return [
-        { action: "navigate", params: { url: params.url } },
-        { action: "verify", params: { selector: params.verifySelector } },
-      ];
-    }
-
-    return [{ action, params }];
+    return subActions;
   }
 
   /**
-   * Generate alternative selectors
+   * Generate alternative selectors for an element
    */
-  private static generateAlternativeSelectors(selector: string): string[] {
+  private generateAlternativeSelectors(selector: string): string[] {
     const alternatives: string[] = [];
 
-    // Try ID without attributes
-    if (selector.includes("[")) {
-      alternatives.push(selector.replace(/\[[^\]]+\]/g, ""));
-    }
-
-    // Try text-based
-    if (selector.includes("#") || selector.includes(".")) {
-      const parts = selector.split(/[#.]/);
-      if (parts.length > 1) {
-        alternatives.push(parts[0]); // Just tag name
-      }
-    }
-
-    // Try XPath equivalent
+    // Try different strategies
     if (selector.startsWith("#")) {
-      alternatives.push(`[id="${selector.slice(1)}"]`);
+      // ID-based selector, try data-testid or class
+      alternatives.push(`[data-testid="${selector.slice(1)}"]`);
+      alternatives.push(`[name="${selector.slice(1)}"]`);
+    } else if (selector.startsWith(".")) {
+      // Class-based selector, try tag + class or contains
+      alternatives.push(`div${selector}`);
+      alternatives.push(`button${selector}`);
+      alternatives.push(`*${selector}`);
+    } else if (selector.startsWith("[")) {
+      // Attribute selector, try text content
+      alternatives.push(`text=${selector.match(/\[.*="(.+)"\]/)?.[1] ?? ""}`);
+    } else {
+      // Tag-based, try with attributes
+      alternatives.push(`${selector}:visible`);
+      alternatives.push(`${selector}:first`);
     }
 
-    // Try contains
-    if (selector.includes("text=")) {
-      const text = selector.match(/text="([^"]+)"/)?.[1];
-      if (text) {
-        alternatives.push(`:has-text("${text}")`);
-      }
-    }
+    // Always add a generic fallback
+    alternatives.push(`text=/\\b${selector.replace(/[#.\[\]]/g, "")}\\b/i`);
 
-    return [...new Set(alternatives)];
+    return alternatives;
   }
-
-  /**
-   * Get available strategies
-   */
-  getStrategies(): FallbackStrategy[] {
-    return [...this.strategies];
-  }
-}
-
-/**
- * Convenience function
- */
-export function createFallbackService(
-  config?: Partial<FallbackConfig>
-): FallbackService {
-  return new FallbackService(config);
 }

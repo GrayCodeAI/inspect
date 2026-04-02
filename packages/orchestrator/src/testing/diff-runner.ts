@@ -5,7 +5,7 @@
 // selects and runs only the tests that cover those changes.
 // ============================================================================
 
-import { GitManager } from "@inspect/git";
+import { GitManagerImpl } from "@inspect/git";
 
 export interface DiffTestConfig {
   /** Git scope: unstaged, staged, branch, or commit range */
@@ -88,11 +88,11 @@ const CONFIG_PATTERNS = [
  * DiffRunner analyzes git changes and determines which tests to run.
  */
 export class DiffRunner {
-  private gitManager: GitManager;
+  private gitManager: GitManagerImpl;
   private coverageMap: CoverageMapEntry[];
 
   constructor(cwd?: string, coverageMap?: CoverageMapEntry[]) {
-    this.gitManager = new GitManager(cwd ?? process.cwd());
+    this.gitManager = new GitManagerImpl(cwd ?? process.cwd());
     this.coverageMap = coverageMap ?? DEFAULT_COVERAGE_MAP;
   }
 

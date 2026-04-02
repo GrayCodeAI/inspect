@@ -106,3 +106,16 @@ export class NLAssert extends ServiceMap.Service<NLAssert>()("@inspect/NLAssert"
 }) {
   static layer = Layer.effect(this, this.make);
 }
+
+export class ContextCompactor extends ServiceMap.Service<ContextCompactor>()("@inspect/ContextCompactor", {
+  make: Effect.gen(function* () {
+    const shouldCompact = (tokenCount: number, maxTokens: number) => Effect.sync(() => tokenCount > maxTokens * 0.8);
+    const compact = (messages: unknown[]) => Effect.sync(() => messages.slice(0, 2));
+    const summarize = (text: string, maxLength: number) => Effect.sync(() =>
+      text.length > maxLength ? text.slice(0, maxLength) + "..." : text
+    );
+    return { shouldCompact, compact, summarize } as const;
+  }),
+}) {
+  static layer = Layer.effect(this, this.make);
+}

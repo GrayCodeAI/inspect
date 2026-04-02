@@ -11,3 +11,9 @@ export * from "./providers/openai.js";
 export * from "./providers/gemini.js";
 export * from "./providers/deepseek.js";
 export * from "./providers/ollama.js";
+export {
+  AgentRouter,
+  type AgentRouterConfig,
+  type ProviderName,
+  type FallbackConfig,
+} from "./providers/router.js";

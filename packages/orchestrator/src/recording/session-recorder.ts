@@ -6,7 +6,14 @@
  */
 
 import { EventEmitter } from "events";
-import type { Page } from "playwright";
+
+// RRWeb Event type definition
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RRWebEvent = any;
+
+// Playwright Page interface stub to avoid DOM type dependency
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Page = any;
 
 export interface SessionRecorderConfig {
   /** Enable recording */
@@ -42,13 +49,6 @@ export interface SessionRecording {
   events: RRWebEvent[];
   metadata: RecordingMetadata;
   stats: RecordingStats;
-}
-
-export interface RRWebEvent {
-  type: number;
-  data: unknown;
-  timestamp: number;
-  delay?: number;
 }
 
 export interface RecordingMetadata {
@@ -147,7 +147,7 @@ const EventType = {
   Meta: 4,
   Custom: 5,
   Plugin: 6,
-} as const;
+};
 
 const IncrementalSource = {
   Mutation: 0,
@@ -164,7 +164,7 @@ const IncrementalSource = {
   Log: 11,
   Drag: 12,
   StyleDeclaration: 13,
-} as const;
+};
 
 /**
  * Session Recorder
@@ -202,43 +202,51 @@ export class SessionRecorder extends EventEmitter {
 
     // Start recording
     await page.evaluate(
-      (config) => {
+      (evalConfig: { maxEvents: number; maskInputs: boolean; inlineStylesheet: boolean; collectFonts: boolean }) => {
+        // Access global window object
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = globalThis as any;
         // Initialize recording array
-        (window as any).__inspect_rrweb_events = [];
+        w["__inspect_rrweb_events"] = [];
 
         // Configure rrweb
         const rrwebConfig = {
           emit(event: RRWebEvent) {
-            const events = (window as any).__inspect_rrweb_events;
-            if (events.length < config.maxEvents) {
+            const events = w["__inspect_rrweb_events"] as RRWebEvent[] | undefined;
+            if (events && events.length < evalConfig.maxEvents) {
               events.push(event);
             }
           },
-          maskAllInputs: config.maskInputs,
+          maskAllInputs: evalConfig.maskInputs,
           blockClass: "rr-block",
           ignoreClass: "rr-ignore",
-          inlineStylesheet: config.inlineStylesheet,
-          collectFonts: config.collectFonts,
+          inlineStylesheet: evalConfig.inlineStylesheet,
+          collectFonts: evalConfig.collectFonts,
         };
 
         // Start rrweb
-        if ((window as any).rrweb) {
-          (window as any).rrwebRecord = (window as any).rrweb.record(rrwebConfig);
+        if (w["rrweb"]) {
+          w["rrwebRecord"] = w["rrweb"].record(rrwebConfig);
         }
       },
-      { maxEvents: this.config.maxEvents, ...this.config }
+      { maxEvents: this.config.maxEvents, maskInputs: this.config.maskInputs, inlineStylesheet: this.config.inlineStylesheet, collectFonts: this.config.collectFonts }
     );
 
     // Get initial metadata
-    const pageMetadata = await page.evaluate(() => ({
-      url: window.location.href,
-      title: document.title,
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-      userAgent: navigator.userAgent,
-    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageMetadata = await page.evaluate((): { url: string; title: string; viewport: { width: number; height: number }; userAgent: string } => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = globalThis as any;
+      return {
+        url: w.location?.href ?? "",
+        title: w.document?.title ?? "",
+        viewport: {
+          width: w.innerWidth ?? 1280,
+          height: w.innerHeight ?? 720,
+        },
+        userAgent: w.navigator?.userAgent ?? "",
+      };
+    });
 
     this.activeRecordings.set(recordingId, {
       page,
@@ -262,9 +270,12 @@ export class SessionRecorder extends EventEmitter {
       }
 
       // Collect events
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const events = await page.evaluate(() => {
-        const collected = (window as any).__inspect_rrweb_events || [];
-        (window as any).__inspect_rrweb_events = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = globalThis as any;
+        const collected = w["__inspect_rrweb_events"] || [];
+        w["__inspect_rrweb_events"] = [];
         return collected;
       });
 
@@ -288,8 +299,10 @@ export class SessionRecorder extends EventEmitter {
     // Stop rrweb
     try {
       await page.evaluate(() => {
-        if ((window as any).rrwebRecord) {
-          (window as any).rrwebRecord();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = globalThis as any;
+        if (w["rrwebRecord"]) {
+          w["rrwebRecord"]();
         }
       });
     } catch {
@@ -298,10 +311,13 @@ export class SessionRecorder extends EventEmitter {
 
     // Collect final events
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const finalEvents = await page.evaluate(() => {
-        const collected = (window as any).__inspect_rrweb_events || [];
-        delete (window as any).__inspect_rrweb_events;
-        delete (window as any).rrwebRecord;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = globalThis as any;
+        const collected = w["__inspect_rrweb_events"] || [];
+        delete w["__inspect_rrweb_events"];
+        delete w["rrwebRecord"];
         return collected;
       });
       events.push(...finalEvents);
@@ -312,9 +328,18 @@ export class SessionRecorder extends EventEmitter {
     const endTime = Date.now();
 
     // Create recording
+    let url: string;
+    const pageUrl = page.url();
+    if (typeof pageUrl === "string") {
+      url = pageUrl;
+    } else {
+      url = await pageUrl;
+    }
+    const title = await page.title().catch(() => "");
+
     const metadata: RecordingMetadata = {
-      url: page.url(),
-      title: await page.title().catch(() => ""),
+      url,
+      title,
       viewport: { width: 1280, height: 720 },
       userAgent: "",
     };
@@ -346,7 +371,8 @@ export class SessionRecorder extends EventEmitter {
    */
   private async injectRRWeb(page: Page): Promise<void> {
     // Check if already injected
-    const hasRRWeb = await page.evaluate(() => !!(window as any).rrweb);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasRRWeb = await page.evaluate(() => !!(globalThis as any)["rrweb"]);
     if (hasRRWeb) return;
 
     // Inject rrweb from CDN or bundle
@@ -355,7 +381,7 @@ export class SessionRecorder extends EventEmitter {
     });
 
     // Wait for load
-    await page.waitForFunction(() => !!(window as any).rrweb, { timeout: 5000 });
+    await page.waitForFunction(() => !!(globalThis as { [key: string]: unknown })["rrweb"], { timeout: 5000 });
   }
 
   /**
@@ -369,27 +395,25 @@ export class SessionRecorder extends EventEmitter {
     let inputChanges = 0;
 
     for (const event of events) {
-      switch (event.type) {
-        case EventType.IncrementalSnapshot:
-          const source = (event.data as any)?.source;
-          switch (source) {
-            case IncrementalSource.Mutation:
-              domMutations++;
-              break;
-            case IncrementalSource.MouseMove:
-              mouseMoves++;
-              break;
-            case IncrementalSource.MouseInteraction:
-              if ((event.data as any)?.type === 2) clicks++;
-              break;
-            case IncrementalSource.Scroll:
-              scrolls++;
-              break;
-            case IncrementalSource.Input:
-              inputChanges++;
-              break;
-          }
-          break;
+      if (event.type === EventType.IncrementalSnapshot) {
+        const source = (event.data as { source?: number })?.source;
+        switch (source) {
+          case IncrementalSource.Mutation:
+            domMutations++;
+            break;
+          case IncrementalSource.MouseMove:
+            mouseMoves++;
+            break;
+          case IncrementalSource.MouseInteraction:
+            if ((event.data as { type?: number })?.type === 2) clicks++;
+            break;
+          case IncrementalSource.Scroll:
+            scrolls++;
+            break;
+          case IncrementalSource.Input:
+            inputChanges++;
+            break;
+        }
       }
     }
 
@@ -416,7 +440,7 @@ export class SessionRecorder extends EventEmitter {
     // Index events by time for efficient seeking
     const eventsByTime = new Map<number, RRWebEvent[]>();
     for (const event of recording.events) {
-      const timeSlot = Math.floor(event.timestamp / 1000) * 1000;
+      const timeSlot = Math.floor((event.timestamp as number) / 1000) * 1000;
       if (!eventsByTime.has(timeSlot)) {
         eventsByTime.set(timeSlot, []);
       }
@@ -460,7 +484,14 @@ export class SessionRecorder extends EventEmitter {
 
     for (const event of recording.events) {
       if (event.type === EventType.IncrementalSnapshot) {
-        const data = event.data as any;
+        const data = event.data as {
+          source?: number;
+          positions?: Array<{ x: number; y: number }>;
+          type?: number;
+          x?: number;
+          y?: number;
+          id?: string | number;
+        };
 
         // Track mouse moves
         if (data.source === IncrementalSource.MouseMove && data.positions) {
@@ -476,25 +507,25 @@ export class SessionRecorder extends EventEmitter {
         // Track clicks
         if (data.source === IncrementalSource.MouseInteraction && data.type === 2) {
           heatmap.clicks.push({
-            x: data.x,
-            y: data.y,
+            x: data.x ?? 0,
+            y: data.y ?? 0,
             count: 1,
           });
 
           clickSequence.push({
-            x: data.x,
-            y: data.y,
-            time: event.timestamp,
+            x: data.x ?? 0,
+            y: data.y ?? 0,
+            time: event.timestamp as number,
             selector: data.id?.toString(),
           });
 
           // Check for dead clicks (no mutation within 1 second)
-          const clickTime = event.timestamp;
+          const clickTime = event.timestamp as number;
           setTimeout(() => {
             if (lastMutationTime < clickTime) {
               deadClicks.push({
-                x: data.x,
-                y: data.y,
+                x: data.x ?? 0,
+                y: data.y ?? 0,
                 timestamp: clickTime,
                 noEffect: true,
               });
@@ -505,24 +536,24 @@ export class SessionRecorder extends EventEmitter {
         // Track scrolls
         if (data.source === IncrementalSource.Scroll) {
           heatmap.scrolls.push({
-            x: data.x,
-            y: data.y,
-            depth: data.y,
+            x: data.x ?? 0,
+            y: data.y ?? 0,
+            depth: data.y ?? 0,
           });
         }
 
         // Track mutations
         if (data.source === IncrementalSource.Mutation) {
-          lastMutationTime = event.timestamp;
+          lastMutationTime = event.timestamp as number;
         }
       }
 
       // Track errors from console logs
       if (event.type === EventType.IncrementalSnapshot) {
-        const data = event.data as any;
+        const data = event.data as { source?: number; level?: string; args?: string[] };
         if (data.source === IncrementalSource.Log && data.level === "error") {
           errors.push({
-            timestamp: event.timestamp,
+            timestamp: event.timestamp as number,
             message: data.args?.[0] || "Unknown error",
             type: "console",
           });
@@ -542,14 +573,14 @@ export class SessionRecorder extends EventEmitter {
 
     for (const [selector, clicks] of clickGroups) {
       for (let i = 0; i < clicks.length - 2; i++) {
-        const window = clicks.slice(i, i + 3);
-        const timeSpan = window[2].time - window[0].time;
+        const clickWindow = clicks.slice(i, i + 3);
+        const timeSpan = clickWindow[2].time - clickWindow[0].time;
         if (timeSpan < 1000) {
           rageClicks.push({
             selector,
-            clicks: window.length,
+            clicks: clickWindow.length,
             timeWindow: timeSpan,
-            startTime: window[0].time,
+            startTime: clickWindow[0].time,
           });
         }
       }

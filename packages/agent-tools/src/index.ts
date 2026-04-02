@@ -7,6 +7,7 @@ export {
   ToolResult,
   JudgeLLM,
   NLAssert,
+  ContextCompactor,
 } from "./tools-service.js";
 
 export {

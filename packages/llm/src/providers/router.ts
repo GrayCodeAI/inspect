@@ -19,7 +19,7 @@ interface ModelMapping {
 }
 
 /** Fallback chain configuration */
-interface FallbackConfig {
+export interface FallbackConfig {
   primary: ProviderName;
   fallbacks: ProviderName[];
   /** Only failover on these conditions */
