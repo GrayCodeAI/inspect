@@ -36,6 +36,10 @@ export interface DiffAnalysisResult {
   impactedAreas: ImpactedArea[];
   /** Summary suitable for LLM prompt injection */
   summary: string;
+  /** Confidence score for the analysis (0-1) */
+  confidence: number;
+  /** Risk level of the changes */
+  riskLevel: "critical" | "high" | "medium" | "low";
 }
 
 /** A specific area of the application impacted by code changes */
@@ -72,6 +76,8 @@ export interface DiffTestPlan {
 
 /** A single step in a diff-aware test plan */
 export interface DiffTestStep {
+  /** Unique step identifier */
+  id: string;
   /** Step index */
   index: number;
   /** What this step does */

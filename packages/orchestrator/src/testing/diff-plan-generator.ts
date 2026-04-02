@@ -6,7 +6,7 @@
 // Uses heuristics by default, with optional LLM enhancement.
 // ============================================================================
 
-import { GitManager } from "@inspect/git";
+import { GitManagerImpl } from "@inspect/git";
 import type {
   DiffHunk,
   DiffAnalysisResult,
@@ -36,10 +36,10 @@ export interface DiffPlanGeneratorConfig {
  *    richer, context-aware test plan generation
  */
 export class DiffPlanGenerator {
-  private gitManager: GitManager;
+  private gitManager: GitManagerImpl;
 
   constructor(cwd?: string) {
-    this.gitManager = new GitManager(cwd ?? process.cwd());
+    this.gitManager = new GitManagerImpl(cwd ?? process.cwd());
   }
 
   /**
@@ -54,7 +54,16 @@ export class DiffPlanGenerator {
     const impactedAreas = this.detectImpactedAreas(hunks, categories);
     const summary = this.buildSummary(hunks, categories, impactedAreas);
 
-    return { hunks, categories, impactedAreas, summary };
+    // Calculate confidence based on number of hunks and categories
+    const confidence = Math.min(0.9, Math.max(0.5, (hunks.length + impactedAreas.length) / 20));
+
+    // Determine risk level based on changed file categories
+    let riskLevel: "critical" | "high" | "medium" | "low" = "low";
+    if (categories.config.length > 0 || categories.apiRoutes.length > 3) riskLevel = "critical";
+    else if (categories.pages.length > 0 || categories.apiRoutes.length > 0) riskLevel = "high";
+    else if (categories.components.length > 2 || categories.styles.length > 0) riskLevel = "medium";
+
+    return { hunks, categories, impactedAreas, summary, confidence, riskLevel };
   }
 
   /**
@@ -365,6 +374,7 @@ export class DiffPlanGenerator {
 
     // Always start with page load verification
     steps.push({
+      id: `step-${index}`,
       index: index++,
       description: `Navigate to ${url} and verify page loads without errors`,
       type: "navigate",
@@ -382,6 +392,7 @@ export class DiffPlanGenerator {
       // Navigate to the affected area
       if (area.type === "page") {
         steps.push({
+          id: `step-${index}`,
           index: index++,
           description: `Navigate to the ${area.name} page`,
           type: "navigate",
@@ -394,6 +405,7 @@ export class DiffPlanGenerator {
       for (const focus of area.testFocus) {
         if (focus.includes("form") || focus.includes("input") || focus.includes("validation")) {
           steps.push({
+            id: `step-${index}`,
             index: index++,
             description: `Test ${focus} on ${area.name}`,
             type: "interact",
@@ -403,6 +415,7 @@ export class DiffPlanGenerator {
           });
         } else if (focus.includes("click") || focus.includes("interaction")) {
           steps.push({
+            id: `step-${index}`,
             index: index++,
             description: `Test ${focus} on ${area.name}`,
             type: "interact",
@@ -412,6 +425,7 @@ export class DiffPlanGenerator {
           });
         } else if (focus.includes("navigation") || focus.includes("route")) {
           steps.push({
+            id: `step-${index}`,
             index: index++,
             description: `Verify ${focus} for ${area.name}`,
             type: "verify",
@@ -425,6 +439,7 @@ export class DiffPlanGenerator {
           focus.includes("response")
         ) {
           steps.push({
+            id: `step-${index}`,
             index: index++,
             description: `Verify ${focus} for ${area.name}`,
             type: "verify",
@@ -434,6 +449,7 @@ export class DiffPlanGenerator {
           });
         } else if (focus.includes("visual") || focus.includes("layout")) {
           steps.push({
+            id: `step-${index}`,
             index: index++,
             description: `Capture screenshot for visual regression on ${area.name}`,
             type: "verify",
@@ -447,6 +463,7 @@ export class DiffPlanGenerator {
 
     // Always end with error checking
     steps.push({
+      id: `step-${index}`,
       index: index,
       description: "Check browser console for errors and network request failures",
       type: "verify",
