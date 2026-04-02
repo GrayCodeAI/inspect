@@ -48,6 +48,9 @@ import { registerWatchCommand } from "./commands/watch.js";
 import { registerFlowCommand } from "./commands/flow.js";
 import { registerShowReportCommand } from "./commands/show-report.js";
 import { registerShowTraceCommand } from "./commands/show-trace.js";
+import { registerSessionRecordCommand } from "./commands/session-record.js";
+import { registerSelfHealCommand } from "./commands/self-heal.js";
+import { registerVisualBuilderCommand } from "./commands/visual-builder.js";
 import { registerInstallCommand } from "./commands/install.js";
 import { registerAliasCommand, expandAliases } from "./commands/alias.js";
 import { registerEngineCommand } from "./commands/engine.js";
@@ -114,6 +117,9 @@ registerReplayCommand(program);
 registerCompareCommand(program);
 registerWatchCommand(program);
 registerFlowCommand(program);
+registerSessionRecordCommand(program);
+registerSelfHealCommand(program);
+registerVisualBuilderCommand(program);
 
 // ── Browser Commands ────────────────────────────────────────────────────
 registerOpenCommand(program);
