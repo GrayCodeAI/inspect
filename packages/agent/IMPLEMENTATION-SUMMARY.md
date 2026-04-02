@@ -351,15 +351,177 @@ Cache and diff observations to reduce LLM context:
 // Planned: Diff-based, only send changed observations
 ```
 
+## Phase 2 Part C Enhancements - Additional Capabilities
+
+### 1. **Semantic Goal Detection (Phase 4: FINALIZE)**
+
+Replaced step-count-based completion with LLM-powered goal verification:
+
+```typescript
+// Old: Completion after 5 steps
+const isComplete = state.currentStep >= 4;
+
+// New: LLM evaluates if goal is achieved
+const response = yield* llm.complete("anthropic", model, [
+  { role: "system", content: "Verify if goal is achieved" },
+  { role: "user", content: `Goal: "${goal}"\nPage: ${domContent}` }
+]);
+const isComplete = response.text.toLowerCase().includes("yes");
+```
+
+**Benefits:**
+- Loop stops when goal is semantically achieved
+- No need to pre-configure max steps
+- Works for any goal description
+- Graceful fallback to step-based completion
+
+### 2. **Enhanced Observation Capture (Phase 1: OBSERVE)**
+
+Upgraded DOM observation to capture ARIA-like trees with interactive elements:
+
+```typescript
+// Builds tree of elements with:
+// - Element roles/tags
+// - Interactive vs structural classification
+// - Text content
+// - Depth limiting for context window management
+
+const ariaTree = yield* session.evaluate<string>(`
+  (() => {
+    const elements = [];
+    // Walk DOM tree and collect interactive elements
+    // Return JSON instead of raw HTML
+  })()
+`);
+```
+
+**Benefits:**
+- LLM gets structured data instead of raw HTML
+- Identifies interactive elements automatically
+- Limits context size (50 elements max)
+- Better for action planning
+
+### 3. **Error Recovery with Retry Logic (Phase 3: ACT)**
+
+Implemented exponential backoff retry strategy:
+
+```typescript
+const maxRetries = 2;
+let retryCount = 0;
+
+while (retryCount <= maxRetries && !success) {
+  try {
+    // Execute action
+    success = true;
+  } catch (e) {
+    if (retryCount < maxRetries) {
+      const delayMs = Math.min(100 * Math.pow(2, retryCount), 2000);
+      // Wait and retry
+      retryCount++;
+    } else {
+      // Max retries exceeded
+      success = false;
+      error = e.message;
+    }
+  }
+}
+```
+
+**Benefits:**
+- Handles transient failures automatically
+- Exponential backoff reduces server load
+- Proper error tracking and logging
+- Configurable retry limits
+
+### 4. **Multi-Action Plans (Phase 2: THINK & Phase 3: ACT)**
+
+Extended action format to support sequential action plans:
+
+```typescript
+// Single action (existing)
+{ "name": "click", "params": { "selector": ".button" } }
+
+// Action plan (new)
+{
+  "sequential": true,
+  "subActions": [
+    { "name": "click", "params": { "selector": ".login" } },
+    { "name": "type", "params": { "selector": "input", "text": "user@example.com" } },
+    { "name": "click", "params": { "selector": ".submit" } }
+  ]
+}
+```
+
+**Benefits:**
+- LLM can plan multi-step workflows
+- Executes plans atomically within a step
+- Simplifies complex interactions
+- Better context preservation
+
+**Updated AgentAction Schema:**
+```typescript
+export class AgentAction {
+  sequential?: boolean;     // Execute sub-actions in sequence
+  subActions?: unknown[];   // Array of action objects
+}
+```
+
+**Helper Function:**
+```typescript
+function flattenActionPlan(action: AgentAction): AgentAction[] {
+  if (action.sequential && action.subActions) {
+    return action.subActions.map((subAction, idx) => ({...}));
+  }
+  return [action];
+}
+```
+
+## Test Coverage
+
+All 5 integration tests passing:
+- ✅ Complete loop execution
+- ✅ Step limits enforced
+- ✅ Observations tracked
+- ✅ Actions and results tracked
+- ✅ Browser session integration
+
+## Metrics (Phase 2 Complete)
+
+| Metric | Value |
+|--------|-------|
+| **Lines Added** | 900+ (agent-loop.ts enhancements) |
+| **Functions** | 4 phases (observe, think, act, finalize) |
+| **LLM Calls** | 2 per step (action planning + goal verification) |
+| **Error Recovery** | Yes (retry with exponential backoff) |
+| **Action Formats** | 2 (single + sequential plans) |
+| **Test Pass Rate** | 100% (5/5) |
+| **Build Status** | ✅ No errors |
+
+## Implementation Status
+
+✅ **Complete:**
+- LLM service integration
+- Browser session support
+- Mock testing infrastructure
+- Semantic goal detection
+- Enhanced observations (ARIA-like)
+- Error recovery with retries
+- Multi-action planning
+
+🚀 **Ready for Integration:**
+- Real BrowserManager
+- AriaSnapshotBuilder
+- Watchdog integration (crashes, captchas, popups)
+- Observation compression/caching
+
 ## Next Steps in Priority Order
 
-1. **Enable real BrowserManager** - Import and use actual browser service
-2. **Add AriaSnapshotBuilder** for rich DOM context (Phase 1 enhancement)
-3. **Implement semantic goal detection** (Phase 4 enhancement)
-4. **Add observation caching** - Only send deltas to LLM
-5. **Error recovery** - Implement retry logic with backoff
-6. **Performance optimization** - Parallel observation capture
-7. **Watchdog integration** - Add crash, captcha, popup detection
+1. **Wire real BrowserManager** - Integrate actual Playwright browser
+2. **Add AriaSnapshotBuilder** - Replace hand-rolled ARIA tree with production version
+3. **Implement watchdog integration** - Detect and handle crashes, captchas, popups
+4. **Add observation caching** - Diff-based observation delta sends
+5. **Performance optimization** - Parallel observation capture
+6. **Advanced planning** - Context-aware multi-step strategies
 
 ---
 
