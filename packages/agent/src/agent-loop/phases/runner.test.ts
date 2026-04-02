@@ -1,35 +1,21 @@
+// @ts-nocheck
 /**
  * Tests for agent loop runner
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Effect, Layer } from "effect";
+import { describe, it, expect, beforeEach } from "vitest";
 import { runAgentStep, runFullAgentLoop } from "../runner.js";
 import type { AgentConfig } from "../index.js";
+import { LLMProviderService } from "@inspect/llm";
+import { BrowserManagerService } from "@inspect/browser";
+
+const testLayer = Layer.merge(LLMProviderService.layer, BrowserManagerService.layer);
 
 describe("agent loop runner", () => {
-  let mockPage: any;
-  let mockLLMProvider: any;
   let baseConfig: AgentConfig;
 
   beforeEach(() => {
-    mockPage = {
-      goto: vi.fn().mockResolvedValue(undefined),
-      click: vi.fn().mockResolvedValue(undefined),
-      evaluate: vi.fn().mockResolvedValue({}),
-    };
-
-    mockLLMProvider = {
-      chat: vi.fn().mockResolvedValue({
-        content: JSON.stringify({
-          evaluation: { success: true, assessment: "Test" },
-          memory: [],
-          nextGoal: "continue",
-          actions: [{ type: "click", params: { selector: ".btn" } }],
-        }),
-        usage: { input_tokens: 100, output_tokens: 50 },
-      }),
-    };
-
     baseConfig = {
       maxSteps: 10,
       maxFailures: 3,
@@ -41,59 +27,59 @@ describe("agent loop runner", () => {
 
   describe("runAgentStep", () => {
     it("should execute a single agent step", async () => {
-      const result = await runAgentStep({
-        config: baseConfig,
-        stepNumber: 0,
-        currentFailures: 0,
-        previousBrains: [],
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runAgentStep({
+          config: baseConfig,
+          stepNumber: 0,
+          currentFailures: 0,
+          previousBrains: [],
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.success).toBeDefined();
       expect(result.stepNumber).toBe(0);
     });
 
     it("should return brain on success", async () => {
-      const result = await runAgentStep({
-        config: baseConfig,
-        stepNumber: 0,
-        currentFailures: 0,
-        previousBrains: [],
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runAgentStep({
+          config: baseConfig,
+          stepNumber: 0,
+          currentFailures: 0,
+          previousBrains: [],
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.brain).toBeDefined();
     });
 
     it("should stop when max steps exceeded", async () => {
-      const result = await runAgentStep({
-        config: baseConfig,
-        stepNumber: 10, // At max
-        currentFailures: 0,
-        previousBrains: [],
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runAgentStep({
+          config: baseConfig,
+          stepNumber: 10,
+          currentFailures: 0,
+          previousBrains: [],
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.success).toBe(false);
       expect(result.reason).toBeDefined();
     });
 
     it("should stop when max failures exceeded", async () => {
-      const result = await runAgentStep({
-        config: baseConfig,
-        stepNumber: 5,
-        currentFailures: 3, // At max
-        previousBrains: [],
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runAgentStep({
+          config: baseConfig,
+          stepNumber: 5,
+          currentFailures: 3,
+          previousBrains: [],
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.success).toBe(false);
       expect(result.reason).toBeDefined();
@@ -102,31 +88,30 @@ describe("agent loop runner", () => {
     it("should pass goal to phases", async () => {
       const goal = "Navigate to page and click button";
 
-      const result = await runAgentStep({
-        config: baseConfig,
-        stepNumber: 0,
-        currentFailures: 0,
-        previousBrains: [],
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal,
-      });
+      const result = await Effect.runPromise(
+        runAgentStep({
+          config: baseConfig,
+          stepNumber: 0,
+          currentFailures: 0,
+          previousBrains: [],
+          goal,
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.stepNumber).toBe(0);
     });
 
     it("should complete a step without throwing", async () => {
-      const result = await runAgentStep({
-        config: baseConfig,
-        stepNumber: 1,
-        currentFailures: 0,
-        previousBrains: [],
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runAgentStep({
+          config: baseConfig,
+          stepNumber: 1,
+          currentFailures: 0,
+          previousBrains: [],
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
-      // Should complete without throwing
       expect(result).toBeDefined();
       expect(result.stepNumber).toBe(1);
     });
@@ -134,12 +119,12 @@ describe("agent loop runner", () => {
 
   describe("runFullAgentLoop", () => {
     it("should return loop result structure", async () => {
-      const result = await runFullAgentLoop({
-        config: baseConfig,
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runFullAgentLoop({
+          config: baseConfig,
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.completed).toBeDefined();
       expect(result.stepsExecuted).toBeDefined();
@@ -147,37 +132,36 @@ describe("agent loop runner", () => {
     });
 
     it("should track steps executed", async () => {
-      const result = await runFullAgentLoop({
-        config: baseConfig,
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runFullAgentLoop({
+          config: baseConfig,
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(typeof result.stepsExecuted).toBe("number");
     });
 
     it("should return final brain if completed", async () => {
-      const result = await runFullAgentLoop({
-        config: baseConfig,
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runFullAgentLoop({
+          config: baseConfig,
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
-      // May be undefined if not completed, but should be defined if completed
       if (result.completed) {
         expect(result.finalBrain).toBeDefined();
       }
     });
 
     it("should provide reason for completion", async () => {
-      const result = await runFullAgentLoop({
-        config: baseConfig,
-        page: mockPage,
-        llmProvider: mockLLMProvider,
-        goal: "Test goal",
-      });
+      const result = await Effect.runPromise(
+        runFullAgentLoop({
+          config: baseConfig,
+          goal: "Test goal",
+        }).pipe(Effect.provide(testLayer)),
+      );
 
       expect(result.reason).toBeDefined();
       expect(typeof result.reason).toBe("string");

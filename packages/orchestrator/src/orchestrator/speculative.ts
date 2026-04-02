@@ -1,166 +1,154 @@
-// ============================================================================
-// @inspect/core - Speculative Planner
-//
-// Pre-computes the next step while the current step executes.
-// If the page doesn't change unexpectedly, the pre-built prompt is used
-// directly — saving 30-40% of LLM latency.
-// Inspired by Skyvern's speculative_plans.
-// ============================================================================
-
-export interface SpeculativePlan {
-  /** Step index this plan is for */
-  stepIndex: number;
-  /** Pre-captured ARIA snapshot */
-  snapshot: string;
-  /** Pre-built prompt for the LLM */
-  prompt: string;
-  /** URL at time of capture */
-  url: string;
-  /** Timestamp of capture */
-  capturedAt: number;
-  /** Whether this plan was used or discarded */
-  status: "pending" | "used" | "discarded";
-}
-
-export interface SpeculativeStats {
-  /** Total plans generated */
-  generated: number;
-  /** Plans that were used (saved an LLM round trip) */
-  used: number;
-  /** Plans discarded (page changed unexpectedly) */
-  discarded: number;
-  /** Hit rate (used / generated) */
-  hitRate: number;
-  /** Estimated time saved in ms */
-  estimatedTimeSavedMs: number;
-}
-
 /**
- * SpeculativePlanner pre-computes the next step's context while
- * the current step is executing.
+ * SpeculativePlanner - Effect-TS Implementation
  *
- * Flow:
- * 1. After current step starts executing, capture page snapshot
- * 2. Pre-build the prompt for the next step
- * 3. When current step finishes:
- *    - If page URL and DOM fingerprint match → use pre-built prompt
- *    - If page changed → discard and build fresh
- *
- * Usage:
- * ```ts
- * const planner = new SpeculativePlanner();
- *
- * // While current step executes:
- * planner.precompute(nextStepIndex, snapshot, prompt, pageUrl);
- *
- * // When ready for next step:
- * const plan = planner.get(nextStepIndex, currentUrl);
- * if (plan) {
- *   // Use pre-built prompt — skip snapshot + prompt building
- *   await llm.call(plan.prompt);
- * } else {
- *   // Page changed — build fresh
- *   const freshSnapshot = await captureSnapshot();
- *   const freshPrompt = buildPrompt(freshSnapshot);
- *   await llm.call(freshPrompt);
- * }
- * ```
+ * Pre-computes the next step while the current step executes.
+ * If the page doesn't change unexpectedly, the pre-built prompt is used
+ * directly — saving 30-40% of LLM latency.
+ * Inspired by Skyvern's speculative_plans.
  */
-export class SpeculativePlanner {
-  private plans = new Map<number, SpeculativePlan>();
-  private stats: SpeculativeStats = {
-    generated: 0,
-    used: 0,
-    discarded: 0,
-    hitRate: 0,
-    estimatedTimeSavedMs: 0,
-  };
 
-  /** Average time to capture snapshot + build prompt (ms) */
-  private avgPrepTimeMs = 2000;
+import { Effect, Layer, Schema, ServiceMap } from "effect";
 
-  /**
-   * Pre-compute a plan for a future step.
-   */
-  precompute(stepIndex: number, snapshot: string, prompt: string, url: string): void {
-    this.plans.set(stepIndex, {
-      stepIndex,
-      snapshot,
-      prompt,
-      url,
-      capturedAt: Date.now(),
-      status: "pending",
-    });
-    this.stats.generated++;
-  }
+export class SpeculativePlan extends Schema.Class<SpeculativePlan>("SpeculativePlan")({
+  stepIndex: Schema.Number,
+  snapshot: Schema.String,
+  prompt: Schema.String,
+  url: Schema.String,
+  capturedAt: Schema.Number,
+  status: Schema.Literals(["pending", "used", "discarded"] as const),
+}) {}
 
-  /**
-   * Try to use a pre-computed plan.
-   * Returns null if the plan is stale (page changed).
-   */
-  get(stepIndex: number, currentUrl: string): SpeculativePlan | null {
-    const plan = this.plans.get(stepIndex);
-    if (!plan) return null;
+export class SpeculativeStats extends Schema.Class<SpeculativeStats>("SpeculativeStats")({
+  generated: Schema.Number,
+  used: Schema.Number,
+  discarded: Schema.Number,
+  hitRate: Schema.Number,
+  estimatedTimeSavedMs: Schema.Number,
+}) {}
 
-    // Check if URL matches (page didn't navigate away)
-    const planPath = new URL(plan.url).pathname;
-    const currentPath = new URL(currentUrl).pathname;
+const STALENESS_THRESHOLD_MS = 30_000;
+const DEFAULT_AVG_PREP_TIME_MS = 2000;
 
-    if (planPath !== currentPath) {
-      plan.status = "discarded";
-      this.stats.discarded++;
-      this.plans.delete(stepIndex);
-      return null;
-    }
+export class SpeculativePlanner extends ServiceMap.Service<SpeculativePlanner>()(
+  "@orchestrator/SpeculativePlanner",
+  {
+    make: Effect.gen(function* () {
+      let plans = new Map<number, SpeculativePlan>();
+      let stats = new SpeculativeStats({
+        generated: 0,
+        used: 0,
+        discarded: 0,
+        hitRate: 0,
+        estimatedTimeSavedMs: 0,
+      });
+      let avgPrepTimeMs = DEFAULT_AVG_PREP_TIME_MS;
 
-    // Check staleness (>30s old = probably stale)
-    if (Date.now() - plan.capturedAt > 30_000) {
-      plan.status = "discarded";
-      this.stats.discarded++;
-      this.plans.delete(stepIndex);
-      return null;
-    }
+      const precompute = Effect.fn("SpeculativePlanner.precompute")(function* (
+        stepIndex: number,
+        snapshot: string,
+        prompt: string,
+        url: string,
+      ) {
+        plans.set(
+          stepIndex,
+          new SpeculativePlan({
+            stepIndex,
+            snapshot,
+            prompt,
+            url,
+            capturedAt: Date.now(),
+            status: "pending",
+          }),
+        );
+        stats = new SpeculativeStats({
+          ...stats,
+          generated: stats.generated + 1,
+        });
+      });
 
-    plan.status = "used";
-    this.stats.used++;
-    this.stats.estimatedTimeSavedMs += this.avgPrepTimeMs;
-    this.stats.hitRate = this.stats.generated > 0 ? this.stats.used / this.stats.generated : 0;
-    this.plans.delete(stepIndex);
-    return plan;
-  }
+      const get = Effect.fn("SpeculativePlanner.get")(function* (
+        stepIndex: number,
+        currentUrl: string,
+      ): Effect.Effect<SpeculativePlan | null> {
+        const plan = plans.get(stepIndex);
+        if (!plan) return null;
 
-  /**
-   * Discard all pending plans (e.g., after unexpected navigation).
-   */
-  discardAll(): void {
-    for (const plan of this.plans.values()) {
-      if (plan.status === "pending") {
-        plan.status = "discarded";
-        this.stats.discarded++;
-      }
-    }
-    this.plans.clear();
-  }
+        try {
+          const planPath = new URL(plan.url).pathname;
+          const currentPath = new URL(currentUrl).pathname;
 
-  /**
-   * Get stats for this session.
-   */
-  getStats(): SpeculativeStats {
-    return { ...this.stats };
-  }
+          if (planPath !== currentPath) {
+            plans.delete(stepIndex);
+            stats = new SpeculativeStats({
+              ...stats,
+              discarded: stats.discarded + 1,
+            });
+            return null;
+          }
+        } catch {
+          plans.delete(stepIndex);
+          stats = new SpeculativeStats({
+            ...stats,
+            discarded: stats.discarded + 1,
+          });
+          return null;
+        }
 
-  /**
-   * Update the average prep time (for more accurate time-saved estimates).
-   */
-  updateAvgPrepTime(ms: number): void {
-    this.avgPrepTimeMs = ms;
-  }
+        if (Date.now() - plan.capturedAt > STALENESS_THRESHOLD_MS) {
+          plans.delete(stepIndex);
+          stats = new SpeculativeStats({
+            ...stats,
+            discarded: stats.discarded + 1,
+          });
+          return null;
+        }
 
-  /**
-   * Reset all state.
-   */
-  reset(): void {
-    this.plans.clear();
-    this.stats = { generated: 0, used: 0, discarded: 0, hitRate: 0, estimatedTimeSavedMs: 0 };
-  }
+        plans.delete(stepIndex);
+        stats = new SpeculativeStats({
+          ...stats,
+          used: stats.used + 1,
+          estimatedTimeSavedMs: stats.estimatedTimeSavedMs + avgPrepTimeMs,
+          hitRate: stats.generated > 0 ? (stats.used + 1) / stats.generated : 0,
+        });
+
+        return new SpeculativePlan({ ...plan, status: "used" });
+      });
+
+      const discardAll = Effect.fn("SpeculativePlanner.discardAll")(function* () {
+        for (const plan of plans.values()) {
+          if (plan.status === "pending") {
+            stats = new SpeculativeStats({
+              ...stats,
+              discarded: stats.discarded + 1,
+            });
+          }
+        }
+        plans.clear();
+      });
+
+      const getStats = Effect.sync(() => stats);
+
+      const updateAvgPrepTime = Effect.fn("SpeculativePlanner.updateAvgPrepTime")(function* (
+        ms: number,
+      ) {
+        avgPrepTimeMs = ms;
+      });
+
+      const reset = Effect.sync(() => {
+        plans.clear();
+        stats = new SpeculativeStats({
+          generated: 0,
+          used: 0,
+          discarded: 0,
+          hitRate: 0,
+          estimatedTimeSavedMs: 0,
+        });
+        avgPrepTimeMs = DEFAULT_AVG_PREP_TIME_MS;
+      });
+
+      return { precompute, get, discardAll, getStats, updateAvgPrepTime, reset } as const;
+    }),
+  },
+) {
+  static layer = Layer.effect(this, this.make);
 }

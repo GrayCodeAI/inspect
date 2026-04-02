@@ -1,82 +1,50 @@
 /**
- * Prepare Phase - Agent Loop
+ * Prepare Phase - Effect-TS Implementation
  *
  * Initializes state and loads memory for a new iteration.
  * Part of: observe → think → act → finalize
- *
- * Task: 124 (prepare phase implementation)
  */
 
+import { Effect, Schema } from "effect";
 import type { AgentBrain } from "../brain.js";
 import type { Observation } from "../index.js";
 
-/**
- * Prepare input
- */
-export interface PrepareInput {
-  // Agent's goal/task
-  goal: string;
+export class PrepareInput extends Schema.Class<PrepareInput>("PrepareInput")({
+  goal: Schema.String,
+  stepNumber: Schema.Number,
+  previousMemory: Schema.optional(Schema.Array(Schema.Unknown)),
+  actionHistory: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        action: Schema.String,
+        result: Schema.Boolean,
+      }),
+    ),
+  ),
+  maxSteps: Schema.Number,
+  maxFailures: Schema.Number,
+  currentFailures: Schema.Number,
+}) {}
 
-  // Step number (0 for first step)
-  stepNumber: number;
+export class PrepareOutput extends Schema.Class<PrepareOutput>("PrepareOutput")({
+  canProceed: Schema.Boolean,
+  stopReason: Schema.optional(
+    Schema.Literals(["max_steps_exceeded", "max_failures_exceeded", "goal_achieved"] as const),
+  ),
+  observations: Schema.Array(Schema.Unknown),
+  brain: Schema.Unknown,
+  isFirstStep: Schema.Boolean,
+  progress: Schema.Struct({
+    stepNumber: Schema.Number,
+    stepsRemaining: Schema.Number,
+    failuresRemaining: Schema.Number,
+  }),
+}) {}
 
-  // Available memory from previous steps
-  previousMemory?: AgentBrain[];
+export const preparePhase = Effect.fn("PreparePhase.execute")(function* (input: PrepareInput) {
+  yield* Effect.annotateCurrentSpan({ stepNumber: input.stepNumber, goal: input.goal });
 
-  // Action history
-  actionHistory?: Array<{ action: string; result: boolean }>;
-
-  // Max steps allowed
-  maxSteps: number;
-
-  // Max failures allowed before stopping
-  maxFailures: number;
-
-  // Number of failures so far
-  currentFailures: number;
-}
-
-/**
- * Prepare output
- */
-export interface PrepareOutput {
-  // Step is valid and can proceed
-  canProceed: boolean;
-
-  // Reason if cannot proceed
-  stopReason?: "max_steps_exceeded" | "max_failures_exceeded" | "goal_achieved";
-
-  // Initial observations for this step
-  observations: Observation[];
-
-  // Agent brain state with loaded memory
-  brain: AgentBrain;
-
-  // Whether this is first step
-  isFirstStep: boolean;
-
-  // Progress information
-  progress: {
-    stepNumber: number;
-    stepsRemaining: number;
-    failuresRemaining: number;
-  };
-}
-
-/**
- * Prepare phase: Initialize state for new iteration
- *
- * This phase:
- * 1. Validates we can continue (steps/failures)
- * 2. Loads memory from previous steps
- * 3. Prepares initial observations
- * 4. Sets up brain for thinking
- *
- * Estimated implementation: 30-50 LOC
- */
-export async function preparePhase(input: PrepareInput): Promise<PrepareOutput> {
-  // Step 1: Check if we can continue
-  const validation = validateCanContinue(
+  const validation = yield* validateCanContinue(
     input.stepNumber,
     input.maxSteps,
     input.currentFailures,
@@ -84,9 +52,10 @@ export async function preparePhase(input: PrepareInput): Promise<PrepareOutput> 
   );
 
   if (!validation.canContinue) {
-    return {
+    yield* Effect.logDebug("Cannot proceed", { reason: validation.reason });
+    return new PrepareOutput({
       canProceed: false,
-      stopReason: validation.reason as any,
+      stopReason: validation.reason as PrepareOutput["stopReason"],
       observations: [],
       brain: {
         evaluation: { success: false, assessment: "Cannot proceed - limits exceeded" },
@@ -99,19 +68,14 @@ export async function preparePhase(input: PrepareInput): Promise<PrepareOutput> 
         stepsRemaining: Math.max(0, input.maxSteps - input.stepNumber),
         failuresRemaining: Math.max(0, input.maxFailures - input.currentFailures),
       },
-    };
+    });
   }
 
-  // Step 2: Load memory from previous steps
-  const loadedMemory = loadMemory(input.previousMemory);
+  const loadedMemory = yield* loadMemory(input.previousMemory as AgentBrain[] | undefined);
+  const observations = yield* createInitialObservations(input.stepNumber);
+  const brain = yield* initializeBrain(input.goal, loadedMemory);
 
-  // Step 3: Create initial observations
-  const observations = createInitialObservations(input.stepNumber);
-
-  // Step 4: Initialize brain with loaded memory
-  const brain = initializeBrain(input.goal, loadedMemory);
-
-  return {
+  return new PrepareOutput({
     canProceed: true,
     observations,
     brain,
@@ -121,104 +85,71 @@ export async function preparePhase(input: PrepareInput): Promise<PrepareOutput> 
       stepsRemaining: input.maxSteps - input.stepNumber,
       failuresRemaining: input.maxFailures - input.currentFailures,
     },
-  };
-}
+  });
+});
 
-/**
- * Validate that we can continue
- */
-function validateCanContinue(
+const validateCanContinue = Effect.fn("PreparePhase.validateCanContinue")(function* (
   stepNumber: number,
   maxSteps: number,
   currentFailures: number,
   maxFailures: number,
-): { canContinue: boolean; reason?: "max_steps_exceeded" | "max_failures_exceeded" } {
-  // Check step limit
+) {
   if (stepNumber >= maxSteps) {
-    return { canContinue: false, reason: "max_steps_exceeded" };
+    return { canContinue: false, reason: "max_steps_exceeded" as const };
   }
-
-  // Check failure limit
   if (currentFailures >= maxFailures) {
-    return { canContinue: false, reason: "max_failures_exceeded" };
+    return { canContinue: false, reason: "max_failures_exceeded" as const };
   }
-
   return { canContinue: true };
-}
+});
 
-/**
- * Load memory from history
- */
-function loadMemory(
+const loadMemory = Effect.fn("PreparePhase.loadMemory")(function* (
   previousMemory: AgentBrain[] | undefined,
-): { content: string; importance: number }[] {
-  // Extract important items from history
+) {
   if (!previousMemory || previousMemory.length === 0) {
-    return [];
+    return [] as { content: string; importance: number }[];
   }
 
-  // Collect high-importance memory items from all previous steps
   const allMemory: { content: string; importance: number }[] = [];
 
-  // Iterate through all previous brains, collecting high-importance items
   for (const brain of previousMemory) {
     if (brain.memory && Array.isArray(brain.memory)) {
-      // Include items with importance > 0.7 (high importance)
       const important = brain.memory.filter((m) => m.importance >= 0.7);
       allMemory.push(...important);
     }
   }
 
-  // If no high-importance items, return recent memory from last step
   if (allMemory.length === 0 && previousMemory.length > 0) {
     return previousMemory[previousMemory.length - 1].memory || [];
   }
 
   return allMemory;
-}
+});
 
-/**
- * Create initial brain for this step
- */
-function initializeBrain(
+const initializeBrain = Effect.fn("PreparePhase.initializeBrain")(function* (
   goal: string,
   loadedMemory: { content: string; importance: number }[],
-): AgentBrain {
-  // Create brain for this iteration with:
-  // - Clear goal statement
-  // - Important memories from previous steps
-  // - Initial evaluation (not yet started)
-
+) {
   return {
     evaluation: {
       success: false,
-      assessment: "Starting new iteration - goal: " + goal,
+      assessment: `Starting new iteration - goal: ${goal}`,
       lesson: undefined,
     },
     memory: loadedMemory,
     nextGoal: goal,
-    confidence: loadedMemory.length > 0 ? 0.7 : 0.5, // Higher confidence if we have prior memory
+    confidence: loadedMemory.length > 0 ? 0.7 : 0.5,
   };
-}
+});
 
-/**
- * Create initial observations for step
- */
-function createInitialObservations(stepNumber: number): Observation[] {
-  // Capture current state as observations
-  // In full implementation, would:
-  // - Take screenshot
-  // - Capture DOM tree
-  // - Get accessibility tree
-  // - Monitor network requests
-  // - Capture console output
-
-  // For now, return step metadata observation
+const createInitialObservations = Effect.fn("PreparePhase.createInitialObservations")(function* (
+  stepNumber: number,
+) {
   return [
     {
       type: "metadata",
       content: `Step ${stepNumber + 1} initialized`,
       timestamp: Date.now(),
-    },
+    } as Observation,
   ];
-}
+});

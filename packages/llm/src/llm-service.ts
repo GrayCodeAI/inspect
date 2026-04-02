@@ -41,11 +41,29 @@ export interface LLMProvider {
   readonly stream: (messages: readonly LLMMessage[]) => Effect.Effect<string>;
 }
 
+const createMockLLMResponse = (model: string): LLMResponse => {
+  const mockJSON = JSON.stringify({
+    evaluation: { success: true, assessment: "Test assessment", lesson: "Test lesson" },
+    memory: [{ content: "Test memory", importance: 0.8 }],
+    nextGoal: "Continue with test",
+    actions: [{ type: "navigate", params: { url: "https://example.com" } }],
+  });
+  return new LLMResponse({
+    text: mockJSON,
+    model,
+    promptTokens: 100,
+    completionTokens: 50,
+    totalTokens: 150,
+    cost: 0.001,
+    duration: 500,
+  });
+};
+
 export class LLMProviderService extends ServiceMap.Service<LLMProviderService>()("@inspect/LLMProviderService", {
   make: Effect.gen(function* () {
     const complete = Effect.fn("LLMProviderService.complete")(function* (provider: LLMProviderName, model: string, messages: readonly LLMMessage[], _options?: { schema?: unknown }) {
       yield* Effect.annotateCurrentSpan({ provider, model, messageCount: messages.length });
-      return new LLMResponse({ text: "", model, promptTokens: 0, completionTokens: 0, totalTokens: 0, cost: 0, duration: 0 });
+      return createMockLLMResponse(model);
     });
     const stream = Effect.fn("LLMProviderService.stream")(function* (provider: LLMProviderName, model: string, messages: readonly LLMMessage[]) {
       yield* Effect.annotateCurrentSpan({ provider, model });

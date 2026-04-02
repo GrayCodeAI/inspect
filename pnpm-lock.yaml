@@ -178,6 +178,9 @@ importers:
       '@inspect/agent-watchdogs':
         specifier: workspace:*
         version: link:../agent-watchdogs
+      '@inspect/browser':
+        specifier: workspace:*
+        version: link:../browser
       '@inspect/llm':
         specifier: workspace:*
         version: link:../llm

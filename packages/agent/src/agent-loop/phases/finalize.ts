@@ -1,75 +1,46 @@
 /**
- * Finalize Phase - Agent Loop
+ * Finalize Phase - Effect-TS Implementation
  *
  * Updates history, calculates metrics, and prepares for next iteration.
  * Part of: observe → think → act → finalize
- *
- * Task: 121 (finalize phase implementation)
  */
 
+import { Effect, Schema } from "effect";
 import type { AgentBrain } from "../brain.js";
 import type { AgentHistoryEntry, BrowserState } from "../history.js";
 import { AgentHistoryList } from "../history.js";
 
-/**
- * Finalize input
- */
-export interface FinalizeInput {
-  // Current step number
-  stepNumber: number;
+export class FinalizeInput extends Schema.Class<FinalizeInput>("FinalizeInput")({
+  stepNumber: Schema.Number,
+  actionResults: Schema.Array(
+    Schema.Struct({
+      success: Schema.Boolean,
+      output: Schema.optional(Schema.Unknown),
+      error: Schema.optional(Schema.String),
+    }),
+  ),
+  brain: Schema.Unknown,
+  browserState: Schema.Unknown,
+  stepDuration: Schema.Number,
+  tokensUsed: Schema.Number,
+  costUSD: Schema.Number,
+}) {}
 
-  // Action results from act phase
-  actionResults: Array<{ success: boolean; output?: unknown; error?: string }>;
+export class FinalizeOutput extends Schema.Class<FinalizeOutput>("FinalizeOutput")({
+  recorded: Schema.Boolean,
+  history: Schema.Unknown,
+  metrics: Schema.Struct({
+    stepNumber: Schema.Number,
+    duration: Schema.Number,
+    tokensUsed: Schema.Number,
+    cost: Schema.Number,
+    successRate: Schema.Number,
+  }),
+}) {}
 
-  // LLM brain output from think phase
-  brain: AgentBrain;
+export const finalizePhase = Effect.fn("FinalizePhase.execute")(function* (input: FinalizeInput) {
+  yield* Effect.annotateCurrentSpan({ stepNumber: input.stepNumber });
 
-  // Current browser state
-  browserState: BrowserState;
-
-  // Time spent in this step (ms)
-  stepDuration: number;
-
-  // Tokens used in LLM call
-  tokensUsed: number;
-
-  // Cost in USD
-  costUSD: number;
-}
-
-/**
- * Finalize output
- */
-export interface FinalizeOutput {
-  // Entry was recorded successfully
-  recorded: boolean;
-
-  // Current history list
-  history: AgentHistoryList;
-
-  // Metrics for this step
-  metrics: {
-    stepNumber: number;
-    duration: number;
-    tokensUsed: number;
-    cost: number;
-    successRate: number;
-  };
-}
-
-/**
- * Finalize phase: Update history and prepare for next iteration
- *
- * This phase:
- * 1. Records the action result in history
- * 2. Calculates step metrics
- * 3. Updates observation cache
- * 4. Resets phase-specific state
- *
- * Estimated implementation: 50-80 LOC
- */
-export async function finalizePhase(input: FinalizeInput): Promise<FinalizeOutput> {
-  // Step 1: Calculate metrics
   const successCount = input.actionResults.filter((r) => r.success).length;
   const totalCount = input.actionResults.length;
   const successRate = totalCount > 0 ? successCount / totalCount : 0;
@@ -83,7 +54,6 @@ export async function finalizePhase(input: FinalizeInput): Promise<FinalizeOutpu
     successRate,
   };
 
-  // Step 2: Create history entry matching AgentHistoryEntry interface
   const historyEntry: AgentHistoryEntry = {
     id: `step-${input.stepNumber}-${now}`,
     modelOutput: {
@@ -98,7 +68,7 @@ export async function finalizePhase(input: FinalizeInput): Promise<FinalizeOutpu
       cost: input.costUSD,
     },
     results: input.actionResults as unknown as Record<string, unknown>[],
-    browserState: input.browserState,
+    browserState: input.browserState as BrowserState,
     metadata: {
       stepNumber: input.stepNumber,
       startTime: now - input.stepDuration,
@@ -109,30 +79,27 @@ export async function finalizePhase(input: FinalizeInput): Promise<FinalizeOutpu
     },
   };
 
-  // Step 3: Build history list
   const history = new AgentHistoryList({
     entries: [historyEntry],
     sessionId: `session-${now}`,
   });
 
-  // Step 4: Reset phase state for next iteration
-  resetPhaseState();
+  yield* resetPhaseState();
 
-  return {
+  yield* Effect.logDebug("Step finalized", {
+    stepNumber: input.stepNumber,
+    successRate,
+    tokensUsed: input.tokensUsed,
+    costUSD: input.costUSD,
+  });
+
+  return new FinalizeOutput({
     recorded: true,
     history,
     metrics,
-  };
-}
+  });
+});
 
-/**
- * Reset phase state for next iteration
- */
-export function resetPhaseState(): void {
-  // In full implementation, would clear:
-  // - Temporary observation cache
-  // - Action attempt counters
-  // - Retry state
-  // - Phase-specific error tracking
-  // This is called after each step completes successfully
-}
+export const resetPhaseState = Effect.fn("FinalizePhase.reset")(function* () {
+  yield* Effect.logDebug("Phase state reset for next iteration");
+});

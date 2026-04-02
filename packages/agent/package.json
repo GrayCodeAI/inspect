@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@inspect/llm": "workspace:*",
+    "@inspect/browser": "workspace:*",
     "@inspect/agent-memory": "workspace:*",
     "@inspect/agent-tools": "workspace:*",
     "@inspect/agent-watchdogs": "workspace:*",

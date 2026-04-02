@@ -1,172 +1,141 @@
 /**
- * Think Phase - Agent Loop
+ * Think Phase - Effect-TS Implementation
  *
  * Calls LLM to plan next actions based on observations.
  * Part of: observe → think → act → finalize
- *
- * Task: 123 (think phase implementation)
  */
 
+import { Effect, Schema } from "effect";
+import { LLMProviderService, LLMMessage } from "@inspect/llm";
 import type { AgentAction, AgentOutput } from "../index.js";
 import type { AgentBrain } from "../brain.js";
 import type { Observation } from "../index.js";
 
-/**
- * Think input
- */
-export interface ThinkInput {
-  // Current observations (DOM, screenshot, etc.)
-  observations: Observation[];
+export class ThinkInput extends Schema.Class<ThinkInput>("ThinkInput")({
+  observations: Schema.Array(Schema.Unknown),
+  goal: Schema.String,
+  previousThoughts: Schema.Array(Schema.Unknown),
+  systemPrompt: Schema.String,
+  model: Schema.String,
+  temperature: Schema.Number,
+  maxTokens: Schema.Number,
+  llmProvider: Schema.optional(Schema.String),
+}) {}
 
-  // Agent's goal
-  goal: string;
+export class ThinkOutput extends Schema.Class<ThinkOutput>("ThinkOutput")({
+  brain: Schema.Unknown,
+  actions: Schema.Array(Schema.Unknown),
+  confidence: Schema.Number,
+  tokensUsed: Schema.Number,
+  costUSD: Schema.Number,
+  rawResponse: Schema.optional(Schema.Unknown),
+}) {}
 
-  // Agent's previous attempts (history of thinking)
-  previousThoughts: AgentBrain[];
+export const thinkPhase = (
+  input: ThinkInput,
+): Effect.Effect<ThinkOutput, LLMResponseParseError, LLMProviderService> =>
+  Effect.gen(function* () {
+  yield* Effect.annotateCurrentSpan({ goal: input.goal, model: input.model });
 
-  // LLM provider
-  llmProvider: any;
+  const formattedObservations = yield* formatObservationsForLLM(
+    input.observations as Observation[],
+  );
+  const systemPrompt = yield* buildSystemPrompt(input.systemPrompt);
+  const userPrompt = yield* buildUserPrompt(
+    input.goal,
+    formattedObservations,
+    input.previousThoughts as AgentBrain[],
+  );
 
-  // System prompt
-  systemPrompt: string;
+  const messages = [
+    new LLMMessage({ role: "system", content: systemPrompt }),
+    new LLMMessage({ role: "user", content: userPrompt }),
+  ] as const;
 
-  // Model to use
-  model: string;
+  const llmResponse = yield* callLLM(
+    input.llmProvider ?? "anthropic",
+    input.model,
+    messages,
+    input.temperature,
+    input.maxTokens,
+  );
 
-  // Temperature for LLM
-  temperature: number;
+  const parsed = yield* parseLLMResponse(llmResponse.text, input.goal);
+  const confidence = yield* calculateConfidence(
+    parsed.brain as AgentBrain,
+    parsed.actions as AgentAction[],
+    0.5,
+  );
 
-  // Max tokens for response
-  maxTokens: number;
-}
-
-/**
- * Think output
- */
-export interface ThinkOutput {
-  // LLM brain with evaluation and planning
-  brain: AgentBrain;
-
-  // Planned actions
-  actions: AgentAction[];
-
-  // Confidence in plan (0-1)
-  confidence: number;
-
-  // Tokens used in LLM call
-  tokensUsed: number;
-
-  // Cost of LLM call (USD)
-  costUSD: number;
-
-  // LLM raw response (for debugging)
-  rawResponse?: unknown;
-}
-
-/**
- * Think phase: Call LLM to plan next actions
- *
- * This phase:
- * 1. Formats observations for LLM
- * 2. Calls LLM with structured prompt
- * 3. Parses response into AgentBrain + Actions
- * 4. Validates plan and calculates confidence
- *
- * Estimated implementation: 100-150 LOC
- */
-export async function thinkPhase(input: ThinkInput): Promise<ThinkOutput> {
-  // Step 1: Format observations for LLM
-  const formattedObservations = formatObservationsForLLM(input.observations);
-
-  // Step 2: Build prompts
-  const systemPrompt = buildSystemPrompt(input.systemPrompt);
-  const userPrompt = buildUserPrompt(input.goal, formattedObservations, input.previousThoughts);
-
-  // Step 3: Call LLM with structured output request
-  let rawResponse: any;
-  let tokensUsed = 0;
-  let costUSD = 0;
-
-  try {
-    rawResponse = await input.llmProvider.chat({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      model: input.model,
-      temperature: input.temperature,
-      max_tokens: input.maxTokens,
-    });
-
-    // Extract token usage
-    if (rawResponse.usage) {
-      tokensUsed = (rawResponse.usage.input_tokens || 0) + (rawResponse.usage.output_tokens || 0);
-      // Rough cost estimate: Claude 3 Sonnet ~$0.003 per 1K input, $0.015 per 1K output
-      const inputCost = ((rawResponse.usage.input_tokens || 0) / 1000) * 0.003;
-      const outputCost = ((rawResponse.usage.output_tokens || 0) / 1000) * 0.015;
-      costUSD = inputCost + outputCost;
-    }
-  } catch (error) {
-    // Fallback if LLM call fails
-    return {
-      brain: {
-        evaluation: { success: false, assessment: `LLM call failed: ${error instanceof Error ? error.message : String(error)}` },
-        memory: [],
-        nextGoal: input.goal,
-        confidence: 0,
-      },
-      actions: [],
-      confidence: 0,
-      tokensUsed: 0,
-      costUSD: 0,
-      rawResponse: error,
-    };
-  }
-
-  // Step 4: Parse LLM response
-  const responseContent = typeof rawResponse.content === "string" ? rawResponse.content : String(rawResponse.content);
-  const parsed = parseLLMResponse(responseContent);
-
-  // Step 5: Calculate confidence
-  const confidence = calculateConfidence(parsed.brain, parsed.actions, 0.5);
-
-  return {
+  return new ThinkOutput({
     brain: parsed.brain,
     actions: parsed.actions,
     confidence,
-    tokensUsed,
-    costUSD,
-    rawResponse,
-  };
-}
+    tokensUsed: llmResponse.totalTokens,
+    costUSD: llmResponse.costUSD,
+    rawResponse: llmResponse.raw,
+  });
+});
 
-/**
- * Format observations for LLM
- */
-function formatObservationsForLLM(observations: Observation[]): string {
+const callLLM = Effect.fn("ThinkPhase.callLLM")(function* (
+  provider: string,
+  model: string,
+  messages: readonly LLMMessage[],
+  temperature: number,
+  maxTokens: number,
+) {
+  yield* Effect.annotateCurrentSpan({ provider, model });
+
+  const llm = yield* LLMProviderService;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const response = yield* llm.complete(provider as any, model, messages);
+
+  const inputTokens = (response as { inputTokens?: number }).inputTokens ?? 0;
+  const outputTokens =
+    (response as { outputTokens?: number }).outputTokens ??
+    (response as { totalTokens?: number }).totalTokens ??
+    0;
+  const totalTokens = inputTokens + outputTokens;
+
+  const inputCost = (inputTokens / 1000) * 0.003;
+  const outputCost = (outputTokens / 1000) * 0.015;
+  const costUSD = inputCost + outputCost;
+
+  yield* Effect.logDebug("LLM call completed", {
+    provider,
+    model,
+    totalTokens,
+    costUSD,
+  });
+
+  return {
+    text: response.text,
+    totalTokens,
+    costUSD,
+    raw: response,
+  };
+});
+
+const formatObservationsForLLM = Effect.fn("ThinkPhase.formatObservations")(function* (
+  observations: Observation[],
+) {
   if (!observations || observations.length === 0) {
     return "No observations available.";
   }
 
-  // Format each observation with its type
-  const formatted = observations
-    .map((obs: any) => {
+  return observations
+    .map((obs) => {
       if (typeof obs === "object" && obs !== null) {
-        const type = obs.type || "unknown";
-        const content = obs.content || String(obs);
+        const type = (obs as { type?: string }).type ?? "unknown";
+        const content = (obs as { content?: string }).content ?? String(obs);
         return `[${type}] ${content}`;
       }
       return String(obs);
     })
     .join("\n");
+});
 
-  return formatted;
-}
-
-/**
- * Build system prompt
- */
-function buildSystemPrompt(basePrompt: string): string {
+const buildSystemPrompt = Effect.fn("ThinkPhase.buildSystemPrompt")(function* (basePrompt: string) {
   const outputFormatInstructions = `
 You must respond with ONLY a valid JSON object in the following format:
 {
@@ -184,29 +153,22 @@ You must respond with ONLY a valid JSON object in the following format:
   ]
 }`;
 
-  return `${basePrompt}
+  return `${basePrompt}\n\n${outputFormatInstructions}`;
+});
 
-${outputFormatInstructions}`;
-}
-
-/**
- * Build user prompt for current step
- */
-function buildUserPrompt(
+const buildUserPrompt = Effect.fn("ThinkPhase.buildUserPrompt")(function* (
   goal: string,
   observations: string,
   previousThoughts: AgentBrain[],
-): string {
+) {
   let prompt = `Goal: ${goal}\n\n`;
-
   prompt += `Current Observations:\n${observations}\n\n`;
 
-  // Add previous attempts context
   if (previousThoughts && previousThoughts.length > 0) {
     prompt += `Previous Attempts:\n`;
     previousThoughts.slice(-3).forEach((thought, i) => {
-      prompt += `${i + 1}. Assessment: ${thought.evaluation?.assessment || "unknown"}\n`;
-      prompt += `   Next Goal: ${thought.nextGoal || "unknown"}\n`;
+      prompt += `${i + 1}. Assessment: ${thought.evaluation?.assessment ?? "unknown"}\n`;
+      prompt += `   Next Goal: ${thought.nextGoal ?? "unknown"}\n`;
     });
     prompt += `\n`;
   }
@@ -214,40 +176,36 @@ function buildUserPrompt(
   prompt += `Based on the observations and previous attempts, what are the next actions to take to achieve the goal? Respond with a JSON object as specified.`;
 
   return prompt;
-}
+});
 
-/**
- * Parse LLM response into AgentBrain + Actions
- */
-function parseLLMResponse(response: string): { brain: AgentBrain; actions: AgentAction[] } {
+const parseLLMResponse = Effect.fn("ThinkPhase.parseLLMResponse")(function* (
+  response: string,
+  goal: string,
+) {
   try {
-    // Extract JSON from response (handle cases where response has markdown or extra text)
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error("No JSON found in response");
+      return yield* new LLMResponseParseError({ reason: "No JSON found" }).asEffect();
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // Extract and validate brain structure
     const brain: AgentBrain = {
-      evaluation: parsed.evaluation || { success: false, assessment: "parsed" },
-      memory: parsed.memory || [],
-      nextGoal: parsed.nextGoal || "continue",
+      evaluation: parsed.evaluation ?? { success: false, assessment: "parsed" },
+      memory: parsed.memory ?? [],
+      nextGoal: parsed.nextGoal ?? "continue",
       confidence: parsed.confidence,
     };
 
-    // Extract and validate actions
     const actions: AgentAction[] = Array.isArray(parsed.actions)
-      ? parsed.actions.map((action: any) => ({
-          type: action.type || "click",
-          params: action.params || {},
+      ? parsed.actions.map((action: { type?: string; params?: Record<string, unknown> }) => ({
+          type: action.type ?? "click",
+          params: action.params ?? {},
         }))
       : [];
 
     return { brain, actions };
   } catch (error) {
-    // Return safe defaults if parsing fails
     return {
       brain: {
         evaluation: {
@@ -260,35 +218,37 @@ function parseLLMResponse(response: string): { brain: AgentBrain; actions: Agent
       actions: [],
     };
   }
-}
+});
 
-/**
- * Calculate confidence in plan
- */
-function calculateConfidence(
+const calculateConfidence = Effect.fn("ThinkPhase.calculateConfidence")(function* (
   brain: AgentBrain,
   actions: AgentAction[],
   previousSuccessRate: number,
-): number {
-  let confidence = brain.confidence ?? 0.5; // Start with LLM's stated confidence
+) {
+  let confidence = brain.confidence ?? 0.5;
 
-  // Adjust based on whether evaluation was successful
   if (brain.evaluation?.success) {
     confidence = Math.min(1, confidence + 0.1);
   } else {
     confidence = Math.max(0, confidence - 0.2);
   }
 
-  // Adjust based on number of actions (too many or too few might indicate uncertainty)
   if (actions.length === 0) {
-    confidence = Math.max(0, confidence - 0.3); // No actions = low confidence
+    confidence = Math.max(0, confidence - 0.3);
   } else if (actions.length > 5) {
-    confidence = Math.max(0, confidence - 0.1); // Too many actions = some uncertainty
+    confidence = Math.max(0, confidence - 0.1);
   }
 
-  // Adjust based on previous success rate
   confidence = confidence * (0.7 + previousSuccessRate * 0.3);
 
-  // Ensure confidence is in valid range
   return Math.max(0, Math.min(1, confidence));
+});
+
+export class LLMResponseParseError extends Schema.ErrorClass<LLMResponseParseError>(
+  "LLMResponseParseError",
+)({
+  _tag: Schema.tag("LLMResponseParseError"),
+  reason: Schema.String,
+}) {
+  message = `LLM response parse failed: ${this.reason}`;
 }
