@@ -228,35 +228,70 @@ function observePhase(session?: BrowserSession) {
 
       // 1. Capture accessible tree structure (ARIA + interactive elements)
       try {
-        // Build simple ARIA-like tree with interactive elements
-        // In production, would use AriaSnapshotBuilder from @inspect/browser
+        // Build rich ARIA-like tree with interactive elements and accessibility info
         const ariaTree = yield* session.evaluate<string>(`
           (() => {
             const elements = [];
-            const walk = (el, depth = 0) => {
-              if (depth > 6) return; // Limit depth
+            const refMap = new Map(); // Map elements to ref IDs
+            let refCounter = 0;
 
+            const walk = (el, depth = 0, parent = null) => {
+              if (depth > 8) return; // Limit depth
+              if (!el.offsetParent && el.tagName !== 'BODY') return; // Skip hidden elements
+
+              // Get accessibility information
               const role = el.getAttribute('role') || el.tagName.toLowerCase();
               const ariaLabel = el.getAttribute('aria-label');
-              const name = ariaLabel || el.textContent?.substring(0, 30) || '';
+              const ariaPressed = el.getAttribute('aria-pressed');
+              const ariaExpanded = el.getAttribute('aria-expanded');
+              const ariaChecked = el.getAttribute('aria-checked');
+              const title = el.getAttribute('title');
+              const placeholder = el.getAttribute('placeholder');
+              const name = ariaLabel || title || placeholder ||
+                          (el.tagName === 'BUTTON' || el.tagName === 'A' ? el.textContent?.substring(0, 40) : '') || '';
 
-              // Include interactive and structural elements
-              if (/^(button|input|select|textarea|a|heading|main|nav|section|article)$/i.test(role) ||
-                  el.getAttribute('onclick') || el.getAttribute('role')) {
-                elements.push({
-                  tag: role,
-                  text: name,
-                  type: /^(button|input|select|textarea|a)$/i.test(role) ? 'interactive' : 'structural'
-                });
+              const isInteractive = /^(button|input|select|textarea|a|[\\w]*(button|link|menuitem|checkbox|radio))$/i.test(role) ||
+                                   el.hasAttribute('onclick') ||
+                                   el.hasAttribute('role') ||
+                                   el.tagName === 'BUTTON' ||
+                                   el.tagName === 'A' ||
+                                   el.tagName === 'INPUT' ||
+                                   el.tagName === 'SELECT' ||
+                                   el.tagName === 'TEXTAREA';
+
+              // Generate ref ID
+              const refId = \`e\${refCounter++}\`;
+              refMap.set(el, refId);
+
+              if (isInteractive || /^(h[1-6]|p|div|section|article|nav|main|form)$/i.test(role)) {
+                const element = {
+                  ref: refId,
+                  role: role.toLowerCase(),
+                  text: name.substring(0, 60),
+                  type: isInteractive ? 'interactive' : 'structural',
+                  ...(ariaPressed !== null && { ariaPressed }),
+                  ...(ariaExpanded !== null && { ariaExpanded }),
+                  ...(ariaChecked !== null && { ariaChecked }),
+                  ...(el.tagName === 'INPUT' && { inputType: el.getAttribute('type') }),
+                };
+                elements.push(element);
               }
 
               for (const child of el.children) {
-                walk(child, depth + 1);
+                walk(child, depth + 1, el);
               }
             };
 
+            // Start from body
             walk(document.body);
-            return JSON.stringify(elements.slice(0, 50)); // Limit to 50 elements
+
+            // Prepare output with metadata
+            return JSON.stringify({
+              elements: elements.slice(0, 60), // Limit to 60 elements
+              count: elements.length,
+              title: document.title,
+              url: window.location.href,
+            });
           })()
         `);
 
@@ -271,12 +306,20 @@ function observePhase(session?: BrowserSession) {
         // Fallback: capture raw DOM
         try {
           const domContent = yield* session.evaluate<string>(`
-            new XMLSerializer().serializeToString(document.documentElement)
+            (() => {
+              const html = new XMLSerializer().serializeToString(document.documentElement);
+              return JSON.stringify({
+                html: html.substring(0, 3000),
+                title: document.title,
+                url: window.location.href,
+                elements: document.querySelectorAll('button, a, input, select, textarea').length
+              });
+            })()
           `);
           observations.push(
             new Observation({
               type: "dom",
-              content: domContent.substring(0, 5000), // Limit size
+              content: domContent,
               timestamp: Date.now(),
             }),
           );
