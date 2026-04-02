@@ -9,7 +9,7 @@ export { LLMProvider as BaseLLMProvider } from "@inspect/llm";
 // Memory & tools
 export { ActionCache, PatternStore } from "@inspect/agent-memory";
 export type { ActionRecord } from "@inspect/agent-tools";
-export { ToolRegistry } from "@inspect/agent-tools";
+export { ToolRegistry, ActionLoopDetector } from "@inspect/agent-tools";
 
 // OTP
 export { TOTPGenerator, generateTOTP, type TOTPConfig } from "./otp/totp.js";
