@@ -3,14 +3,13 @@
 // Wraps Cloudflare Tunnel / ngrok for remote browser access
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Effect, Layer, Option, Schema, ServiceMap } from "effect";
+import { Effect, Layer, Schema, ServiceMap } from "effect";
 import { spawn, ChildProcess } from "node:child_process";
 
-export const TunnelProvider = Schema.Literal("ngrok", "cloudflare", "localtunnel");
-export type TunnelProvider = typeof TunnelProvider.Type;
+export type TunnelProvider = "ngrok" | "cloudflare" | "localtunnel";
 
 export class TunnelConfig extends Schema.Class<TunnelConfig>("TunnelConfig")({
-  provider: TunnelProvider,
+  provider: Schema.String,
   port: Schema.Number,
   authToken: Schema.optional(Schema.String),
   subdomain: Schema.optional(Schema.String),
@@ -25,9 +24,9 @@ export class TunnelResult extends Schema.Class<TunnelResult>("TunnelResult")({
 export class TunnelError extends Schema.ErrorClass<TunnelError>("TunnelError")({
   _tag: Schema.tag("TunnelError"),
   provider: Schema.String,
-  message: Schema.String,
+  errorMessage: Schema.String,
 }) {
-  message = this.message;
+  getMessage = () => this.errorMessage;
 }
 
 export class TunnelTimeoutError extends Schema.ErrorClass<TunnelTimeoutError>("TunnelTimeoutError")(
@@ -36,7 +35,7 @@ export class TunnelTimeoutError extends Schema.ErrorClass<TunnelTimeoutError>("T
     provider: Schema.String,
   },
 ) {
-  message = `Tunnel ${this.provider} failed to start within timeout`;
+  getErrorMessage = () => `Tunnel ${this.provider} failed to start within timeout`;
 }
 
 const TUNNEL_TIMEOUT_MS = 30000;
@@ -46,23 +45,23 @@ const startTunnel = (config: TunnelConfig) =>
   Effect.gen(function* () {
     yield* Effect.annotateCurrentSpan({ provider: config.provider, port: config.port });
 
-    switch (config.provider) {
-      case "ngrok":
-        return yield* startNgrok(config);
-      case "cloudflare":
-        return yield* startCloudflare(config);
-      case "localtunnel":
-        return yield* startLocaltunnel(config);
-      default:
-        return yield* startLocaltunnel(config);
+    const provider = config.provider as TunnelProvider;
+    if (provider === "ngrok") {
+      return yield* startNgrok(config);
+    } else if (provider === "cloudflare") {
+      return yield* startCloudflare(config);
+    } else if (provider === "localtunnel") {
+      return yield* startLocaltunnel(config);
+    } else {
+      return yield* startLocaltunnel(config);
     }
   });
 
 /** Stop the active tunnel. */
-const stopTunnel = (process: Option.Option<ChildProcess>) =>
+const stopTunnel = (proc: ChildProcess | null) =>
   Effect.gen(function* () {
-    if (Option.isSome(process)) {
-      yield* Effect.sync(() => process.value.kill("SIGTERM"));
+    if (proc) {
+      yield* Effect.sync(() => proc.kill("SIGTERM"));
       yield* Effect.logInfo("Tunnel process terminated");
     }
   });
@@ -72,11 +71,11 @@ const startNgrok = (config: TunnelConfig) =>
   Effect.gen(function* () {
     yield* Effect.annotateCurrentSpan({ provider: "ngrok" });
 
-    if (Option.isSome(config.authToken)) {
+    if (config.authToken) {
       yield* Effect.tryPromise({
         try: () =>
           new Promise<void>((resolve, reject) => {
-            const proc = spawn("ngrok", ["config", "add-authtoken", config.authToken.value], {
+            const proc = spawn("ngrok", ["config", "add-authtoken", config.authToken!], {
               stdio: "pipe",
             });
             proc.on("close", (code) => (code === 0 ? resolve() : reject(new Error("Auth failed"))));
@@ -85,14 +84,14 @@ const startNgrok = (config: TunnelConfig) =>
         catch: (cause) =>
           new TunnelError({
             provider: "ngrok",
-            message: `Failed to configure auth: ${String(cause)}`,
+            errorMessage: `Failed to configure auth: ${String(cause)}`,
           }),
       });
     }
 
     const args = ["http", String(config.port)];
-    if (Option.isSome(config.subdomain)) {
-      args.push("--subdomain", config.subdomain.value);
+    if (config.subdomain) {
+      args.push("--subdomain", config.subdomain);
     }
 
     const ngrokProcess = spawn("ngrok", args, { stdio: "pipe" });
@@ -123,9 +122,6 @@ const startCloudflare = (config: TunnelConfig) =>
       cfProcess,
       /https:\/\/[a-z0-9-]+\.trycloudflare\.com/,
     );
-
-    yield* Effect.logInfo("Cloudflare tunnel started", { url: tunnelUrl });
-
     return new TunnelResult({
       url: `http://localhost:${config.port}`,
       publicUrl: tunnelUrl,
@@ -139,15 +135,13 @@ const startLocaltunnel = (config: TunnelConfig) =>
     yield* Effect.annotateCurrentSpan({ provider: "localtunnel" });
 
     const args = ["--port", String(config.port)];
-    if (Option.isSome(config.subdomain)) {
-      args.push("--subdomain", config.subdomain.value);
+    if (config.subdomain) {
+      args.push("--subdomain", config.subdomain);
     }
 
     const ltProcess = spawn("lt", args, { stdio: "pipe" });
+
     const tunnelUrl = yield* waitForTunnelUrl(ltProcess, /https:\/\/[a-z0-9-]+\.loca\.lt/);
-
-    yield* Effect.logInfo("Localtunnel started", { url: tunnelUrl });
-
     return new TunnelResult({
       url: `http://localhost:${config.port}`,
       publicUrl: tunnelUrl,
@@ -156,42 +150,36 @@ const startLocaltunnel = (config: TunnelConfig) =>
   });
 
 /** Wait for tunnel URL from process output. */
-const waitForTunnelUrl = (process: ChildProcess, pattern: RegExp) =>
+const waitForTunnelUrl = (proc: ChildProcess, pattern: RegExp) =>
   Effect.gen(function* () {
     return yield* Effect.acquireUseRelease(
-      Effect.sync(() => process),
-      (proc) =>
-        Effect.gen(function* () {
-          const url = yield* Effect.async<string, TunnelTimeoutError>((resume) => {
-            const timeout = setTimeout(() => {
-              resume(
-                Effect.fail(
-                  new TunnelTimeoutError({
-                    provider: "unknown",
-                  }),
-                ),
-              );
-            }, TUNNEL_TIMEOUT_MS);
+      Effect.sync(() => proc),
+      () =>
+        Effect.tryPromise<string, TunnelTimeoutError>({
+          try: () =>
+            new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new TunnelTimeoutError({ provider: "unknown" }));
+              }, TUNNEL_TIMEOUT_MS);
 
-            const onData = (data: Buffer) => {
-              const match = data.toString().match(pattern);
-              if (match) {
-                clearTimeout(timeout);
-                cleanup();
-                resume(Effect.succeed(match[0]));
-              }
-            };
+              const onData = (data: Buffer) => {
+                const match = data.toString().match(pattern);
+                if (match) {
+                  clearTimeout(timeout);
+                  cleanup();
+                  resolve(match[0]);
+                }
+              };
 
-            const cleanup = () => {
-              proc.stdout?.off("data", onData);
-              proc.stderr?.off("data", onData);
-            };
+              const cleanup = () => {
+                proc.stdout?.off("data", onData);
+                proc.stderr?.off("data", onData);
+              };
 
-            proc.stdout?.on("data", onData);
-            proc.stderr?.on("data", onData);
-          });
-
-          return url;
+              proc.stdout?.on("data", onData);
+              proc.stderr?.on("data", onData);
+            }),
+          catch: (error) => error as TunnelTimeoutError,
         }),
       (proc, exit) =>
         Effect.sync(() => {
@@ -205,14 +193,14 @@ const waitForTunnelUrl = (process: ChildProcess, pattern: RegExp) =>
 /** TunnelManager service for dependency injection. */
 export class TunnelManager extends ServiceMap.Service<TunnelManager>()("@browser/TunnelManager", {
   make: Effect.gen(function* () {
-    let activeProcess: Option.Option<ChildProcess> = Option.none();
+    let activeProcess: ChildProcess | null = null;
     let activeUrl = "";
 
     const start = (config: TunnelConfig) =>
       Effect.gen(function* () {
         yield* Effect.annotateCurrentSpan({ provider: config.provider });
 
-        if (Option.isSome(activeProcess)) {
+        if (activeProcess) {
           yield* stopTunnel(activeProcess);
         }
 
@@ -229,7 +217,7 @@ export class TunnelManager extends ServiceMap.Service<TunnelManager>()("@browser
 
     const stop = Effect.gen(function* () {
       yield* stopTunnel(activeProcess);
-      activeProcess = Option.none();
+      activeProcess = null;
       activeUrl = "";
       yield* Effect.logInfo("Tunnel stopped");
     });

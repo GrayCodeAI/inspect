@@ -3,10 +3,18 @@
 // Supports multiple search providers (Google, DuckDuckGo, Tavily, SerpAPI)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect";
+import { Config, Effect, Layer, Schema, ServiceMap } from "effect";
 
-export const SearchProvider = Schema.Literal("duckduckgo", "tavily", "google", "serpapi", "brave");
-export type SearchProvider = typeof SearchProvider.Type;
+export type SearchProvider = "duckduckgo" | "tavily" | "google" | "serpapi" | "brave";
+
+export interface WebSearchConfig {
+  provider: SearchProvider;
+  apiKey?: string;
+  maxResults?: number;
+  searchDepth?: "basic" | "advanced";
+  includeDomains?: string[];
+  excludeDomains?: string[];
+}
 
 export class SearchResult extends Schema.Class<SearchResult>("SearchResult")({
   title: Schema.String,
@@ -15,29 +23,20 @@ export class SearchResult extends Schema.Class<SearchResult>("SearchResult")({
   score: Schema.optional(Schema.Number),
 }) {}
 
-export class WebSearchConfig extends Schema.Class<WebSearchConfig>("WebSearchConfig")({
-  provider: SearchProvider,
-  apiKey: Schema.optional(Schema.String),
-  maxResults: Schema.optional(Schema.Number),
-  searchDepth: Schema.optional(Schema.Literal("basic", "advanced")),
-  includeDomains: Schema.optional(Schema.Array(Schema.String)),
-  excludeDomains: Schema.optional(Schema.Array(Schema.String)),
-}) {}
-
 export class SearchError extends Schema.ErrorClass<SearchError>("SearchError")({
   _tag: Schema.tag("SearchError"),
   provider: Schema.String,
-  message: Schema.String,
+  errorMessage: Schema.String,
 }) {
-  message = this.message;
+  getMessage = () => this.errorMessage;
 }
 
 export class ScrapingError extends Schema.ErrorClass<ScrapingError>("ScrapingError")({
   _tag: Schema.tag("ScrapingError"),
   url: Schema.String,
-  message: Schema.String,
+  errorMessage: Schema.String,
 }) {
-  message = this.message;
+  getMessage = () => this.errorMessage;
 }
 
 const DEFAULT_MAX_RESULTS = 10;
@@ -50,19 +49,19 @@ const search = (query: string, config: WebSearchConfig) =>
     yield* Effect.annotateCurrentSpan({ provider: config.provider, query });
 
     const results = yield* Effect.gen(function* () {
-      switch (config.provider) {
-        case "duckduckgo":
-          return yield* searchDuckDuckGo(query, config);
-        case "tavily":
-          return yield* searchTavily(query, config);
-        case "google":
-          return yield* searchGoogle(query, config);
-        case "serpapi":
-          return yield* searchSerpAPI(query, config);
-        case "brave":
-          return yield* searchBrave(query, config);
-        default:
-          return yield* searchDuckDuckGo(query, config);
+      const provider = config.provider;
+      if (provider === "duckduckgo") {
+        return yield* searchDuckDuckGo(query, config);
+      } else if (provider === "tavily") {
+        return yield* searchTavily(query, config);
+      } else if (provider === "google") {
+        return yield* searchGoogle(query, config);
+      } else if (provider === "serpapi") {
+        return yield* searchSerpAPI(query, config);
+      } else if (provider === "brave") {
+        return yield* searchBrave(query, config);
+      } else {
+        return yield* searchDuckDuckGo(query, config);
       }
     }).pipe(
       Effect.withSpan("WebSearch.search", {
@@ -89,13 +88,13 @@ const searchAndExtract = (query: string, config: WebSearchConfig, maxPages = 3) 
     for (const result of results.slice(0, maxPages)) {
       const content = yield* scrapeUrl(result.url).pipe(
         Effect.matchEffect({
-          onSuccess: (content) => Effect.succeed({ url: result.url, content }),
-          onFailure: () => Effect.succeed(Option.none<{ url: string; content: string }>()),
+          onSuccess: (c: string) => Effect.succeed({ url: result.url, content: c }),
+          onFailure: () => Effect.succeed(null),
         }),
       );
 
-      if (Option.isSome(content)) {
-        summaries.push(content.value);
+      if (content) {
+        summaries.push(content);
       }
     }
 
@@ -117,19 +116,19 @@ const scrapeUrl = (url: string) =>
         fetch(url, {
           signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS),
         }),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new ScrapingError({
           url,
-          message: `Failed to fetch: ${String(cause)}`,
+          errorMessage: `Failed to fetch: ${String(cause)}`,
         }),
     });
 
     const html = yield* Effect.tryPromise({
       try: () => response.text(),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new ScrapingError({
           url,
-          message: `Failed to read response: ${String(cause)}`,
+          errorMessage: `Failed to read response: ${String(cause)}`,
         }),
     });
 
@@ -151,17 +150,17 @@ const searchDuckDuckGo = (query: string, config: WebSearchConfig) =>
           headers: { "User-Agent": "Mozilla/5.0" },
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         }).then((r) => r.text()),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "duckduckgo",
-          message: `Search failed: ${String(cause)}`,
+          errorMessage: `Search failed: ${String(cause)}`,
         }),
     });
 
     const results: SearchResult[] = [];
     const titleRegex = /class="result__a"[^>]*>([^<]*)<\/a>/g;
 
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = titleRegex.exec(html)) !== null && results.length < maxResults) {
       const title = match[1].replace(/<[^>]*>/g, "").trim();
       results.push(
@@ -210,10 +209,10 @@ const searchTavily = (query: string, config: WebSearchConfig) =>
             exclude_domains: config.excludeDomains,
           }),
         }),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "tavily",
-          message: `API request failed: ${String(cause)}`,
+          errorMessage: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -222,10 +221,10 @@ const searchTavily = (query: string, config: WebSearchConfig) =>
         response.json() as Promise<{
           results: Array<{ title: string; url: string; content: string; score?: number }>;
         }>,
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "tavily",
-          message: `Failed to parse response: ${String(cause)}`,
+          errorMessage: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
@@ -257,10 +256,10 @@ const searchGoogle = (query: string, config: WebSearchConfig) =>
 
     const response = yield* Effect.tryPromise({
       try: () => fetch(url),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "google",
-          message: `API request failed: ${String(cause)}`,
+          errorMessage: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -269,10 +268,10 @@ const searchGoogle = (query: string, config: WebSearchConfig) =>
         response.json() as Promise<{
           items?: Array<{ title: string; link: string; snippet: string }>;
         }>,
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "google",
-          message: `Failed to parse response: ${String(cause)}`,
+          errorMessage: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
@@ -298,10 +297,10 @@ const searchSerpAPI = (query: string, config: WebSearchConfig) =>
 
     const response = yield* Effect.tryPromise({
       try: () => fetch(url),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "serpapi",
-          message: `API request failed: ${String(cause)}`,
+          errorMessage: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -310,10 +309,10 @@ const searchSerpAPI = (query: string, config: WebSearchConfig) =>
         response.json() as Promise<{
           organic_results?: Array<{ title: string; link: string; snippet: string }>;
         }>,
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "serpapi",
-          message: `Failed to parse response: ${String(cause)}`,
+          errorMessage: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
@@ -347,10 +346,10 @@ const searchBrave = (query: string, config: WebSearchConfig) =>
             },
           },
         ),
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "brave",
-          message: `API request failed: ${String(cause)}`,
+          errorMessage: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -359,10 +358,10 @@ const searchBrave = (query: string, config: WebSearchConfig) =>
         response.json() as Promise<{
           web?: { results: Array<{ title: string; url: string; description: string }> };
         }>,
-      catch: (cause) =>
+      catch: (cause: unknown) =>
         new SearchError({
           provider: "brave",
-          message: `Failed to parse response: ${String(cause)}`,
+          errorMessage: `Failed to parse response: ${String(cause)}`,
         }),
     });
 

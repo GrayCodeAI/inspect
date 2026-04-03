@@ -84,9 +84,7 @@ const createSTTEngine = (config: STTConfig) =>
 /** Transcribe using OpenAI Whisper. */
 const transcribeOpenAI = (audioBuffer: Uint8Array, config: STTConfig) =>
   Effect.gen(function* () {
-    const apiKey =
-      config.apiKey ??
-      (yield* Config.string("OPENAI_API_KEY").pipe(Effect.orElseSucceed(() => undefined)));
+    const apiKey = config.apiKey;
 
     if (!apiKey) {
       return yield* new STTError({
@@ -212,9 +210,7 @@ const createTTSEngine = (config: TTSConfig) =>
 /** Synthesize using OpenAI TTS. */
 const synthesizeOpenAI = (text: string, config: TTSConfig) =>
   Effect.gen(function* () {
-    const apiKey =
-      config.apiKey ??
-      (yield* Config.string("OPENAI_API_KEY").pipe(Effect.orElseSucceed(() => undefined)));
+    const apiKey = config.apiKey;
 
     if (!apiKey) {
       return yield* new TTSError({
@@ -262,9 +258,7 @@ const synthesizeOpenAI = (text: string, config: TTSConfig) =>
 /** Synthesize using ElevenLabs. */
 const synthesizeElevenLabs = (text: string, config: TTSConfig) =>
   Effect.gen(function* () {
-    const apiKey =
-      config.apiKey ??
-      (yield* Config.string("ELEVENLABS_API_KEY").pipe(Effect.orElseSucceed(() => undefined)));
+    const apiKey = config.apiKey;
 
     if (!apiKey) {
       return yield* new TTSError({
