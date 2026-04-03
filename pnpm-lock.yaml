@@ -498,6 +498,9 @@ importers:
       '@inspect/shared':
         specifier: workspace:*
         version: link:../shared
+      effect:
+        specifier: ^4.0.0-beta.35
+        version: 4.0.0-beta.35
       zod:
         specifier: ^3.24.0
         version: 3.25.76

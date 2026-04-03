@@ -243,10 +243,7 @@ const searchGoogle = (query: string, config: WebSearchConfig) =>
     }
 
     const maxResults = config.maxResults ?? DEFAULT_MAX_RESULTS;
-
-    const searchEngineId = yield* Config.string("GOOGLE_SEARCH_ENGINE_ID").pipe(
-      Effect.orElseSucceed(() => ""),
-    );
+    const searchEngineId = ""; // Config can be added later via Layer
 
     const url = `https://www.googleapis.com/customsearch/v1?key=${config.apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&num=${maxResults}`;
 
