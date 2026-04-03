@@ -74,3 +74,7 @@ export type {
 // Artifacts — LLM-generated code/UI artifacts (LibreChat-style)
 export { ArtifactStore } from "./artifacts.js";
 export type { Artifact, ArtifactType } from "./artifacts.js";
+
+// Web Search — real-time internet research (LibreChat-style)
+export { WebSearchEngine } from "./web-search.js";
+export type { SearchResult, WebSearchConfig, SearchProvider } from "./web-search.js";

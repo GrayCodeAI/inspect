@@ -44,3 +44,7 @@ export type {
   NavigatorState,
   NavigationLLM,
 } from "./navigation-agents.js";
+
+// Agent Handoffs — LLM-driven dynamic delegation (OpenAI Agents SDK)
+export { HandoffManager } from "./handoffs.js";
+export type { HandoffConfig, HandoffContext, HandoffResult } from "./handoffs.js";

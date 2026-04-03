@@ -7,3 +7,10 @@ export {
   RuntimeNotFoundError,
   InvalidConfigError,
 } from "./sandbox-errors";
+export {
+  ADDITIONAL_RUNTIMES,
+  checkAdditionalRuntimes,
+  executeInRuntime,
+  validateSyntax,
+} from "./code-interpreter";
+export type { AdditionalRuntime } from "./code-interpreter";

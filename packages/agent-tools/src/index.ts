@@ -37,3 +37,7 @@ export * from "./judge/index.js";
 // Action registry
 export { ActionRegistry } from "./action-registry.js";
 export type { RegisteredAction, ActionContext } from "./action-registry.js";
+
+// Prompt evaluation framework (Anthropic courses)
+export { runEval, formatEvalReport, graders } from "./prompt-eval.js";
+export type { EvalGrader, EvalExample, EvalResult, EvalReport, EvalGrade } from "./prompt-eval.js";

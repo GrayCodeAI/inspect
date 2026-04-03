@@ -293,3 +293,7 @@ export type {
   ConsoleMessage,
   NetworkRequest,
 } from "@inspect/shared";
+
+// Browser tunneling — expose local browser to remote agents (Skyvern-style)
+export { TunnelManager } from "./tunnel/manager.js";
+export type { TunnelConfig, TunnelResult } from "./tunnel/manager.js";
