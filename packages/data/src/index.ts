@@ -49,3 +49,24 @@ export { LinkExtractor, type ExtractedLink } from "./crawler/link-extractor.js";
 
 // Change Tracking
 export { Snapshotter, Differ, ChangeTracker } from "./tracking/tracker.js";
+
+// Document Loaders
+export {
+  BaseDocumentLoader,
+  type Document,
+  type DocumentLoader,
+  WebDocumentLoader,
+  CsvDocumentLoader,
+  JsonDocumentLoader,
+  JsonlDocumentLoader,
+  PdfDocumentLoader,
+  createLoader,
+  type LoaderType,
+  type LoaderOptions,
+} from "./document-loaders/index.js";
+export type {
+  WebLoaderOptions,
+  CSVLoaderOptions,
+  JSONLoaderOptions,
+  PDFLoaderOptions,
+} from "./document-loaders/index.js";

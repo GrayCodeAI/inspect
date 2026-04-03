@@ -65,7 +65,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const run = state.runs.get(event.data.runId);
         if (!run) break;
         const runs = new Map(state.runs);
-        const steps = [...run.steps];
+        const steps = [...(run.steps ?? [])];
         steps[event.data.step.index] = event.data.step;
         runs.set(event.data.runId, { ...run, steps });
         set({ runs });
@@ -118,5 +118,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   selectRun: (runId) => set({ selectedRunId: runId }),
 
-  reset: () => set({ runs: new Map(), summary: emptySummary(), flakiness: null, logs: [], selectedRunId: null }),
+  reset: () =>
+    set({
+      runs: new Map(),
+      summary: emptySummary(),
+      flakiness: null,
+      logs: [],
+      selectedRunId: null,
+    }),
 }));

@@ -27,8 +27,8 @@ import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import chalk from "chalk";
 import { PALETTE, ICONS } from "../utils/theme.js";
-import { WatchdogManager } from "@inspect/agent";
-import { SpeculativePlanner } from "@inspect/core";
+import { WatchdogManager, type WatchdogEvent } from "@inspect/agent";
+import { SyncSpeculativePlanner } from "@inspect/core";
 import { RunCache } from "@inspect/core";
 
 // ---------------------------------------------------------------------------
@@ -198,6 +198,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   const { BrowserManager } = await import("@inspect/browser");
   const browserMgr = new BrowserManager();
   await browserMgr.launchBrowser({
+    name: "chromium",
     headless: !headed,
     viewport,
     stealth: true,
@@ -210,7 +211,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
 
   // --- Watchdog System: parallel monitors for popups, captcha, crashes (Browser Use pattern) ---
   const watchdog = new WatchdogManager({ pollInterval: 2000 });
-  watchdog.onEvent((event) => {
+  watchdog.onEvent((event: WatchdogEvent) => {
     if (event.type === "captcha")
       onProgress("warn", "Captcha detected — may need manual intervention");
     if (event.type === "crash") onProgress("warn", "Browser crash detected");
@@ -218,7 +219,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
   watchdog.startAll();
 
   // --- Speculative Planner: pre-compute next step while current executes (Skyvern pattern) ---
-  const specPlanner = new SpeculativePlanner();
+  const specPlanner = new SyncSpeculativePlanner();
 
   try {
     // =========================================================================

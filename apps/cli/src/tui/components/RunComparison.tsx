@@ -32,14 +32,16 @@ export function RunComparison({ runs }: RunComparisonProps): React.ReactElement 
   // Group steps by description across runs
   const stepMap = new Map<string, Array<{ device: string; status: string; duration?: number }>>();
   for (const run of runs) {
-    for (const step of run.steps) {
-      if (!stepMap.has(step.description)) {
-        stepMap.set(step.description, []);
+    const steps = run.steps ?? [];
+    for (const step of steps) {
+      const s = step as { description: string; status: string; duration?: number };
+      if (!stepMap.has(s.description)) {
+        stepMap.set(s.description, []);
       }
-      stepMap.get(step.description)!.push({
+      stepMap.get(s.description)!.push({
         device: run.device,
-        status: step.status,
-        duration: step.duration,
+        status: s.status,
+        duration: s.duration,
       });
     }
   }
@@ -69,19 +71,29 @@ export function RunComparison({ runs }: RunComparisonProps): React.ReactElement 
       <Box flexDirection="column">
         <Box gap={2} marginBottom={1}>
           <Box width={20}>
-            <Text color={PALETTE.dim} bold>Device</Text>
+            <Text color={PALETTE.dim} bold>
+              Device
+            </Text>
           </Box>
           <Box width={10}>
-            <Text color={PALETTE.dim} bold>Status</Text>
+            <Text color={PALETTE.dim} bold>
+              Status
+            </Text>
           </Box>
           <Box width={10}>
-            <Text color={PALETTE.dim} bold>Duration</Text>
+            <Text color={PALETTE.dim} bold>
+              Duration
+            </Text>
           </Box>
           <Box width={10}>
-            <Text color={PALETTE.dim} bold>Tokens</Text>
+            <Text color={PALETTE.dim} bold>
+              Tokens
+            </Text>
           </Box>
           <Box width={10}>
-            <Text color={PALETTE.dim} bold>Steps</Text>
+            <Text color={PALETTE.dim} bold>
+              Steps
+            </Text>
           </Box>
         </Box>
 
@@ -92,7 +104,12 @@ export function RunComparison({ runs }: RunComparisonProps): React.ReactElement 
             </Box>
             <Box width={10}>
               <Text color={statusColor(run.status)}>
-                {run.status === "completed" ? ICONS.pass : run.status === "failed" ? ICONS.fail : run.status} {run.status}
+                {run.status === "completed"
+                  ? ICONS.pass
+                  : run.status === "failed"
+                    ? ICONS.fail
+                    : run.status}{" "}
+                {run.status}
               </Text>
             </Box>
             <Box width={10}>
@@ -102,7 +119,7 @@ export function RunComparison({ runs }: RunComparisonProps): React.ReactElement 
               <Text color={PALETTE.textDim}>{run.tokenCount}</Text>
             </Box>
             <Box width={10}>
-              <Text color={PALETTE.textDim}>{run.steps.length}</Text>
+              <Text color={PALETTE.textDim}>{(run.steps ?? []).length}</Text>
             </Box>
           </Box>
         ))}
@@ -133,9 +150,7 @@ export function RunComparison({ runs }: RunComparisonProps): React.ReactElement 
 
       {inconsistencies.length === 0 && (
         <Box marginTop={1}>
-          <Text color={PALETTE.green}>
-            {ICONS.pass} All steps consistent across devices
-          </Text>
+          <Text color={PALETTE.green}>{ICONS.pass} All steps consistent across devices</Text>
         </Box>
       )}
     </Box>

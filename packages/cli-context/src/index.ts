@@ -95,7 +95,9 @@ export interface AgentSession {
   router: import("@inspect/agent").AgentRouter;
   provider: ReturnType<import("@inspect/agent").AgentRouter["getProvider"]>;
   /** Convenience LLM function for simple chat interactions */
-  llm: (messages: Array<{ role: string; content: string }>) => Promise<string>;
+  llm: (
+    messages: Array<{ role: "system" | "user" | "assistant" | "tool"; content: string }>,
+  ) => Promise<string>;
 }
 
 /**
@@ -205,6 +207,7 @@ export class CLIContext {
     this._browserManager = browserManager;
 
     await browserManager.launchBrowser({
+      name: "chromium",
       headless: !(options?.headed ?? this.config.headed),
       viewport: options?.viewport ?? this.config.viewport,
       stealth: true,
@@ -257,8 +260,10 @@ export class CLIContext {
     const provider = router.getProvider(providerConfig.name);
 
     // Convenience LLM function
-    const llm = async (messages: Array<{ role: string; content: string }>) => {
-      const response = await provider.chat(messages as import("@inspect/agent").LLMMessage[]);
+    const llm = async (
+      messages: Array<{ role: "system" | "user" | "assistant" | "tool"; content: string }>,
+    ) => {
+      const response = await provider.chat(messages);
       return response.content;
     };
 

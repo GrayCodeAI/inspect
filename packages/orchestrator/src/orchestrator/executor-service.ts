@@ -1,8 +1,5 @@
 import { Effect, Layer, Schema, Stream, ServiceMap } from "effect";
-import {
-  AgentError,
-  TimeoutError,
-} from "@inspect/shared";
+import { AgentError, TimeoutError } from "@inspect/shared";
 
 export class StepPlan extends Schema.Class<StepPlan>("StepPlan")({
   index: Schema.Number,
@@ -76,12 +73,8 @@ export interface TestExecutorService {
   readonly execute: (
     config: ExecutionConfig,
   ) => Effect.Effect<ExecutionResult, AgentError | TimeoutError>;
-  readonly executeStream: (
-    config: ExecutionConfig,
-  ) => Stream.Stream<ExecutionProgress, AgentError>;
-  readonly generatePlan: (
-    config: ExecutionConfig,
-  ) => Effect.Effect<StepPlan[], AgentError>;
+  readonly executeStream: (config: ExecutionConfig) => Stream.Stream<ExecutionProgress, AgentError>;
+  readonly generatePlan: (config: ExecutionConfig) => Effect.Effect<StepPlan[], AgentError>;
   readonly executeStep: (
     step: StepPlan,
     config: ExecutionConfig,
@@ -89,11 +82,16 @@ export interface TestExecutorService {
   readonly abort: () => Effect.Effect<void>;
 }
 
-export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorService>()("@inspect/TestExecutor") {
-  static layer = Layer.effect(this,
+export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorService>()(
+  "@inspect/TestExecutor",
+) {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
       // Generate plan implementation
-      const generatePlan = function(_config: ExecutionConfig): Effect.Effect<StepPlan[], AgentError> {
+      const generatePlan = function (
+        _config: ExecutionConfig,
+      ): Effect.Effect<StepPlan[], AgentError> {
         return Effect.gen(function* () {
           yield* Effect.logWarning("generatePlan() placeholder — connect LLM provider");
           return [
@@ -128,7 +126,10 @@ export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorS
       };
 
       // Execute step implementation
-      const executeStep = function(step: StepPlan, _config: ExecutionConfig): Effect.Effect<StepResult, AgentError> {
+      const executeStep = function (
+        step: StepPlan,
+        _config: ExecutionConfig,
+      ): Effect.Effect<StepResult, AgentError> {
         return Effect.gen(function* () {
           yield* Effect.annotateCurrentSpan({ stepIndex: step.index, stepType: step.type });
           yield* Effect.logWarning("executeStep() simulation mode — connect browser");
@@ -144,9 +145,14 @@ export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorS
       };
 
       // Execute implementation
-      const execute = function(config: ExecutionConfig): Effect.Effect<ExecutionResult, AgentError | TimeoutError> {
+      const execute = function (
+        config: ExecutionConfig,
+      ): Effect.Effect<ExecutionResult, AgentError | TimeoutError> {
         return Effect.gen(function* () {
-          yield* Effect.annotateCurrentSpan({ instruction: config.instruction, agent: config.agent });
+          yield* Effect.annotateCurrentSpan({
+            instruction: config.instruction,
+            agent: config.agent,
+          });
           const plan = yield* generatePlan(config);
           const steps: StepResult[] = [];
           for (let i = 0; i < plan.length; i++) {
@@ -168,8 +174,26 @@ export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorS
       };
 
       // Execute stream implementation
-      const executeStream = function(config: ExecutionConfig): Stream.Stream<ExecutionProgress, AgentError> {
-        return Stream.fromEffect(execute(config)).pipe(
+      const executeStream = function (
+        config: ExecutionConfig,
+      ): Stream.Stream<ExecutionProgress, AgentError> {
+        const safeExecute = execute(config).pipe(
+          Effect.catchTag("TimeoutError", () =>
+            Effect.succeed(
+              new ExecutionResult({
+                status: "timeout",
+                steps: [],
+                totalDuration: 0,
+                tokenCount: 0,
+                agent: config.agent,
+                device: "unknown",
+                timestamp: new Date().toISOString(),
+                error: "Execution timed out",
+              }),
+            ),
+          ),
+        );
+        return Stream.fromEffect(safeExecute).pipe(
           Stream.map(
             (result) =>
               new ExecutionProgress({
@@ -184,7 +208,7 @@ export class TestExecutor extends ServiceMap.Service<TestExecutor, TestExecutorS
       };
 
       // Abort implementation
-      const abort = function(): Effect.Effect<void> {
+      const abort = function (): Effect.Effect<void> {
         return Effect.sync(() => {});
       };
 

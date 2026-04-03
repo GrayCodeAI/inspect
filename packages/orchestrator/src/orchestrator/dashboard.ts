@@ -196,7 +196,12 @@ export class DashboardOrchestrator {
         this.runs.set(runId, updatedRun);
         this.bus.emit({
           type: "run:completed",
-          data: { runId: updatedRun.runId, status: "cancelled", duration: updatedRun.elapsed, passed: false },
+          data: {
+            runId: updatedRun.runId,
+            status: "cancelled",
+            duration: updatedRun.elapsed,
+            passed: false,
+          },
         });
       }
     }
@@ -252,7 +257,7 @@ export class DashboardOrchestrator {
     try {
       const result = await executor.execute();
 
-      const finalStatus = result.status === "pass" ? "completed" as const : "failed" as const;
+      const finalStatus = result.status === "pass" ? ("completed" as const) : ("failed" as const);
       const completedRun = {
         ...runningRun,
         status: finalStatus,
@@ -321,16 +326,16 @@ export class DashboardOrchestrator {
       totalSteps: progress.totalSteps,
       tokenCount: progress.tokenCount,
       elapsed: progress.elapsed,
+      agentActivity: progress.currentToolCall
+        ? {
+            type: this.inferActivityType(progress.currentToolCall),
+            target: progress.currentToolCall,
+            description: progress.currentToolCall,
+            timestamp: Date.now(),
+          }
+        : undefined,
+      steps: run.steps,
     };
-
-    if (progress.currentToolCall) {
-      (updatedRun as unknown as Record<string, unknown>).agentActivity = {
-        type: this.inferActivityType(progress.currentToolCall),
-        target: progress.currentToolCall,
-        description: progress.currentToolCall,
-        timestamp: Date.now(),
-      };
-    }
 
     // Emit step completion if a stepResult is present
     if (progress.stepResult) {
@@ -362,7 +367,7 @@ export class DashboardOrchestrator {
         totalSteps: updatedRun.totalSteps,
         tokenCount: updatedRun.tokenCount,
         elapsed: updatedRun.elapsed,
-        agentActivity: (updatedRun as unknown as { agentActivity?: unknown }).agentActivity,
+        agentActivity: updatedRun.agentActivity,
       },
     });
   }

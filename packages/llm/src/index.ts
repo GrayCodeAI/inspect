@@ -17,3 +17,13 @@ export {
   type ProviderName,
   type FallbackConfig,
 } from "./providers/router.js";
+export {
+  LLMOperationRouter,
+  type LLMOperation,
+  type LLMProviderConfig,
+  DEFAULT_ACT_OPERATION,
+  DEFAULT_EXTRACT_OPERATION,
+  DEFAULT_OBSERVE_OPERATION,
+  DEFAULT_PLAN_OPERATION,
+  DEFAULT_VERIFY_OPERATION,
+} from "./operation-router.js";

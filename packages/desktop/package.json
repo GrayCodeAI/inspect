@@ -1,0 +1,22 @@
+{
+  "name": "@inspect/desktop",
+  "version": "0.1.0",
+  "description": "Desktop automation and computer use",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.35"
+  },
+  "optionalDependencies": {
+    "robotjs": "^0.6.0",
+    "screenshot-desktop": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

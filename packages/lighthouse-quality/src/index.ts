@@ -14,3 +14,9 @@ export {
   type BudgetCheckResult,
 } from "./lighthouse/budgets.js";
 export { ScoreHistory, type ScoreEntry, type ScoreTrend } from "./lighthouse/history.js";
+export {
+  CustomAuditRunner,
+  type CustomAudit,
+  type CustomAuditResult,
+  BUILTIN_CUSTOM_AUDITS,
+} from "./custom-audits.js";

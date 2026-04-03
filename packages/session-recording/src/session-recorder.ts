@@ -1,9 +1,6 @@
 /* eslint-disable require-yield */
 import { Effect, Layer, ServiceMap, Schema } from "effect";
-import * as Error from "./errors.js";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RRWebEvent = any;
+import * as RecError from "./errors.js";
 
 export const RecordingConfig = Schema.Struct({
   maxDuration: Schema.Number,
@@ -19,7 +16,7 @@ export const RecordingConfig = Schema.Struct({
 export type RecordingConfig = typeof RecordingConfig.Type;
 
 export const defaultRecordingConfig: RecordingConfig = {
-  maxDuration: 5 * 60 * 1000, // 5 minutes
+  maxDuration: 5 * 60 * 1000,
   maxEvents: 10000,
   blockClass: "rr-block",
   ignoreClass: "rr-ignore",
@@ -37,11 +34,26 @@ export const defaultRecordingConfig: RecordingConfig = {
   },
 };
 
+const RRWEB_CDN = "https://cdn.jsdelivr.net/npm/rrweb@2.0.0-alpha.18/dist/rrweb-all.min.js";
+
+export interface RRWebEvent {
+  readonly type: number;
+  readonly data: unknown;
+  readonly timestamp: number;
+  readonly delay?: number;
+}
+
 export interface RecordingSession {
   readonly sessionId: string;
   readonly startTime: number;
   readonly events: RRWebEvent[];
   readonly stop: () => void;
+}
+
+interface PageLike {
+  addScriptTag(options: { url: string }): Promise<void>;
+  evaluate<R>(pageFunction: string | (() => R | Promise<R>)): Promise<R>;
+  evaluate<R, Arg>(pageFunction: string | ((arg: Arg) => R | Promise<R>), arg: Arg): Promise<R>;
 }
 
 export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
@@ -50,50 +62,70 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
     make: Effect.gen(function* () {
       const recordings = new Map<string, RecordingSession>();
 
-      const start = (sessionId: string, config: Partial<RecordingConfig> = {}) =>
+      const start = (page: PageLike, sessionId: string, config: Partial<RecordingConfig> = {}) =>
         Effect.gen(function* () {
           yield* Effect.annotateCurrentSpan({ sessionId });
 
           if (recordings.has(sessionId)) {
-            return yield* new Error.RecordingAlreadyActiveError({ sessionId });
+            return yield* new RecError.RecordingAlreadyActiveError({ sessionId });
           }
 
           const mergedConfig = { ...defaultRecordingConfig, ...config };
           const events: RRWebEvent[] = [];
 
-          const rrweb = yield* Effect.tryPromise({
-            try: () => import("rrweb"),
-            catch: (cause) => new Error.RrwebLoadError({ cause }),
+          yield* Effect.tryPromise({
+            try: () => page.addScriptTag({ url: RRWEB_CDN }),
+            catch: (cause) => new RecError.RrwebLoadError({ cause }),
           });
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const stopFn = (rrweb as any).record({
-            emit: (event: RRWebEvent) => {
-              events.push(event);
-              if (events.length >= mergedConfig.maxEvents) {
-                stopFn?.();
-              }
-            },
-            sampling: mergedConfig.sampling,
-            blockClass: mergedConfig.blockClass,
-            ignoreClass: mergedConfig.ignoreClass,
-            maskTextClass: mergedConfig.maskTextClass,
-            maskAllInputs: mergedConfig.maskAllInputs,
-            maskInputOptions: mergedConfig.maskInputOptions,
+          yield* Effect.tryPromise({
+            try: () =>
+              page.evaluate(
+                `(function(cfg) {
+                  var w = window;
+                  w.__inspect_rrweb_events = [];
+                  w.__inspect_rrweb_stop = null;
+                  if (!w.rrweb) {
+                    throw new Error("rrweb failed to load");
+                  }
+                  w.__inspect_rrweb_stop = w.rrweb.record({
+                    emit: function(event) {
+                      w.__inspect_rrweb_events.push(event);
+                    },
+                    sampling: cfg.sampling,
+                    blockClass: cfg.blockClass,
+                    ignoreClass: cfg.ignoreClass,
+                    maskTextClass: cfg.maskTextClass,
+                    maskAllInputs: cfg.maskAllInputs,
+                    maskInputOptions: cfg.maskInputOptions,
+                    recordCrossOriginIframes: true,
+                  });
+                  if (!w.__inspect_rrweb_stop) {
+                    throw new Error("rrweb.record returned undefined");
+                  }
+                })`,
+                mergedConfig,
+              ),
+            catch: (cause) => new RecError.RecordingStartError({ sessionId, cause }),
           });
-
-          if (!stopFn) {
-            return yield* new Error.RecordingStartError({
-              sessionId,
-              cause: "rrweb.record returned undefined",
-            });
-          }
 
           const session: RecordingSession = {
             sessionId,
             startTime: Date.now(),
             events,
-            stop: stopFn as () => void,
+            stop: () => {
+              void page
+                .evaluate(
+                  `(function() {
+                  var w = window;
+                  if (w.__inspect_rrweb_stop) {
+                    w.__inspect_rrweb_stop();
+                    w.__inspect_rrweb_stop = null;
+                  }
+                })`,
+                )
+                .catch(() => {});
+            },
           };
 
           recordings.set(sessionId, session);
@@ -112,7 +144,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
 
           const session = recordings.get(sessionId);
           if (!session) {
-            return yield* new Error.RecordingNotFoundError({ sessionId });
+            return yield* new RecError.RecordingNotFoundError({ sessionId });
           }
 
           session.stop();
@@ -131,7 +163,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
         Effect.gen(function* () {
           const session = recordings.get(sessionId);
           if (!session) {
-            return yield* new Error.RecordingNotFoundError({ sessionId });
+            return yield* new RecError.RecordingNotFoundError({ sessionId });
           }
           return session.events;
         }).pipe(Effect.withSpan("SessionRecorder.getEvents"));
@@ -154,7 +186,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
         Effect.gen(function* () {
           const session = recordings.get(sessionId);
           if (!session) {
-            return yield* new Error.RecordingNotFoundError({ sessionId });
+            return yield* new RecError.RecordingNotFoundError({ sessionId });
           }
 
           const eventsJson = JSON.stringify(session.events);
@@ -170,8 +202,8 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
 </head>
 <body>
   <div id="replay-container"></div>
-  <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/rrweb-player@2.0.0-alpha.18/dist/index.js"><\/script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@2.0.0-alpha.18/dist/style.css">
   <script>
     const events = ${eventsJson};
     new rrwebPlayer({
@@ -182,7 +214,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
         height: window.innerHeight,
       }
     });
-  </script>
+  <\/script>
 </body>
 </html>`;
 
@@ -191,7 +223,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
               const fs = await import("node:fs/promises");
               await fs.writeFile(outputPath, html, "utf-8");
             },
-            catch: (cause) => new Error.ReplayExportError({ sessionId, cause }),
+            catch: (cause) => new RecError.ReplayExportError({ sessionId, cause }),
           });
 
           yield* Effect.logInfo("Session replay exported", { sessionId, outputPath });

@@ -29,7 +29,9 @@ export class ExecutionConfig extends Schema.Class<ExecutionConfig>("ExecutionCon
   recording: Schema.optional(Schema.Boolean),
   recordingDir: Schema.optional(Schema.String),
   adversarial: Schema.optional(Schema.Boolean),
-  adversarialIntensity: Schema.optional(Schema.Literals(["basic", "standard", "aggressive"] as const)),
+  adversarialIntensity: Schema.optional(
+    Schema.Literals(["basic", "standard", "aggressive"] as const),
+  ),
 }) {
   declare readonly instruction: string;
   declare readonly prompt: string;
@@ -96,7 +98,13 @@ export class StepResult extends Schema.Class<StepResult>("StepResult")({
 
 export class AdversarialFinding extends Schema.Class<AdversarialFinding>("AdversarialFinding")({
   severity: Schema.Literals(["critical", "high", "medium", "low", "info"] as const),
-  category: Schema.Literals(["security", "functionality", "ux", "performance", "accessibility"] as const),
+  category: Schema.Literals([
+    "security",
+    "functionality",
+    "ux",
+    "performance",
+    "accessibility",
+  ] as const),
   instruction: Schema.String,
   finding: Schema.String,
   steps: Schema.Array(Schema.String),
@@ -187,12 +195,14 @@ export interface ExecutionDeps {
   readonly router: AgentRouter;
   readonly browserManager: unknown;
   readonly credentialVault?: unknown;
-  readonly planGenerator?: (config: ExecutionConfig) => Effect.Effect<StepPlan[]>;
+  readonly planGenerator?: (
+    config: ExecutionConfig,
+  ) => Effect.Effect<StepPlan[]> | Promise<StepPlan[]>;
   readonly stepExecutor?: (
     step: StepPlan,
     config: ExecutionConfig,
     toolCalls: ToolCall[],
-  ) => Effect.Effect<void>;
+  ) => Effect.Effect<void> | Promise<void>;
   readonly recording?: {
     readonly start: () => Effect.Effect<void>;
     readonly stop: () => Effect.Effect<unknown[]>;
@@ -233,12 +243,14 @@ export const estimateTokens = (text: string): number => Math.ceil(text.length / 
 // Plan Generation
 // ============================================================================
 
-export function generatePlan(
-  state: ExecutionState,
-): Effect.Effect<StepPlan[]> {
+export function generatePlan(state: ExecutionState): Effect.Effect<StepPlan[], Error> {
   return Effect.gen(function* () {
     if (state.deps.planGenerator) {
-      return yield* state.deps.planGenerator(state.config);
+      const result = state.deps.planGenerator(state.config);
+      if ("pipe" in result) {
+        return yield* result as Effect.Effect<StepPlan[]>;
+      }
+      return yield* Effect.tryPromise(() => result as Promise<StepPlan[]>);
     }
 
     yield* Effect.logWarning("generatePlan() using placeholder — connect LLM for real planning");
@@ -287,10 +299,14 @@ export function runStep(
   step: StepPlan,
   state: ExecutionState,
   toolCalls: ToolCall[],
-): Effect.Effect<void> {
+): Effect.Effect<void, Error> {
   return Effect.gen(function* () {
     if (state.deps.stepExecutor) {
-      return yield* state.deps.stepExecutor(step, state.config, toolCalls);
+      const result = state.deps.stepExecutor(step, state.config, toolCalls);
+      if ("pipe" in result) {
+        return yield* result as Effect.Effect<void>;
+      }
+      return yield* Effect.tryPromise(() => result as Promise<void>);
     }
 
     yield* Effect.logWarning(`Step ${step.index}: Running in simulation mode (no browser)`);
@@ -359,10 +375,7 @@ export function runStep(
   });
 }
 
-export function executeStep(
-  step: StepPlan,
-  state: ExecutionState,
-): Effect.Effect<StepResult> {
+export function executeStep(step: StepPlan, state: ExecutionState): Effect.Effect<StepResult> {
   return Effect.gen(function* () {
     const stepStart = Date.now();
     const toolCalls: ToolCall[] = [];
@@ -392,15 +405,17 @@ export function executeStep(
       onSuccess: (result) => Effect.succeed(result),
       onFailure: (err) => {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        return Effect.succeed(new StepResult({
-          index: step.index,
-          description: step.description,
-          status: "fail",
-          assertion: step.assertion,
-          error: errorMessage,
-          duration: 0,
-          toolCalls: [],
-        }));
+        return Effect.succeed(
+          new StepResult({
+            index: step.index,
+            description: step.description,
+            status: "fail",
+            assertion: step.assertion,
+            error: errorMessage,
+            duration: 0,
+            toolCalls: [],
+          }),
+        );
       },
     }),
   );
@@ -429,10 +444,11 @@ export function startRecording(state: ExecutionState): Effect.Effect<boolean> {
       Effect.tap(() => Effect.logInfo("Session recording started")),
       Effect.matchEffect({
         onSuccess: () => Effect.succeed(true),
-        onFailure: (err) => Effect.gen(function* () {
-          yield* Effect.logWarning(`Failed to start session recording: ${err}`);
-          return false;
-        }),
+        onFailure: (err) =>
+          Effect.gen(function* () {
+            yield* Effect.logWarning(`Failed to start session recording: ${err}`);
+            return false;
+          }),
       }),
     );
   });
@@ -448,26 +464,29 @@ export function finalizeRecording(
     }
 
     const events = yield* state.deps.recording.stop().pipe(
-      Effect.tap((evts: unknown[]) => Effect.logInfo("Session recording stopped", { eventCount: evts.length })),
+      Effect.tap((evts: unknown[]) =>
+        Effect.logInfo("Session recording stopped", { eventCount: evts.length }),
+      ),
       Effect.matchEffect({
         onSuccess: (evts) => Effect.succeed(evts),
-        onFailure: (err) => Effect.gen(function* () {
-          yield* Effect.logWarning(`Failed to stop recording: ${err}`);
-          return [] as unknown[];
-        }),
+        onFailure: (err) =>
+          Effect.gen(function* () {
+            yield* Effect.logWarning(`Failed to stop recording: ${err}`);
+            return [] as unknown[];
+          }),
       }),
     );
 
     if (events.length > 0) {
       const planId = `run-${Date.now()}`;
-      const recordingPath = yield* state.deps.recording.save(planId).pipe(
-        Effect.tap((path: string) => Effect.logInfo("Session recording saved", { path })),
-      );
+      const recordingPath = yield* state.deps.recording
+        .save(planId)
+        .pipe(Effect.tap((path: string) => Effect.logInfo("Session recording saved", { path })));
 
       const viewerPath = recordingPath.replace(/\.json$/, "-viewer.html");
-      yield* state.deps.recording.generateViewer(viewerPath).pipe(
-        Effect.tap(() => Effect.logInfo("Replay viewer generated", { path: viewerPath })),
-      );
+      yield* state.deps.recording
+        .generateViewer(viewerPath)
+        .pipe(Effect.tap(() => Effect.logInfo("Replay viewer generated", { path: viewerPath })));
 
       return new ExecutionResult({
         ...result,
@@ -488,7 +507,7 @@ export function executeTest(
   config: ExecutionConfig,
   deps: ExecutionDeps,
   onProgress?: (p: ExecutionProgress) => void,
-): Effect.Effect<ExecutionResult> {
+): Effect.Effect<ExecutionResult, Error> {
   return Effect.gen(function* () {
     const abortController = new AbortController();
     const state = createExecutionState(config, deps, abortController.signal);

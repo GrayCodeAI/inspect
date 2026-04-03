@@ -1,7 +1,12 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { create } from "zustand";
-import type { ModelPreference } from "@inspect/shared";
+
+interface ModelPreference {
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
+}
 
 type AgentBackend = "claude" | "codex" | "copilot" | "gemini" | "cursor" | "droid" | "opencode";
 

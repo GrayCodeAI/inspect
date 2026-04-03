@@ -6,7 +6,7 @@
 // Uses heuristics by default, with optional LLM enhancement.
 // ============================================================================
 
-import { GitManagerImpl } from "@inspect/git";
+import { GitManager } from "@inspect/git";
 import type {
   DiffHunk,
   DiffAnalysisResult,
@@ -47,10 +47,10 @@ type MutableCategories = {
  *    richer, context-aware test plan generation
  */
 export class DiffPlanGenerator {
-  private gitManager: GitManagerImpl;
+  private gitManager: GitManager;
 
   constructor(cwd?: string) {
-    this.gitManager = new GitManagerImpl(cwd ?? process.cwd());
+    this.gitManager = new GitManager(cwd ?? process.cwd());
   }
 
   /**

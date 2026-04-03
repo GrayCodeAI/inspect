@@ -9,7 +9,13 @@ export { LLMProvider as BaseLLMProvider } from "@inspect/llm";
 // Memory & tools
 export { ActionCache, PatternStore } from "@inspect/agent-memory";
 export type { ActionRecord } from "@inspect/agent-tools";
-export { ToolRegistry, ActionLoopDetector, ContextCompactor, SensitiveDataMasker, LoopDetector } from "@inspect/agent-tools";
+export {
+  ToolRegistry,
+  ActionLoopDetector,
+  ContextCompactor,
+  SensitiveDataMasker,
+  LoopDetector,
+} from "@inspect/agent-tools";
 
 // OTP
 export { TOTPGenerator, generateTOTP, type TOTPConfig } from "./otp/totp.js";
@@ -112,3 +118,28 @@ export { AgentRouter } from "./providers/router.js";
 
 // Agent Tools (for orchestrator)
 export type { ToolDefinition as LLMToolDefinition } from "@inspect/agent-tools";
+
+// Provider Name (from LLM)
+export type { ProviderName } from "@inspect/llm";
+
+// Governance stubs
+export { WatchdogManager, type WatchdogConfig, type WatchdogEvent } from "./governance/watchdog.js";
+export { AutonomyManager, AutonomyLevel, type AutonomyConfig } from "./governance/autonomy.js";
+export {
+  PermissionManager,
+  type PermissionConfig,
+  type Permissions,
+} from "./governance/permissions.js";
+export {
+  AuditTrail,
+  type AuditEntry,
+  type AuditQuery,
+  type ComplianceReport,
+} from "./governance/audit-trail.js";
+export {
+  GuardrailEngine,
+  type GuardrailCheck,
+  type GuardrailConfig,
+  type GuardrailContext,
+  BUILTIN_GUARDRAILS,
+} from "./governance/guardrails.js";

@@ -24,17 +24,13 @@ const DEFAULT_VIEWPORTS = [
   { label: "desktop", width: 1440, height: 900 },
 ];
 
-function parseViewports(
-  input?: string
-): Array<{ label: string; width: number; height: number }> {
+function parseViewports(input?: string): Array<{ label: string; width: number; height: number }> {
   if (!input) return DEFAULT_VIEWPORTS;
 
   return input.split(",").map((v) => {
     const trimmed = v.trim();
     // Handle preset names
-    const preset = DEFAULT_VIEWPORTS.find(
-      (p) => p.label === trimmed
-    );
+    const preset = DEFAULT_VIEWPORTS.find((p) => p.label === trimmed);
     if (preset) return preset;
 
     // Handle WxH format
@@ -63,7 +59,10 @@ function parseViewports(
 
 function parseMaskSelectors(input?: string): string[] {
   if (!input) return [];
-  return input.split(",").map((s) => s.trim()).filter(Boolean);
+  return input
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 async function captureScreenshots(
@@ -71,7 +70,7 @@ async function captureScreenshots(
   viewports: Array<{ label: string; width: number; height: number }>,
   outputDir: string,
   maskSelectors: string[],
-  headed: boolean
+  headed: boolean,
 ): Promise<Map<string, string>> {
   const { BrowserManager } = await import("@inspect/browser");
   const { mkdirSync: mkdirSyncLocal, existsSync: existsSyncLocal } = await import("node:fs");
@@ -84,12 +83,11 @@ async function captureScreenshots(
 
   for (const viewport of viewports) {
     console.log(
-      chalk.dim(
-        `  Capturing ${viewport.label} (${viewport.width}x${viewport.height})...`
-      )
+      chalk.dim(`  Capturing ${viewport.label} (${viewport.width}x${viewport.height})...`),
     );
 
     await browserMgr.launchBrowser({
+      name: "chromium",
       headless: !headed,
       stealth: false,
       viewport: { width: viewport.width, height: viewport.height },
@@ -109,7 +107,9 @@ async function captureScreenshots(
               els.forEach(function(el) { el.style.visibility = 'hidden'; });
             })()
           `);
-        } catch { /* selector not found, skip */ }
+        } catch {
+          /* selector not found, skip */
+        }
       }
     }
 
@@ -139,23 +139,28 @@ function buildPNGChunk(type: string, data: Buffer): Buffer {
 }
 
 function pngCRC32(data: Buffer): number {
-  let c = 0xFFFFFFFF;
+  let c = 0xffffffff;
   for (let i = 0; i < data.length; i++) {
     c ^= data[i];
     for (let j = 0; j < 8; j++) {
-      c = (c >>> 1) ^ (c & 1 ? 0xEDB88320 : 0);
+      c = (c >>> 1) ^ (c & 1 ? 0xedb88320 : 0);
     }
   }
-  return (c ^ 0xFFFFFFFF) >>> 0;
+  return (c ^ 0xffffffff) >>> 0;
 }
 
 async function computePixelDiff(
   baselinePath: string,
   currentPath: string,
   diffPath: string,
-  threshold: number
+  threshold: number,
 ): Promise<{ diffPercent: number; diffPixels: number; totalPixels: number; passed: boolean }> {
-  const { readFileSync, writeFileSync, mkdirSync: mkdirSyncLocal, existsSync: existsSyncLocal } = await import("node:fs");
+  const {
+    readFileSync,
+    writeFileSync,
+    mkdirSync: mkdirSyncLocal,
+    existsSync: existsSyncLocal,
+  } = await import("node:fs");
   const { dirname } = await import("node:path");
   const { inflateSync, deflateSync } = await import("node:zlib");
 
@@ -181,11 +186,20 @@ async function computePixelDiff(
 
     let bytesPerPixel: number;
     switch (colorType) {
-      case 2: bytesPerPixel = 3 * (bitDepth / 8); break; // RGB
-      case 6: bytesPerPixel = 4 * (bitDepth / 8); break; // RGBA
-      case 0: bytesPerPixel = 1 * (bitDepth / 8); break; // Grayscale
-      case 4: bytesPerPixel = 2 * (bitDepth / 8); break; // Gray+Alpha
-      default: throw new Error(`Unsupported PNG color type: ${colorType}`);
+      case 2:
+        bytesPerPixel = 3 * (bitDepth / 8);
+        break; // RGB
+      case 6:
+        bytesPerPixel = 4 * (bitDepth / 8);
+        break; // RGBA
+      case 0:
+        bytesPerPixel = 1 * (bitDepth / 8);
+        break; // Grayscale
+      case 4:
+        bytesPerPixel = 2 * (bitDepth / 8);
+        break; // Gray+Alpha
+      default:
+        throw new Error(`Unsupported PNG color type: ${colorType}`);
     }
 
     // Collect IDAT chunks
@@ -254,9 +268,9 @@ async function computePixelDiff(
       if (isDiff) {
         diffPixels++;
         // Red highlight for diff pixels
-        diffRaw[dOff] = 255;     // R
-        diffRaw[dOff + 1] = 0;   // G
-        diffRaw[dOff + 2] = 0;   // B
+        diffRaw[dOff] = 255; // R
+        diffRaw[dOff + 1] = 0; // G
+        diffRaw[dOff + 2] = 0; // B
         diffRaw[dOff + 3] = 200; // A
       } else {
         // Dimmed original pixel
@@ -275,14 +289,14 @@ async function computePixelDiff(
   if (!existsSyncLocal(diffDirPath)) mkdirSyncLocal(diffDirPath, { recursive: true });
 
   // Build a minimal PNG: signature + IHDR + IDAT + IEND
-  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
   // IHDR
   const ihdrData = Buffer.alloc(13);
   ihdrData.writeUInt32BE(width, 0);
   ihdrData.writeUInt32BE(height, 4);
-  ihdrData[8] = 8;  // bit depth
-  ihdrData[9] = 6;  // RGBA color type
+  ihdrData[8] = 8; // bit depth
+  ihdrData[9] = 6; // RGBA color type
   ihdrData[10] = 0; // compression
   ihdrData[11] = 0; // filter
   ihdrData[12] = 0; // interlace
@@ -306,9 +320,7 @@ async function computePixelDiff(
 }
 
 async function runVisual(options: VisualOptions): Promise<void> {
-  const outputDir = resolve(
-    options.output ?? ".inspect/visual"
-  );
+  const outputDir = resolve(options.output ?? ".inspect/visual");
   const baselineDir = join(outputDir, "baseline");
   const currentDir = join(outputDir, "current");
   const diffDir = join(outputDir, "diff");
@@ -327,18 +339,14 @@ async function runVisual(options: VisualOptions): Promise<void> {
     console.log(chalk.blue("\nCapturing Storybook components..."));
     console.log(chalk.dim("Storybook capture not yet implemented."));
     console.log(
-      chalk.dim(
-        "Will auto-discover stories and capture each component at all viewports."
-      )
+      chalk.dim("Will auto-discover stories and capture each component at all viewports."),
     );
     return;
   }
 
   const url = options.url;
   if (!url && !options.baseline) {
-    console.log(
-      chalk.yellow("No URL provided. Use --url or --capture-storybook.")
-    );
+    console.log(chalk.yellow("No URL provided. Use --url or --capture-storybook."));
     return;
   }
 
@@ -352,21 +360,11 @@ async function runVisual(options: VisualOptions): Promise<void> {
     }
 
     if (url) {
-      await captureScreenshots(
-        url,
-        viewports,
-        baselineDir,
-        maskSelectors,
-        options.headed ?? false
-      );
+      await captureScreenshots(url, viewports, baselineDir, maskSelectors, options.headed ?? false);
     }
 
     console.log(chalk.green("\nBaseline captured successfully."));
-    console.log(
-      chalk.dim(
-        `Run "inspect visual --url <url>" to compare against this baseline.`
-      )
-    );
+    console.log(chalk.dim(`Run "inspect visual --url <url>" to compare against this baseline.`));
     return;
   }
 
@@ -377,8 +375,8 @@ async function runVisual(options: VisualOptions): Promise<void> {
   if (!existsSync(baselineDir)) {
     console.log(
       chalk.yellow(
-        "No baseline found. Run with --baseline first to capture reference screenshots."
-      )
+        "No baseline found. Run with --baseline first to capture reference screenshots.",
+      ),
     );
     return;
   }
@@ -390,12 +388,16 @@ async function runVisual(options: VisualOptions): Promise<void> {
     viewports,
     currentDir,
     maskSelectors,
-    options.headed ?? false
+    options.headed ?? false,
   );
 
   if (options.updateSnapshots) {
     console.log(chalk.blue("\nUpdating baselines...\n"));
-    const { copyFileSync, mkdirSync: mkdirSyncSnap, existsSync: existsSyncSnap } = await import("node:fs");
+    const {
+      copyFileSync,
+      mkdirSync: mkdirSyncSnap,
+      existsSync: existsSyncSnap,
+    } = await import("node:fs");
     if (!existsSyncSnap(baselineDir)) mkdirSyncSnap(baselineDir, { recursive: true });
 
     for (const [name, currentPath] of currentScreenshots) {
@@ -405,7 +407,7 @@ async function runVisual(options: VisualOptions): Promise<void> {
     }
 
     console.log(chalk.dim(`\n  ${currentScreenshots.size} baseline(s) updated.\n`));
-    return;  // Don't run comparison after updating
+    return; // Don't run comparison after updating
   }
 
   // Compare with baseline
@@ -417,20 +419,14 @@ async function runVisual(options: VisualOptions): Promise<void> {
   }> = [];
 
   for (const [label, currentPath] of currentScreenshots) {
-    const baselinePath = join(
-      baselineDir,
-      currentPath.split("/").pop()!
-    );
+    const baselinePath = join(baselineDir, currentPath.split("/").pop()!);
     if (!existsSync(baselinePath)) {
       console.log(chalk.yellow(`  ${label}: No baseline found (new viewport?)`));
       results.push({ viewport: label, diffPercent: 100, passed: false });
       continue;
     }
 
-    const diffFilePath = join(
-      diffDir,
-      currentPath.split("/").pop()!.replace(".png", "-diff.png")
-    );
+    const diffFilePath = join(diffDir, currentPath.split("/").pop()!.replace(".png", "-diff.png"));
     const diff = await computePixelDiff(baselinePath, currentPath, diffFilePath, threshold);
     results.push({
       viewport: label,
@@ -439,9 +435,7 @@ async function runVisual(options: VisualOptions): Promise<void> {
     });
 
     const icon = diff.passed ? chalk.green("PASS") : chalk.red("FAIL");
-    console.log(
-      `  ${icon} ${label}: ${diff.diffPercent.toFixed(2)}% different`
-    );
+    console.log(`  ${icon} ${label}: ${diff.diffPercent.toFixed(2)}% different`);
   }
 
   if (options.json) {
@@ -453,7 +447,7 @@ async function runVisual(options: VisualOptions): Promise<void> {
   const passed = results.filter((r) => r.passed).length;
   const total = results.length;
   console.log(
-    `\n${passed === total ? chalk.green("All viewports match!") : chalk.red(`${total - passed}/${total} viewports have visual differences.`)}`
+    `\n${passed === total ? chalk.green("All viewports match!") : chalk.red(`${total - passed}/${total} viewports have visual differences.`)}`,
   );
 
   if (options.sliderReport) {
@@ -470,25 +464,15 @@ export function registerVisualCommand(program: Command): void {
     .description("Visual regression testing with pixel-diff comparison")
     .option("--baseline", "Capture baseline screenshots")
     .option("--branch <branch>", "Compare against a specific branch baseline")
-    .option(
-      "--threshold <threshold>",
-      "Pixel diff threshold (0.0-1.0)",
-      "0.1"
-    )
-    .option(
-      "--mask <selectors>",
-      "Comma-separated CSS selectors to mask (hide dynamic content)"
-    )
+    .option("--threshold <threshold>", "Pixel diff threshold (0.0-1.0)", "0.1")
+    .option("--mask <selectors>", "Comma-separated CSS selectors to mask (hide dynamic content)")
     .option(
       "--viewports <viewports>",
       "Comma-separated viewports: mobile, tablet, desktop, or WxH",
-      "mobile,tablet,desktop"
+      "mobile,tablet,desktop",
     )
     .option("--slider-report", "Generate interactive slider HTML report")
-    .option(
-      "--capture-storybook",
-      "Auto-capture all Storybook stories"
-    )
+    .option("--capture-storybook", "Auto-capture all Storybook stories")
     .option("--url <url>", "URL to capture")
     .option("--output <dir>", "Output directory", ".inspect/visual")
     .option("--headed", "Run in headed browser mode")

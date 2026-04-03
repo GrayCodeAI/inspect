@@ -122,6 +122,7 @@ export {
   type ApiCallInfo,
   type EventHandlerInfo,
   type StaticAnalysisResult,
+  SyncSpeculativePlanner,
 } from "@inspect/orchestrator";
 
 export {

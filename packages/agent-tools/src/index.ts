@@ -33,3 +33,7 @@ export {
 
 export * from "./actions/index.js";
 export * from "./judge/index.js";
+
+// Action registry
+export { ActionRegistry } from "./action-registry.js";
+export type { RegisteredAction, ActionContext } from "./action-registry.js";

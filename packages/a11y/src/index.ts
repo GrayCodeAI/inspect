@@ -16,3 +16,9 @@ export {
   type SitemapAuditOptions,
   type SitemapAuditResult,
 } from "./a11y/sitemap.js";
+export {
+  CustomA11yRuleEngine,
+  type CustomA11yRule,
+  type CustomA11yViolation,
+  BUILTIN_CUSTOM_A11Y_RULES,
+} from "./custom-rules.js";

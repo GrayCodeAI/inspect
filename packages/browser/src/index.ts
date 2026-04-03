@@ -194,6 +194,15 @@ export type { FileUploadResult } from "./actions/file-upload.js";
 export { DragDrop } from "./actions/drag-drop.js";
 export type { DragDropOptions, DragDropResult } from "./actions/drag-drop.js";
 
+// Action replay cache
+export { ActionReplayCache } from "./cache/action-replay-cache.js";
+export type {
+  ActionReplayCacheOptions,
+  ActionReplayCacheStats,
+} from "./cache/action-replay-cache.js";
+export { replayAction, actionToReplayable } from "./cache/replayable-action.js";
+export type { ReplayableAction, CachedAction } from "./cache/replayable-action.js";
+
 // Network interception
 export { NetworkInterceptor } from "./network/interceptor.js";
 export type { MockRoute, BlockRule } from "./network/interceptor.js";
@@ -216,6 +225,23 @@ export {
   type HARFile,
   type MockRule,
 } from "./network/monitor.js";
+
+// Route mocking
+export { RouteMocker } from "./network/route-mocker.js";
+export type { RouteMock } from "./network/route-mocker.js";
+
+// Visual assertions
+export {
+  VisualAssertion,
+  VisualAssertionTimeoutError,
+  VisualAssertionError,
+} from "./vision/visual-assertion.js";
+export type {
+  VisualAssertionResult,
+  VisualAssertionWaitResult,
+  VisualAssertionOptions,
+  VisualAssertionWaitOptions,
+} from "./vision/visual-assertion.js";
 
 // Re-export shared types for convenience
 export type {

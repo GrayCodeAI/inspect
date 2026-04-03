@@ -17,3 +17,13 @@ export {
   type SnapshotElement,
   SelfHealer,
 } from "./cache/healing.js";
+export {
+  AgentMemoryService,
+  MemoryEntry,
+  MemoryCategory,
+  MemoryStorageError,
+  MemoryNotFoundError,
+  MemoryImportError,
+  MemoryExportError,
+} from "./agent-memory-service.js";
+export type { MemoryQuery, MemorySearchResult } from "./agent-memory-service.js";

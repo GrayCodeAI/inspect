@@ -8,13 +8,40 @@
 // Loop: observe snapshot → LLM decides next action → execute → repeat
 // ============================================================================
 
-import type {  } from "./playwright-types.js";
+import type {} from "./playwright-types.js";
 import type { Page } from "@inspect/browser";
 import { AnnotatedScreenshot, DOMDiff } from "@inspect/browser";
 import type { TestStep, TestPlan, LLMCall, ProgressCallback } from "./types.js";
 import { detectPageType } from "./planner.js";
-import { ActionLoopDetector, ActionCache } from "@inspect/agent";
-import type { SpeculativePlanner } from "@inspect/core";
+import { ActionLoopDetector } from "@inspect/agent";
+import type { SyncSpeculativePlanner } from "@inspect/core";
+
+// ---------------------------------------------------------------------------
+// Simple in-memory action cache (replaces Effect-based ActionCache)
+// ---------------------------------------------------------------------------
+
+interface CachedActionEntry {
+  type: string;
+  target?: string;
+  value?: string;
+  description: string;
+}
+
+class SimpleActionCache {
+  private cache = new Map<string, CachedActionEntry>();
+
+  static key(instruction: string, url: string): string {
+    return `${instruction.trim().toLowerCase()}|${url}`;
+  }
+
+  async get(instruction: string, url: string): Promise<CachedActionEntry | undefined> {
+    return this.cache.get(SimpleActionCache.key(instruction, url));
+  }
+
+  set(instruction: string, url: string, entry: CachedActionEntry): void {
+    this.cache.set(SimpleActionCache.key(instruction, url), entry);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -196,9 +223,17 @@ export async function runAgentLoop(opts: {
   validateStep: typeof import("./validator.js").validateStep;
   screenshotDir: string;
   AriaSnapshotBuilder: typeof import("@inspect/browser").AriaSnapshotBuilder;
-  networkMonitor: { failures: import("./types.js").NetworkFailure[]; slowResponses: Array<{ url: string; duration: number }>; start: () => void; stop: () => import("./types.js").NetworkFailure[] };
+  networkMonitor: {
+    failures: import("./types.js").NetworkFailure[];
+    slowResponses: Array<{ url: string; duration: number }>;
+    start: () => void;
+    stop: () => import("./types.js").NetworkFailure[];
+  };
   consoleMonitor: { errors: string[]; start: () => void; stop: () => string[] };
-  specPlanner?: SpeculativePlanner;
+  specPlanner?: SyncSpeculativePlanner;
+  sessionRecorder?: import("@inspect/browser").SessionRecorder;
+  selfHealer?: import("@inspect/core").SelfHealer;
+  hitlChecker?: () => Promise<{ pending: boolean; approved: boolean }>;
 }): Promise<AgentLoopResult> {
   const {
     page,
@@ -222,7 +257,16 @@ export async function runAgentLoop(opts: {
 
   // --- Feature integrations (Browser Use / Stagehand / Shortest patterns) ---
   const loopDetector = new ActionLoopDetector({ windowSize: 10, threshold: 3, maxNudges: 2 });
-  const actionCache = new ActionCache({ enabled: true });
+  const actionCache = new SimpleActionCache();
+
+  // Start session recording if provided
+  if (opts.sessionRecorder) {
+    try {
+      await opts.sessionRecorder.startRecording(page);
+    } catch {
+      // Recording is best-effort
+    }
+  }
 
   // Always start with a screenshot
   const { join } = await import("node:path");
@@ -275,12 +319,11 @@ export async function runAgentLoop(opts: {
 
     if (cached) {
       action = {
-        action: cached.action.type,
-        target: cached.action.target,
-        value: cached.action.value,
+        action: cached.type,
+        target: cached.target,
+        value: cached.value,
         reasoning: "(cached — replaying previous action)",
       };
-      actionCache.recordReplay(ActionCache.key(cacheInstruction, currentUrl));
     } else {
       // Ask the agent what to do next
       let agentResponse: string;
@@ -349,6 +392,15 @@ export async function runAgentLoop(opts: {
 
     const beforeSnapshot = snapshotText;
     const beforeUrl = page.url();
+
+    // Human-in-the-loop checkpoint: pause for approval before executing
+    if (opts.hitlChecker) {
+      const hitl = await opts.hitlChecker();
+      if (hitl.pending && !hitl.approved) {
+        onProgress("warn", `Step paused for human approval: ${step.description}`);
+        break;
+      }
+    }
 
     // Clear monitoring
     networkMonitor.failures.length = 0;
@@ -447,6 +499,34 @@ export async function runAgentLoop(opts: {
         }
       } catch {
         /* vision is non-critical fallback */
+      }
+
+      // Self-healing: attempt to find alternative element when step fails
+      if (opts.selfHealer && step.target) {
+        try {
+          const builder = new AriaSnapshotBuilder();
+          await builder.buildTree(page);
+          const snapshot = builder.getFormattedTree();
+          const elements: Array<{ ref: number; role: string; name?: string }> = snapshot
+            .split("\n")
+            .filter((line) => line.includes("role="))
+            .map((line, i) => ({
+              ref: i,
+              role: line.match(/role="([^"]+)"/)?.[1] ?? "",
+              name: line.match(/name="([^"]+)"/)?.[1],
+            }))
+            .filter((el) => !!el.role);
+          const healed = opts.selfHealer.heal(step.target, elements);
+          if (healed.success) {
+            onProgress(
+              "info",
+              `Self-heal: replaced selector "${step.target}" with "${healed.healedSelector ?? healed.originalSelector}"`,
+            );
+            step.target = healed.healedSelector ?? step.target;
+          }
+        } catch {
+          /* self-healing is best-effort */
+        }
       }
     }
 

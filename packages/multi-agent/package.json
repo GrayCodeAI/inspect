@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.35"
+    "@inspect/browser": "workspace:*",
+    "@inspect/llm": "workspace:*",
+    "effect": "4.0.0-beta.35",
+    "playwright": "^1.40.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

@@ -25,6 +25,7 @@ export type {
 } from "./orchestrator/recovery.js";
 
 export { SpeculativePlanner } from "./orchestrator/speculative.js";
+export { SyncSpeculativePlanner } from "./orchestrator/speculative-sync.js";
 export type { SpeculativePlan, SpeculativeStats } from "./orchestrator/speculative.js";
 
 export { CheckpointManager } from "./orchestrator/checkpoint.js";
@@ -193,3 +194,13 @@ export type {
 } from "./analysis/static-analyzer.js";
 export type { FormInfo as StaticFormInfo } from "./analysis/static-analyzer.js";
 export type { AnalyzedElement, FormInfo } from "./testing/generator.js";
+
+// Test plan forking
+export {
+  TestPlanForkManager,
+  TestPlanFork,
+  ForkType,
+  ForkNotFoundError,
+  InvalidForkOperationError,
+} from "./testing/test-fork.js";
+export type { ForkOptions, StepDifference, ForkComparisonResult } from "./testing/test-fork.js";

@@ -7,9 +7,11 @@
  *   - The real agent implementations (planTests, executeStep, BrowserManager)
  */
 
-import type { AgentRouter, ProviderName } from "@inspect/agent";
+import type { AgentRouter } from "@inspect/agent";
 import type { BrowserManager } from "@inspect/browser";
 import type { ExecutorDependencies, ExecutionConfig, StepPlan, StepResult } from "@inspect/core";
+
+type ToolCall = StepResult["toolCalls"][number];
 
 /**
  * Shared state between the step executor, recovery executors, and governance.
@@ -41,9 +43,9 @@ function stepTypeToAction(type: StepPlan["type"]): string {
 }
 
 /**
- * Resolve agent name to ProviderName.
+ * Resolve agent name to provider string.
  */
-function resolveProviderName(agent: string): ProviderName {
+function resolveProviderName(agent: string): string {
   switch (agent) {
     case "claude":
     case "anthropic":
@@ -70,7 +72,9 @@ function createLLMCall(
   router: AgentRouter,
   agent: string,
 ): (messages: Array<{ role: string; content: string }>) => Promise<string> {
-  const provider = router.getProvider(resolveProviderName(agent));
+  const provider = router.getProvider(
+    resolveProviderName(agent) as Parameters<typeof router.getProvider>[0],
+  );
   return async (messages) => {
     const response = await provider.chat(
       messages as Array<{ role: "system" | "user" | "assistant"; content: string }>,
@@ -120,20 +124,19 @@ export function createStepExecutor(
   browserManager: BrowserManager,
   sharedState: SharedPageState,
 ): NonNullable<ExecutorDependencies["stepExecutor"]> {
-  return async (
-    step: StepPlan,
-    config: ExecutionConfig,
-    toolCalls: StepResult["toolCalls"],
-  ): Promise<void> => {
+  return async (step: StepPlan, config: ExecutionConfig, toolCalls: ToolCall[]): Promise<void> => {
     const { AriaSnapshotBuilder } = await import("@inspect/browser");
+
+    const deviceConfig = config.device as { viewport: { width: number; height: number } };
 
     // Lazy-init: launch browser and navigate on first step
     if (!sharedState.page) {
       await browserManager.launchBrowser({
+        name: "chromium",
         browser: config.browser,
         headless: !config.headed,
-        viewport: config.device.viewport,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        viewport: deviceConfig.viewport,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       sharedState.page = browserManager.newPage();
 
@@ -224,7 +227,14 @@ export function createExecutorAdapters(
 ): {
   planGenerator: NonNullable<ExecutorDependencies["planGenerator"]>;
   stepExecutor: NonNullable<ExecutorDependencies["stepExecutor"]>;
-  recoveryExecutors: NonNullable<ExecutorDependencies["recoveryExecutors"]>;
+  recoveryExecutors: {
+    reScan: () => Promise<boolean>;
+    waitForLoad: () => Promise<boolean>;
+    scrollIntoView: (selector?: string) => Promise<boolean>;
+    dismissOverlay: () => Promise<boolean>;
+    refreshPage: () => Promise<boolean>;
+    clearState: () => Promise<boolean>;
+  };
 } {
   const sharedState: SharedPageState = { page: null };
 
@@ -245,7 +255,7 @@ function initGovernance(sharedState: SharedPageState): void {
   import("@inspect/agent")
     .then(({ AuditTrail, AutonomyManager, PermissionManager }) => {
       const auditTrail = new AuditTrail(".inspect/audit");
-      const autonomyManager = new AutonomyManager({ level: 2 /* SUPERVISION */ });
+      const autonomyManager = new AutonomyManager({ level: 2 });
       const permissionManager = new PermissionManager({
         allowedDomains: ["*"],
         allowedActions: ["*"],
@@ -260,9 +270,14 @@ function initGovernance(sharedState: SharedPageState): void {
 /**
  * Create real recovery executors that use the shared browser page state.
  */
-function createRecoveryExecutorsFromState(
-  sharedState: SharedPageState,
-): NonNullable<ExecutorDependencies["recoveryExecutors"]> {
+function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
+  reScan: () => Promise<boolean>;
+  waitForLoad: () => Promise<boolean>;
+  scrollIntoView: (selector?: string) => Promise<boolean>;
+  dismissOverlay: () => Promise<boolean>;
+  refreshPage: () => Promise<boolean>;
+  clearState: () => Promise<boolean>;
+} {
   return {
     reScan: async () => {
       try {

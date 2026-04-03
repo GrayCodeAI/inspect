@@ -788,7 +788,7 @@ export async function runTest(options: TestOptions): Promise<void> {
     if (result.adversarialFindings && result.adversarialFindings.length > 0) {
       const { AdversarialExecutor } = await import("@inspect/core");
       const advExecutor = new AdversarialExecutor();
-      console.log(advExecutor.formatFindings(result.adversarialFindings));
+      console.log(advExecutor.formatFindings([...result.adversarialFindings]));
       console.log();
     }
 

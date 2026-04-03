@@ -399,8 +399,12 @@ export class DiffHunk extends Schema.Class<DiffHunk>("DiffHunk")({
   removedLines: Schema.optional(Schema.Number),
   content: Schema.optional(Schema.String),
   diffContent: Schema.optional(Schema.String),
-  changeType: Schema.optional(Schema.Literals(["added", "deleted", "modified", "renamed"] as const)),
-  lineRanges: Schema.optional(Schema.Array(Schema.Struct({ start: Schema.Number, end: Schema.Number }))),
+  changeType: Schema.optional(
+    Schema.Literals(["added", "deleted", "modified", "renamed"] as const),
+  ),
+  lineRanges: Schema.optional(
+    Schema.Array(Schema.Struct({ start: Schema.Number, end: Schema.Number })),
+  ),
   affectedIdentifiers: Schema.optional(Schema.Array(Schema.String)),
 }) {}
 
@@ -471,6 +475,23 @@ export class DashboardRunState extends Schema.Class<DashboardRunState>("Dashboar
   screenshot: Schema.optional(Schema.String),
   startedAt: Schema.Number,
   completedAt: Schema.optional(Schema.Number),
+  agentActivity: Schema.optional(
+    Schema.Struct({
+      type: Schema.Literals([
+        "navigating",
+        "clicking",
+        "typing",
+        "scrolling",
+        "waiting",
+        "thinking",
+        "verifying",
+        "capturing",
+      ] as const),
+      target: Schema.optional(Schema.String),
+      description: Schema.String,
+      timestamp: Schema.Number,
+    }),
+  ),
 }) {}
 
 export class DashboardSnapshot extends Schema.Class<DashboardSnapshot>("DashboardSnapshot")({

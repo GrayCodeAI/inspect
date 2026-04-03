@@ -19,10 +19,15 @@
   },
   "dependencies": {
     "effect": "4.0.0-beta.35",
-    "@effect/platform-node": "4.0.0-beta.35"
+    "@effect/platform-node": "4.0.0-beta.35",
+    "react": "^18.3.1",
+    "ink": "^5.0.1",
+    "playwright": "^1.50.0",
+    "@inspect/llm": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.1"
   }

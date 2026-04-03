@@ -7,3 +7,9 @@ export { ANALYTICS_EVENTS } from "./analytics.js";
 export { DesktopNotifier } from "./desktop-notifier.js";
 export { WEB_VITAL_THRESHOLDS, type WebVitalName } from "./performance.js";
 export { Notifier, type NotificationConfig } from "./notifications.js";
+export {
+  ExecutionTracer,
+  type TraceSpan,
+  type TraceTree,
+  formatTraceAsMarkdown,
+} from "./execution-trace.js";

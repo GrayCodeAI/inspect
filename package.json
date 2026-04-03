@@ -23,7 +23,7 @@
     "lint:fix": "eslint packages/ apps/ --fix",
     "format": "prettier --write 'packages/*/src/**/*.ts' 'apps/*/src/**/*.ts'",
     "format:check": "prettier --check 'packages/*/src/**/*.ts' 'apps/*/src/**/*.ts'",
-    "typecheck": "turbo typecheck",
+    "typecheck": "turbo typecheck --concurrency=2",
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
     "inspect": "node apps/cli/dist/index.js",

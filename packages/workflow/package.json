@@ -18,11 +18,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "effect": "4.0.0-beta.35",
     "@inspect/shared": "workspace:*",
+    "@inspect/observability": "workspace:*",
     "@inspect/data": "workspace:*",
-    "@inspect/quality": "workspace:*",
-    "node-cron": "^3.0.0",
-    "@inspect/observability": "workspace:*"
+    "@inspect/quality": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

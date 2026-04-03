@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "effect": "4.0.0-beta.35",
-    "@effect/platform-node": "4.0.0-beta.35"
+    "@effect/platform-node": "4.0.0-beta.35",
+    "playwright": "^1.50.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

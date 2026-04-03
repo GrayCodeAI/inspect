@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 export default defineConfig({
   test: {
     globals: true,
+    passWithNoTests: true,
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.ts", "tests/**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
     testTimeout: 30000,

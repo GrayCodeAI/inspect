@@ -24,10 +24,7 @@ export type {
 export { AzureKeyVaultIntegration } from "./providers/azure-keyvault.js";
 export type { AzureSecret, AzureSecretMetadata } from "./providers/azure-keyvault.js";
 export { CustomHTTPProvider } from "./providers/custom-http.js";
-export type {
-  CustomHTTPProviderConfig,
-  HTTPCredentialResponse,
-} from "./providers/custom-http.js";
+export type { CustomHTTPProviderConfig, HTTPCredentialResponse } from "./providers/custom-http.js";
 
 // OTP
 export { TOTPGenerator } from "./otp/totp.js";
@@ -36,3 +33,7 @@ export { EmailPoller } from "./otp/email-poll.js";
 export type { EmailPollerConfig, OTPResult } from "./otp/email-poll.js";
 export { SMSPoller } from "./otp/sms-poll.js";
 export type { SMSPollerConfig, SMSOTPResult } from "./otp/sms-poll.js";
+
+// Secret management
+export { SecretManager } from "./secret-manager.js";
+export type { SecretEntry, MaskedSecretEntry } from "./secret-manager.js";
