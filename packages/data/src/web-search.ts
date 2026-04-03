@@ -26,18 +26,14 @@ export class SearchResult extends Schema.Class<SearchResult>("SearchResult")({
 export class SearchError extends Schema.ErrorClass<SearchError>("SearchError")({
   _tag: Schema.tag("SearchError"),
   provider: Schema.String,
-  errorMessage: Schema.String,
-}) {
-  getMessage = () => this.errorMessage;
-}
+  message: Schema.String,
+}) {}
 
 export class ScrapingError extends Schema.ErrorClass<ScrapingError>("ScrapingError")({
   _tag: Schema.tag("ScrapingError"),
   url: Schema.String,
-  errorMessage: Schema.String,
-}) {
-  getMessage = () => this.errorMessage;
-}
+  message: Schema.String,
+}) {}
 
 const DEFAULT_MAX_RESULTS = 10;
 const FETCH_TIMEOUT_MS = 10000;
@@ -119,7 +115,7 @@ const scrapeUrl = (url: string) =>
       catch: (cause: unknown) =>
         new ScrapingError({
           url,
-          errorMessage: `Failed to fetch: ${String(cause)}`,
+          message: `Failed to fetch: ${String(cause)}`,
         }),
     });
 
@@ -128,7 +124,7 @@ const scrapeUrl = (url: string) =>
       catch: (cause: unknown) =>
         new ScrapingError({
           url,
-          errorMessage: `Failed to read response: ${String(cause)}`,
+          message: `Failed to read response: ${String(cause)}`,
         }),
     });
 
@@ -153,7 +149,7 @@ const searchDuckDuckGo = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "duckduckgo",
-          errorMessage: `Search failed: ${String(cause)}`,
+          message: `Search failed: ${String(cause)}`,
         }),
     });
 
@@ -212,7 +208,7 @@ const searchTavily = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "tavily",
-          errorMessage: `API request failed: ${String(cause)}`,
+          message: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -224,7 +220,7 @@ const searchTavily = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "tavily",
-          errorMessage: `Failed to parse response: ${String(cause)}`,
+          message: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
@@ -259,7 +255,7 @@ const searchGoogle = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "google",
-          errorMessage: `API request failed: ${String(cause)}`,
+          message: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -271,7 +267,7 @@ const searchGoogle = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "google",
-          errorMessage: `Failed to parse response: ${String(cause)}`,
+          message: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
@@ -300,7 +296,7 @@ const searchSerpAPI = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "serpapi",
-          errorMessage: `API request failed: ${String(cause)}`,
+          message: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -312,7 +308,7 @@ const searchSerpAPI = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "serpapi",
-          errorMessage: `Failed to parse response: ${String(cause)}`,
+          message: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
@@ -349,7 +345,7 @@ const searchBrave = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "brave",
-          errorMessage: `API request failed: ${String(cause)}`,
+          message: `API request failed: ${String(cause)}`,
         }),
     });
 
@@ -361,7 +357,7 @@ const searchBrave = (query: string, config: WebSearchConfig) =>
       catch: (cause: unknown) =>
         new SearchError({
           provider: "brave",
-          errorMessage: `Failed to parse response: ${String(cause)}`,
+          message: `Failed to parse response: ${String(cause)}`,
         }),
     });
 
