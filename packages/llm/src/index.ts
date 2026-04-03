@@ -27,3 +27,4 @@ export {
   DEFAULT_PLAN_OPERATION,
   DEFAULT_VERIFY_OPERATION,
 } from "./operation-router.js";
+export { PromptCache, type PromptCacheConfig, type CacheEntry } from "./cache/prompt-cache.js";

@@ -1,0 +1,222 @@
+# Inspect - AI-powered browser testing
+#
+# Runs AI-powered browser tests against your code changes and posts results
+# as PR comments and commit statuses.
+#
+# Usage:
+#   - name: Run Inspect
+#     uses: factoryai/inspect/.github/actions/inspect@main
+#     with:
+#       message: 'Test the application'
+#       url: 'http://localhost:3000'
+#     env:
+#       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+name: "Inspect"
+description: "AI-powered browser testing for PRs"
+author: "Factory AI"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  message:
+    description: "Test instruction for the AI agent"
+    required: true
+  url:
+    description: "Target URL to test (auto-detects from dev server if omitted)"
+    required: false
+  agent:
+    description: "AI agent to use: claude, gpt, gemini, deepseek"
+    required: false
+    default: "claude"
+  mode:
+    description: "Agent mode: dom, hybrid, cua"
+    required: false
+    default: "hybrid"
+  devices:
+    description: "Comma-separated device presets"
+    required: false
+    default: "desktop-chrome"
+  a11y:
+    description: "Include accessibility audit"
+    required: false
+    default: "false"
+  lighthouse:
+    description: "Include Lighthouse audit"
+    required: false
+    default: "false"
+  max-steps:
+    description: "Maximum test steps"
+    required: false
+    default: "25"
+  timeout:
+    description: "Test timeout in milliseconds"
+    required: false
+    default: "1800000"
+  pr-comment:
+    description: "Post results as PR comment"
+    required: false
+    default: "true"
+  pr-status:
+    description: "Set commit status"
+    required: false
+    default: "true"
+  node-version:
+    description: "Node.js version to use"
+    required: false
+    default: "22"
+  install-command:
+    description: "Command to install dependencies"
+    required: false
+    default: "npm ci"
+  build-command:
+    description: "Command to build the project (empty to skip)"
+    required: false
+    default: ""
+  dev-command:
+    description: "Command to start the dev server (empty to skip)"
+    required: false
+    default: ""
+  wait-on:
+    description: "URL to wait for before running tests (default: same as --url)"
+    required: false
+    default: ""
+
+outputs:
+  result:
+    description: "Test result: pass or fail"
+    value: ${{ steps.inspect.outputs.result }}
+  summary:
+    description: "Test summary text"
+    value: ${{ steps.inspect.outputs.summary }}
+  json-output:
+    description: "Full JSON test results"
+    value: ${{ steps.inspect.outputs.json }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install dependencies
+      shell: bash
+      run: ${{ inputs.install-command }}
+
+    - name: Install Playwright browsers
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Build
+      if: ${{ inputs.build-command != '' }}
+      shell: bash
+      run: ${{ inputs.build-command }}
+
+    - name: Start dev server
+      if: ${{ inputs.dev-command != '' }}
+      shell: bash
+      run: |
+        ${{ inputs.dev-command }} &
+        WAIT_URL="${{ inputs.wait-on || inputs.url || 'http://localhost:3000' }}"
+        echo "Waiting for $WAIT_URL..."
+        npx wait-on "$WAIT_URL" --timeout 120000 || { echo "Dev server failed to start"; exit 1; }
+
+    - name: Run Inspect tests
+      id: inspect
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+        GOOGLE_AI_KEY: ${{ env.GOOGLE_AI_KEY }}
+      run: |
+        set -e
+        ARGS="--ci --json --output-file .inspect/results.json"
+        ARGS="$ARGS -m \"${{ inputs.message }}\""
+        if [ -n "${{ inputs.url }}" ]; then
+          ARGS="$ARGS --url ${{ inputs.url }}"
+        fi
+        if [ -n "${{ inputs.agent }}" ]; then
+          ARGS="$ARGS --agent ${{ inputs.agent }}"
+        fi
+        ARGS="$ARGS --mode ${{ inputs.mode }}"
+        ARGS="$ARGS --devices ${{ inputs.devices }}"
+        if [ "${{ inputs.a11y }}" = "true" ]; then
+          ARGS="$ARGS --a11y"
+        fi
+        if [ "${{ inputs.lighthouse }}" = "true" ]; then
+          ARGS="$ARGS --lighthouse"
+        fi
+        ARGS="$ARGS --max-steps ${{ inputs.max-steps }}"
+        ARGS="$ARGS --timeout ${{ inputs.timeout }}"
+
+        echo "Running: npx inspect test $ARGS"
+        OUTPUT=$(npx inspect test $ARGS 2>&1) || true
+        echo "$OUTPUT"
+
+        # Capture outputs for action
+        echo "result=$(echo "$OUTPUT" | jq -r '.status // "error"')" >> $GITHUB_OUTPUT
+        echo "summary=$(echo "$OUTPUT" | jq -r '.summary // "No summary"')" >> $GITHUB_OUTPUT
+        echo "json<<EOF" >> $GITHUB_OUTPUT
+        echo "$OUTPUT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: inspect-results
+        path: |
+          .inspect/results.json
+          .inspect/reports/
+          .inspect/traces/
+        retention-days: 30
+
+    - name: Post PR comment
+      if: ${{ inputs.pr-comment == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        RESULT=$(cat .inspect/results.json 2>/dev/null | jq -r '.status // "error"')
+        SUMMARY=$(cat .inspect/results.json 2>/dev/null | jq -r '.summary // "No summary"')
+        EMOJI="✅"
+        [ "$RESULT" != "pass" ] && EMOJI="❌"
+
+        gh pr comment ${{ github.event.pull_request.number }} \
+          --body "## Inspect AI Test ${EMOJI}
+
+        **Result:** ${RESULT}
+        **Summary:** ${SUMMARY}
+
+        <details>
+        <summary>Full Results</summary>
+
+        \`\`\`json
+        $(cat .inspect/results.json 2>/dev/null | jq '.' 2>/dev/null || echo 'No results')
+        \`\`\`
+        </details>" 2>/dev/null || echo "Failed to post PR comment"
+
+    - name: Set commit status
+      if: ${{ inputs.pr-status == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let result = 'pending';
+          try {
+            const json = JSON.parse(fs.readFileSync('.inspect/results.json', 'utf-8'));
+            result = json.status === 'pass' ? 'success' : 'failure';
+          } catch {}
+
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: result,
+            context: 'inspect/ai-browser-test',
+            description: result === 'success' ? 'AI tests passed' : 'AI tests failed',
+            target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+          });

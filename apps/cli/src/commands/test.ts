@@ -58,6 +58,10 @@ export interface TestOptions {
   adversarial?: boolean;
   /** Adversarial testing intensity */
   adversarialIntensity?: "basic" | "standard" | "aggressive";
+  /** CI mode: headless, no cookies, auto-approve, timeout enforced */
+  ci?: boolean;
+  /** Override timeout in milliseconds (default: 30 min in CI mode) */
+  timeout?: number;
 }
 
 const EXIT_CODES = {
@@ -173,6 +177,8 @@ export async function runTest(options: TestOptions): Promise<void> {
         if (options.adversarial) args.push("--adversarial");
         if (options.adversarialIntensity)
           args.push("--adversarial-intensity", options.adversarialIntensity);
+        if (options.ci) args.push("--ci");
+        if (options.timeout) args.push("--timeout", String(options.timeout));
         // Always add --local inside container to prevent recursion
         args.push("--local");
 
@@ -202,6 +208,30 @@ export async function runTest(options: TestOptions): Promise<void> {
     const { applyPreset } = await import("../utils/presets.js");
     const merged = applyPreset(options.preset, options as Record<string, unknown>);
     Object.assign(options, merged);
+  }
+
+  // ── CI mode enforcement ──────────────────────────────────────────────────
+  // When --ci is set, force headless, skip cookies, auto-approve, enforce timeout
+  const ciMode =
+    options.ci === true || process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+  let ciTimeoutMs: number | undefined;
+  if (ciMode) {
+    options.headed = false;
+    options.yes = true;
+    // Use provided timeout or default to 30 minutes for CI
+    ciTimeoutMs = options.timeout ?? 30 * 60 * 1000;
+    if (options.cookies) {
+      console.log(chalk.dim("CI mode: skipping cookie extraction"));
+      options.cookies = undefined;
+    }
+    if (options.verbose) {
+      console.log(chalk.dim("CI mode active: headless, auto-approve, timeout enforced"));
+    }
+  } else if (process.env.GITHUB_ACTIONS === "true") {
+    // Auto-detect GitHub Actions but warn instead of forcing
+    console.log(
+      chalk.yellow("GitHub Actions detected. Use --ci to enforce headless mode and timeouts."),
+    );
   }
 
   if (options.project) {
@@ -726,7 +756,7 @@ export async function runTest(options: TestOptions): Promise<void> {
         lighthouse: options.lighthouse ?? false,
         security: options.security ?? false,
         maxSteps: parseInt(String(options.maxSteps ?? "25"), 10),
-        timeoutMs: 300_000,
+        timeoutMs: ciTimeoutMs ?? 300_000,
         stepTimeoutMs: 30_000,
         verbose: options.verbose ?? false,
         recording: config.recording,
@@ -928,6 +958,96 @@ export async function runTest(options: TestOptions): Promise<void> {
   }
 }
 
+/**
+ * Run a test and return the result as an object (for programmatic use, e.g., PR comments).
+ * Unlike runTest, this does not call process.exit and returns the result instead.
+ */
+export async function runTestWithResult(options: TestOptions): Promise<{
+  steps: Array<{ description?: string; status?: string; error?: string }>;
+  summary: string;
+  passed: number;
+  failed: number;
+} | null> {
+  const { BrowserManager } = await import("@inspect/browser");
+  const { TestExecutor } = await import("@inspect/core");
+  const { getPreset } = await import("@inspect/core");
+  const { AgentRouter } = await import("@inspect/agent");
+  const { createExecutorAdapters } = await import("../agents/executor-adapters.js");
+
+  const instruction = options.message ?? "Test the recent changes";
+  const providerName = "anthropic";
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.log(chalk.red("No ANTHROPIC_API_KEY set for PR test"));
+    return null;
+  }
+
+  type PN = "anthropic" | "openai" | "gemini" | "deepseek" | "ollama";
+  const router = new AgentRouter({
+    keys: { anthropic: apiKey } as Partial<Record<PN, string>>,
+    defaultProvider: providerName as PN,
+  });
+  const browserMgr = new BrowserManager();
+
+  const devicePreset = getPreset(options.devices?.split(",")[0] ?? "desktop-chrome") ?? {
+    name: "desktop-chrome",
+    viewport: { width: 1920, height: 1080 },
+  };
+
+  const agentAdapters = createExecutorAdapters(router, browserMgr);
+
+  const executor = new TestExecutor(
+    {
+      instruction,
+      prompt: instruction,
+      agent: options.agent ?? "claude",
+      mode: (options.mode ?? "hybrid") as "dom" | "hybrid" | "cua",
+      url: options.url,
+      device: devicePreset as any,
+      browser: (options.browser ?? "chromium") as "chromium" | "firefox" | "webkit",
+      headed: false,
+      a11y: false,
+      lighthouse: false,
+      security: false,
+      maxSteps: parseInt(String(options.maxSteps ?? "25"), 10),
+      timeoutMs: 300_000,
+      stepTimeoutMs: 30_000,
+      verbose: false,
+      recording: false,
+      adversarial: false,
+      adversarialIntensity: "basic" as const,
+    },
+    {
+      router,
+      browserManager: browserMgr,
+      ...agentAdapters,
+    },
+  );
+
+  try {
+    const result = await executor.execute();
+    const steps = result.steps.map((s) => ({
+      description: s.description,
+      status: s.status,
+      error: s.error,
+    }));
+    const passed = result.steps.filter((s) => s.status === "pass").length;
+    const failed = result.steps.filter((s) => s.status === "fail").length;
+    await browserMgr.closeBrowser().catch(() => {});
+    return { steps, summary: `${passed} passed, ${failed} failed`, passed, failed };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    await browserMgr.closeBrowser().catch(() => {});
+    console.error(chalk.dim(`Test execution error: ${err.message}`));
+    return {
+      steps: [],
+      summary: `Error: ${err.message}`,
+      passed: 0,
+      failed: 1,
+    };
+  }
+}
+
 export function registerTestCommand(program: Command): void {
   program
     .command("test")
@@ -1008,6 +1128,8 @@ export function registerTestCommand(program: Command): void {
       "Adversarial intensity: basic, standard, aggressive",
       "standard",
     )
+    .option("--ci", "CI mode: headless, no cookies, auto-approve, 30-min timeout")
+    .option("--timeout <ms>", "Override test timeout in milliseconds")
     .addHelpText(
       "after",
       `

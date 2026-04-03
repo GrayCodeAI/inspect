@@ -194,6 +194,17 @@ export type { FileUploadResult } from "./actions/file-upload.js";
 export { DragDrop } from "./actions/drag-drop.js";
 export type { DragDropOptions, DragDropResult } from "./actions/drag-drop.js";
 
+// Natural language page interactions (Stagehand-style)
+export { createNLAct } from "./actions/nl-act.js";
+export type { NLActionResult, NLSchema } from "./actions/nl-act.js";
+
+// Playwright test code generation from recordings
+export { generateTestCode } from "./actions/codegen.js";
+
+// Vision-based coordinate grounding
+export { VisionGrounding } from "./vision/grounding.js";
+export type { GroundedElement, VisionGroundingOptions } from "./vision/grounding.js";
+
 // Action replay cache
 export { ActionReplayCache } from "./cache/action-replay-cache.js";
 export type {

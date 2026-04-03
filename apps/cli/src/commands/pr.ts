@@ -19,8 +19,12 @@ interface PRInfo {
   number: number;
 }
 
+interface TestResult {
+  steps?: Array<{ description?: string; status?: string; error?: string }>;
+  summary?: string;
+}
+
 function parsePRInput(input: string, repoOpt?: string): PRInfo {
-  // Handle full URL: https://github.com/owner/repo/pull/123
   const urlMatch = input.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
   if (urlMatch) {
     return {
@@ -30,7 +34,6 @@ function parsePRInput(input: string, repoOpt?: string): PRInfo {
     };
   }
 
-  // Handle PR number with --repo
   const num = parseInt(input, 10);
   if (!isNaN(num) && repoOpt) {
     const [owner, repo] = repoOpt.split("/");
@@ -39,7 +42,6 @@ function parsePRInput(input: string, repoOpt?: string): PRInfo {
     }
   }
 
-  // Handle shorthand: owner/repo#123
   const shortMatch = input.match(/^([^/]+)\/([^#]+)#(\d+)$/);
   if (shortMatch) {
     return {
@@ -60,14 +62,12 @@ async function fetchPRDiff(pr: PRInfo): Promise<string> {
   const execAsync = promisify(exec);
 
   try {
-    // Try gh CLI first (authenticated)
     const { stdout } = await execAsync(
       `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number} --header "Accept: application/vnd.github.v3.diff"`,
       { maxBuffer: 10 * 1024 * 1024 },
     );
     return stdout;
   } catch {
-    // Fallback to curl
     try {
       const { stdout } = await execAsync(
         `curl -sL "https://github.com/${pr.owner}/${pr.repo}/pull/${pr.number}.diff"`,
@@ -94,7 +94,6 @@ async function fetchPRFiles(pr: PRInfo): Promise<string[]> {
     );
     return stdout.trim().split("\n").filter(Boolean);
   } catch {
-    // Parse diff to extract filenames as fallback
     const diff = await fetchPRDiff(pr);
     const files = new Set<string>();
     for (const line of diff.split("\n")) {
@@ -111,20 +110,16 @@ async function detectPreviewUrl(pr: PRInfo): Promise<string | null> {
   const execAsync = promisify(exec);
 
   try {
-    // Check PR comments for Vercel/Netlify preview URLs
     const { stdout } = await execAsync(
       `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments --jq '.[].body'`,
     );
 
-    // Look for Vercel preview
     const vercelMatch = stdout.match(/https:\/\/[a-z0-9-]+\.vercel\.app/i);
     if (vercelMatch) return vercelMatch[0];
 
-    // Look for Netlify preview
     const netlifyMatch = stdout.match(/https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app/i);
     if (netlifyMatch) return netlifyMatch[0];
 
-    // Look for generic preview URLs
     const previewMatch = stdout.match(/Preview:\s*(https?:\/\/\S+)/i);
     if (previewMatch) return previewMatch[1];
 
@@ -134,11 +129,68 @@ async function detectPreviewUrl(pr: PRInfo): Promise<string | null> {
   }
 }
 
+async function postPRComment(pr: PRInfo, message: string): Promise<boolean> {
+  const { exec } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const execAsync = promisify(exec);
+
+  try {
+    const escapedMessage = message.replace(/"/g, '\\"');
+    await execAsync(
+      `gh api repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments -X POST -f body="${escapedMessage}"`,
+      { maxBuffer: 5 * 1024 * 1024 },
+    );
+    return true;
+  } catch (err) {
+    console.error(
+      chalk.dim(`Failed to post PR comment: ${err instanceof Error ? err.message : String(err)}`),
+    );
+    return false;
+  }
+}
+
+async function setPRCommitStatus(
+  pr: PRInfo,
+  status: "success" | "failure" | "pending",
+  description: string,
+  detailsUrl?: string,
+): Promise<boolean> {
+  const { exec } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const execAsync = promisify(exec);
+
+  const stateMap: Record<string, string> = {
+    success: "success",
+    failure: "failure",
+    pending: "pending",
+  };
+  const state = stateMap[status];
+
+  try {
+    const { stdout: sha } = await execAsync(
+      `gh api repos/${pr.owner}/${pr.repo}/pulls/${pr.number} --jq '.head.sha'`,
+    );
+
+    const context = "inspect/ai-test";
+    const targetUrl = detailsUrl ?? "https://github.com/factoryai/inspect";
+
+    await execAsync(
+      `gh api repos/${pr.owner}/${pr.repo}/statuses/${sha.trim()} -X POST -f state="${state}" -f context="${context}" -f description="${description}" -f target_url="${targetUrl}"`,
+      { maxBuffer: 1024 * 1024 },
+    );
+    return true;
+  } catch (err) {
+    console.error(
+      chalk.dim(`Failed to set commit status: ${err instanceof Error ? err.message : String(err)}`),
+    );
+    return false;
+  }
+}
+
 async function runPRTest(input: string, options: PROptions): Promise<void> {
   const pr = parsePRInput(input, options.repo);
   console.log(chalk.blue(`\nTesting PR #${pr.number} on ${pr.owner}/${pr.repo}`));
 
-  // Fetch PR information
   console.log(chalk.dim("Fetching PR diff..."));
   const diff = await fetchPRDiff(pr);
   const files = await fetchPRFiles(pr);
@@ -151,7 +203,6 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
     console.log(chalk.dim(`  ... and ${files.length - 15} more`));
   }
 
-  // Detect preview URL
   let targetUrl = options.url;
   if (!targetUrl) {
     console.log(chalk.dim("Detecting preview URL..."));
@@ -163,7 +214,11 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
     }
   }
 
-  // Build test instruction from PR context
+  if (options.status) {
+    console.log(chalk.dim("Setting pending commit status..."));
+    await setPRCommitStatus(pr, "pending", "AI tests running");
+  }
+
   const instruction = [
     `Test the changes in PR #${pr.number} on ${pr.owner}/${pr.repo}.`,
     "",
@@ -176,20 +231,11 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
     "4. Verify UI/UX if frontend files changed",
   ].join("\n");
 
-  // Prepare prompt with diff context
-  const prompt = [
-    instruction,
-    "",
-    "## PR Diff (truncated to 12000 chars)",
-    "```diff",
-    diff.slice(0, 12000),
-    diff.length > 12000 ? "... (truncated)" : "",
-    "```",
-  ].join("\n");
-
   if (options.verbose) {
     console.log(chalk.dim("\n--- Prompt ---"));
-    console.log(chalk.dim(prompt));
+    console.log(chalk.dim(`Test PR #${pr.number}: ${instruction}`));
+    console.log(chalk.dim("## PR Diff (truncated)"));
+    console.log(chalk.dim(diff.slice(0, 2000)));
     console.log(chalk.dim("--- End Prompt ---\n"));
   }
 
@@ -199,11 +245,8 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
     ),
   );
 
-  // Wire to test execution via the shared runTest function
-  console.log(chalk.dim("Running AI-powered test on PR changes..."));
-
-  const { runTest } = await import("./test.js");
-  await runTest({
+  const { runTestWithResult } = await import("./test.js");
+  const testResult = await runTestWithResult({
     message: `Test PR #${pr.number}: ${instruction}`,
     url: targetUrl,
     agent: options.agent ?? "claude",
@@ -213,13 +256,65 @@ async function runPRTest(input: string, options: PROptions): Promise<void> {
     devices: options.devices ?? "desktop-chrome",
     verbose: options.verbose ?? false,
     browser: "chromium",
+    json: true,
   });
 
   if (options.comment) {
-    console.log(chalk.dim("Will post results as PR comment when tests complete."));
+    const passed = testResult?.steps?.filter((s) => s.status === "pass").length ?? 0;
+    const failed = testResult?.steps?.filter((s) => s.status === "fail").length ?? 0;
+    const status = failed > 0 ? "FAIL" : "PASS";
+    const statusBadge =
+      status === "PASS"
+        ? "https://img.shields.io/badge/Inspect-PASS-green?style=flat-square"
+        : "https://img.shields.io/badge/Inspect-FAIL-red?style=flat-square";
+    const statusEmoji = status === "PASS" ? "✅" : "❌";
+
+    const stepsTable =
+      testResult?.steps
+        ?.map((s, i) => {
+          const icon =
+            s.status === "pass" ? "✅ PASS" : s.status === "fail" ? "❌ FAIL" : "⏭ SKIP";
+          const errorDetail = s.error ? ` — ${s.error.slice(0, 120)}` : "";
+          return `| ${i + 1} | ${s.description ?? "Unknown"} | ${icon}${errorDetail} |`;
+        })
+        .join("\n") ?? "";
+
+    const commentBody = `## AI Test Results — PR #${pr.number}
+
+![${status}](${statusBadge})
+
+**Status:** ${statusEmoji} **${status}** | **Passed:** ${passed} | **Failed:** ${failed}
+
+### Summary
+${testResult?.summary ?? "No summary available"}
+
+### Steps
+| # | Description | Status |
+|---|-------------|--------|
+${stepsTable}
+
+---
+*Powered by [Inspect](https://github.com/factoryai/inspect)*
+`;
+
+    const posted = await postPRComment(pr, commentBody);
+    if (posted) {
+      console.log(chalk.green("Test results posted as PR comment"));
+    } else {
+      console.log(chalk.yellow("Failed to post PR comment (check gh CLI auth)"));
+    }
   }
+
   if (options.status) {
-    console.log(chalk.dim("Will set commit status when tests complete."));
+    const failed = testResult?.steps?.filter((s) => s.status === "fail").length ?? 0;
+    const status = failed > 0 ? "failure" : "success";
+    const description = failed > 0 ? `AI tests: ${failed} failure(s)` : "AI tests passed";
+    const setStatus = await setPRCommitStatus(pr, status, description);
+    if (setStatus) {
+      console.log(chalk.green(`Commit status set to: ${status}`));
+    } else {
+      console.log(chalk.yellow("Failed to set commit status (check gh CLI auth)"));
+    }
   }
 }
 
