@@ -5,14 +5,15 @@
 
 import { Effect, Layer, Option, Schema, ServiceMap } from "effect";
 
-export const EvalGrade = Schema.Literal("pass", "fail", "partial");
-export type EvalGrade = typeof EvalGrade.Type;
+export type EvalGrade = "pass" | "fail" | "partial";
+
+export const EvalGradeSchema = Schema.Literals(["pass", "fail", "partial"] as const);
 
 export class EvalExample extends Schema.Class<EvalExample>("EvalExample")({
   id: Schema.String,
   input: Schema.String,
   expectedOutput: Schema.String,
-  metadata: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+  metadata: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 }) {}
 
 export class EvalResult extends Schema.Class<EvalResult>("EvalResult")({
@@ -20,7 +21,7 @@ export class EvalResult extends Schema.Class<EvalResult>("EvalResult")({
   input: Schema.String,
   actualOutput: Schema.String,
   expectedOutput: Schema.String,
-  grade: EvalGrade,
+  grade: EvalGradeSchema,
   score: Schema.Number,
   feedback: Schema.String,
 }) {}
@@ -38,17 +39,13 @@ export class EvalReport extends Schema.Class<EvalReport>("EvalReport")({
 
 export class GradingError extends Schema.ErrorClass<GradingError>("GradingError")({
   _tag: Schema.tag("GradingError"),
-  message: Schema.String,
-}) {
-  message = this.message;
-}
+  errorMessage: Schema.String,
+}) {}
 
 export class LLMGradingError extends Schema.ErrorClass<LLMGradingError>("LLMGradingError")({
   _tag: Schema.tag("LLMGradingError"),
-  message: Schema.String,
-}) {
-  message = this.message;
-}
+  errorMessage: Schema.String,
+}) {}
 
 export interface GradingResult {
   grade: EvalGrade;
@@ -75,7 +72,7 @@ export const exactMatchGrader: EvalGrader = (input: string, actual: string, expe
   Effect.sync(() => {
     const match = actual.trim() === expected.trim();
     return {
-      grade: match ? ("pass" as EvalGrade) : ("fail" as EvalGrade),
+      grade: match ? "pass" : "fail",
       score: match ? 1 : 0,
       feedback: match ? "Exact match" : `Expected "${expected}", got "${actual}"`,
     };
@@ -86,7 +83,7 @@ export const containsGrader: EvalGrader = (input: string, actual: string, expect
   Effect.sync(() => {
     const match = actual.toLowerCase().includes(expected.toLowerCase());
     return {
-      grade: match ? ("pass" as EvalGrade) : ("fail" as EvalGrade),
+      grade: match ? "pass" : "fail",
       score: match ? 1 : 0,
       feedback: match ? "Contains expected text" : `Missing "${expected}"`,
     };
@@ -97,7 +94,7 @@ export const classificationGrader: EvalGrader = (input: string, actual: string, 
   Effect.sync(() => {
     const match = actual.toLowerCase().trim() === expected.toLowerCase().trim();
     return {
-      grade: match ? ("pass" as EvalGrade) : ("fail" as EvalGrade),
+      grade: match ? "pass" : "fail",
       score: match ? 1 : 0.5,
       feedback: match
         ? "Correct classification"
@@ -135,7 +132,7 @@ export const llmGradedGrader = (
     const response = yield* llmCall.value(prompt).pipe(
       Effect.catchTag("GradingError", (error) =>
         new LLMGradingError({
-          message: `LLM grading failed: ${error.message}`,
+          errorMessage: `LLM grading failed: ${error.errorMessage}`,
         }).asEffect(),
       ),
     );

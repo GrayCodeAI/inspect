@@ -11,7 +11,7 @@ export class HandoffContext extends Schema.Class<HandoffContext>("HandoffContext
   fromAgent: Schema.String,
   toAgent: Schema.String,
   reason: Schema.String,
-  transferredState: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+  transferredState: Schema.Record(Schema.String, Schema.Unknown),
   conversationHistory: Schema.Array(
     Schema.Struct({
       role: Schema.String,
@@ -38,10 +38,8 @@ export class HandoffConfig extends Schema.Class<HandoffConfig>("HandoffConfig")(
 export class HandoffError extends Schema.ErrorClass<HandoffError>("HandoffError")({
   _tag: Schema.tag("HandoffError"),
   taskId: Schema.String,
-  message: Schema.String,
-}) {
-  message = this.message;
-}
+  errorMessage: Schema.String,
+}) {}
 
 export class HandoffNotFoundError extends Schema.ErrorClass<HandoffNotFoundError>(
   "HandoffNotFoundError",
@@ -49,10 +47,18 @@ export class HandoffNotFoundError extends Schema.ErrorClass<HandoffNotFoundError
   _tag: Schema.tag("HandoffNotFoundError"),
   taskId: Schema.String,
 }) {
-  message = `No active handoff found for task: ${this.taskId}`;
+  getErrorMessage = () => `No active handoff found for task: ${this.taskId}`;
 }
 
 export type HandoffCallback = (context: HandoffContext, result: string) => Effect.Effect<void>;
+
+export interface HandoffExecutionContext {
+  taskId: string;
+  fromAgent: string;
+  message: string;
+  state: Record<string, unknown>;
+  history: Array<{ role: string; content: string }>;
+}
 
 /** Register a handoff rule. */
 const registerHandoff = (
@@ -91,13 +97,7 @@ const executeHandoff = (
   activeHandoffs: Map<string, HandoffContext>,
   callbacks: Map<string, HandoffCallback>,
   config: HandoffConfig,
-  context: {
-    taskId: string;
-    fromAgent: string;
-    message: string;
-    state: Record<string, unknown>;
-    history: Array<{ role: string; content: string }>;
-  },
+  context: HandoffExecutionContext,
 ) =>
   Effect.gen(function* () {
     yield* Effect.annotateCurrentSpan({
@@ -208,7 +208,7 @@ export class HandoffManager extends ServiceMap.Service<HandoffManager>()(
         register: (name: string, config: HandoffConfig, callback?: HandoffCallback) =>
           registerHandoff(handoffs, callbacks, name, config, callback),
         check: (message: string) => checkHandoff(handoffs, message),
-        execute: (config: HandoffConfig, context: Parameters<typeof executeHandoff>[2]) =>
+        execute: (config: HandoffConfig, context: HandoffExecutionContext) =>
           executeHandoff(activeHandoffs, callbacks, config, context),
         complete: (taskId: string, result: string, returnToSource?: boolean) =>
           completeHandoff(handoffs, activeHandoffs, callbacks, taskId, result, returnToSource),
