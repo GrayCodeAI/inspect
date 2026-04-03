@@ -156,6 +156,26 @@ async function startServer(options: ServeOptions): Promise<void> {
   // Register metrics endpoint
   registerMetricsEndpoint(server, metrics);
 
+  // MCP Server endpoint — expose browser automation tools via HTTP for external MCP clients
+  const { MCPServer, BROWSER_TOOLS } = await import("@inspect/browser");
+  const mcpServer = new MCPServer();
+  server.get("/mcp/tools", (_req: APIRequest, res: APIResponse) => {
+    res.json({ tools: BROWSER_TOOLS });
+  });
+  server.post("/mcp/call", async (req: APIRequest, res: APIResponse) => {
+    try {
+      const { tool, args } = req.body as { tool: string; args: Record<string, unknown> };
+      if (!tool) {
+        res.status(400).json({ error: "Missing 'tool' field" });
+        return;
+      }
+      const result = await mcpServer.executeMethod(tool, args ?? {});
+      res.json(result);
+    } catch (err: unknown) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  });
+
   // OpenAPI docs endpoint
   let openApiSpec: object | null = null;
   try {

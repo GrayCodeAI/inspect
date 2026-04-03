@@ -97,6 +97,15 @@ export type { WorkflowLLM, BlockSuggestion } from "./copilot/generator.js";
 export { ActionObserver } from "./copilot/observer.js";
 export type { RecordedAction, ObserverState } from "./copilot/observer.js";
 
+// No-code workflow builder
+export {
+  buildWorkflow,
+  chainBlocks,
+  createBlock,
+  workflowToYaml,
+  BLOCK_TEMPLATES,
+} from "./builder/workflow-builder.js";
+
 // Chains
 export {
   ChainStep,

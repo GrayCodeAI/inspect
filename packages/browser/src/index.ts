@@ -205,6 +205,17 @@ export { generateTestCode } from "./actions/codegen.js";
 export { VisionGrounding } from "./vision/grounding.js";
 export type { GroundedElement, VisionGroundingOptions } from "./vision/grounding.js";
 
+// Stealth mode — anti-detection browser configuration
+export { getStealthOptions, getStealthLaunchArgs, stealthInitScript } from "./stealth/index.js";
+export type { StealthOptions } from "./stealth/index.js";
+
+// AI-augmented Playwright method params (prompt fallback)
+export {
+  clickWithPrompt,
+  fillWithPrompt,
+  selectOptionWithPrompt,
+} from "./actions/prompt-params.js";
+
 // Action replay cache
 export { ActionReplayCache } from "./cache/action-replay-cache.js";
 export type {

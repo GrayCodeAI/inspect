@@ -581,6 +581,23 @@ export class MCPServer {
     };
   }
 
+  // ── Public API for HTTP access ─────────────────────────────────────────────
+
+  /** Execute a tool by name (for HTTP/MCP endpoint access) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async executeMethod(name: string, args: Record<string, unknown>): Promise<any> {
+    return this.executeTool(name, args);
+  }
+
+  /** Get available tool definitions (for tool discovery) */
+  getToolDefinitions() {
+    return BROWSER_TOOLS.map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    }));
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   private ensurePage(): void {
