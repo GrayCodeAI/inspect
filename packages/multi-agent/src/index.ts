@@ -28,15 +28,19 @@ export {
   NavigationPlanner,
   PixelGrounder,
   ActionReflector,
+  NavigationSummarizer,
   WebNavigator,
   NavigationPlannerError,
   PixelGrounderError,
   ActionReflectorError,
+  NavigationSummarizerError,
   WebNavigatorError,
 } from "./navigation-agents.js";
 export type {
   PlannerOutput,
   GrounderOutput,
   ReflectorOutput,
+  SummarizerOutput,
   NavigatorState,
+  NavigationLLM,
 } from "./navigation-agents.js";

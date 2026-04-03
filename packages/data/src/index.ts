@@ -70,3 +70,7 @@ export type {
   JSONLoaderOptions,
   PDFLoaderOptions,
 } from "./document-loaders/index.js";
+
+// Artifacts — LLM-generated code/UI artifacts (LibreChat-style)
+export { ArtifactStore } from "./artifacts.js";
+export type { Artifact, ArtifactType } from "./artifacts.js";

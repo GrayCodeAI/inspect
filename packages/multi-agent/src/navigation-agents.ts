@@ -1,6 +1,15 @@
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import type { Page } from "playwright";
 
+// ──────────────────────────────────────────────────────────────────────────────
+// LLM interface for navigation agents
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface NavigationLLM {
+  chat(systemPrompt: string, userPrompt: string): Effect.Effect<string>;
+  chatWithImage(systemPrompt: string, userPrompt: string, imageData: string): Effect.Effect<string>;
+}
+
 export interface PlannerOutput {
   readonly instructions: string[];
   readonly expertTips: string[];
@@ -20,6 +29,15 @@ export interface ReflectorOutput {
   readonly needsRetry: boolean;
   readonly reflection: string;
   readonly loopDetected: boolean;
+}
+
+export interface SummarizerOutput {
+  readonly summary: string;
+  readonly success: boolean;
+  readonly stepsTaken: number;
+  readonly finalUrl: string;
+  readonly keyFindings: string[];
+  readonly errors: string[];
 }
 
 export interface NavigatorState {
@@ -72,10 +90,20 @@ export class WebNavigatorError extends Schema.ErrorClass<WebNavigatorError>("Web
   message = `Web navigation failed for task "${this.task}" at step ${this.stepCount}`;
 }
 
+export class NavigationSummarizerError extends Schema.ErrorClass<NavigationSummarizerError>(
+  "NavigationSummarizerError",
+)({
+  _tag: Schema.tag("NavigationSummarizerError"),
+  cause: Schema.Unknown,
+}) {
+  message = `Navigation summarization failed`;
+}
+
 export class NavigationPlanner extends ServiceMap.Service<NavigationPlanner>()(
   "@inspect/NavigationPlanner",
   {
     make: Effect.gen(function* () {
+      yield* Effect.void;
       const plan = Effect.fn("NavigationPlanner.plan")(function* (
         task: string,
         screenshot: string,
@@ -204,38 +232,33 @@ const generatePlanInstructions = (
 
 export class PixelGrounder extends ServiceMap.Service<PixelGrounder>()("@inspect/PixelGrounder", {
   make: Effect.gen(function* () {
-    const ground = Effect.fn("PixelGrounder.ground")(function* (
-      instruction: string,
-      _screenshot: string,
-      pageWidth: number,
-      pageHeight: number,
-    ) {
-      const centerX = Math.floor(pageWidth / 2);
-      const centerY = Math.floor(pageHeight / 2);
+    yield* Effect.void;
 
-      let action: "click" | "type" | "scroll" = "click";
-      if (
-        instruction.toLowerCase().includes("type") ||
-        instruction.toLowerCase().includes("enter")
-      ) {
-        action = "type";
-      } else if (instruction.toLowerCase().includes("scroll")) {
-        action = "scroll";
-      }
+    return {
+      ground: (
+        instruction: string,
+        _screenshot: string,
+        pageWidth: number,
+        pageHeight: number,
+      ): Effect.Effect<GrounderOutput> => {
+        const centerX = Math.floor(pageWidth / 2);
+        const centerY = Math.floor(pageHeight / 2);
 
-      const coordinates = { x: centerX, y: centerY };
-      const confidence = 0.85;
-      const elementId = `element-${Date.now()}`;
+        const action: "click" | "type" | "scroll" =
+          instruction.toLowerCase().includes("type") || instruction.toLowerCase().includes("enter")
+            ? "type"
+            : instruction.toLowerCase().includes("scroll")
+              ? "scroll"
+              : "click";
 
-      return {
-        elementId,
-        action,
-        coordinates,
-        confidence,
-      } as const satisfies GrounderOutput;
-    });
-
-    return { ground } as const;
+        return Effect.succeed({
+          elementId: `element-${Date.now()}`,
+          action,
+          coordinates: { x: centerX, y: centerY },
+          confidence: 0.85,
+        } as const satisfies GrounderOutput);
+      },
+    } as const;
   }),
 }) {
   static layer = Layer.effect(this, this.make);
@@ -245,67 +268,110 @@ export class ActionReflector extends ServiceMap.Service<ActionReflector>()(
   "@inspect/ActionReflector",
   {
     make: Effect.gen(function* () {
-      const reflect = Effect.fn("ActionReflector.reflect")(function* (
-        state: NavigatorState,
-        lastAction: string,
-        _screenshot: string,
-      ) {
-        const loopDetected = detectLoopInternal(state.history);
-        const maxStepsReached = state.stepCount >= 20;
+      yield* Effect.void;
 
-        let taskComplete = false;
-        let success = false;
-        let needsRetry = false;
-        let reflection = "";
+      return {
+        reflect: (
+          state: NavigatorState,
+          lastAction: string,
+          _screenshot: string,
+        ): Effect.Effect<ReflectorOutput> => {
+          const loopDetected = detectLoopInternal(state.history);
+          const lastResult = state.history[state.history.length - 1]?.result ?? "";
 
-        const lastResult = state.history[state.history.length - 1]?.result ?? "";
+          const taskComplete =
+            lastResult.toLowerCase().includes("success") ||
+            lastResult.toLowerCase().includes("complete");
 
-        if (
-          lastResult.toLowerCase().includes("success") ||
-          lastResult.toLowerCase().includes("complete")
-        ) {
-          taskComplete = true;
-          success = true;
-          reflection = `Task completed successfully after ${state.stepCount} steps`;
-        } else if (loopDetected) {
-          taskComplete = false;
-          success = false;
-          needsRetry = true;
-          reflection = "Loop detected in navigation. Consider trying a different approach.";
-        } else if (maxStepsReached) {
-          taskComplete = false;
-          success = false;
-          needsRetry = true;
-          reflection = "Maximum step limit reached without completing the task.";
-        } else if (
-          lastResult.toLowerCase().includes("error") ||
-          lastResult.toLowerCase().includes("fail")
-        ) {
-          taskComplete = false;
-          success = false;
-          needsRetry = true;
-          reflection = `Last action "${lastAction}" resulted in an error. Retrying may help.`;
-        } else {
-          taskComplete = false;
-          success = true;
-          needsRetry = false;
-          reflection = `Action "${lastAction}" completed. Continuing to next step.`;
-        }
+          const reflectionText = taskComplete
+            ? `Task completed successfully after ${state.stepCount} steps`
+            : loopDetected
+              ? "Loop detected in navigation. Consider trying a different approach."
+              : state.stepCount >= 20
+                ? "Maximum step limit reached without completing the task."
+                : lastResult.toLowerCase().includes("error") ||
+                    lastResult.toLowerCase().includes("fail")
+                  ? `Last action "${lastAction}" resulted in an error. Retrying may help.`
+                  : `Action "${lastAction}" completed. Continuing to next step.`;
 
-        return {
-          taskComplete,
-          success,
-          needsRetry,
-          reflection,
-          loopDetected,
-        } as const satisfies ReflectorOutput;
-      });
+          const needsRetry =
+            !taskComplete &&
+            (loopDetected ||
+              state.stepCount >= 20 ||
+              lastResult.toLowerCase().includes("error") ||
+              lastResult.toLowerCase().includes("fail"));
+          const success = taskComplete || !needsRetry;
 
-      const detectLoop = (history: NavigatorState["history"]): boolean => {
-        return detectLoopInternal(history);
-      };
+          return Effect.succeed({
+            taskComplete,
+            success,
+            needsRetry,
+            reflection: reflectionText,
+            loopDetected,
+          } as const satisfies ReflectorOutput);
+        },
 
-      return { reflect, detectLoop } as const;
+        detectLoop: (history: NavigatorState["history"]): boolean => {
+          return detectLoopInternal(history);
+        },
+      } as const;
+    }),
+  },
+) {
+  static layer = Layer.effect(this, this.make);
+}
+
+/** Navigation Summarizer (OpAgent) — generates final task summary with key findings and errors */
+export class NavigationSummarizer extends ServiceMap.Service<NavigationSummarizer>()(
+  "@inspect/NavigationSummarizer",
+  {
+    make: Effect.gen(function* () {
+      yield* Effect.void;
+
+      return {
+        summarize: (
+          task: string,
+          history: NavigatorState["history"],
+          finalUrl: string,
+          success: boolean,
+        ): Effect.Effect<SummarizerOutput> => {
+          const successCount = history.filter((h) =>
+            h.result.toLowerCase().includes("success"),
+          ).length;
+          const failureCount = history.filter((h) =>
+            h.result.toLowerCase().includes("fail"),
+          ).length;
+          const keyFindings = history
+            .filter((h) => h.result.includes("successfully"))
+            .map((h) => h.instruction);
+          const errors = history
+            .filter((h) => h.result.toLowerCase().includes("fail"))
+            .map((h) => h.result);
+
+          const summaryLines = [
+            `Task: ${task}`,
+            `Result: ${success ? "COMPLETED" : "INCOMPLETE"} (${successCount} succeeded, ${failureCount} failed)`,
+            `Steps: ${history.length}`,
+            `Final URL: ${finalUrl}`,
+          ];
+
+          if (history.length > 0) {
+            summaryLines.push("\nTrajectory:");
+            history.forEach((h, i) => {
+              summaryLines.push(`  ${i + 1}. ${h.instruction} → ${h.result.slice(0, 80)}`);
+            });
+          }
+
+          return Effect.succeed({
+            summary: summaryLines.join("\n"),
+            success,
+            stepsTaken: history.length,
+            finalUrl,
+            keyFindings,
+            errors,
+          } as const satisfies SummarizerOutput);
+        },
+      } as const;
     }),
   },
 ) {
@@ -340,6 +406,7 @@ export class WebNavigator extends ServiceMap.Service<WebNavigator>()("@inspect/W
     const planner = yield* NavigationPlanner;
     const grounder = yield* PixelGrounder;
     const reflector = yield* ActionReflector;
+    const summarizer = yield* NavigationSummarizer;
 
     const navigate = Effect.fn("WebNavigator.navigate")(function* (
       task: string,
@@ -368,6 +435,7 @@ export class WebNavigator extends ServiceMap.Service<WebNavigator>()("@inspect/W
 
       let currentUrl = startUrl;
       let stepCount = 0;
+      let navigationSuccess = false;
 
       for (const instruction of plan.instructions) {
         if (stepCount >= maxSteps) {
@@ -416,6 +484,7 @@ export class WebNavigator extends ServiceMap.Service<WebNavigator>()("@inspect/W
         });
 
         if (reflection.taskComplete) {
+          navigationSuccess = reflection.success;
           yield* Effect.logInfo("Task completed", { task, steps: stepCount });
           break;
         }
@@ -427,10 +496,25 @@ export class WebNavigator extends ServiceMap.Service<WebNavigator>()("@inspect/W
         currentUrl = page.url();
       }
 
+      // Generate summary
+      const summary = yield* summarizer.summarize(
+        task,
+        state.history,
+        currentUrl,
+        navigationSuccess,
+      );
+
+      yield* Effect.logInfo("Navigation summary", {
+        summary: summary.summary.slice(0, 200),
+        success: summary.success,
+        stepsTaken: summary.stepsTaken,
+      });
+
       return {
-        success: stepCount < maxSteps,
+        success: summary.success,
         steps: stepCount,
         finalUrl: currentUrl,
+        summary,
       } as const;
     });
 
@@ -441,6 +525,7 @@ export class WebNavigator extends ServiceMap.Service<WebNavigator>()("@inspect/W
     Layer.provide(NavigationPlanner.layer),
     Layer.provide(PixelGrounder.layer),
     Layer.provide(ActionReflector.layer),
+    Layer.provide(NavigationSummarizer.layer),
   );
 }
 

@@ -205,6 +205,10 @@ export { generateTestCode } from "./actions/codegen.js";
 export { VisionGrounding } from "./vision/grounding.js";
 export type { GroundedElement, VisionGroundingOptions } from "./vision/grounding.js";
 
+// Vision-first pixel coordinate actions (Magnitude-style)
+export { VisionAgent, createVisionAgent } from "./vision/vision-agent.js";
+export type { PixelAction, VisionActOptions, VisionActResult } from "./vision/vision-agent.js";
+
 // Stealth mode — anti-detection browser configuration
 export { getStealthOptions, getStealthLaunchArgs, stealthInitScript } from "./stealth/index.js";
 export type { StealthOptions } from "./stealth/index.js";
