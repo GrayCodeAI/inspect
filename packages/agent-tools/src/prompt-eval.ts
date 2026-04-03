@@ -3,73 +3,118 @@
 // Supports human-graded, code-graded, classification, and model-graded evals
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type EvalGrade = "pass" | "fail" | "partial";
+import { Effect, Layer, Option, Schema, ServiceMap } from "effect";
 
-export interface EvalExample {
-  id: string;
-  input: string;
-  expectedOutput: string;
-  metadata?: Record<string, unknown>;
+export const EvalGrade = Schema.Literal("pass", "fail", "partial");
+export type EvalGrade = typeof EvalGrade.Type;
+
+export class EvalExample extends Schema.Class<EvalExample>("EvalExample")({
+  id: Schema.String,
+  input: Schema.String,
+  expectedOutput: Schema.String,
+  metadata: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+}) {}
+
+export class EvalResult extends Schema.Class<EvalResult>("EvalResult")({
+  exampleId: Schema.String,
+  input: Schema.String,
+  actualOutput: Schema.String,
+  expectedOutput: Schema.String,
+  grade: EvalGrade,
+  score: Schema.Number,
+  feedback: Schema.String,
+}) {}
+
+export class EvalReport extends Schema.Class<EvalReport>("EvalReport")({
+  totalExamples: Schema.Number,
+  passed: Schema.Number,
+  failed: Schema.Number,
+  partial: Schema.Number,
+  averageScore: Schema.Number,
+  passRate: Schema.Number,
+  results: Schema.Array(EvalResult),
+  timestamp: Schema.String,
+}) {}
+
+export class GradingError extends Schema.ErrorClass<GradingError>("GradingError")({
+  _tag: Schema.tag("GradingError"),
+  message: Schema.String,
+}) {
+  message = this.message;
 }
 
-export interface EvalResult {
-  exampleId: string;
-  input: string;
-  actualOutput: string;
-  expectedOutput: string;
+export class LLMGradingError extends Schema.ErrorClass<LLMGradingError>("LLMGradingError")({
+  _tag: Schema.tag("LLMGradingError"),
+  message: Schema.String,
+}) {
+  message = this.message;
+}
+
+export interface GradingResult {
   grade: EvalGrade;
   score: number;
   feedback: string;
-}
-
-export interface EvalReport {
-  totalExamples: number;
-  passed: number;
-  failed: number;
-  partial: number;
-  averageScore: number;
-  passRate: number;
-  results: EvalResult[];
-  timestamp: string;
 }
 
 export type EvalGrader = (
   input: string,
   actualOutput: string,
   expectedOutput: string,
-) => Promise<{ grade: EvalGrade; score: number; feedback: string }>;
+) => Effect.Effect<GradingResult, GradingError>;
 
-/** Built-in graders for common evaluation patterns. */
-export const graders = {
-  /** Exact string match */
-  exactMatch: async (_input: string, actual: string, expected: string) => {
+export type LLMCall = (prompt: string) => Effect.Effect<string, GradingError>;
+
+const scoreToGrade = (score: number): EvalGrade => {
+  if (score >= 70) return "pass";
+  if (score >= 50) return "partial";
+  return "fail";
+};
+
+/** Exact string match grader */
+export const exactMatchGrader: EvalGrader = (input: string, actual: string, expected: string) =>
+  Effect.sync(() => {
     const match = actual.trim() === expected.trim();
     return {
-      grade: match ? "pass" : "fail",
+      grade: match ? ("pass" as EvalGrade) : ("fail" as EvalGrade),
       score: match ? 1 : 0,
       feedback: match ? "Exact match" : `Expected "${expected}", got "${actual}"`,
     };
-  },
+  });
 
-  /** Contains check — expected substring in actual output */
-  contains: async (_input: string, actual: string, expected: string) => {
+/** Contains check grader */
+export const containsGrader: EvalGrader = (input: string, actual: string, expected: string) =>
+  Effect.sync(() => {
     const match = actual.toLowerCase().includes(expected.toLowerCase());
     return {
-      grade: match ? "pass" : "fail",
+      grade: match ? ("pass" as EvalGrade) : ("fail" as EvalGrade),
       score: match ? 1 : 0,
       feedback: match ? "Contains expected text" : `Missing "${expected}"`,
     };
-  },
+  });
 
-  /** LLM-graded evaluation — uses an LLM to judge output quality */
-  llmGraded: async (
-    input: string,
-    actual: string,
-    expected: string,
-    llmCall?: (prompt: string) => Promise<string>,
-  ) => {
-    if (!llmCall) {
-      return graders.contains(input, actual, expected);
+/** Classification eval grader */
+export const classificationGrader: EvalGrader = (input: string, actual: string, expected: string) =>
+  Effect.sync(() => {
+    const match = actual.toLowerCase().trim() === expected.toLowerCase().trim();
+    return {
+      grade: match ? ("pass" as EvalGrade) : ("fail" as EvalGrade),
+      score: match ? 1 : 0.5,
+      feedback: match
+        ? "Correct classification"
+        : `Expected "${expected}", classified as "${actual}"`,
+    };
+  });
+
+/** LLM-graded evaluation */
+export const llmGradedGrader = (
+  input: string,
+  actual: string,
+  expected: string,
+  llmCall: Option.Option<LLMCall>,
+) =>
+  Effect.gen(function* () {
+    if (Option.isNone(llmCall)) {
+      return yield* containsGrader(input, actual, expected);
     }
 
     const prompt = [
@@ -87,76 +132,87 @@ export const graders = {
       "Respond with JSON: { score, feedback }",
     ].join("\n");
 
-    try {
-      const response = await llmCall(prompt);
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as { score: number; feedback: string };
-        const grade: EvalGrade =
-          parsed.score >= 70 ? "pass" : parsed.score >= 50 ? "partial" : "fail";
-        return { grade, score: parsed.score, feedback: parsed.feedback };
+    const response = yield* llmCall.value(prompt).pipe(
+      Effect.catchTag("GradingError", (error) =>
+        new LLMGradingError({
+          message: `LLM grading failed: ${error.message}`,
+        }).asEffect(),
+      ),
+    );
+
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = yield* Effect.try({
+        try: () => JSON.parse(jsonMatch[0]) as { score: number; feedback: string },
+        catch: () => undefined,
+      });
+
+      if (parsed && typeof parsed.score === "number" && typeof parsed.feedback === "string") {
+        return {
+          grade: scoreToGrade(parsed.score),
+          score: parsed.score,
+          feedback: parsed.feedback,
+        };
       }
-    } catch {
-      // Fallback to contains
     }
 
-    return graders.contains(input, actual, expected);
-  },
+    return yield* containsGrader(input, actual, expected);
+  });
 
-  /** Classification eval — check if output matches expected category */
-  classification: async (_input: string, actual: string, expected: string) => {
-    const match = actual.toLowerCase().trim() === expected.toLowerCase().trim();
-    return {
-      grade: match ? "pass" : "fail",
-      score: match ? 1 : 0.5,
-      feedback: match
-        ? "Correct classification"
-        : `Expected "${expected}", classified as "${actual}"`,
-    };
-  },
+/** Built-in graders for common evaluation patterns. */
+export const graders = {
+  exactMatch: exactMatchGrader,
+  contains: containsGrader,
+  classification: classificationGrader,
+  llmGraded: llmGradedGrader,
 };
 
 /** Evaluate a set of examples with a grader function. */
-export async function runEval(
+export const runEval = (
   examples: EvalExample[],
-  runFn: (input: string) => Promise<string>,
+  runFn: (input: string) => Effect.Effect<string>,
   gradeFn: EvalGrader,
-): Promise<EvalReport> {
-  const results: EvalResult[] = [];
+) =>
+  Effect.gen(function* () {
+    const results: EvalResult[] = [];
 
-  for (const example of examples) {
-    const actualOutput = await runFn(example.input);
-    const grading = await gradeFn(example.input, actualOutput, example.expectedOutput);
+    for (const example of examples) {
+      const actualOutput = yield* runFn(example.input);
+      const grading = yield* gradeFn(example.input, actualOutput, example.expectedOutput);
 
-    results.push({
-      exampleId: example.id,
-      input: example.input,
-      actualOutput,
-      expectedOutput: example.expectedOutput,
-      grade: grading.grade,
-      score: grading.score,
-      feedback: grading.feedback,
+      results.push(
+        new EvalResult({
+          exampleId: example.id,
+          input: example.input,
+          actualOutput,
+          expectedOutput: example.expectedOutput,
+          grade: grading.grade,
+          score: grading.score,
+          feedback: grading.feedback,
+        }),
+      );
+    }
+
+    const passed = results.filter((r) => r.grade === "pass").length;
+    const failed = results.filter((r) => r.grade === "fail").length;
+    const partial = results.filter((r) => r.grade === "partial").length;
+    const totalExamples = results.length;
+
+    return new EvalReport({
+      totalExamples,
+      passed,
+      failed,
+      partial,
+      averageScore:
+        totalExamples > 0 ? results.reduce((sum, r) => sum + r.score, 0) / totalExamples : 0,
+      passRate: totalExamples > 0 ? passed / totalExamples : 0,
+      results,
+      timestamp: new Date().toISOString(),
     });
-  }
-
-  const passed = results.filter((r) => r.grade === "pass").length;
-  const failed = results.filter((r) => r.grade === "fail").length;
-  const partial = results.filter((r) => r.grade === "partial").length;
-
-  return {
-    totalExamples: results.length,
-    passed,
-    failed,
-    partial,
-    averageScore: results.reduce((sum, r) => sum + r.score, 0) / results.length,
-    passRate: passed / results.length,
-    results,
-    timestamp: new Date().toISOString(),
-  };
-}
+  });
 
 /** Format an eval report as a markdown table. */
-export function formatEvalReport(report: EvalReport): string {
+export const formatEvalReport = (report: EvalReport): string => {
   const lines = [
     `# Prompt Evaluation Report`,
     ``,
@@ -180,4 +236,17 @@ export function formatEvalReport(report: EvalReport): string {
   ];
 
   return lines.join("\n");
+};
+
+/** PromptEval service for dependency injection. */
+export class PromptEval extends ServiceMap.Service<PromptEval>()("@agent-tools/PromptEval", {
+  make: Effect.gen(function* () {
+    return {
+      runEval,
+      formatReport: formatEvalReport,
+      graders,
+    } as const;
+  }),
+}) {
+  static layer = Layer.effect(this, this.make);
 }

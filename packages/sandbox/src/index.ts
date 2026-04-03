@@ -8,9 +8,12 @@ export {
   InvalidConfigError,
 } from "./sandbox-errors";
 export {
-  ADDITIONAL_RUNTIMES,
-  checkAdditionalRuntimes,
-  executeInRuntime,
-  validateSyntax,
+  CodeInterpreter,
+  RUNTIME_CONFIGS,
+  AdditionalRuntime,
+  RuntimeExecutionResult,
+  SyntaxValidationResult,
+  RuntimeNotAvailableError,
+  RuntimeExecutionError,
+  SyntaxValidationError,
 } from "./code-interpreter";
-export type { AdditionalRuntime } from "./code-interpreter";
