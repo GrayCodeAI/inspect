@@ -4,7 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { generateId } from "@inspect/shared";
+import { generateId, getCwd } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("workflow/scheduler");
@@ -43,7 +43,7 @@ export class WorkflowScheduler {
     validate: (expr: string) => boolean;
   } | null = null;
 
-  constructor(basePath: string = process.cwd(), callback?: ScheduleCallback) {
+  constructor(basePath: string = getCwd(), callback?: ScheduleCallback) {
     this.schedulesDir = path.join(basePath, ".inspect", "schedules");
     this.callback = callback;
     this.ensureDir(this.schedulesDir);

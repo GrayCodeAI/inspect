@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Config, ConfigProvider, Effect } from "effect";
+import { getInspectDir } from "@inspect/shared";
 import { existsSync, mkdirSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
@@ -254,7 +255,7 @@ export function createLogger(
 
   let filePath: string | undefined;
   if (enableFile) {
-    const logsDir = join(process.cwd(), ".inspect", "logs");
+    const logsDir = getInspectDir("logs");
     filePath = join(logsDir, `${name}.log`);
   }
 

@@ -8,6 +8,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { getInspectDir } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/pattern-store");
@@ -49,7 +50,7 @@ export class PatternStore {
   private filePath: string;
 
   constructor(filePath?: string) {
-    this.filePath = filePath ?? join(process.cwd(), ".inspect", "patterns.json");
+    this.filePath = filePath ?? getInspectDir("patterns.json");
     this.load();
   }
 

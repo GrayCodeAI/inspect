@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { getInspectDir } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("agent/action-cache");
@@ -99,7 +100,7 @@ export class ActionCache {
 
   constructor(config: ActionCacheConfig = {}) {
     this.config = {
-      cacheDir: config.cacheDir ?? join(process.cwd(), ".inspect", "cache", "actions"),
+      cacheDir: config.cacheDir ?? getInspectDir("cache/actions"),
       ttlMs: config.ttlMs ?? DEFAULT_TTL,
       maxEntries: config.maxEntries ?? DEFAULT_MAX,
       enabled: config.enabled ?? true,
