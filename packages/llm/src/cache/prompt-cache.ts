@@ -4,7 +4,7 @@
 
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { getInspectDir } from "@inspect/shared";
 
 /** Cache entry for a prompt-response pair */
 export interface CacheEntry {
@@ -172,7 +172,7 @@ export class PromptCache {
 
   /** Load cache from disk */
   private load(): void {
-    const cacheDir = this.config.cacheDir ?? join(process.cwd(), ".inspect", "prompt-cache");
+    const cacheDir = this.config.cacheDir ?? getInspectDir("prompt-cache");
     const cacheFile = join(cacheDir, "cache.json");
 
     if (!existsSync(cacheFile)) return;
@@ -191,7 +191,7 @@ export class PromptCache {
 
   /** Save cache to disk */
   private save(): void {
-    const cacheDir = this.config.cacheDir ?? join(process.cwd(), ".inspect", "prompt-cache");
+    const cacheDir = this.config.cacheDir ?? getInspectDir("prompt-cache");
     const cacheFile = join(cacheDir, "cache.json");
 
     try {
@@ -208,7 +208,7 @@ export class PromptCache {
 
   /** Delete cache directory on cleanup */
   destroy(): void {
-    const cacheDir = this.config.cacheDir ?? join(process.cwd(), ".inspect", "prompt-cache");
+    const cacheDir = this.config.cacheDir ?? getInspectDir("prompt-cache");
     if (existsSync(cacheDir)) {
       rmSync(cacheDir, { recursive: true, force: true });
     }

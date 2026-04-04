@@ -9,6 +9,7 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { getInspectDir } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("core/checkpoint");
@@ -56,7 +57,7 @@ export class CheckpointManager {
   private dir: string;
 
   constructor(dir?: string) {
-    this.dir = dir ?? join(process.cwd(), ".inspect", "checkpoints");
+    this.dir = dir ?? getInspectDir("checkpoints");
   }
 
   /**

@@ -1,4 +1,5 @@
 import simpleGit, { type SimpleGit, type StatusResult } from "simple-git";
+import { getCwd } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("core/git");
@@ -12,7 +13,7 @@ export class GitManager {
   private cwd: string;
 
   constructor(cwd?: string) {
-    this.cwd = cwd ?? process.cwd();
+    this.cwd = cwd ?? getCwd();
     this.git = simpleGit({ baseDir: this.cwd });
   }
 
