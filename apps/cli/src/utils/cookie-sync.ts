@@ -1,3 +1,4 @@
+import type { Page } from "playwright";
 import chalk from "chalk";
 
 export interface SyncResult {
@@ -14,8 +15,7 @@ export interface SyncResult {
  * them into the test browser for authenticated testing.
  */
 export async function syncCookies(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any, // Playwright Page
+  page: Page,
   options?: {
     browser?: string;
     domain?: string;

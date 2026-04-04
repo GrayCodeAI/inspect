@@ -382,9 +382,9 @@ async function handleSlash(
         const cliPath = join(__dirname, "..", "index.js");
         const { stdout } = await execFile(process.execPath, [cliPath, name], { timeout: 15000 });
         return { kind: "cmd", text: stdout.trim() };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        return { kind: "cmd", text: e.stdout?.trim() ?? e.message };
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { kind: "cmd", text: msg };
       }
     }
 
@@ -888,10 +888,10 @@ async function callLLM(instruction: string): Promise<string> {
       result = result.slice(0, envIdx).trim();
     }
     return result;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (e: any) {
-    if (e.name === "AbortError") return "Request timed out (30s). Try again.";
-    return `Error: ${e.message}`;
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name === "AbortError") return "Request timed out (30s). Try again.";
+    const msg = e instanceof Error ? e.message : String(e);
+    return `Error: ${msg}`;
   }
 }
 
@@ -930,8 +930,8 @@ async function _runBrowserTest(
 
     // 3. Check console errors
     const consoleErrors: string[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    page.on("console", (msg: any) => {
+
+    page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
 
@@ -1019,9 +1019,9 @@ async function _runBrowserTest(
     }
 
     await browserMgr.closeBrowser();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    pushMsg("error", `Browser test failed: ${err.message}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    pushMsg("error", `Browser test failed: ${msg}`);
     pushMsg("info", "Make sure Playwright browsers are installed: /install");
   }
 }
@@ -1450,9 +1450,9 @@ export function Repl(): React.ReactElement {
         const totalSecs = (Date.now() - testStartRef.current) / 1000;
         const c = CRUNCHES[Math.floor(Math.random() * CRUNCHES.length)];
         push("result", `CRUNCH:${c.color}:${c.sym} ${c.verb} in ${formatDuration(totalSecs)}`);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        push("error", `Agent test failed: ${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        push("error", `Agent test failed: ${msg}`);
         push("info", "Make sure browsers are installed: /install");
       }
       setBusy(false);

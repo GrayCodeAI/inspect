@@ -134,7 +134,7 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
         writeFileSync(outputPath, JSON.stringify(report, null, 2), "utf-8");
       } else {
         const reportData = JSON.stringify(report, null, 2);
-        /* eslint-disable @typescript-eslint/no-explicit-any */
+
         const html = `<!DOCTYPE html>
 <html><head><title>A11y Report - ${url}</title>
 <style>body{font-family:system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}
@@ -145,11 +145,18 @@ h1{color:#1a202c}h2{color:#4a5568}.score{font-size:2rem;font-weight:bold}</style
 <p>URL: ${url} | Standard: ${standard}</p>
 <p class="score">Score: ${report.score ?? "N/A"}/100</p>
 <h2>Violations (${violations.length})</h2>
-${violations.map((v: any) => `<div class="violation"><strong>${v.id ?? v.rule ?? "unknown"}</strong> (${v.impact ?? "minor"})<br>${v.description ?? ""}</div>`).join("\n")}
+${violations
+  .map((v) => {
+    const id = v.id ?? "unknown";
+    const impact = v.impact ?? "minor";
+    const description = v.description ?? "";
+    return `<div class="violation"><strong>${id}</strong> (${impact})<br>${description}</div>`;
+  })
+  .join("\n")}
 <h2>Passed (${passes.length})</h2>
 <pre>${reportData}</pre>
 </body></html>`;
-        /* eslint-enable @typescript-eslint/no-explicit-any */
+
         writeFileSync(outputPath, html, "utf-8");
       }
       console.log(chalk.green(`\nReport saved to: ${outputPath}`));

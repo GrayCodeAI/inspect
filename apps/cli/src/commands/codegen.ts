@@ -130,8 +130,7 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
   `);
 
   // Track navigations
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("framenavigated", (frame: any) => {
+  page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) {
       const navUrl = page.url();
       actions.push({ type: "navigate", url: navUrl, timestamp: Date.now() });
@@ -163,8 +162,8 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
         // Just display new actions
       }
       // Merge page actions into our list (avoiding duplicates of navigations we already track)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const newActions = pageActions.filter((a: any) => a.type !== "navigate");
+
+      const newActions = pageActions.filter((a) => a.type !== "navigate");
       if (newActions.length > actions.filter((a) => a.type !== "navigate").length) {
         const added = newActions.slice(actions.filter((a) => a.type !== "navigate").length);
         for (const a of added) {
@@ -197,8 +196,8 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
   try {
     const finalActions = (await page.evaluate(`window.__inspectActions || []`)) as RecordedAction[];
     const navActions = actions.filter((a) => a.type === "navigate");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pageOnlyActions = finalActions.filter((a: any) => a.type !== "navigate");
+
+    const pageOnlyActions = finalActions.filter((a) => a.type !== "navigate");
     actions.length = 0;
     actions.push(...navActions);
     actions.push(...(pageOnlyActions as RecordedAction[]));

@@ -81,7 +81,7 @@ export class SessionRecorder {
 
   async start(): Promise<void> {
     await this.page.evaluate(() => {
-      const g = globalThis as {
+      const g = globalThis as unknown as {
         rrweb?: {
           record: (config: { emit: (event: unknown) => void; checkoutEveryNms: number }) => void;
         };

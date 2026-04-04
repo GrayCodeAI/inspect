@@ -485,8 +485,7 @@ async function observeWorkflow(): Promise<void> {
   let stepCounter = 0;
 
   // Listen for navigations
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("framenavigated", (frame: any) => {
+  page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) {
       const url = frame.url();
       if (url && url !== "about:blank") {
@@ -502,8 +501,7 @@ async function observeWorkflow(): Promise<void> {
   });
 
   // Listen for console messages that act as test markers
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page.on("console", (msg: any) => {
+  page.on("console", (msg) => {
     const text = msg.text();
     if (text.startsWith("inspect:test:")) {
       stepCounter++;
@@ -604,8 +602,10 @@ async function scheduleWorkflow(file: string, schedule: string): Promise<void> {
   // Try to use node-cron if available
   try {
     const cronModuleName = "node-cron";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cron: any = await import(cronModuleName);
+    const cron = (await import(cronModuleName)) as {
+      validate: (expr: string) => boolean;
+      schedule: (expr: string, fn: () => Promise<void>) => void;
+    };
     if (!cron.validate(schedule)) {
       console.error(chalk.red(`Invalid cron expression: ${schedule}`));
       process.exit(1);

@@ -1,36 +1,34 @@
 import type { Command } from "commander";
+import type { ConsoleMessage, Page } from "playwright";
+import type { AriaSnapshotBuilder, BrowserManager } from "@inspect/browser";
 import chalk from "chalk";
 
 // Lazy-initialized shared browser session for MCP tool calls
 let browserSessionPromise: Promise<BrowserSession> | null = null;
 
 interface BrowserSession {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  browserManager: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  page: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  snapshotBuilder: any;
+  browserManager: BrowserManager;
+  page: Page;
+  snapshotBuilder: AriaSnapshotBuilder;
   consoleLogs: Array<{ level: string; text: string; timestamp: number }>;
 }
 
 async function getOrCreateBrowserSession(): Promise<BrowserSession> {
   if (!browserSessionPromise) {
     browserSessionPromise = (async () => {
-      const { BrowserManager, AriaSnapshotBuilder } = await import("@inspect/browser");
-      const browserManager = new BrowserManager();
+      const { BrowserManager: BM, AriaSnapshotBuilder: ASB } = await import("@inspect/browser");
+      const browserManager = new BM();
       await browserManager.launchBrowser({
+        name: "chromium",
         headless: true,
         viewport: { width: 1280, height: 720 },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      });
       const page = await browserManager.newPage();
-      const snapshotBuilder = new AriaSnapshotBuilder();
+      const snapshotBuilder = new ASB();
 
       // Capture console logs
       const consoleLogs: Array<{ level: string; text: string; timestamp: number }> = [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      page.on("console", (msg: any) => {
+      page.on("console", (msg: ConsoleMessage) => {
         consoleLogs.push({
           level: msg.type(),
           text: msg.text(),
@@ -86,7 +84,7 @@ async function executeBrowserTool(
       if (toolArgs.ref) {
         const locator = snapshotBuilder.getRefLocator(page, toolArgs.ref as string);
         const count = (toolArgs.clickCount as number) ?? 1;
-        const button = (toolArgs.button as string) ?? "left";
+        const button = (toolArgs.button as "left" | "right" | "middle") ?? "left";
         await locator.click({ button, clickCount: count });
         return `Clicked element [${toolArgs.ref}]`;
       } else if (toolArgs.selector) {

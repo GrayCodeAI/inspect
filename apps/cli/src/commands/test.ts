@@ -664,10 +664,10 @@ export async function runTest(options: TestOptions): Promise<void> {
       }
 
       process.exit(report.summary.failed > 0 ? EXIT_CODES.TEST_FAILURE : EXIT_CODES.SUCCESS);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      console.error(chalk.red(`\nAgent pipeline failed: ${err.message}`));
-      if (options.verbose) console.error(err.stack);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(chalk.red(`\nAgent pipeline failed: ${message}`));
+      if (options.verbose && err instanceof Error) console.error(err.stack);
       process.exit(EXIT_CODES.BROWSER_ERROR);
     }
   }
@@ -723,8 +723,7 @@ export async function runTest(options: TestOptions): Promise<void> {
     const browserMgr = new BrowserManager();
 
     // Optional credential vault
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let credentialVault: any = undefined;
+    let credentialVault: unknown = undefined;
     try {
       const { CredentialVault } = await import("@inspect/credentials");
       credentialVault = new CredentialVault();
@@ -1034,13 +1033,13 @@ export async function runTestWithResult(options: TestOptions): Promise<{
     const failed = result.steps.filter((s) => s.status === "fail").length;
     await browserMgr.closeBrowser().catch(() => {});
     return { steps, summary: `${passed} passed, ${failed} failed`, passed, failed };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     await browserMgr.closeBrowser().catch(() => {});
-    console.error(chalk.dim(`Test execution error: ${err.message}`));
+    console.error(chalk.dim(`Test execution error: ${message}`));
     return {
       steps: [],
-      summary: `Error: ${err.message}`,
+      summary: `Error: ${message}`,
       passed: 0,
       failed: 1,
     };
