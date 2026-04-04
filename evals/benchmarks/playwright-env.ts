@@ -3,6 +3,8 @@
 // Connects the BrowserGymEnvironment interface to @inspect/browser
 // ============================================================================
 
+import type { ConsoleMessage, Page } from "playwright";
+import type { BrowserManager, AriaSnapshotBuilder } from "@inspect/browser";
 import type {
   BrowserGymEnvironment,
   BrowserGymObservation,
@@ -10,22 +12,10 @@ import type {
   BrowserGymTask,
 } from "./browsergym.js";
 
-/**
- * Concrete BrowserGymEnvironment backed by Playwright via @inspect/browser.
- *
- * Implements the Gymnasium-style reset/step/close interface with
- * real browser actions and ARIA snapshot observations.
- *
- * Usage:
- *   const env = new PlaywrightBrowserGymEnvironment();
- *   const obs = await env.reset(task);
- *   const { observation, reward, done } = await env.step({ type: "click", target: "#btn" });
- *   await env.close();
- */
 export class PlaywrightBrowserGymEnvironment implements BrowserGymEnvironment {
-  private browserManager: any = null;
-  private page: any = null;
-  private snapshotBuilder: any = null;
+  private browserManager: BrowserManager | null = null;
+  private page: Page | null = null;
+  private snapshotBuilder: AriaSnapshotBuilder | null = null;
   private currentTask: BrowserGymTask | null = null;
   private stepCount = 0;
   private lastError: string | undefined;
@@ -55,7 +45,7 @@ export class PlaywrightBrowserGymEnvironment implements BrowserGymEnvironment {
     this.page = await this.browserManager.newPage();
 
     // Capture console messages
-    this.page.on("console", (msg: any) => {
+    this.page.on("console", (msg: ConsoleMessage) => {
       this.consoleMessages.push(`[${msg.type()}] ${msg.text()}`);
     });
 
@@ -86,8 +76,6 @@ export class PlaywrightBrowserGymEnvironment implements BrowserGymEnvironment {
 
     try {
       await this.executeAction(action);
-      // Small reward for successful action execution
-      reward = 0;
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
       reward = -0.1; // Small penalty for failed actions
