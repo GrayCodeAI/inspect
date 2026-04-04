@@ -66,7 +66,7 @@ export async function checkElementInteractability(
         };
       }
 
-      const result: any = {
+      const result: InteractabilityResult = {
         isClickable: true,
         isDisabled: false,
         isHidden: false,

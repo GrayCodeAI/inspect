@@ -32,8 +32,7 @@ export interface StreamingLLMProvider {
  * Streaming LLM wrapper for backwards compatibility
  */
 export class StreamingLLMWrapper {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(private provider: any) {}
+  constructor(private provider: StreamingLLMProvider) {}
 
   /**
    * Wrap streaming provider for use with existing code
@@ -105,8 +104,8 @@ export class StreamingLLMWrapper {
  */
 export class FallbackLLMChain {
   constructor(
-    private primary: any,
-    private fallback: any,
+    private primary: StreamingLLMProvider,
+    private fallback: StreamingLLMProvider,
   ) {}
 
   async chat(config: {

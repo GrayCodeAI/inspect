@@ -35,10 +35,8 @@ export class ActOutput extends Schema.Class<ActOutput>("ActOutput")({
   extractedContent: Schema.optional(Schema.Unknown),
 }) {}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getBrowserService(): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return BrowserManagerService as any;
+function getBrowserService(): typeof BrowserManagerService {
+  return BrowserManagerService;
 }
 
 export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput) {
@@ -90,8 +88,7 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
 
 const executeSingleAction = Effect.fn("ActPhase.executeSingleAction")(function* (
   action: AgentAction,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  browser: any,
+  browser: InstanceType<typeof BrowserManagerService>,
 ) {
   const actionType = action.type as string;
   const params = action.params as Record<string, unknown>;

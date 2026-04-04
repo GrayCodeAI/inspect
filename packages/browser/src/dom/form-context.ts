@@ -69,13 +69,12 @@ export async function extractFormStructure(
 ): Promise<FormStructure[]> {
   return page.evaluate((formSelector) => {
     const forms = document.querySelectorAll(formSelector);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const structures: any[] = [];
+
+    const structures: FormStructure[] = [];
 
     for (const form of forms) {
       const formElement = form as HTMLFormElement;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const structure: any = {
+      const structure: FormStructure = {
         selector: formSelector,
         id: formElement.id,
         method: formElement.method,
@@ -202,8 +201,7 @@ function extractFieldInfo(element: Element): FormField | null {
  */
 export async function findRelatedFields(page: Page, fieldName: string): Promise<FormField[]> {
   return page.evaluate((fieldName) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const relatedFields: any[] = [];
+    const relatedFields: FormField[] = [];
     const primaryField = document.querySelector(
       `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`,
     );

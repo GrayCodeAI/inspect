@@ -27,10 +27,8 @@ export class FullLoopResult extends Schema.Class<FullLoopResult>("FullLoopResult
   reason: Schema.String,
 }) {}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getBrowserService(): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return BrowserManagerService as any;
+function getBrowserService(): typeof BrowserManagerService {
+  return BrowserManagerService;
 }
 
 export const runAgentStep = Effect.fn("AgentLoopRunner.runAgentStep")(function* (config: {

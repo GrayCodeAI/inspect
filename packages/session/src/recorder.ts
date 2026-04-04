@@ -81,12 +81,16 @@ export class SessionRecorder {
 
   async start(): Promise<void> {
     await this.page.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const g = globalThis as any;
+      const g = globalThis as {
+        rrweb?: {
+          record: (config: { emit: (event: unknown) => void; checkoutEveryNms: number }) => void;
+        };
+        __rrwebEvents__: unknown[];
+        __rrwebMaxEvents__: number;
+      };
       if (typeof g.rrweb !== "undefined") {
         g.rrweb.record({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          emit(event: any) {
+          emit(event: unknown) {
             if (g.__rrwebEvents__.length < g.__rrwebMaxEvents__) {
               g.__rrwebEvents__.push(event);
             }
