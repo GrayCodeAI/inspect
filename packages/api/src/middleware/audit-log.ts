@@ -97,7 +97,9 @@ const RESOURCE_PATTERNS: Array<{
  * Tracks credential access, session management, and other sensitive operations.
  */
 export class AuditLogger {
-  private config: Required<Omit<AuditLogConfig, "onEntry">> & { onEntry?: AuditLogConfig["onEntry"] };
+  private config: Required<Omit<AuditLogConfig, "onEntry">> & {
+    onEntry?: AuditLogConfig["onEntry"];
+  };
 
   constructor(config?: AuditLogConfig) {
     const filePath = config?.filePath ?? path.join(process.cwd(), ".inspect", "audit.log");
@@ -161,7 +163,9 @@ export class AuditLogger {
 
     // Write to stdout if configured
     if (this.config.stdout) {
-      process.stdout.write(`[AUDIT] ${entry.action} ${entry.resourceType ?? ""}${entry.resourceId ? `:${entry.resourceId}` : ""} by ${entry.userId ?? entry.clientIp} -> ${entry.statusCode}\n`);
+      process.stdout.write(
+        `[AUDIT] ${entry.action} ${entry.resourceType ?? ""}${entry.resourceId ? `:${entry.resourceId}` : ""} by ${entry.userId ?? entry.clientIp} -> ${entry.statusCode}\n`,
+      );
     }
 
     // Call custom handler
@@ -189,7 +193,11 @@ export class AuditLogger {
       method: req.method,
       path: req.path,
       clientIp: this.extractClientIp(req),
-      userId: req.user?.sub ? String(req.user.sub) : req.user?.userId ? String(req.user.userId) : undefined,
+      userId: req.user?.sub
+        ? String(req.user.sub)
+        : req.user?.userId
+          ? String(req.user.userId)
+          : undefined,
       statusCode: res.statusCode,
       durationMs: Date.now() - startTime,
       resourceType,

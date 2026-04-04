@@ -1,6 +1,5 @@
 import { Effect, Layer, ServiceMap } from "effect";
-import { WorkflowTriggerError, WorkflowNotFoundError } from "./workflow-errors.js";
-import { WorkflowJob, WorkflowTrigger } from "./workflow-types.js";
+import { WorkflowTriggerError } from "./workflow-errors.js";
 
 interface WebhookEntry {
   id: string;

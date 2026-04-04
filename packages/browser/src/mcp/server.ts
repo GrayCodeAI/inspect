@@ -35,6 +35,7 @@ interface MCPToolResult {
   isError?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface BrowserConfig {
   name: string;
   headless?: boolean;

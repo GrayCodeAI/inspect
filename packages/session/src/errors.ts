@@ -1,6 +1,8 @@
 import { Schema } from "effect";
 
-export class RecorderInjectionError extends Schema.ErrorClass<RecorderInjectionError>("RecorderInjectionError")({
+export class RecorderInjectionError extends Schema.ErrorClass<RecorderInjectionError>(
+  "RecorderInjectionError",
+)({
   _tag: Schema.tag("RecorderInjectionError"),
   cause: Schema.String,
 }) {

@@ -105,13 +105,7 @@ export const DEFAULT_GUARDRAILS_CONFIG: GuardrailsConfig = {
   maxCostPerSession: 10,
   maxExecutionTime: 600000, // 10 minutes
   allowedDomains: [],
-  blockedDomains: [
-    "localhost",
-    "127.0.0.1",
-    "0.0.0.0",
-    "[::1]",
-    "file://",
-  ],
+  blockedDomains: ["localhost", "127.0.0.1", "0.0.0.0", "[::1]", "file://"],
   allowedActions: [],
   confirmRiskyActions: true,
   riskyPatterns: [
@@ -143,12 +137,7 @@ export const DEFAULT_GUARDRAILS_CONFIG: GuardrailsConfig = {
   contentFilters: [
     {
       type: "prompt",
-      blocklist: [
-        "ignore previous instructions",
-        "disregard safety",
-        "DAN mode",
-        "jailbreak",
-      ],
+      blocklist: ["ignore previous instructions", "disregard safety", "DAN mode", "jailbreak"],
     },
   ],
 };
@@ -196,10 +185,7 @@ export class GuardrailsFramework extends EventEmitter {
   /**
    * Evaluate action against guardrails
    */
-  async evaluateAction(
-    sessionId: string,
-    request: ActionRequest
-  ): Promise<GuardrailsDecision> {
+  async evaluateAction(sessionId: string, request: ActionRequest): Promise<GuardrailsDecision> {
     const violations: Violation[] = [];
     const warnings: string[] = [];
 
@@ -228,8 +214,7 @@ export class GuardrailsFramework extends EventEmitter {
     }
 
     // Check risky patterns
-    const { violations: riskViolations, warnings: riskWarnings } =
-      this.checkRiskyPatterns(request);
+    const { violations: riskViolations, warnings: riskWarnings } = this.checkRiskyPatterns(request);
     violations.push(...riskViolations);
     warnings.push(...riskWarnings);
 
@@ -241,9 +226,7 @@ export class GuardrailsFramework extends EventEmitter {
 
     // Sort violations by severity
     const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-    violations.sort(
-      (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
-    );
+    violations.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
     // Handle violations
     if (violations.length > 0) {
@@ -313,10 +296,7 @@ export class GuardrailsFramework extends EventEmitter {
       }
 
       // Check allowed domains (if whitelist is defined)
-      if (
-        this.allowedDomainsSet.size > 0 &&
-        !this.allowedDomainsSet.has(domain)
-      ) {
+      if (this.allowedDomainsSet.size > 0 && !this.allowedDomainsSet.has(domain)) {
         return {
           type: "domain",
           severity: "high",
@@ -387,9 +367,7 @@ export class GuardrailsFramework extends EventEmitter {
 
     for (const pattern of this.config.riskyPatterns) {
       const regex =
-        pattern.pattern instanceof RegExp
-          ? pattern.pattern
-          : new RegExp(pattern.pattern, "i");
+        pattern.pattern instanceof RegExp ? pattern.pattern : new RegExp(pattern.pattern, "i");
 
       if (regex.test(textToCheck)) {
         if (pattern.severity === "critical" || pattern.severity === "high") {
@@ -438,7 +416,7 @@ export class GuardrailsFramework extends EventEmitter {
     sessionId: string,
     primary: Violation,
     all: Violation[],
-    warnings: string[]
+    warnings: string[],
   ): Promise<GuardrailsDecision> {
     const stats = this.sessionStats.get(sessionId);
     if (stats) {
@@ -530,9 +508,7 @@ export class GuardrailsFramework extends EventEmitter {
   /**
    * Request human confirmation
    */
-  async requestConfirmation(
-    context: InterventionContext
-  ): Promise<boolean> {
+  async requestConfirmation(context: InterventionContext): Promise<boolean> {
     if (this.config.onIntervention) {
       return this.config.onIntervention(context);
     }
@@ -544,7 +520,10 @@ export class GuardrailsFramework extends EventEmitter {
   /**
    * Filter content
    */
-  filterContent(type: "prompt" | "response" | "action", content: string): {
+  filterContent(
+    type: "prompt" | "response" | "action",
+    content: string,
+  ): {
     allowed: boolean;
     filtered: string;
     matchedFilters: string[];
@@ -615,8 +594,6 @@ export class GuardrailsFramework extends EventEmitter {
 /**
  * Convenience function
  */
-export function createGuardrails(
-  config?: Partial<GuardrailsConfig>
-): GuardrailsFramework {
+export function createGuardrails(config?: Partial<GuardrailsConfig>): GuardrailsFramework {
   return new GuardrailsFramework(config);
 }

@@ -7,7 +7,7 @@
  * OSS Pattern: Coordinate-Based Grounding (browser-use, Shortest)
  */
 
-import type { Page, ElementHandle } from "playwright";
+import type { Page } from "playwright";
 
 export interface CoordinateConfig {
   /** Device Pixel Ratio for scaling */
@@ -84,11 +84,7 @@ export class CoordinateTransformer {
    * LLMs typically return coordinates in the screenshot space.
    * We need to convert to Playwright's coordinate space accounting for DPR.
    */
-  async transform(
-    page: Page,
-    llmX: number,
-    llmY: number
-  ): Promise<CoordinateMapping> {
+  async transform(page: Page, llmX: number, llmY: number): Promise<CoordinateMapping> {
     const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
 
     // Get actual DPR from page
@@ -135,7 +131,7 @@ export class CoordinateTransformer {
   private async getElementAtCoordinate(
     page: Page,
     x: number,
-    y: number
+    y: number,
   ): Promise<ElementInfo | undefined> {
     return page.evaluate(
       ({ x, y }) => {
@@ -158,7 +154,7 @@ export class CoordinateTransformer {
           },
         };
       },
-      { x, y }
+      { x, y },
     );
   }
 
@@ -168,32 +164,31 @@ export class CoordinateTransformer {
   private async getIframeOffset(
     page: Page,
     x: number,
-    y: number
+    y: number,
   ): Promise<{ x: number; y: number } | undefined> {
-    return page.evaluate(({ x, y }) => {
-      const element = document.elementFromPoint(x, y);
-      if (!element) return undefined;
+    return page.evaluate(
+      ({ x, y }) => {
+        const element = document.elementFromPoint(x, y);
+        if (!element) return undefined;
 
-      // Check if inside iframe
-      const iframe = element.closest("iframe");
-      if (!iframe) return undefined;
+        // Check if inside iframe
+        const iframe = element.closest("iframe");
+        if (!iframe) return undefined;
 
-      const rect = iframe.getBoundingClientRect();
-      return {
-        x: rect.x,
-        y: rect.y,
-      };
-    }, { x, y });
+        const rect = iframe.getBoundingClientRect();
+        return {
+          x: rect.x,
+          y: rect.y,
+        };
+      },
+      { x, y },
+    );
   }
 
   /**
    * Ensure element is in viewport
    */
-  async ensureInViewport(
-    page: Page,
-    x: number,
-    y: number
-  ): Promise<void> {
+  async ensureInViewport(page: Page, x: number, y: number): Promise<void> {
     if (this.config.scrollStrategy === "none") return;
 
     const isVisible = await page.evaluate(
@@ -209,7 +204,7 @@ export class CoordinateTransformer {
           rect.right <= window.innerWidth
         );
       },
-      { x, y }
+      { x, y },
     );
 
     if (!isVisible) {
@@ -224,7 +219,7 @@ export class CoordinateTransformer {
             inline: "center",
           });
         },
-        { x, y, strategy: this.config.scrollStrategy }
+        { x, y, strategy: this.config.scrollStrategy },
       );
 
       // Wait for scroll to complete
@@ -250,10 +245,14 @@ export class CUAActionExecutor {
     page: Page,
     x: number,
     y: number,
-    options: { button?: "left" | "right" | "middle"; count?: number } = {}
+    options: { button?: "left" | "right" | "middle"; count?: number } = {},
   ): Promise<void> {
     const mapping = await this.transformer.transform(page, x, y);
-    await this.transformer.ensureInViewport(page, mapping.normalized.absoluteX, mapping.normalized.absoluteY);
+    await this.transformer.ensureInViewport(
+      page,
+      mapping.normalized.absoluteX,
+      mapping.normalized.absoluteY,
+    );
 
     await page.mouse.click(mapping.playwright.x, mapping.playwright.y, {
       button: options.button ?? "left",
@@ -276,10 +275,14 @@ export class CUAActionExecutor {
     x: number,
     y: number,
     text: string,
-    options: { clearFirst?: boolean } = {}
+    options: { clearFirst?: boolean } = {},
   ): Promise<void> {
     const mapping = await this.transformer.transform(page, x, y);
-    await this.transformer.ensureInViewport(page, mapping.normalized.absoluteX, mapping.normalized.absoluteY);
+    await this.transformer.ensureInViewport(
+      page,
+      mapping.normalized.absoluteX,
+      mapping.normalized.absoluteY,
+    );
 
     // Click to focus
     await page.mouse.click(mapping.playwright.x, mapping.playwright.y);
@@ -297,17 +300,15 @@ export class CUAActionExecutor {
   /**
    * Drag from one coordinate to another
    */
-  async drag(
-    page: Page,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number
-  ): Promise<void> {
+  async drag(page: Page, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
     const from = await this.transformer.transform(page, fromX, fromY);
     const to = await this.transformer.transform(page, toX, toY);
 
-    await this.transformer.ensureInViewport(page, from.normalized.absoluteX, from.normalized.absoluteY);
+    await this.transformer.ensureInViewport(
+      page,
+      from.normalized.absoluteX,
+      from.normalized.absoluteY,
+    );
 
     await page.mouse.move(from.playwright.x, from.playwright.y);
     await page.mouse.down();
@@ -318,13 +319,7 @@ export class CUAActionExecutor {
   /**
    * Scroll at coordinates
    */
-  async scroll(
-    page: Page,
-    x: number,
-    y: number,
-    deltaX: number,
-    deltaY: number
-  ): Promise<void> {
+  async scroll(page: Page, x: number, y: number, deltaX: number, deltaY: number): Promise<void> {
     const mapping = await this.transformer.transform(page, x, y);
 
     await page.mouse.move(mapping.playwright.x, mapping.playwright.y);
@@ -336,7 +331,11 @@ export class CUAActionExecutor {
    */
   async hover(page: Page, x: number, y: number): Promise<void> {
     const mapping = await this.transformer.transform(page, x, y);
-    await this.transformer.ensureInViewport(page, mapping.normalized.absoluteX, mapping.normalized.absoluteY);
+    await this.transformer.ensureInViewport(
+      page,
+      mapping.normalized.absoluteX,
+      mapping.normalized.absoluteY,
+    );
 
     await page.mouse.move(mapping.playwright.x, mapping.playwright.y);
   }
@@ -346,7 +345,7 @@ export class CUAActionExecutor {
    */
   async takeScreenshot(
     page: Page,
-    options: { fullPage?: boolean; type?: "png" | "jpeg" } = {}
+    options: { fullPage?: boolean; type?: "png" | "jpeg" } = {},
   ): Promise<Buffer> {
     return page.screenshot({
       type: options.type ?? "png",
@@ -361,7 +360,7 @@ export class CUAActionExecutor {
 export async function elementIndexToCoordinate(
   page: Page,
   index: number,
-  selector: string
+  selector: string,
 ): Promise<{ x: number; y: number } | undefined> {
   const element = await page.locator(selector).nth(index).elementHandle();
   if (!element) return undefined;
@@ -381,7 +380,7 @@ export async function elementIndexToCoordinate(
 export function validateCoordinates(
   x: number,
   y: number,
-  viewport: { width: number; height: number }
+  viewport: { width: number; height: number },
 ): boolean {
   return x >= 0 && x <= viewport.width && y >= 0 && y <= viewport.height;
 }

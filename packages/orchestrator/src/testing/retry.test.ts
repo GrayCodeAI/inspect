@@ -63,14 +63,25 @@ describe("RetryExecutor", () => {
   });
 
   it("calculates exponential delay", () => {
-    const executor = new RetryExecutor({ strategy: "exponential", baseDelayMs: 1000, multiplier: 2, jitter: 0 });
+    const executor = new RetryExecutor({
+      strategy: "exponential",
+      baseDelayMs: 1000,
+      multiplier: 2,
+      jitter: 0,
+    });
     expect(executor.calculateDelay(0)).toBe(1000);
     expect(executor.calculateDelay(1)).toBe(2000);
     expect(executor.calculateDelay(2)).toBe(4000);
   });
 
   it("caps delay at maxDelayMs", () => {
-    const executor = new RetryExecutor({ strategy: "exponential", baseDelayMs: 10000, multiplier: 10, maxDelayMs: 30000, jitter: 0 });
+    const executor = new RetryExecutor({
+      strategy: "exponential",
+      baseDelayMs: 10000,
+      multiplier: 10,
+      maxDelayMs: 30000,
+      jitter: 0,
+    });
     expect(executor.calculateDelay(5)).toBe(30000);
   });
 
@@ -81,14 +92,22 @@ describe("RetryExecutor", () => {
   });
 
   it("respects retryOn filter", async () => {
-    const executor = new RetryExecutor({ maxRetries: 3, strategy: "immediate", retryOn: ["timeout"] });
+    const executor = new RetryExecutor({
+      maxRetries: 3,
+      strategy: "immediate",
+      retryOn: ["timeout"],
+    });
 
     expect(executor.shouldRetry("Connection timeout")).toBe(true);
     expect(executor.shouldRetry("Element not found")).toBe(false);
   });
 
   it("respects noRetryOn filter", async () => {
-    const executor = new RetryExecutor({ maxRetries: 3, strategy: "immediate", noRetryOn: ["auth"] });
+    const executor = new RetryExecutor({
+      maxRetries: 3,
+      strategy: "immediate",
+      noRetryOn: ["auth"],
+    });
 
     expect(executor.shouldRetry("auth required")).toBe(false);
     expect(executor.shouldRetry("timeout")).toBe(true);

@@ -57,7 +57,9 @@ export class RefManager {
   resolveLocator(page: Page, ref: string): Locator {
     const element = this.refs.get(ref);
     if (!element) {
-      throw new Error(`Reference "${ref}" not found. Available refs: ${[...this.refs.keys()].join(", ")}`);
+      throw new Error(
+        `Reference "${ref}" not found. Available refs: ${[...this.refs.keys()].join(", ")}`,
+      );
     }
 
     // Strategy 1: Use ARIA role + name — most resilient to DOM changes

@@ -129,7 +129,7 @@ export class PopupWatchdog {
    * Detect popups on page
    */
   async detect(page: Page): Promise<PopupDetection[]> {
-    return page.evaluate((config) => {
+    return page.evaluate((_config) => {
       // Helper functions defined inside evaluate (browser context)
       const _isVisible = (el: Element): boolean => {
         const rect = el.getBoundingClientRect();
@@ -152,8 +152,8 @@ export class PopupWatchdog {
           '[data-testid="close-button"]',
           '[data-testid="dismiss-button"]',
           '[data-dismiss="modal"]',
-          '.close',
-          '.btn-close',
+          ".close",
+          ".btn-close",
         ];
         for (const sel of dismissSelectors) {
           if (el.querySelector(sel)) return sel;
@@ -195,10 +195,10 @@ export class PopupWatchdog {
         '[id*="cookieNotice" i]',
         '[class*="cookie-notice" i]',
         '[aria-label*="cookie" i]',
-        '#onetrust-banner-sdk',
-        '#CybotCookiebotDialog',
-        '.cc-window',
-        '.cookiealert',
+        "#onetrust-banner-sdk",
+        "#CybotCookiebotDialog",
+        ".cc-window",
+        ".cookiealert",
         '[data-cy="cookie-banner"]',
       ];
 
@@ -273,7 +273,7 @@ export class PopupWatchdog {
         '[class*="chat-widget" i]',
         'iframe[id*="zopim"]', // Zendesk
         'iframe[id*="intercom"]', // Intercom
-        '.drift-widget',
+        ".drift-widget",
         '[data-testid="messenger-button"]',
       ];
 
@@ -294,9 +294,9 @@ export class PopupWatchdog {
       const modalSelectors = [
         '[role="dialog"]:not([aria-modal="false"])',
         '[role="alertdialog"]',
-        '.modal.show',
-        '.modal.active',
-        '.modal-open',
+        ".modal.show",
+        ".modal.active",
+        ".modal-open",
         '[data-modal="true"]',
       ];
 
@@ -305,7 +305,9 @@ export class PopupWatchdog {
         if (element && _isVisible(element)) {
           // Check if already categorized
           const alreadyCategorized = popups.some(
-            (p) => element.matches(p.selector || "") || element.contains(document.querySelector(p.selector || ""))
+            (p) =>
+              element.matches(p.selector || "") ||
+              element.contains(document.querySelector(p.selector || "")),
           );
           if (!alreadyCategorized) {
             popups.push({
@@ -353,10 +355,7 @@ export class PopupWatchdog {
   /**
    * Handle cookie consent based on preference
    */
-  private async handleCookieConsent(
-    page: Page,
-    popup: PopupDetection
-  ): Promise<boolean> {
+  private async handleCookieConsent(page: Page, popup: PopupDetection): Promise<boolean> {
     if (!popup.selector) return false;
 
     try {
@@ -367,7 +366,7 @@ export class PopupWatchdog {
             return true;
           }
           break;
-        case "necessary-only":
+        case "necessary-only": {
           // Look for "necessary only" or "reject all" button
           const necessarySelectors = [
             'button:has-text("Necessary only")',
@@ -384,7 +383,8 @@ export class PopupWatchdog {
           }
           // Fall back to dismiss
           return this.dismissPopup(page, popup);
-        case "reject-all":
+        }
+        case "reject-all": {
           // Look for reject button
           const rejectSelectors = [
             'button:has-text("Reject all")',
@@ -399,6 +399,7 @@ export class PopupWatchdog {
             }
           }
           return this.dismissPopup(page, popup);
+        }
         case "manual":
           return false;
       }
@@ -411,10 +412,7 @@ export class PopupWatchdog {
   /**
    * Dismiss popup by clicking dismiss button
    */
-  private async dismissPopup(
-    page: Page,
-    popup: PopupDetection
-  ): Promise<boolean> {
+  private async dismissPopup(page: Page, popup: PopupDetection): Promise<boolean> {
     if (!popup.selector || !popup.dismissSelector) return false;
 
     try {

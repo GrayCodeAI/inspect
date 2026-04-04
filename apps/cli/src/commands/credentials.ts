@@ -25,14 +25,12 @@ async function runCredentials(action: string, options: CredentialsOptions): Prom
       console.log(chalk.blue("\nStored Credentials\n"));
       if (credentials.length === 0) {
         console.log(chalk.dim("  No credentials stored."));
-        console.log(chalk.dim('  Use "inspect credentials add --name <name> --domain <domain>" to add one.'));
+        console.log(
+          chalk.dim('  Use "inspect credentials add --name <name> --domain <domain>" to add one.'),
+        );
       } else {
         console.log(
-          "  " +
-            "Name".padEnd(25) +
-            "Domain".padEnd(30) +
-            "Provider".padEnd(15) +
-            "Type",
+          "  " + "Name".padEnd(25) + "Domain".padEnd(30) + "Provider".padEnd(15) + "Type",
         );
         console.log("  " + "-".repeat(80));
         for (const cred of credentials) {
@@ -51,8 +49,18 @@ async function runCredentials(action: string, options: CredentialsOptions): Prom
         process.exit(1);
       }
 
-      const provider = (options.provider ?? "native") as "native" | "bitwarden" | "1password" | "azure-key-vault" | "custom-http";
-      const type = (options.type ?? "password") as "password" | "api-key" | "oauth" | "totp" | "certificate";
+      const provider = (options.provider ?? "native") as
+        | "native"
+        | "bitwarden"
+        | "1password"
+        | "azure-key-vault"
+        | "custom-http";
+      const type = (options.type ?? "password") as
+        | "password"
+        | "api-key"
+        | "oauth"
+        | "totp"
+        | "certificate";
 
       console.log(chalk.blue(`\nAdding credential: ${options.name}\n`));
 
@@ -88,7 +96,8 @@ async function runCredentials(action: string, options: CredentialsOptions): Prom
         // Find credential by label or ID
         const allCreds = vault.list();
         const match = allCreds.find(
-          (c) => c.label === options.name || c.id === options.name || c.id.startsWith(options.name!),
+          (c) =>
+            c.label === options.name || c.id === options.name || c.id.startsWith(options.name!),
         );
         if (match) {
           vault.delete(match.id);
@@ -115,7 +124,8 @@ async function runCredentials(action: string, options: CredentialsOptions): Prom
         // Find credential by label or ID
         const allCreds = vault.list();
         const match = allCreds.find(
-          (c) => c.label === options.name || c.id === options.name || c.id.startsWith(options.name!),
+          (c) =>
+            c.label === options.name || c.id === options.name || c.id.startsWith(options.name!),
         );
         if (!match) {
           console.error(chalk.red(`Credential "${options.name}" not found.`));
@@ -149,10 +159,18 @@ export function registerCredentialsCommand(program: Command): void {
     .command("credentials")
     .description("Manage stored credentials for authenticated testing")
     .argument("<action>", "add | remove | list | test")
-    .option("--provider <provider>", "Credential provider: native, bitwarden, 1password, azure-key-vault, custom-http", "native")
+    .option(
+      "--provider <provider>",
+      "Credential provider: native, bitwarden, 1password, azure-key-vault, custom-http",
+      "native",
+    )
     .option("--name <name>", "Credential name/label")
     .option("--domain <domain>", "Domain the credential is for")
-    .option("--type <type>", "Credential type: password, api-key, oauth, totp, certificate", "password")
+    .option(
+      "--type <type>",
+      "Credential type: password, api-key, oauth, totp, certificate",
+      "password",
+    )
     .option("--json", "Output as JSON")
     .action(async (action: string, opts: CredentialsOptions) => {
       await runCredentials(action, opts);

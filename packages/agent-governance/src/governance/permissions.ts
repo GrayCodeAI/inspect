@@ -24,7 +24,19 @@ export interface AgentPermissions {
 const DEFAULT_PERMISSIONS: AgentPermissions = {
   allowedDomains: ["*"],
   blockedDomains: [],
-  allowedActions: ["navigate", "click", "type", "select", "scroll", "hover", "screenshot", "extract", "assert", "wait", "press"],
+  allowedActions: [
+    "navigate",
+    "click",
+    "type",
+    "select",
+    "scroll",
+    "hover",
+    "screenshot",
+    "extract",
+    "assert",
+    "wait",
+    "press",
+  ],
   blockedActions: [],
   maxFileUploadSize: 10 * 1024 * 1024, // 10MB
   allowFormSubmission: true,

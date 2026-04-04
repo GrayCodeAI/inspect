@@ -74,9 +74,7 @@ export class CustomHTTPProvider {
   /**
    * List all credentials.
    */
-  async list(
-    filter?: Record<string, string>,
-  ): Promise<HTTPCredentialResponse[]> {
+  async list(filter?: Record<string, string>): Promise<HTTPCredentialResponse[]> {
     let path = this.config.paths!.list!;
     if (filter) {
       const params = new URLSearchParams(filter).toString();
@@ -88,14 +86,10 @@ export class CustomHTTPProvider {
       return parsed.map((item: Record<string, unknown>) => this.normalizeItem(item));
     }
     if (parsed.data && Array.isArray(parsed.data)) {
-      return parsed.data.map((item: Record<string, unknown>) =>
-        this.normalizeItem(item),
-      );
+      return parsed.data.map((item: Record<string, unknown>) => this.normalizeItem(item));
     }
     if (parsed.items && Array.isArray(parsed.items)) {
-      return parsed.items.map((item: Record<string, unknown>) =>
-        this.normalizeItem(item),
-      );
+      return parsed.items.map((item: Record<string, unknown>) => this.normalizeItem(item));
     }
     return [];
   }
@@ -103,31 +97,18 @@ export class CustomHTTPProvider {
   /**
    * Create a credential.
    */
-  async create(
-    data: Record<string, unknown>,
-  ): Promise<HTTPCredentialResponse> {
+  async create(data: Record<string, unknown>): Promise<HTTPCredentialResponse> {
     const path = this.config.paths!.create!;
-    const response = await this.request(
-      "POST",
-      path,
-      JSON.stringify(data),
-    );
+    const response = await this.request("POST", path, JSON.stringify(data));
     return this.parseResponse(response);
   }
 
   /**
    * Update a credential.
    */
-  async update(
-    id: string,
-    data: Record<string, unknown>,
-  ): Promise<HTTPCredentialResponse> {
+  async update(id: string, data: Record<string, unknown>): Promise<HTTPCredentialResponse> {
     const path = this.resolvePath(this.config.paths!.update!, { id });
-    const response = await this.request(
-      "PUT",
-      path,
-      JSON.stringify(data),
-    );
+    const response = await this.request("PUT", path, JSON.stringify(data));
     return this.parseResponse(response);
   }
 
@@ -153,8 +134,7 @@ export class CustomHTTPProvider {
     } catch (error) {
       return {
         connected: false,
-        message:
-          error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -162,11 +142,7 @@ export class CustomHTTPProvider {
   /**
    * Make an HTTP request to the credential API.
    */
-  private request(
-    method: string,
-    path: string,
-    body?: string,
-  ): Promise<string> {
+  private request(method: string, path: string, body?: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const url = new URL(path, this.config.baseUrl);
       const isHttps = url.protocol === "https:";
@@ -195,8 +171,7 @@ export class CustomHTTPProvider {
           break;
         case "api-key":
           if (this.config.authToken) {
-            const headerName =
-              this.config.authHeaderName ?? "X-API-Key";
+            const headerName = this.config.authHeaderName ?? "X-API-Key";
             headers[headerName] = this.config.authToken;
           }
           break;
@@ -228,11 +203,7 @@ export class CustomHTTPProvider {
             const statusCode = res.statusCode ?? 0;
 
             if (statusCode >= 400) {
-              reject(
-                new Error(
-                  `Custom HTTP provider error (${statusCode}): ${responseBody}`,
-                ),
-              );
+              reject(new Error(`Custom HTTP provider error (${statusCode}): ${responseBody}`));
               return;
             }
 
@@ -258,10 +229,7 @@ export class CustomHTTPProvider {
   /**
    * Resolve path template variables.
    */
-  private resolvePath(
-    template: string,
-    vars: Record<string, string>,
-  ): string {
+  private resolvePath(template: string, vars: Record<string, string>): string {
     let result = template;
     for (const [key, value] of Object.entries(vars)) {
       result = result.replace(`:${key}`, encodeURIComponent(value));
@@ -280,14 +248,11 @@ export class CustomHTTPProvider {
   /**
    * Normalize an API response item to our standard format.
    */
-  private normalizeItem(
-    item: Record<string, unknown>,
-  ): HTTPCredentialResponse {
+  private normalizeItem(item: Record<string, unknown>): HTTPCredentialResponse {
     return {
       id: String(item.id ?? item._id ?? item.key ?? ""),
-      data: (item.data as Record<string, unknown>) ??
-        (item.value as Record<string, unknown>) ??
-        item,
+      data:
+        (item.data as Record<string, unknown>) ?? (item.value as Record<string, unknown>) ?? item,
       metadata: (item.metadata as Record<string, unknown>) ?? undefined,
     };
   }

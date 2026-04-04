@@ -17,10 +17,7 @@ export const BROWSER_CONFIGS: BrowserCookieConfig[] = [
     paths: {
       darwin: ["~/Library/Application Support/Google/Chrome"],
       linux: ["~/.config/google-chrome"],
-      win32: [
-        "%LOCALAPPDATA%\\Google\\Chrome\\User Data",
-        "%APPDATA%\\Google\\Chrome\\User Data",
-      ],
+      win32: ["%LOCALAPPDATA%\\Google\\Chrome\\User Data", "%APPDATA%\\Google\\Chrome\\User Data"],
     },
     cookieFile: "Cookies",
     encryption: "chromium",

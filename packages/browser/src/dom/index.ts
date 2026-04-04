@@ -17,11 +17,7 @@ export {
 } from "./multi-tree";
 
 // Visibility checks
-export {
-  isElementVisible,
-  type VisibilityOptions,
-  DEFAULT_VISIBILITY_OPTIONS,
-} from "./visibility";
+export { isElementVisible, type VisibilityOptions, DEFAULT_VISIBILITY_OPTIONS } from "./visibility";
 
 // Interactability checks
 export {

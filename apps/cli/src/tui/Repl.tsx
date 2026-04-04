@@ -277,7 +277,9 @@ function useGitInfo(): {
         let totalAdditions = 0;
         let totalDeletions = 0;
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const n1 = await (git as any).git.diff(["--numstat", "--cached"]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const n2 = await (git as any).git.diff(["--numstat"]);
           for (const line of [n1, n2].filter(Boolean).join("\n").split("\n").filter(Boolean)) {
             const p = line.split("\t");
@@ -442,7 +444,7 @@ async function handleSlash(
         if (!isRepo) return { kind: "error", text: "Not inside a git repository." };
         const branch = await git.getCurrentBranch();
         const files = await git.getChangedFiles("changes");
-        const diff = await git.getDiff("changes");
+        const _diff = await git.getDiff("changes");
         const commits = await git.getRecentCommits(3);
         if (files.length === 0)
           return { kind: "info", text: "No git changes detected. Nothing to test." };

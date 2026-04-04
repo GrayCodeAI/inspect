@@ -1,12 +1,11 @@
-import { Effect, Layer, Schedule, ServiceMap } from "effect";
+import { Effect, Layer, ServiceMap } from "effect";
 import {
   InvalidCronExpressionError,
-  WorkflowAlreadyRunningError,
   WorkflowNotFoundError,
   WorkflowTriggerError,
 } from "./workflow-errors.js";
 import { WorkflowJob, WorkflowTrigger, WorkflowSchedule } from "./workflow-types.js";
-import { parse, isValid, nextRun } from "./cron-parser.js";
+import { isValid, nextRun } from "./cron-parser.js";
 
 interface ScheduledEntry {
   job: WorkflowJob;
@@ -38,7 +37,7 @@ export class WorkflowScheduler extends ServiceMap.Service<WorkflowScheduler>()(
       const mutableSchedules = new Map<string, MutableSchedule>();
       const mutableTriggers = new Map<string, MutableTrigger>();
 
-      const calculateNextRun = (cronExpression: string, timezone: string) => {
+      const calculateNextRun = (cronExpression: string, _timezone: string) => {
         if (!isValid(cronExpression)) {
           return Effect.fail(new InvalidCronExpressionError({ expression: cronExpression }));
         }

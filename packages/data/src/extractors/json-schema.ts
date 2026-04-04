@@ -111,9 +111,7 @@ Return ONLY valid JSON.`;
 
         lastErrors = errors;
       } catch (error) {
-        lastErrors = [
-          error instanceof Error ? error.message : String(error),
-        ];
+        lastErrors = [error instanceof Error ? error.message : String(error)];
       }
     }
 
@@ -128,11 +126,7 @@ Return ONLY valid JSON.`;
   /**
    * Validate data against a JSON Schema.
    */
-  validate(
-    data: unknown,
-    schema: JSONSchemaDefinition,
-    path: string = "",
-  ): string[] {
+  validate(data: unknown, schema: JSONSchemaDefinition, path: string = ""): string[] {
     const errors: string[] = [];
     const prefix = path ? `${path}: ` : "";
 
@@ -156,28 +150,20 @@ Return ONLY valid JSON.`;
 
     // Enum validation
     if (schema.enum && !schema.enum.includes(data)) {
-      errors.push(
-        `${prefix}value must be one of: ${schema.enum.map(String).join(", ")}`,
-      );
+      errors.push(`${prefix}value must be one of: ${schema.enum.map(String).join(", ")}`);
     }
 
     // String validations
     if (typeof data === "string") {
       if (schema.minLength !== undefined && data.length < schema.minLength) {
-        errors.push(
-          `${prefix}string too short (min ${schema.minLength})`,
-        );
+        errors.push(`${prefix}string too short (min ${schema.minLength})`);
       }
       if (schema.maxLength !== undefined && data.length > schema.maxLength) {
-        errors.push(
-          `${prefix}string too long (max ${schema.maxLength})`,
-        );
+        errors.push(`${prefix}string too long (max ${schema.maxLength})`);
       }
       if (schema.pattern) {
         if (!new RegExp(schema.pattern).test(data)) {
-          errors.push(
-            `${prefix}does not match pattern: ${schema.pattern}`,
-          );
+          errors.push(`${prefix}does not match pattern: ${schema.pattern}`);
         }
       }
       if (schema.format) {
@@ -215,13 +201,7 @@ Return ONLY valid JSON.`;
       if (schema.properties) {
         for (const [key, propSchema] of Object.entries(schema.properties)) {
           if (key in obj) {
-            errors.push(
-              ...this.validate(
-                obj[key],
-                propSchema,
-                path ? `${path}.${key}` : key,
-              ),
-            );
+            errors.push(...this.validate(obj[key], propSchema, path ? `${path}.${key}` : key));
           }
         }
       }
@@ -230,9 +210,7 @@ Return ONLY valid JSON.`;
     // Array validations
     if (schema.type === "array" && Array.isArray(data) && schema.items) {
       for (let i = 0; i < data.length; i++) {
-        errors.push(
-          ...this.validate(data[i], schema.items, `${path}[${i}]`),
-        );
+        errors.push(...this.validate(data[i], schema.items, `${path}[${i}]`));
       }
     }
 
@@ -242,10 +220,7 @@ Return ONLY valid JSON.`;
   /**
    * Map and convert data to match schema types.
    */
-  mapAndConvert(
-    data: unknown,
-    schema: JSONSchemaDefinition,
-  ): unknown {
+  mapAndConvert(data: unknown, schema: JSONSchemaDefinition): unknown {
     if (data === null || data === undefined) {
       return schema.default ?? data;
     }
@@ -285,9 +260,7 @@ Return ONLY valid JSON.`;
             result[key] = this.mapAndConvert(obj[key], propSchema);
           } else {
             // Case-insensitive lookup
-            const match = Object.keys(obj).find(
-              (k) => k.toLowerCase() === key.toLowerCase(),
-            );
+            const match = Object.keys(obj).find((k) => k.toLowerCase() === key.toLowerCase());
             if (match) {
               result[key] = this.mapAndConvert(obj[match], propSchema);
             } else if (propSchema.default !== undefined) {
@@ -309,9 +282,7 @@ Return ONLY valid JSON.`;
   private validateFormat(value: string, format: string): string | null {
     switch (format) {
       case "email":
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-          ? null
-          : "invalid email format";
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : "invalid email format";
       case "uri":
       case "url":
         try {
@@ -324,19 +295,13 @@ Return ONLY valid JSON.`;
       case "date":
         return isNaN(Date.parse(value)) ? "invalid date format" : null;
       case "date-time":
-        return isNaN(Date.parse(value))
-          ? "invalid date-time format"
-          : null;
+        return isNaN(Date.parse(value)) ? "invalid date-time format" : null;
       case "uuid":
-        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          value,
-        )
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
           ? null
           : "invalid UUID format";
       case "ipv4":
-        return /^(\d{1,3}\.){3}\d{1,3}$/.test(value)
-          ? null
-          : "invalid IPv4 format";
+        return /^(\d{1,3}\.){3}\d{1,3}$/.test(value) ? null : "invalid IPv4 format";
       default:
         return null;
     }

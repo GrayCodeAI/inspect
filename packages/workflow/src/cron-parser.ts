@@ -17,7 +17,7 @@ const PRESETS: Record<string, string> = {
   "@monthly": "0 0 1 * *",
 };
 
-interface CronField {
+interface _CronField {
   values: Set<number>;
   min: number;
   max: number;

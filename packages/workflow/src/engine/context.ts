@@ -127,9 +127,7 @@ export class WorkflowContext {
 
       if (value === undefined) {
         if (this.strictMode) {
-          throw new Error(
-            `Template variable '${trimmed}' is not defined in workflow context`,
-          );
+          throw new Error(`Template variable '${trimmed}' is not defined in workflow context`);
         }
         return "";
       }
@@ -149,11 +147,7 @@ export class WorkflowContext {
    * Changes to the child don't affect the parent.
    */
   createChild(additionalParams?: Record<string, unknown>): WorkflowContext {
-    const child = new WorkflowContext(
-      this.toObject(),
-      this.parameterSchema,
-      this.strictMode,
-    );
+    const child = new WorkflowContext(this.toObject(), this.parameterSchema, this.strictMode);
     if (additionalParams) {
       child.merge(additionalParams);
     }
@@ -169,9 +163,7 @@ export class WorkflowContext {
       const arr = this.resolveExpression(varName);
       if (!Array.isArray(arr)) {
         if (this.strictMode) {
-          throw new Error(
-            `Template #each variable '${varName}' is not an array`,
-          );
+          throw new Error(`Template #each variable '${varName}' is not an array`);
         }
         return "";
       }
@@ -186,13 +178,10 @@ export class WorkflowContext {
           rendered = rendered.replace(/\{\{this\}\}/g, String(item));
           // Replace {{this.property}} with item properties
           if (typeof item === "object" && item !== null) {
-            rendered = rendered.replace(
-              /\{\{this\.([^}]+)\}\}/g,
-              (_m: string, prop: string) => {
-                const val = (item as Record<string, unknown>)[prop.trim()];
-                return val !== undefined ? String(val) : "";
-              },
-            );
+            rendered = rendered.replace(/\{\{this\.([^}]+)\}\}/g, (_m: string, prop: string) => {
+              const val = (item as Record<string, unknown>)[prop.trim()];
+              return val !== undefined ? String(val) : "";
+            });
           }
           return rendered;
         })
@@ -204,8 +193,7 @@ export class WorkflowContext {
    * Process {{#if var}}...{{/if}} and {{#if var}}...{{else}}...{{/if}} blocks.
    */
   private processIfBlocks(template: string): string {
-    const ifRegex =
-      /\{\{#if\s+(\w[\w.]*)\}\}([\s\S]*?)(?:\{\{else\}\}([\s\S]*?))?\{\{\/if\}\}/g;
+    const ifRegex = /\{\{#if\s+(\w[\w.]*)\}\}([\s\S]*?)(?:\{\{else\}\}([\s\S]*?))?\{\{\/if\}\}/g;
     return template.replace(
       ifRegex,
       (_match, varName: string, truthyBody: string, falsyBody?: string) => {
@@ -253,30 +241,19 @@ export class WorkflowContext {
   /**
    * Validate a value against its parameter schema type.
    */
-  private validateType(
-    key: string,
-    value: unknown,
-    schema: WorkflowParameter,
-  ): void {
+  private validateType(key: string, value: unknown, schema: WorkflowParameter): void {
     const actualType = Array.isArray(value) ? "array" : typeof value;
     if (schema.type === "array" && !Array.isArray(value)) {
-      throw new Error(
-        `Parameter '${key}' expected type 'array' but got '${actualType}'`,
-      );
+      throw new Error(`Parameter '${key}' expected type 'array' but got '${actualType}'`);
+    }
+    if (schema.type !== "array" && schema.type !== "object" && actualType !== schema.type) {
+      throw new Error(`Parameter '${key}' expected type '${schema.type}' but got '${actualType}'`);
     }
     if (
-      schema.type !== "array" &&
-      schema.type !== "object" &&
-      actualType !== schema.type
+      schema.type === "object" &&
+      (typeof value !== "object" || value === null || Array.isArray(value))
     ) {
-      throw new Error(
-        `Parameter '${key}' expected type '${schema.type}' but got '${actualType}'`,
-      );
-    }
-    if (schema.type === "object" && (typeof value !== "object" || value === null || Array.isArray(value))) {
-      throw new Error(
-        `Parameter '${key}' expected type 'object' but got '${actualType}'`,
-      );
+      throw new Error(`Parameter '${key}' expected type 'object' but got '${actualType}'`);
     }
   }
 }

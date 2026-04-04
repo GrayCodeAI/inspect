@@ -243,17 +243,12 @@ export class Analytics {
    * @param userId - Unique user identifier
    * @param traits - User traits (e.g. plan, version, etc.)
    */
-  async identify(
-    userId: string,
-    traits: Record<string, unknown> = {},
-  ): Promise<void> {
+  async identify(userId: string, traits: Record<string, unknown> = {}): Promise<void> {
     if (!this.enabled) return;
 
     this.userId = userId;
 
-    await Promise.allSettled(
-      this.providers.map((provider) => provider.identify(userId, traits)),
-    );
+    await Promise.allSettled(this.providers.map((provider) => provider.identify(userId, traits)));
   }
 
   /**
@@ -268,9 +263,7 @@ export class Analytics {
     this.queue = [];
 
     try {
-      await Promise.allSettled(
-        this.providers.map((provider) => provider.sendBatch(events)),
-      );
+      await Promise.allSettled(this.providers.map((provider) => provider.sendBatch(events)));
     } finally {
       this.flushing = false;
     }
@@ -289,9 +282,7 @@ export class Analytics {
     await this.flush();
 
     // Shut down providers
-    await Promise.allSettled(
-      this.providers.map((provider) => provider.shutdown()),
-    );
+    await Promise.allSettled(this.providers.map((provider) => provider.shutdown()));
   }
 
   /**

@@ -9,7 +9,15 @@
 // import type { LLMProvider, LLMMessage } from "@inspect/llm";
 // TODO: Refactor to use Effect-TS LLMProviderService
 interface LLMProvider {
-  chat: (messages: unknown[], options?: { systemPrompt?: string; temperature?: number; maxTokens?: number; responseFormat?: string }) => Promise<{ content: string; usage: { totalTokens: number } }>;
+  chat: (
+    messages: unknown[],
+    options?: {
+      systemPrompt?: string;
+      temperature?: number;
+      maxTokens?: number;
+      responseFormat?: string;
+    },
+  ) => Promise<{ content: string; usage: { totalTokens: number } }>;
 }
 type LLMMessage = { role: string; content: string };
 import { createLogger } from "@inspect/observability";

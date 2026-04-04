@@ -173,7 +173,7 @@ export const generatePlaywrightSuite = (testSuite: VisualTestSuite): string => {
     return lines.join("\n");
   }
 
-  testSuite.cases.forEach((caseId, index) => {
+  testSuite.cases.forEach((caseId, _index) => {
     lines.push(`  test("case-${caseId}", async ({ page }) => {`);
     lines.push(`    await page.goto("/");`);
     lines.push(`    // TODO: implement test case ${caseId}`);

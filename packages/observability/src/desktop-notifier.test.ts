@@ -1,4 +1,4 @@
-import { describe, it} from "vitest";
+import { describe, it } from "vitest";
 import { DesktopNotifier } from "./desktop-notifier.js";
 
 describe("DesktopNotifier", () => {

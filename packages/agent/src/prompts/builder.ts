@@ -118,11 +118,7 @@ export class PromptBuilder {
   /**
    * Build the user prompt for a specific test instruction.
    */
-  buildUserPrompt(
-    instruction: string,
-    context: UserPromptContext,
-    snapshot?: string,
-  ): string {
+  buildUserPrompt(instruction: string, context: UserPromptContext, snapshot?: string): string {
     const parts: string[] = [];
 
     // Current state
@@ -211,7 +207,9 @@ Respond with a JSON action object:
 
     switch (config.scope) {
       case "full":
-        parts.push("Test the entire application. Cover all major user flows, edge cases, and error handling.");
+        parts.push(
+          "Test the entire application. Cover all major user flows, edge cases, and error handling.",
+        );
         break;
 
       case "changed":
@@ -221,7 +219,9 @@ Respond with a JSON action object:
             parts.push(`- ${file}`);
           }
         }
-        parts.push("\nTest flows that exercise these changes. Also run regression tests on related features.");
+        parts.push(
+          "\nTest flows that exercise these changes. Also run regression tests on related features.",
+        );
         break;
 
       case "component":
@@ -264,10 +264,7 @@ Respond with a JSON action object:
   }
 
   private buildToolsDocs(tools: string[]): string {
-    const parts = [
-      "## Available Tools",
-      "You can call the following tools during testing:",
-    ];
+    const parts = ["## Available Tools", "You can call the following tools during testing:"];
 
     for (const tool of tools) {
       parts.push(`- ${tool}`);
@@ -277,11 +274,7 @@ Respond with a JSON action object:
   }
 
   private buildReplayGuidance(flow: SavedFlow): string {
-    const parts = [
-      "## Replaying Saved Flow",
-      `Flow: ${flow.name}`,
-      `Mode: ${flow.mode}`,
-    ];
+    const parts = ["## Replaying Saved Flow", `Flow: ${flow.name}`, `Mode: ${flow.mode}`];
 
     if (flow.mode === "strict") {
       parts.push("\nFollow these steps exactly:");

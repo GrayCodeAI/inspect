@@ -205,9 +205,7 @@ export class InMemoryPatternStorage implements PatternStorage {
     }
 
     if (filter.tags) {
-      results = results.filter((p) =>
-        filter.tags!.some((t) => p.metadata.tags.includes(t))
-      );
+      results = results.filter((p) => filter.tags!.some((t) => p.metadata.tags.includes(t)));
     }
 
     if (filter.minSuccessRate !== undefined) {
@@ -261,7 +259,7 @@ export class PatternStore extends EventEmitter {
     context: PatternContext,
     sequence: PatternStep[],
     outcome: PatternOutcome,
-    metadata?: Partial<PatternMetadata>
+    metadata?: Partial<PatternMetadata>,
   ): Promise<LearnedPattern> {
     // Check for similar existing pattern
     const similar = await this.findSimilar(context);
@@ -311,7 +309,7 @@ export class PatternStore extends EventEmitter {
   private async updatePattern(
     pattern: LearnedPattern,
     sequence: PatternStep[],
-    outcome: PatternOutcome
+    outcome: PatternOutcome,
   ): Promise<LearnedPattern> {
     pattern.outcomes.push(outcome);
 
@@ -328,8 +326,7 @@ export class PatternStore extends EventEmitter {
     pattern.successRate = successes / pattern.outcomes.length;
 
     pattern.avgExecutionTime =
-      pattern.outcomes.reduce((sum, o) => sum + o.duration, 0) /
-      pattern.outcomes.length;
+      pattern.outcomes.reduce((sum, o) => sum + o.duration, 0) / pattern.outcomes.length;
 
     // Optionally update sequence if this one is shorter/more efficient
     if (sequence.length < pattern.sequence.length && outcome.result === "success") {
@@ -346,10 +343,7 @@ export class PatternStore extends EventEmitter {
    * Find patterns matching context
    */
   async findSimilar(context: PatternContext): Promise<PatternMatch[]> {
-    const candidates = await this.storage.findSimilar(
-      context,
-      this.config.similarityThreshold
-    );
+    const candidates = await this.storage.findSimilar(context, this.config.similarityThreshold);
 
     const matches: PatternMatch[] = [];
 
@@ -511,18 +505,15 @@ export class PatternStore extends EventEmitter {
   /**
    * Adapt pattern steps to new context
    */
-  private adaptSteps(
-    steps: PatternStep[],
-    context: PatternContext
-  ): PatternStep[] {
+  private adaptSteps(steps: PatternStep[], context: PatternContext): PatternStep[] {
     // Simple adaptation: update selectors if we have context selectors
     if (!context.selectors) return steps;
 
     return steps.map((step) => {
       if (step.selector && context.selectors) {
         // Try to find matching selector
-        const matchingSelector = context.selectors.find((s) =>
-          this.selectorSimilarity(s, step.selector!) > 0.8
+        const matchingSelector = context.selectors.find(
+          (s) => this.selectorSimilarity(s, step.selector!) > 0.8,
         );
 
         if (matchingSelector) {
@@ -581,7 +572,9 @@ export class PatternStore extends EventEmitter {
    * Export patterns
    */
   exportPatterns(filter?: PatternFilter): string {
-    const patterns = filter ? this.query(filter) : Promise.resolve(Array.from(this.patterns.values()));
+    const patterns = filter
+      ? this.query(filter)
+      : Promise.resolve(Array.from(this.patterns.values()));
     return JSON.stringify(patterns, null, 2);
   }
 
@@ -626,8 +619,7 @@ export class PatternStore extends EventEmitter {
     return {
       totalPatterns: this.patterns.size,
       byType,
-      averageSuccessRate:
-        this.patterns.size > 0 ? totalSuccessRate / this.patterns.size : 0,
+      averageSuccessRate: this.patterns.size > 0 ? totalSuccessRate / this.patterns.size : 0,
       totalUsages,
     };
   }
@@ -636,8 +628,6 @@ export class PatternStore extends EventEmitter {
 /**
  * Convenience function
  */
-export function createPatternStore(
-  config?: Partial<PatternStoreConfig>
-): PatternStore {
+export function createPatternStore(config?: Partial<PatternStoreConfig>): PatternStore {
   return new PatternStore(config);
 }

@@ -35,27 +35,18 @@ export class ExcelParser {
    * @param buffer - The XLSX file buffer
    * @param sheet - Optional sheet name or index to parse (parses all if not specified)
    */
-  async parse(
-    buffer: Buffer,
-    sheet?: string | number,
-  ): Promise<ExcelParseResult> {
+  async parse(buffer: Buffer, sheet?: string | number): Promise<ExcelParseResult> {
     // XLSX is a ZIP file containing XML files
     const files = await this.extractZip(buffer);
 
     // Parse shared strings (xl/sharedStrings.xml)
-    const sharedStrings = this.parseSharedStrings(
-      files.get("xl/sharedStrings.xml"),
-    );
+    const sharedStrings = this.parseSharedStrings(files.get("xl/sharedStrings.xml"));
 
     // Parse workbook to get sheet names (xl/workbook.xml)
-    const sheetNames = this.parseWorkbook(
-      files.get("xl/workbook.xml"),
-    );
+    const sheetNames = this.parseWorkbook(files.get("xl/workbook.xml"));
 
     // Parse sheet relationships to map sheet names to file paths
-    const sheetRels = this.parseRelationships(
-      files.get("xl/_rels/workbook.xml.rels"),
-    );
+    const sheetRels = this.parseRelationships(files.get("xl/_rels/workbook.xml.rels"));
 
     const sheets: ExcelSheet[] = [];
 
@@ -134,9 +125,7 @@ export class ExcelParser {
   /**
    * Parse relationships XML.
    */
-  private parseRelationships(
-    xml: string | undefined,
-  ): Map<string, string> {
+  private parseRelationships(xml: string | undefined): Map<string, string> {
     const rels = new Map<string, string>();
     if (!xml) return rels;
 
@@ -153,17 +142,15 @@ export class ExcelParser {
   /**
    * Parse a sheet XML and return rows of string values.
    */
-  private parseSheet(
-    xml: string,
-    sharedStrings: string[],
-  ): string[][] {
+  private parseSheet(xml: string, sharedStrings: string[]): string[][] {
     const rows: string[][] = [];
     const rowRegex = /<row[^>]*>([\s\S]*?)<\/row>/g;
     let rowMatch: RegExpExecArray | null;
 
     while ((rowMatch = rowRegex.exec(xml)) !== null) {
       const cells: Array<{ col: number; value: string }> = [];
-      const cellRegex = /<c\s+r="([^"]*)"[^>]*(?:t="([^"]*)")?[^>]*>(?:[\s\S]*?<v>([\s\S]*?)<\/v>)?[\s\S]*?<\/c>/g;
+      const cellRegex =
+        /<c\s+r="([^"]*)"[^>]*(?:t="([^"]*)")?[^>]*>(?:[\s\S]*?<v>([\s\S]*?)<\/v>)?[\s\S]*?<\/c>/g;
       let cellMatch: RegExpExecArray | null;
 
       while ((cellMatch = cellRegex.exec(rowMatch[1])) !== null) {
@@ -184,9 +171,7 @@ export class ExcelParser {
         } else if (type === "inlineStr") {
           // Inline string
           const isMatch = rawValue.match(/<t[^>]*>([\s\S]*?)<\/t>/);
-          value = isMatch
-            ? this.decodeXMLEntities(isMatch[1])
-            : rawValue;
+          value = isMatch ? this.decodeXMLEntities(isMatch[1]) : rawValue;
         } else {
           value = this.decodeXMLEntities(rawValue);
         }
@@ -215,8 +200,7 @@ export class ExcelParser {
     const colStr = ref.replace(/\d+/g, "");
     let index = 0;
     for (let i = 0; i < colStr.length; i++) {
-      index =
-        index * 26 + (colStr.charCodeAt(i) - "A".charCodeAt(0) + 1);
+      index = index * 26 + (colStr.charCodeAt(i) - "A".charCodeAt(0) + 1);
     }
     return index - 1;
   }
@@ -224,9 +208,7 @@ export class ExcelParser {
   /**
    * Extract files from a ZIP buffer (minimal ZIP parser).
    */
-  private async extractZip(
-    buffer: Buffer,
-  ): Promise<Map<string, string>> {
+  private async extractZip(buffer: Buffer): Promise<Map<string, string>> {
     const files = new Map<string, string>();
 
     // Find end of central directory record
@@ -270,21 +252,14 @@ export class ExcelParser {
       const commentLength = buffer.readUInt16LE(offset + 32);
       const localHeaderOffset = buffer.readUInt32LE(offset + 42);
 
-      const fileName = buffer
-        .subarray(offset + 46, offset + 46 + fileNameLength)
-        .toString("utf-8");
+      const fileName = buffer.subarray(offset + 46, offset + 46 + fileNameLength).toString("utf-8");
 
       // Only process XML files
       if (fileName.endsWith(".xml") || fileName.endsWith(".rels")) {
         // Read from local file header
-        const localNameLength = buffer.readUInt16LE(
-          localHeaderOffset + 26,
-        );
-        const localExtraLength = buffer.readUInt16LE(
-          localHeaderOffset + 28,
-        );
-        const dataStart =
-          localHeaderOffset + 30 + localNameLength + localExtraLength;
+        const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+        const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+        const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
         const dataEnd = dataStart + compressedSize;
         const rawData = buffer.subarray(dataStart, dataEnd);
 
@@ -298,8 +273,7 @@ export class ExcelParser {
             const inflated = await inflateRaw(rawData);
             content = inflated.toString("utf-8");
           } else {
-            offset +=
-              46 + fileNameLength + extraFieldLength + commentLength;
+            offset += 46 + fileNameLength + extraFieldLength + commentLength;
             continue;
           }
           files.set(fileName, content);
@@ -308,8 +282,7 @@ export class ExcelParser {
         }
       }
 
-      offset +=
-        46 + fileNameLength + extraFieldLength + commentLength;
+      offset += 46 + fileNameLength + extraFieldLength + commentLength;
     }
 
     return files;
@@ -325,11 +298,7 @@ export class ExcelParser {
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&apos;/g, "'")
-      .replace(/&#(\d+);/g, (_, num: string) =>
-        String.fromCharCode(parseInt(num, 10)),
-      )
-      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) =>
-        String.fromCharCode(parseInt(hex, 16)),
-      );
+      .replace(/&#(\d+);/g, (_, num: string) => String.fromCharCode(parseInt(num, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
   }
 }

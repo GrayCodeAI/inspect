@@ -105,9 +105,7 @@ Respond with ONLY the JSON data.`;
         // Collect Zod errors
         lastErrors = this.formatZodErrors(result.error);
       } catch (error) {
-        lastErrors = [
-          error instanceof Error ? error.message : String(error),
-        ];
+        lastErrors = [error instanceof Error ? error.message : String(error)];
       }
     }
 
@@ -139,10 +137,7 @@ Respond with ONLY the JSON data.`;
   /**
    * Recursively describe a Zod definition.
    */
-  private describeZodDef(
-    def: Record<string, unknown>,
-    depth: number,
-  ): string {
+  private describeZodDef(def: Record<string, unknown>, depth: number): string {
     const indent = "  ".repeat(depth);
     const typeName = String(def.typeName ?? "");
 
@@ -153,17 +148,13 @@ Respond with ONLY the JSON data.`;
           | undefined;
         if (!shape) return `${indent}object`;
 
-        const shapeObj =
-          typeof shape === "function" ? shape() : shape;
+        const shapeObj = typeof shape === "function" ? shape() : shape;
         const lines = [`${indent}{`];
         for (const [key, value] of Object.entries(shapeObj)) {
           const fieldDef = (value as { _def: Record<string, unknown> })._def;
           const fieldDesc = this.describeZodDef(fieldDef, depth + 1);
-          const isOptional =
-            String(fieldDef.typeName) === "ZodOptional";
-          lines.push(
-            `${indent}  "${key}"${isOptional ? "?" : ""}: ${fieldDesc.trim()},`,
-          );
+          const isOptional = String(fieldDef.typeName) === "ZodOptional";
+          lines.push(`${indent}  "${key}"${isOptional ? "?" : ""}: ${fieldDesc.trim()},`);
         }
         lines.push(`${indent}}`);
         return lines.join("\n");
@@ -179,9 +170,7 @@ Respond with ONLY the JSON data.`;
         return `${indent}boolean`;
 
       case "ZodArray": {
-        const innerType = def.type as
-          | { _def: Record<string, unknown> }
-          | undefined;
+        const innerType = def.type as { _def: Record<string, unknown> } | undefined;
         if (innerType) {
           const inner = this.describeZodDef(innerType._def, depth);
           return `${indent}array of ${inner.trim()}`;
@@ -190,9 +179,7 @@ Respond with ONLY the JSON data.`;
       }
 
       case "ZodOptional": {
-        const innerType = def.innerType as
-          | { _def: Record<string, unknown> }
-          | undefined;
+        const innerType = def.innerType as { _def: Record<string, unknown> } | undefined;
         if (innerType) {
           return this.describeZodDef(innerType._def, depth);
         }
@@ -200,9 +187,7 @@ Respond with ONLY the JSON data.`;
       }
 
       case "ZodNullable": {
-        const innerType = def.innerType as
-          | { _def: Record<string, unknown> }
-          | undefined;
+        const innerType = def.innerType as { _def: Record<string, unknown> } | undefined;
         if (innerType) {
           return `${this.describeZodDef(innerType._def, depth).trim()} | null`;
         }
@@ -221,13 +206,9 @@ Respond with ONLY the JSON data.`;
         return `${indent}${JSON.stringify(def.value)}`;
 
       case "ZodUnion": {
-        const options = def.options as
-          | Array<{ _def: Record<string, unknown> }>
-          | undefined;
+        const options = def.options as Array<{ _def: Record<string, unknown> }> | undefined;
         if (options) {
-          return options
-            .map((o) => this.describeZodDef(o._def, depth).trim())
-            .join(" | ");
+          return options.map((o) => this.describeZodDef(o._def, depth).trim()).join(" | ");
         }
         return `${indent}union`;
       }
@@ -292,8 +273,6 @@ Respond with ONLY the JSON data.`;
    */
   private truncateContent(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;
-    return (
-      text.slice(0, maxLength) + "\n...[content truncated]"
-    );
+    return text.slice(0, maxLength) + "\n...[content truncated]";
   }
 }

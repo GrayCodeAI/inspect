@@ -12,7 +12,11 @@ export interface ScreenshotOptions {
   quality?: string;
 }
 
-async function captureScreenshot(url: string, output: string, options: ScreenshotOptions): Promise<void> {
+async function captureScreenshot(
+  url: string,
+  output: string,
+  options: ScreenshotOptions,
+): Promise<void> {
   console.log(chalk.dim(`Capturing screenshot of ${url}...`));
 
   const { BrowserManager } = await import("@inspect/browser");
@@ -84,14 +88,17 @@ export function registerScreenshotCommand(program: Command): void {
     .option("--wait-for-timeout <ms>", "Wait N ms before capture")
     .option("--color-scheme <scheme>", "Color scheme: light or dark")
     .option("--quality <1-100>", "JPEG quality (only for .jpg output)")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect screenshot https://example.com screenshot.png
   $ inspect screenshot https://myapp.com page.png --full-page
   $ inspect screenshot https://myapp.com mobile.png -d iphone-15
   $ inspect screenshot https://myapp.com hero.png --wait-for-selector ".hero-image"
   $ inspect screenshot https://myapp.com page.jpg --quality 80
-`)
+`,
+    )
     .action(async (url: string, output: string, opts: ScreenshotOptions) => {
       try {
         await captureScreenshot(url, output, opts);

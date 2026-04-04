@@ -118,7 +118,10 @@ export class ScoreHistory {
   /**
    * Get trend analysis for a URL's performance score.
    */
-  async getTrend(url: string, category: keyof LighthouseScore = "performance"): Promise<ScoreTrend | null> {
+  async getTrend(
+    url: string,
+    category: keyof LighthouseScore = "performance",
+  ): Promise<ScoreTrend | null> {
     const history = await this.load(url);
     if (history.length < 2) return null;
 

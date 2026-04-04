@@ -82,7 +82,7 @@ async function runReplay(file: string, options: ReplayOptions): Promise<void> {
       slowMo,
       viewport,
       isMobile,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     const page = await browserMgr.newPage();
 
@@ -108,7 +108,10 @@ async function runReplay(file: string, options: ReplayOptions): Promise<void> {
           case "navigate":
           case "goto":
             console.log(`${prefix} Navigate to ${step.url}`);
-            await page.goto(step.url!, { waitUntil: "domcontentloaded", timeout: step.timeout ?? 30000 });
+            await page.goto(step.url!, {
+              waitUntil: "domcontentloaded",
+              timeout: step.timeout ?? 30000,
+            });
             break;
 
           case "click":

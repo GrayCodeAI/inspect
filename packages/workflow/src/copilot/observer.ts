@@ -6,11 +6,7 @@ import { generateId } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("workflow/observer");
-import type {
-  WorkflowBlock,
-  WorkflowBlockType,
-  AgentAction,
-} from "@inspect/shared";
+import type { WorkflowBlock, WorkflowBlockType, AgentAction } from "@inspect/shared";
 
 /** Recorded browser action */
 export interface RecordedAction {
@@ -183,9 +179,7 @@ export class ActionObserver {
    * Merge related sequential actions into groups.
    * For example, clicking a field then typing merges into a "fill field" group.
    */
-  private mergeRelatedActions(
-    actions: RecordedAction[],
-  ): RecordedAction[][] {
+  private mergeRelatedActions(actions: RecordedAction[]): RecordedAction[][] {
     const groups: RecordedAction[][] = [];
     let currentGroup: RecordedAction[] = [];
 
@@ -257,9 +251,7 @@ export class ActionObserver {
   /**
    * Convert a group of related actions into a workflow block.
    */
-  private actionGroupToBlock(
-    group: RecordedAction[],
-  ): WorkflowBlock | null {
+  private actionGroupToBlock(group: RecordedAction[]): WorkflowBlock | null {
     if (group.length === 0) return null;
 
     const primary = group[0];
@@ -282,9 +274,7 @@ export class ActionObserver {
     if (group.length >= 2 && primary.type === "click") {
       const typeActions = group.filter((a) => a.type === "type");
       if (typeActions.length > 0) {
-        const combinedText = typeActions
-          .map((a) => a.value ?? "")
-          .join("");
+        const combinedText = typeActions.map((a) => a.value ?? "").join("");
         return {
           id: blockId,
           type: "task" as WorkflowBlockType,

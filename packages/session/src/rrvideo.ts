@@ -1,7 +1,9 @@
 import { Effect, Schema, ServiceMap } from "effect";
 import { RrVideoError } from "./errors.js";
 
-export class RrVideoConvertError extends Schema.ErrorClass<RrVideoConvertError>("RrVideoConvertError")({
+export class RrVideoConvertError extends Schema.ErrorClass<RrVideoConvertError>(
+  "RrVideoConvertError",
+)({
   _tag: Schema.tag("RrVideoConvertError"),
   cause: Schema.String,
 }) {

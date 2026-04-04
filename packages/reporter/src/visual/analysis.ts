@@ -12,7 +12,14 @@ export interface AnalysisLLM {
   chat(
     messages: Array<{
       role: "system" | "user" | "assistant";
-      content: string | Array<{ type: string; text?: string; image_base64?: { media_type: string; data: string }; image_url?: { url: string } }>;
+      content:
+        | string
+        | Array<{
+            type: string;
+            text?: string;
+            image_base64?: { media_type: string; data: string };
+            image_url?: { url: string };
+          }>;
     }>,
     tools?: undefined,
     options?: { maxTokens?: number; temperature?: number; responseFormat?: string },
@@ -45,7 +52,16 @@ export interface VisualChange {
   /** Where on the page */
   location: string;
   /** Category of change */
-  category: "layout" | "color" | "text" | "spacing" | "size" | "visibility" | "new_element" | "removed_element" | "other";
+  category:
+    | "layout"
+    | "color"
+    | "text"
+    | "spacing"
+    | "size"
+    | "visibility"
+    | "new_element"
+    | "removed_element"
+    | "other";
   /** Severity */
   severity: "critical" | "major" | "minor" | "trivial";
   /** Whether this is intentional (AI assessment) */
@@ -182,12 +198,18 @@ export class AIAnalysis {
   private buildPrompt(diff: VisualDiffResult, options?: AnalysisOptions): string {
     const parts: string[] = [];
 
-    parts.push("I have two screenshots: the FIRST image is the BASELINE (expected) and the SECOND image is the ACTUAL (current).");
-    parts.push(`\nDiff stats: ${diff.mismatchedPixels} pixels differ out of ${diff.totalPixels} (${diff.mismatchPercent.toFixed(2)}%).`);
+    parts.push(
+      "I have two screenshots: the FIRST image is the BASELINE (expected) and the SECOND image is the ACTUAL (current).",
+    );
+    parts.push(
+      `\nDiff stats: ${diff.mismatchedPixels} pixels differ out of ${diff.totalPixels} (${diff.mismatchPercent.toFixed(2)}%).`,
+    );
 
     if (diff.diffBoundingBox) {
       const bb = diff.diffBoundingBox;
-      parts.push(`Changes are concentrated in region: x=${bb.x}, y=${bb.y}, ${bb.width}x${bb.height} pixels.`);
+      parts.push(
+        `Changes are concentrated in region: x=${bb.x}, y=${bb.y}, ${bb.width}x${bb.height} pixels.`,
+      );
     }
 
     if (options?.pageName) {
@@ -198,21 +220,32 @@ export class AIAnalysis {
       parts.push(`\nChange context (what was modified in code):\n${options.changeContext}`);
     }
 
-    parts.push("\nAnalyze the visual differences and respond with a JSON object matching this schema:");
-    parts.push(JSON.stringify({
-      assessment: "identical | minor_change | significant_change | regression | improvement",
-      confidence: "number 0-1",
-      summary: "string - one paragraph summary",
-      changes: [{
-        description: "string",
-        location: "string (e.g., 'top navigation bar', 'login form')",
-        category: "layout | color | text | spacing | size | visibility | new_element | removed_element | other",
-        severity: "critical | major | minor | trivial",
-        likelyIntentional: "boolean",
-      }],
-      shouldBlock: "boolean - true if this should block the CI pipeline",
-      suggestedAction: "accept | review | reject",
-    }, null, 2));
+    parts.push(
+      "\nAnalyze the visual differences and respond with a JSON object matching this schema:",
+    );
+    parts.push(
+      JSON.stringify(
+        {
+          assessment: "identical | minor_change | significant_change | regression | improvement",
+          confidence: "number 0-1",
+          summary: "string - one paragraph summary",
+          changes: [
+            {
+              description: "string",
+              location: "string (e.g., 'top navigation bar', 'login form')",
+              category:
+                "layout | color | text | spacing | size | visibility | new_element | removed_element | other",
+              severity: "critical | major | minor | trivial",
+              likelyIntentional: "boolean",
+            },
+          ],
+          shouldBlock: "boolean - true if this should block the CI pipeline",
+          suggestedAction: "accept | review | reject",
+        },
+        null,
+        2,
+      ),
+    );
 
     return parts.join("\n");
   }

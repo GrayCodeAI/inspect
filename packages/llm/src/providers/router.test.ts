@@ -1,4 +1,4 @@
-import { describe, it, expect} from "vitest";
+import { describe, it, expect } from "vitest";
 import { AgentRouter } from "./router.js";
 import { LLMError } from "./base.js";
 import { ClaudeProvider } from "./claude.js";
@@ -180,9 +180,7 @@ describe("AgentRouter", () => {
     it("uses configured fallback order over defaults", () => {
       const router = new AgentRouter({
         ...baseConfig,
-        fallbacks: [
-          { primary: "anthropic", fallbacks: ["deepseek"] },
-        ],
+        fallbacks: [{ primary: "anthropic", fallbacks: ["deepseek"] }],
       });
       const fallback = router.getFallback("anthropic");
       expect(fallback).not.toBeNull();

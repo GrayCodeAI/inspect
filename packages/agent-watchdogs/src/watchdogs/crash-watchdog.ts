@@ -4,7 +4,7 @@
  * Detects and handles browser crashes, page errors, and out-of-memory situations.
  */
 
-import type { Page, Browser, ConsoleMessage } from "playwright";
+import type { Page, ConsoleMessage } from "playwright";
 
 export interface CrashConfig {
   /** Monitor page errors */
@@ -118,6 +118,7 @@ export class CrashWatchdog {
     }
 
     if (this.consoleHandler) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       page.off("console" as any, this.consoleHandler);
       this.consoleHandler = undefined;
     }
@@ -166,13 +167,18 @@ export class CrashWatchdog {
     setInterval(async () => {
       try {
         const memory = await page.evaluate(() => {
-          const perf = performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } };
+          const perf = performance as unknown as {
+            memory?: { usedJSHeapSize: number; totalJSHeapSize: number };
+          };
           return perf.memory?.usedJSHeapSize || 0;
         });
 
         // If memory > 1GB, consider it a problem
         if (memory > 1024 * 1024 * 1024) {
-          this.checkForCrash("out-of-memory", `Memory usage: ${Math.round(memory / 1024 / 1024)}MB`);
+          this.checkForCrash(
+            "out-of-memory",
+            `Memory usage: ${Math.round(memory / 1024 / 1024)}MB`,
+          );
         }
       } catch {
         // Page might be crashed

@@ -1,4 +1,3 @@
-/* eslint-disable require-yield */
 import { Effect, Layer, ServiceMap, Schema, Option, Stream, Queue, Schedule } from "effect";
 import * as Error from "./errors.js";
 

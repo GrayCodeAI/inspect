@@ -17,7 +17,16 @@ interface WorkflowDefinition {
 
 interface WorkflowStep {
   name: string;
-  type: "test" | "navigate" | "visual" | "a11y" | "lighthouse" | "security" | "extract" | "wait" | "script";
+  type:
+    | "test"
+    | "navigate"
+    | "visual"
+    | "a11y"
+    | "lighthouse"
+    | "security"
+    | "extract"
+    | "wait"
+    | "script";
   config: Record<string, unknown>;
   continueOnError?: boolean;
 }
@@ -47,11 +56,9 @@ function parseWorkflowFile(filePath: string): WorkflowDefinition {
   if (ext === "yaml" || ext === "yml") {
     // Simple YAML parser for basic workflow files
     // In production this would use js-yaml
-    console.log(
-      chalk.dim("Full YAML parsing requires js-yaml — using JSON fallback")
-    );
+    console.log(chalk.dim("Full YAML parsing requires js-yaml — using JSON fallback"));
     throw new Error(
-      "YAML workflow files require the js-yaml package. Use JSON format or install js-yaml."
+      "YAML workflow files require the js-yaml package. Use JSON format or install js-yaml.",
     );
   }
 
@@ -98,7 +105,7 @@ async function runWorkflow(filePath: string): Promise<void> {
     console.log(
       chalk.dim(`[${stepNum}/${workflow.steps.length}]`) +
         ` ${chalk.bold(step.name)} ` +
-        chalk.dim(`(${step.type})`)
+        chalk.dim(`(${step.type})`),
     );
 
     const stepResult: { status: "pass" | "fail" | "skipped"; error?: string; evidence?: string } = {
@@ -113,61 +120,14 @@ async function runWorkflow(filePath: string): Promise<void> {
           const { AgentRouter } = await import("@inspect/agent");
 
           const browserMgr = new BrowserManager();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
-          const page = await browserMgr.newPage();
 
-          if (step.config.url) {
-            await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
-          }
-
-          const snapshotBuilder = new AriaSnapshotBuilder();
-          await snapshotBuilder.buildTree(page);
-          const snapshot = snapshotBuilder.getFormattedTree();
-
-          const instruction = (step.config.instruction ?? step.config.message ?? step.name) as string;
-          console.log(chalk.dim(`    Testing: ${instruction}`));
-
-          // Try to get an LLM response if API key is available
-          const apiKey = process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.GOOGLE_AI_KEY;
-          if (apiKey) {
-            const providerName = process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.OPENAI_API_KEY ? "openai" : "gemini";
-            const router = new AgentRouter({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              keys: { [providerName]: apiKey } as any,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              defaultProvider: providerName as any,
-            });
+          await browserMgr.launchBrowser({
+            headless: true,
+            viewport: { width: 1920, height: 1080 },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const provider = router.getProvider(providerName as any);
-            const response = await provider.chat([
-              { role: "system", content: "You are a browser testing agent. Analyze the page snapshot and respond with JSON: { \"passed\": boolean, \"evidence\": \"what you found\" }" },
-              { role: "user", content: `Instruction: ${instruction}\n\nPage snapshot:\n${snapshot.slice(0, 6000)}` },
-            ]);
-
-            try {
-              const result = JSON.parse(response.content.replace(/```json?\n?/g, "").replace(/```/g, "").trim());
-              stepResult.status = result.passed ? "pass" : "fail";
-              stepResult.evidence = result.evidence;
-            } catch {
-              stepResult.status = "pass";
-              stepResult.evidence = response.content.slice(0, 200);
-            }
-          } else {
-            console.log(chalk.yellow("    No API key — skipping LLM analysis, marking as pass"));
-            stepResult.status = "pass";
-          }
-
-          await browserMgr.closeBrowser();
-          break;
-        }
-
-        case "navigate": {
-          const { BrowserManager } = await import("@inspect/browser");
-          const browserMgr = new BrowserManager();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
+          } as any);
           const page = await browserMgr.newPage();
+
           const url = (step.config.url ?? step.config.value) as string | undefined;
           if (url) {
             await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -184,10 +144,17 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "a11y": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
+
+          await browserMgr.launchBrowser({
+            headless: true,
+            viewport: { width: 1920, height: 1080 },
+          } as any);
           const page = await browserMgr.newPage();
-          if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
+          if (step.config.url)
+            await page.goto(step.config.url as string, {
+              waitUntil: "domcontentloaded",
+              timeout: 30000,
+            });
 
           try {
             const { AccessibilityAuditor } = await import("@inspect/quality");
@@ -211,7 +178,9 @@ async function runWorkflow(filePath: string): Promise<void> {
           try {
             const { LighthouseAuditor } = await import("@inspect/quality");
             const auditor = new LighthouseAuditor();
-            const result = await auditor.run((step.config.url as string) ?? "http://localhost:3000");
+            const result = await auditor.run(
+              (step.config.url as string) ?? "http://localhost:3000",
+            );
             const minScore = (step.config.threshold as number) ?? 80;
             const score = result.scores.performance ?? 0;
             const displayScore = Math.round(score * 100);
@@ -228,12 +197,25 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "visual": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
-          const page = await browserMgr.newPage();
-          if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "networkidle", timeout: 30000 });
 
-          const screenshotPath = join(process.cwd(), ".inspect", "visual", "current", `${step.name.replace(/\s+/g, "-")}.png`);
+          await browserMgr.launchBrowser({
+            headless: true,
+            viewport: { width: 1920, height: 1080 },
+          } as any);
+          const page = await browserMgr.newPage();
+          if (step.config.url)
+            await page.goto(step.config.url as string, {
+              waitUntil: "networkidle",
+              timeout: 30000,
+            });
+
+          const screenshotPath = join(
+            process.cwd(),
+            ".inspect",
+            "visual",
+            "current",
+            `${step.name.replace(/\s+/g, "-")}.png`,
+          );
           const dir = join(process.cwd(), ".inspect", "visual", "current");
           if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
@@ -255,7 +237,11 @@ async function runWorkflow(filePath: string): Promise<void> {
             const execFile = promisify(execFileCb);
 
             const severity = (step.config.severity as string) ?? "medium,high,critical";
-            const { stdout } = await execFile("nuclei", ["-u", url, "-severity", severity, "-silent", "-json"], { timeout: 120000 });
+            const { stdout } = await execFile(
+              "nuclei",
+              ["-u", url, "-severity", severity, "-silent", "-json"],
+              { timeout: 120000 },
+            );
             const findings = stdout.trim().split("\n").filter(Boolean).length;
             stepResult.status = findings === 0 ? "pass" : "fail";
             stepResult.evidence = `${findings} finding(s) from nuclei scan`;
@@ -270,10 +256,18 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "extract": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
+
+          await browserMgr.launchBrowser({
+            headless: true,
+            viewport: { width: 1920, height: 1080 },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any);
           const page = await browserMgr.newPage();
-          if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
+          if (step.config.url)
+            await page.goto(step.config.url as string, {
+              waitUntil: "domcontentloaded",
+              timeout: 30000,
+            });
 
           const expression = (step.config.expression as string) ?? "document.title";
           const result = await page.evaluate(expression);
@@ -294,10 +288,17 @@ async function runWorkflow(filePath: string): Promise<void> {
         case "script": {
           const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
+
+          await browserMgr.launchBrowser({
+            headless: true,
+            viewport: { width: 1920, height: 1080 },
+          } as any);
           const page = await browserMgr.newPage();
-          if (step.config.url) await page.goto(step.config.url as string, { waitUntil: "domcontentloaded", timeout: 30000 });
+          if (step.config.url)
+            await page.goto(step.config.url as string, {
+              waitUntil: "domcontentloaded",
+              timeout: 30000,
+            });
 
           if (step.config.code) {
             await page.evaluate(step.config.code as string);
@@ -331,7 +332,9 @@ async function runWorkflow(filePath: string): Promise<void> {
       if (stepResult.status === "pass") {
         console.log(chalk.green(`  ✓ Passed (${duration}ms)`));
       } else {
-        console.log(chalk.red(`  ✗ Failed${stepResult.error ? `: ${stepResult.error}` : ""} (${duration}ms)`));
+        console.log(
+          chalk.red(`  ✗ Failed${stepResult.error ? `: ${stepResult.error}` : ""} (${duration}ms)`),
+        );
         if (!step.continueOnError) {
           results.status = "fail";
           console.log(chalk.red("\nWorkflow aborted due to step failure."));
@@ -360,8 +363,7 @@ async function runWorkflow(filePath: string): Promise<void> {
   }
 
   results.completedAt = new Date();
-  const totalDuration =
-    results.completedAt.getTime() - results.startedAt.getTime();
+  const totalDuration = results.completedAt.getTime() - results.startedAt.getTime();
 
   // Summary
   const passed = results.steps.filter((s) => s.status === "pass").length;
@@ -370,10 +372,10 @@ async function runWorkflow(filePath: string): Promise<void> {
 
   console.log(chalk.dim("\n─────────────────────────────────"));
   console.log(
-    `${chalk.bold("Result")}: ${results.status === "pass" ? chalk.green("PASS") : chalk.red("FAIL")}`
+    `${chalk.bold("Result")}: ${results.status === "pass" ? chalk.green("PASS") : chalk.red("FAIL")}`,
   );
   console.log(
-    `Steps: ${chalk.green(`${passed} passed`)}${failed > 0 ? `, ${chalk.red(`${failed} failed`)}` : ""}${skipped > 0 ? `, ${chalk.dim(`${skipped} skipped`)}` : ""}`
+    `Steps: ${chalk.green(`${passed} passed`)}${failed > 0 ? `, ${chalk.red(`${failed} failed`)}` : ""}${skipped > 0 ? `, ${chalk.dim(`${skipped} skipped`)}` : ""}`,
   );
   console.log(chalk.dim(`Duration: ${totalDuration}ms`));
 }
@@ -417,10 +419,7 @@ function createWorkflowTemplate(): void {
     ],
   };
 
-  const outputPath = resolve(
-    process.cwd(),
-    ".inspect/workflows/workflow.json"
-  );
+  const outputPath = resolve(process.cwd(), ".inspect/workflows/workflow.json");
   const dir = resolve(process.cwd(), ".inspect/workflows");
 
   if (!existsSync(dir)) {
@@ -429,7 +428,9 @@ function createWorkflowTemplate(): void {
 
   writeFileSync(outputPath, JSON.stringify(template, null, 2), "utf-8");
   console.log(chalk.green(`\nCreated workflow template: ${outputPath}`));
-  console.log(chalk.dim('Edit the file and run: inspect workflow run .inspect/workflows/workflow.json'));
+  console.log(
+    chalk.dim("Edit the file and run: inspect workflow run .inspect/workflows/workflow.json"),
+  );
 }
 
 function listWorkflows(): void {
@@ -441,11 +442,11 @@ function listWorkflows(): void {
   }
 
   const files = readdirSync(workflowDir).filter(
-    (f) => f.endsWith(".json") || f.endsWith(".yaml") || f.endsWith(".yml")
+    (f) => f.endsWith(".json") || f.endsWith(".yaml") || f.endsWith(".yml"),
   );
 
   if (files.length === 0) {
-    console.log(chalk.yellow('No workflow files found in .inspect/workflows/'));
+    console.log(chalk.yellow("No workflow files found in .inspect/workflows/"));
     return;
   }
 
@@ -455,9 +456,7 @@ function listWorkflows(): void {
       const filePath = join(workflowDir, file);
       const content = readFileSync(filePath, "utf-8");
       const workflow = JSON.parse(content) as WorkflowDefinition;
-      console.log(
-        `  ${chalk.bold(workflow.name)} ${chalk.dim(`(${file})`)}`
-      );
+      console.log(`  ${chalk.bold(workflow.name)} ${chalk.dim(`(${file})`)}`);
       if (workflow.description) {
         console.log(chalk.dim(`    ${workflow.description}`));
       }
@@ -474,8 +473,12 @@ async function observeWorkflow(): Promise<void> {
 
   const { BrowserManager } = await import("@inspect/browser");
   const browserMgr = new BrowserManager();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await browserMgr.launchBrowser({ headless: false, viewport: { width: 1920, height: 1080 } } as any);
+
+  await browserMgr.launchBrowser({
+    headless: true,
+    viewport: { width: 1920, height: 1080 },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   const page = await browserMgr.newPage();
 
   const recordedSteps: WorkflowStep[] = [];
@@ -579,10 +582,7 @@ function cronMatchesNow(expression: string): boolean {
   );
 }
 
-async function scheduleWorkflow(
-  file: string,
-  schedule: string
-): Promise<void> {
+async function scheduleWorkflow(file: string, schedule: string): Promise<void> {
   const resolved = resolve(file);
   if (!existsSync(resolved)) {
     console.error(chalk.red(`Workflow file not found: ${resolved}`));
@@ -595,13 +595,14 @@ async function scheduleWorkflow(
   // Validate the cron expression has 5 fields
   const parts = schedule.trim().split(/\s+/);
   if (parts.length < 5) {
-    console.error(chalk.red("Invalid cron expression. Expected 5 fields: minute hour day month weekday"));
+    console.error(
+      chalk.red("Invalid cron expression. Expected 5 fields: minute hour day month weekday"),
+    );
     process.exit(1);
   }
 
   // Try to use node-cron if available
   try {
-     
     const cronModuleName = "node-cron";
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cron: any = await import(cronModuleName);
@@ -626,7 +627,9 @@ async function scheduleWorkflow(
     await new Promise(() => {});
   } catch {
     // Fallback: poll every 60 seconds with built-in cron matching
-    console.log(chalk.yellow("node-cron not installed — using built-in cron polling (checks every 60s)."));
+    console.log(
+      chalk.yellow("node-cron not installed — using built-in cron polling (checks every 60s)."),
+    );
     console.log(chalk.green("Scheduler started."));
     console.log(chalk.dim("Press Ctrl+C to stop.\n"));
 
@@ -653,9 +656,7 @@ async function scheduleWorkflow(
 }
 
 export function registerWorkflowCommand(program: Command): void {
-  const workflow = program
-    .command("workflow")
-    .description("Manage and run test workflows");
+  const workflow = program.command("workflow").description("Manage and run test workflows");
 
   workflow
     .command("run")

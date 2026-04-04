@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach} from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { WorkflowScheduler } from "./scheduler.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -44,9 +44,9 @@ describe("WorkflowScheduler", () => {
     });
 
     it("rejects invalid cron expressions", async () => {
-      await expect(
-        scheduler.schedule("wf-1", "not a cron"),
-      ).rejects.toThrow("Invalid cron expression");
+      await expect(scheduler.schedule("wf-1", "not a cron")).rejects.toThrow(
+        "Invalid cron expression",
+      );
     });
 
     it("calculates nextRunAt", async () => {
@@ -143,9 +143,9 @@ describe("WorkflowScheduler", () => {
     it("rejects invalid cron on update", async () => {
       const entry = await scheduler.schedule("wf-1", "0 9 * * *");
 
-      await expect(
-        scheduler.updateCron(entry.id, "bad"),
-      ).rejects.toThrow("Invalid cron expression");
+      await expect(scheduler.updateCron(entry.id, "bad")).rejects.toThrow(
+        "Invalid cron expression",
+      );
     });
   });
 

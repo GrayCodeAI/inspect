@@ -84,7 +84,13 @@ describe("FallbackManager", () => {
 
   it("detects various retryable errors", async () => {
     const fallback = vi.fn().mockResolvedValue("ok");
-    const errors = ["429 Too Many Requests", "Request timed out", "500 Internal Server Error", "ECONNREFUSED", "fetch failed"];
+    const errors = [
+      "429 Too Many Requests",
+      "Request timed out",
+      "500 Internal Server Error",
+      "ECONNREFUSED",
+      "fetch failed",
+    ];
 
     for (const err of errors) {
       const primary = vi.fn().mockRejectedValue(new Error(err));

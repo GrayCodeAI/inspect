@@ -200,7 +200,7 @@ export class DynamicActionSystem extends EventEmitter {
   async execute(
     actionName: string,
     parameters: Record<string, unknown>,
-    context: ExecutionContext
+    context: ExecutionContext,
   ): Promise<ActionExecutionResult> {
     const action = this.actions.get(actionName);
     if (!action) {
@@ -291,7 +291,7 @@ export class DynamicActionSystem extends EventEmitter {
         if (composition.parallel) {
           // Execute in parallel
           const promises = composition.actions.map((a) =>
-            this.execute(a.action, { ...a.params, ...params }, context)
+            this.execute(a.action, { ...a.params, ...params }, context),
           );
           const parallelResults = await Promise.allSettled(promises);
           return { results: parallelResults };
@@ -317,7 +317,7 @@ export class DynamicActionSystem extends EventEmitter {
    */
   createFromTemplate(
     templateName: keyof typeof ACTION_TEMPLATES,
-    overrides: Partial<ActionDefinition>
+    overrides: Partial<ActionDefinition>,
   ): ActionDefinition {
     const template = ACTION_TEMPLATES[templateName];
     if (!template) {
@@ -336,10 +336,7 @@ export class DynamicActionSystem extends EventEmitter {
   /**
    * Generate action from natural language
    */
-  async generateAction(
-    description: string,
-    examples?: ActionExample[]
-  ): Promise<ActionDefinition> {
+  async generateAction(description: string, examples?: ActionExample[]): Promise<ActionDefinition> {
     // Parse description to infer parameters
     const parameters = this.inferParameters(description);
 
@@ -413,10 +410,7 @@ export class DynamicActionSystem extends EventEmitter {
   /**
    * Validate parameters
    */
-  private validateParameters(
-    action: CustomAction,
-    parameters: Record<string, unknown>
-  ): void {
+  private validateParameters(action: CustomAction, parameters: Record<string, unknown>): void {
     for (const param of action.parameters) {
       if (param.required && !(param.name in parameters)) {
         throw new Error(`Missing required parameter: ${param.name}`);
@@ -481,7 +475,11 @@ export class DynamicActionSystem extends EventEmitter {
       });
     }
 
-    if (description.includes("text") || description.includes("type") || description.includes("fill")) {
+    if (
+      description.includes("text") ||
+      description.includes("type") ||
+      description.includes("fill")
+    ) {
       parameters.push({
         name: "text",
         type: "string",
@@ -512,7 +510,7 @@ export class DynamicActionSystem extends EventEmitter {
     const words = description
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
-      .split("\s+")
+      .split(/\s+/)
       .filter((w) => w.length > 3);
 
     if (words.length === 0) {
@@ -567,7 +565,7 @@ export class DynamicActionSystem extends EventEmitter {
  * Convenience function
  */
 export function createDynamicActionSystem(
-  config?: Partial<DynamicActionConfig>
+  config?: Partial<DynamicActionConfig>,
 ): DynamicActionSystem {
   return new DynamicActionSystem(config);
 }

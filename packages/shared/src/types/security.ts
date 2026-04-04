@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 /** Risk level classification */
-export type SecurityRisk = 'critical' | 'high' | 'medium' | 'low' | 'informational';
+export type SecurityRisk = "critical" | "high" | "medium" | "low" | "informational";
 
 /** Security alert from scanning */
 export interface SecurityAlert {
@@ -17,9 +17,9 @@ export interface SecurityAlert {
   wascid?: number;
   param?: string;
   attack?: string;
-  confidence?: 'confirmed' | 'high' | 'medium' | 'low' | 'false_positive';
+  confidence?: "confirmed" | "high" | "medium" | "low" | "false_positive";
   references?: string[];
-  source?: 'zap' | 'nuclei' | 'custom';
+  source?: "zap" | "nuclei" | "custom";
   owaspCategory?: string;
 }
 

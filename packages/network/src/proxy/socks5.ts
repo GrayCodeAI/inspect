@@ -60,11 +60,7 @@ export class Socks5Client {
    * 4. Send CONNECT request
    * 5. Return the tunneled socket
    */
-  async connect(
-    host: string,
-    port: number,
-    proxy: ProxyConfig,
-  ): Promise<Socks5ConnectResult> {
+  async connect(host: string, port: number, proxy: ProxyConfig): Promise<Socks5ConnectResult> {
     const proxyUrl = new URL(proxy.server.replace(/^socks5:\/\//, "http://"));
     const proxyHost = proxyUrl.hostname;
     const proxyPort = parseInt(proxyUrl.port || "1080", 10);
@@ -173,11 +169,7 @@ export class Socks5Client {
   /**
    * SOCKS5 username/password authentication (RFC 1929).
    */
-  private authenticate(
-    socket: net.Socket,
-    username: string,
-    password: string,
-  ): Promise<void> {
+  private authenticate(socket: net.Socket, username: string, password: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const userBuf = Buffer.from(username, "utf-8");
       const passBuf = Buffer.from(password, "utf-8");

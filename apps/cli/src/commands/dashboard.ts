@@ -44,12 +44,8 @@ async function openDashboard(options: DashboardOptions): Promise<void> {
     // Start embedded server + dashboard
     console.log(chalk.dim(`  No server found at ${host}:${port}, starting embedded server...\n`));
 
-    const {
-      APIServer,
-      SSEManager,
-      registerDashboardRoutes,
-      registerSystemRoutes,
-    } = await import("@inspect/api");
+    const { APIServer, SSEManager, registerDashboardRoutes, registerSystemRoutes } =
+      await import("@inspect/api");
 
     const { DashboardOrchestrator } = await import("@inspect/core");
 

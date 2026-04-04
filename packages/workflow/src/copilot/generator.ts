@@ -234,10 +234,7 @@ Respond with ONLY a valid JSON object with this structure:
   /**
    * Parse the LLM response into a WorkflowDefinition.
    */
-  private parseWorkflowResponse(
-    response: string,
-    description: string,
-  ): WorkflowDefinition {
+  private parseWorkflowResponse(response: string, description: string): WorkflowDefinition {
     // Try to extract JSON from the response
     let parsed: Record<string, unknown>;
 
@@ -245,7 +242,9 @@ Respond with ONLY a valid JSON object with this structure:
       // Try direct JSON parse
       parsed = JSON.parse(response);
     } catch (error) {
-      logger.debug("Direct JSON parse of LLM response failed, trying fallback extraction", { error });
+      logger.debug("Direct JSON parse of LLM response failed, trying fallback extraction", {
+        error,
+      });
       // Try to find JSON block in the response
       const jsonMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
       if (jsonMatch) {
@@ -289,15 +288,12 @@ Respond with ONLY a valid JSON object with this structure:
           id: String(rawBlock.id ?? generateId()),
           type: (rawBlock.type as WorkflowBlockType) ?? "task",
           label: String(rawBlock.label ?? "Untitled Block"),
-          parameters:
-            (rawBlock.parameters as Record<string, unknown>) ?? {},
+          parameters: (rawBlock.parameters as Record<string, unknown>) ?? {},
           nextBlockId: rawBlock.nextBlockId as string | undefined,
           errorBlockId: rawBlock.errorBlockId as string | undefined,
           maxRetries: rawBlock.maxRetries as number | undefined,
           timeout: rawBlock.timeout as number | undefined,
-          continueOnFailure: rawBlock.continueOnFailure as
-            | boolean
-            | undefined,
+          continueOnFailure: rawBlock.continueOnFailure as boolean | undefined,
         });
       }
     }
@@ -370,9 +366,7 @@ Respond with a JSON array.`;
 
     try {
       const response = await this.llm!.complete(prompt);
-      const parsed = JSON.parse(
-        response.replace(/```(?:json)?\s*\n?/g, "").replace(/\n?```/g, ""),
-      );
+      const parsed = JSON.parse(response.replace(/```(?:json)?\s*\n?/g, "").replace(/\n?```/g, ""));
 
       if (Array.isArray(parsed)) {
         return parsed.map((s: Record<string, unknown>) => ({
@@ -393,9 +387,7 @@ Respond with a JSON array.`;
   /**
    * Rule-based next block suggestions.
    */
-  private ruleSuggestNextBlock(
-    currentBlocks: WorkflowBlock[],
-  ): BlockSuggestion[] {
+  private ruleSuggestNextBlock(currentBlocks: WorkflowBlock[]): BlockSuggestion[] {
     const lastBlock = currentBlocks[currentBlocks.length - 1];
     const suggestions: BlockSuggestion[] = [];
 

@@ -56,10 +56,7 @@ export class TOTPGenerator {
   /**
    * Generate a TOTP code from a base32 secret (static convenience method).
    */
-  static generateCode(
-    secret: string,
-    options?: Partial<TOTPOptions>,
-  ): string {
+  static generateCode(secret: string, options?: Partial<TOTPOptions>): string {
     const generator = new TOTPGenerator({ secret, ...options });
     return generator.generate();
   }
@@ -71,11 +68,7 @@ export class TOTPGenerator {
    * @param window - Number of periods to check in each direction (default: 1)
    * @param time - Optional timestamp in ms (defaults to now)
    */
-  verify(
-    code: string,
-    window: number = 1,
-    time?: number,
-  ): TOTPVerifyResult {
+  verify(code: string, window: number = 1, time?: number): TOTPVerifyResult {
     const counter = this.getCounter(time);
 
     for (let delta = -window; delta <= window; delta++) {
@@ -100,11 +93,7 @@ export class TOTPGenerator {
   /**
    * Generate the otpauth:// URI for QR code generation.
    */
-  toURI(
-    issuer: string,
-    account: string,
-    secretBase32: string,
-  ): string {
+  toURI(issuer: string, account: string, secretBase32: string): string {
     const params = new URLSearchParams({
       secret: secretBase32.replace(/=/g, ""),
       issuer,
@@ -200,9 +189,7 @@ export class TOTPGenerator {
   private base32Decode(encoded: string): Buffer {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     // Remove padding and whitespace
-    const cleaned = encoded
-      .replace(/[\s=]/g, "")
-      .toUpperCase();
+    const cleaned = encoded.replace(/[\s=]/g, "").toUpperCase();
 
     let bits = 0;
     let value = 0;
@@ -211,9 +198,7 @@ export class TOTPGenerator {
     for (let i = 0; i < cleaned.length; i++) {
       const idx = alphabet.indexOf(cleaned[i]);
       if (idx === -1) {
-        throw new Error(
-          `Invalid base32 character: '${cleaned[i]}' at position ${i}`,
-        );
+        throw new Error(`Invalid base32 character: '${cleaned[i]}' at position ${i}`);
       }
 
       value = (value << 5) | idx;

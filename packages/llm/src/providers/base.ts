@@ -212,7 +212,10 @@ export abstract class LLMProvider {
     const truncated = body.length > 500 ? body.slice(0, 500) + "..." : body;
     // Redact anything that looks like an API key
     return truncated
-      .replace(/(?:key|token|secret|password|apiKey|api_key|authorization)["']?\s*[:=]\s*["']?[A-Za-z0-9_\-/.]{8,}["']?/gi, "[REDACTED]")
+      .replace(
+        /(?:key|token|secret|password|apiKey|api_key|authorization)["']?\s*[:=]\s*["']?[A-Za-z0-9_\-/.]{8,}["']?/gi,
+        "[REDACTED]",
+      )
       .replace(/sk-[A-Za-z0-9]{20,}/g, "[REDACTED]")
       .replace(/Bearer\s+[A-Za-z0-9_\-.]+/gi, "Bearer [REDACTED]");
   }

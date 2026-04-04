@@ -117,10 +117,10 @@ export class TestPrioritizer {
 
       const score = Math.round(
         factors.flakiness * weights.flakiness * 100 +
-        factors.failureRecency * weights.failureRecency * 100 +
-        factors.changeOverlap * weights.changeOverlap * 100 +
-        factors.speed * weights.speed * 100 +
-        factors.reliability * weights.reliability * 100,
+          factors.failureRecency * weights.failureRecency * 100 +
+          factors.changeOverlap * weights.changeOverlap * 100 +
+          factors.speed * weights.speed * 100 +
+          factors.reliability * weights.reliability * 100,
       );
 
       const reason = this.buildReason(factors, weights, changedSet.size > 0);
@@ -133,9 +133,7 @@ export class TestPrioritizer {
 
     // Identify skippable tests (very low priority)
     const threshold = 10;
-    const skippable = scored
-      .filter((s) => s.score <= threshold)
-      .map((s) => s.test);
+    const skippable = scored.filter((s) => s.score <= threshold).map((s) => s.test);
 
     const ranked = input.limit ? scored.slice(0, input.limit) : scored;
     const estimatedDurationMs = ranked.reduce(

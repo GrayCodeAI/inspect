@@ -5,13 +5,29 @@
 import type { LLMToolDefinition } from "@inspect/agent";
 
 /** Tools that modify page state and require a snapshot refresh afterward */
-export const VISUAL_TOOLS = new Set(["navigate", "click", "type", "select", "hover", "scroll", "keypress"]);
+export const VISUAL_TOOLS = new Set([
+  "navigate",
+  "click",
+  "type",
+  "select",
+  "hover",
+  "scroll",
+  "keypress",
+]);
 
 /** Tools that are observation-only and do NOT require a snapshot refresh */
 export const NON_VISUAL_TOOLS = new Set(["assert", "wait", "done", "totp", "screenshot"]);
 
 /** Tools worth caching for replay (excludes observation-only tools) */
-export const CACHEABLE_TOOLS = new Set(["navigate", "click", "type", "select", "hover", "scroll", "keypress"]);
+export const CACHEABLE_TOOLS = new Set([
+  "navigate",
+  "click",
+  "type",
+  "select",
+  "hover",
+  "scroll",
+  "keypress",
+]);
 
 export const AGENT_TOOLS: LLMToolDefinition[] = [
   {
@@ -75,7 +91,11 @@ export const AGENT_TOOLS: LLMToolDefinition[] = [
     parameters: {
       type: "object",
       properties: {
-        direction: { type: "string", enum: ["up", "down", "left", "right"], description: "Scroll direction" },
+        direction: {
+          type: "string",
+          enum: ["up", "down", "left", "right"],
+          description: "Scroll direction",
+        },
         amount: { type: "number", description: "Pixels to scroll (default 500)" },
       },
       required: ["direction"],
@@ -127,7 +147,8 @@ export const AGENT_TOOLS: LLMToolDefinition[] = [
   },
   {
     name: "assert",
-    description: "Record an assertion about the current page state. Use this to verify expected conditions.",
+    description:
+      "Record an assertion about the current page state. Use this to verify expected conditions.",
     parameters: {
       type: "object",
       properties: {

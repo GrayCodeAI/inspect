@@ -12,8 +12,4 @@ export { MCPServer } from "@inspect/browser";
 export { BROWSER_TOOLS } from "@inspect/browser";
 
 // MCP types from shared
-export type {
-  MCPToolDefinition,
-  ToolCall,
-  ToolResult,
-} from "@inspect/shared";
+export type { MCPToolDefinition, ToolCall, ToolResult } from "@inspect/shared";

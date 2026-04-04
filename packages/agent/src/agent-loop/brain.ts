@@ -50,7 +50,7 @@ export const NUDGE_TYPES = {
   FORCE: "force",
 } as const;
 
-export type NudgeType = typeof NUDGE_TYPES[keyof typeof NUDGE_TYPES];
+export type NudgeType = (typeof NUDGE_TYPES)[keyof typeof NUDGE_TYPES];
 
 /**
  * Nudge configuration
@@ -68,19 +68,22 @@ export interface NudgeConfig {
 export const ESCALATING_NUDGES: NudgeConfig[] = [
   {
     type: NUDGE_TYPES.REMINDER,
-    message: "⚠️ NOTICE: You may be repeating actions. Remember your goal and try a different approach.",
+    message:
+      "⚠️ NOTICE: You may be repeating actions. Remember your goal and try a different approach.",
     repetitionThreshold: 5,
     cooldownSteps: 3,
   },
   {
     type: NUDGE_TYPES.SUGGESTION,
-    message: "🔶 SUGGESTION: You're in a loop. Consider: (1) Check if task is already complete, (2) Try a completely different action, (3) Use the browser's search/navigation.",
+    message:
+      "🔶 SUGGESTION: You're in a loop. Consider: (1) Check if task is already complete, (2) Try a completely different action, (3) Use the browser's search/navigation.",
     repetitionThreshold: 8,
     cooldownSteps: 5,
   },
   {
     type: NUDGE_TYPES.FORCE,
-    message: "🛑 ACTION REQUIRED: You MUST try a different action type. Consider: clicking a different element, scrolling to find new content, or navigating to a different page.",
+    message:
+      "🛑 ACTION REQUIRED: You MUST try a different action type. Consider: clicking a different element, scrolling to find new content, or navigating to a different page.",
     repetitionThreshold: 12,
     cooldownSteps: 8,
   },

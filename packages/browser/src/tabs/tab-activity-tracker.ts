@@ -306,11 +306,7 @@ export class TabActivityTracker {
   /**
    * Record activity
    */
-  private recordActivity(
-    tabId: string,
-    type: ActivityType,
-    data?: unknown
-  ): void {
+  private recordActivity(tabId: string, type: ActivityType, data?: unknown): void {
     const activity: TabActivity = {
       tabId,
       type,
@@ -331,11 +327,7 @@ export class TabActivityTracker {
     const cutoff = Date.now() - this.config.inactiveTimeout;
 
     for (const [tabId, tab] of this.tabs) {
-      if (
-        tab.status !== "closed" &&
-        !tab.isActive &&
-        tab.lastActiveAt < cutoff
-      ) {
+      if (tab.status !== "closed" && !tab.isActive && tab.lastActiveAt < cutoff) {
         // Close the actual page
         for (const [page, id] of this.pageToTabId) {
           if (id === tabId) {
@@ -492,8 +484,6 @@ export class TabActivityTracker {
 /**
  * Convenience function
  */
-export function createTabActivityTracker(
-  config?: Partial<TabActivityConfig>
-): TabActivityTracker {
+export function createTabActivityTracker(config?: Partial<TabActivityConfig>): TabActivityTracker {
   return new TabActivityTracker(config);
 }

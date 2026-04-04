@@ -93,7 +93,8 @@ export class PageToMarkdown {
   }> {
     return page.evaluate(() => {
       const meta = (name: string) =>
-        document.querySelector(`meta[name="${name}"], meta[property="${name}"]`)
+        document
+          .querySelector(`meta[name="${name}"], meta[property="${name}"]`)
           ?.getAttribute("content") ?? "";
 
       return {
@@ -130,8 +131,10 @@ export class PageToMarkdown {
 
         function isInteractive(el: Element): boolean {
           const tag = el.tagName.toLowerCase();
-          if (["a", "button", "input", "select", "textarea", "details", "summary"].includes(tag)) return true;
-          if (el.hasAttribute("onclick") || el.hasAttribute("tabindex") || el.hasAttribute("role")) return true;
+          if (["a", "button", "input", "select", "textarea", "details", "summary"].includes(tag))
+            return true;
+          if (el.hasAttribute("onclick") || el.hasAttribute("tabindex") || el.hasAttribute("role"))
+            return true;
           if (el.getAttribute("contenteditable") === "true") return true;
           return false;
         }
@@ -141,10 +144,7 @@ export class PageToMarkdown {
         }
 
         function escapeMarkdown(text: string): string {
-          return text
-            .replace(/\|/g, "\\|")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+          return text.replace(/\|/g, "\\|").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
         function processNode(node: Node, depth: number = 0): string {
@@ -159,7 +159,8 @@ export class PageToMarkdown {
           const tag = el.tagName.toLowerCase();
 
           // Skip invisible, script, style, etc.
-          if (["script", "style", "noscript", "meta", "link", "template", "svg"].includes(tag)) return "";
+          if (["script", "style", "noscript", "meta", "link", "template", "svg"].includes(tag))
+            return "";
           if (!isVisible(el)) return "";
 
           const refTag = includeRefs && isInteractive(el) ? `[${getRef()}] ` : "";
@@ -173,17 +174,28 @@ export class PageToMarkdown {
 
           switch (tag) {
             // Headings
-            case "h1": return `\n\n# ${refTag}${children().trim()}\n\n`;
-            case "h2": return `\n\n## ${refTag}${children().trim()}\n\n`;
-            case "h3": return `\n\n### ${refTag}${children().trim()}\n\n`;
-            case "h4": return `\n\n#### ${refTag}${children().trim()}\n\n`;
-            case "h5": return `\n\n##### ${refTag}${children().trim()}\n\n`;
-            case "h6": return `\n\n###### ${refTag}${children().trim()}\n\n`;
+            case "h1":
+              return `\n\n# ${refTag}${children().trim()}\n\n`;
+            case "h2":
+              return `\n\n## ${refTag}${children().trim()}\n\n`;
+            case "h3":
+              return `\n\n### ${refTag}${children().trim()}\n\n`;
+            case "h4":
+              return `\n\n#### ${refTag}${children().trim()}\n\n`;
+            case "h5":
+              return `\n\n##### ${refTag}${children().trim()}\n\n`;
+            case "h6":
+              return `\n\n###### ${refTag}${children().trim()}\n\n`;
 
             // Block elements
-            case "p": return `\n\n${refTag}${children().trim()}\n\n`;
+            case "p":
+              return `\n\n${refTag}${children().trim()}\n\n`;
             case "blockquote": {
-              const content = children().trim().split("\n").map(l => `> ${l}`).join("\n");
+              const content = children()
+                .trim()
+                .split("\n")
+                .map((l) => `> ${l}`)
+                .join("\n");
               return `\n\n${content}\n\n`;
             }
             case "pre": {
@@ -192,8 +204,10 @@ export class PageToMarkdown {
               const text = (code ?? el).textContent ?? "";
               return `\n\n\`\`\`${langClass}\n${text.trim()}\n\`\`\`\n\n`;
             }
-            case "hr": return "\n\n---\n\n";
-            case "br": return "\n";
+            case "hr":
+              return "\n\n---\n\n";
+            case "br":
+              return "\n";
 
             // Lists
             case "ul": {
@@ -220,7 +234,8 @@ export class PageToMarkdown {
               }
               return `\n${items}\n`;
             }
-            case "li": return children();
+            case "li":
+              return children();
 
             // Tables
             case "table": {
@@ -251,7 +266,7 @@ export class PageToMarkdown {
 
               if (headerRows.length === 0) return "";
 
-              const maxCols = Math.max(...[...headerRows, ...rows].map(r => r.length));
+              const maxCols = Math.max(...[...headerRows, ...rows].map((r) => r.length));
               const pad = (cells: string[]) => {
                 while (cells.length < maxCols) cells.push("");
                 return `| ${cells.join(" | ")} |`;
@@ -316,11 +331,20 @@ export class PageToMarkdown {
             }
 
             // Semantic sections
-            case "nav": return `\n\n**Navigation:**\n${children()}\n`;
-            case "main": return children();
-            case "header": return children();
-            case "footer": return `\n\n---\n\n${children()}`;
-            case "aside": return `\n\n> **Aside:**\n${children().trim().split("\n").map(l => `> ${l}`).join("\n")}\n\n`;
+            case "nav":
+              return `\n\n**Navigation:**\n${children()}\n`;
+            case "main":
+              return children();
+            case "header":
+              return children();
+            case "footer":
+              return `\n\n---\n\n${children()}`;
+            case "aside":
+              return `\n\n> **Aside:**\n${children()
+                .trim()
+                .split("\n")
+                .map((l) => `> ${l}`)
+                .join("\n")}\n\n`;
             case "section":
             case "article":
             case "div":

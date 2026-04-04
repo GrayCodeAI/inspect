@@ -26,7 +26,7 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
 
   let viewport = { width: 1280, height: 720 };
   if (options.viewport) {
-    const [w, h] = options.viewport.split(/[x,]/).map(s => parseInt(s.trim(), 10));
+    const [w, h] = options.viewport.split(/[x,]/).map((s) => parseInt(s.trim(), 10));
     if (w && h) viewport = { width: w, height: h };
   }
   if (options.device) {
@@ -137,29 +137,43 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
       actions.push({ type: "navigate", url: navUrl, timestamp: Date.now() });
       console.log(chalk.dim(`  → navigate: ${navUrl}`));
       // Re-inject recording script after navigation
-      page.evaluate(`
+      page
+        .evaluate(
+          `
         if (!window.__inspectRecording) {
           // Script will be re-injected on next page load
         }
-      `).catch(() => {});
+      `,
+        )
+        .catch(() => {});
     }
   });
 
   // Poll for recorded actions
   const pollInterval = setInterval(async () => {
     try {
-      const pageActions = await page.evaluate(`window.__inspectActions || []`) as RecordedAction[];
-      for (let i = actions.length; i < pageActions.length + actions.filter(a => a.type === "navigate").length; i++) {
+      const pageActions = (await page.evaluate(
+        `window.__inspectActions || []`,
+      )) as RecordedAction[];
+      for (
+        let i = actions.length;
+        i < pageActions.length + actions.filter((a) => a.type === "navigate").length;
+        i++
+      ) {
         // Just display new actions
       }
       // Merge page actions into our list (avoiding duplicates of navigations we already track)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newActions = pageActions.filter((a: any) => a.type !== "navigate");
-      if (newActions.length > actions.filter(a => a.type !== "navigate").length) {
-        const added = newActions.slice(actions.filter(a => a.type !== "navigate").length);
+      if (newActions.length > actions.filter((a) => a.type !== "navigate").length) {
+        const added = newActions.slice(actions.filter((a) => a.type !== "navigate").length);
         for (const a of added) {
           actions.push(a as RecordedAction);
-          console.log(chalk.dim(`  → ${(a as RecordedAction).type}: ${(a as RecordedAction).selector ?? (a as RecordedAction).value ?? ""}`));
+          console.log(
+            chalk.dim(
+              `  → ${(a as RecordedAction).type}: ${(a as RecordedAction).selector ?? (a as RecordedAction).value ?? ""}`,
+            ),
+          );
         }
       }
     } catch {
@@ -181,8 +195,8 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
 
   // Collect final actions from page
   try {
-    const finalActions = await page.evaluate(`window.__inspectActions || []`) as RecordedAction[];
-    const navActions = actions.filter(a => a.type === "navigate");
+    const finalActions = (await page.evaluate(`window.__inspectActions || []`)) as RecordedAction[];
+    const navActions = actions.filter((a) => a.type === "navigate");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pageOnlyActions = finalActions.filter((a: any) => a.type !== "navigate");
     actions.length = 0;
@@ -216,17 +230,21 @@ async function runCodegen(url: string | undefined, options: CodegenOptions): Pro
     console.log(chalk.dim("--- Generated Test ---\n"));
     console.log(code);
     console.log(chalk.dim("\n--- End ---"));
-    console.log(chalk.dim('\nUse -o <file> to save to a file.'));
+    console.log(chalk.dim("\nUse -o <file> to save to a file."));
   }
 }
 
 function generateCode(actions: RecordedAction[], target: string, startUrl?: string): string {
   switch (target) {
-    case "yaml": return generateYAML(actions, startUrl);
+    case "yaml":
+      return generateYAML(actions, startUrl);
     case "typescript":
-    case "ts": return generateTypeScript(actions, startUrl);
-    case "json": return generateJSON(actions, startUrl);
-    default: return generateYAML(actions, startUrl);
+    case "ts":
+      return generateTypeScript(actions, startUrl);
+    case "json":
+      return generateJSON(actions, startUrl);
+    default:
+      return generateYAML(actions, startUrl);
   }
 }
 
@@ -303,18 +321,24 @@ function generateTypeScript(actions: RecordedAction[], _startUrl?: string): stri
 }
 
 function generateJSON(actions: RecordedAction[], startUrl?: string): string {
-  return JSON.stringify({
-    name: "Recorded test",
-    description: "Auto-generated from codegen recording",
-    url: startUrl,
-    steps: actions.map(a => ({
-      name: `${a.type} ${a.selector ?? a.url ?? a.value ?? ""}`.trim(),
-      action: a.type === "navigate" ? "goto" : a.type,
-      ...(a.url ? { url: a.url } : {}),
-      ...(a.selector ? { selector: a.selector } : {}),
-      ...(a.value && a.type !== "navigate" ? { value: a.value } : {}),
-    })),
-  }, null, 2) + "\n";
+  return (
+    JSON.stringify(
+      {
+        name: "Recorded test",
+        description: "Auto-generated from codegen recording",
+        url: startUrl,
+        steps: actions.map((a) => ({
+          name: `${a.type} ${a.selector ?? a.url ?? a.value ?? ""}`.trim(),
+          action: a.type === "navigate" ? "goto" : a.type,
+          ...(a.url ? { url: a.url } : {}),
+          ...(a.selector ? { selector: a.selector } : {}),
+          ...(a.value && a.type !== "navigate" ? { value: a.value } : {}),
+        })),
+      },
+      null,
+      2,
+    ) + "\n"
+  );
 }
 
 export function registerCodegenCommand(program: Command): void {
@@ -327,14 +351,17 @@ export function registerCodegenCommand(program: Command): void {
     .option("-d, --device <device>", "Emulate device preset")
     .option("--viewport <size>", "Viewport: WIDTHxHEIGHT")
     .option("-b, --browser <browser>", "Browser: chromium, firefox, webkit", "chromium")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect codegen https://myapp.com
   $ inspect codegen https://myapp.com -o tests/login.yaml
   $ inspect codegen https://myapp.com --target typescript -o tests/login.spec.ts
   $ inspect codegen https://myapp.com -d iphone-15
   $ inspect codegen --target json -o tests/flow.json
-`)
+`,
+    )
     .action(async (url: string | undefined, opts: CodegenOptions) => {
       try {
         await runCodegen(url, opts);

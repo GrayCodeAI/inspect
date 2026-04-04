@@ -68,10 +68,7 @@ export class Tracer {
   private exportTimer: ReturnType<typeof setInterval> | undefined;
   private serviceName: string;
 
-  constructor(options?: {
-    serviceName?: string;
-    exporter?: OTLPExporterConfig;
-  }) {
+  constructor(options?: { serviceName?: string; exporter?: OTLPExporterConfig }) {
     this.serviceName = options?.serviceName ?? "inspect";
 
     // Configure OTLP exporter if endpoint is provided
@@ -99,13 +96,11 @@ export class Tracer {
    * @param metadata - Initial span attributes
    * @returns The created span
    */
-  startSpan(
-    name: string,
-    metadata?: Record<string, unknown>,
-  ): Span {
-    const parentSpan = this.activeSpanStack.length > 0
-      ? this.activeSpanStack[this.activeSpanStack.length - 1]
-      : undefined;
+  startSpan(name: string, metadata?: Record<string, unknown>): Span {
+    const parentSpan =
+      this.activeSpanStack.length > 0
+        ? this.activeSpanStack[this.activeSpanStack.length - 1]
+        : undefined;
 
     const span: Span = {
       traceId: parentSpan?.traceId ?? generateTraceId(),
@@ -135,11 +130,7 @@ export class Tracer {
    * @param status - Final status (default: "ok")
    * @param attributes - Additional attributes to merge
    */
-  endSpan(
-    span: Span,
-    status?: SpanStatus,
-    attributes?: Record<string, unknown>,
-  ): void {
+  endSpan(span: Span, status?: SpanStatus, attributes?: Record<string, unknown>): void {
     span.endTime = Date.now();
     span.duration = span.endTime - span.startTime;
     span.status = status ?? "ok";
@@ -175,11 +166,7 @@ export class Tracer {
    * @param name - Event name
    * @param attributes - Event attributes
    */
-  addEvent(
-    span: Span,
-    name: string,
-    attributes?: Record<string, unknown>,
-  ): void {
+  addEvent(span: Span, name: string, attributes?: Record<string, unknown>): void {
     span.events.push({
       name,
       timestamp: Date.now(),
@@ -190,11 +177,7 @@ export class Tracer {
   /**
    * Set an attribute on a span.
    */
-  setAttribute(
-    span: Span,
-    key: string,
-    value: unknown,
-  ): void {
+  setAttribute(span: Span, key: string, value: unknown): void {
     if (!span.attributes) span.attributes = {};
     span.attributes[key] = value;
   }
@@ -324,9 +307,7 @@ export class Tracer {
       resourceSpans: [
         {
           resource: {
-            attributes: [
-              { key: "service.name", value: { stringValue: this.serviceName } },
-            ],
+            attributes: [{ key: "service.name", value: { stringValue: this.serviceName } }],
           },
           scopeSpans: [
             {
@@ -338,9 +319,7 @@ export class Tracer {
                 name: span.name,
                 kind: 1, // INTERNAL
                 startTimeUnixNano: String(span.startTime * 1_000_000),
-                endTimeUnixNano: span.endTime
-                  ? String(span.endTime * 1_000_000)
-                  : undefined,
+                endTimeUnixNano: span.endTime ? String(span.endTime * 1_000_000) : undefined,
                 attributes: span.attributes
                   ? Object.entries(span.attributes).map(([key, value]) => ({
                       key,
@@ -384,16 +363,12 @@ export class Tracer {
 /**
  * Serialize an attribute value to OTLP format.
  */
-function serializeAttributeValue(
-  value: unknown,
-): Record<string, unknown> {
+function serializeAttributeValue(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
     return { stringValue: value };
   }
   if (typeof value === "number") {
-    return Number.isInteger(value)
-      ? { intValue: String(value) }
-      : { doubleValue: value };
+    return Number.isInteger(value) ? { intValue: String(value) } : { doubleValue: value };
   }
   if (typeof value === "boolean") {
     return { boolValue: value };
@@ -411,9 +386,7 @@ function serializeAttributeValue(
 /**
  * Parse OTEL_EXPORTER_OTLP_HEADERS env var format: "key1=val1,key2=val2"
  */
-function parseOtlpHeaders(
-  headerStr?: string,
-): Record<string, string> | undefined {
+function parseOtlpHeaders(headerStr?: string): Record<string, string> | undefined {
   if (!headerStr) return undefined;
   const headers: Record<string, string> = {};
   for (const pair of headerStr.split(",")) {

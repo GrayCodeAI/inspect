@@ -9,9 +9,33 @@ function createMockPage(overrides?: Partial<PageInterface>): PageInterface {
     url: "https://example.com/login",
     title: "Login Page",
     elements: [
-      { ref: "e1", role: "button", name: "Login", tagName: "button", interactable: true, visible: true, value: "" },
-      { ref: "e2", role: "textbox", name: "Email", tagName: "input", interactable: true, visible: true, value: "" },
-      { ref: "e3", role: "textbox", name: "Password", tagName: "input", interactable: true, visible: true, value: "" },
+      {
+        ref: "e1",
+        role: "button",
+        name: "Login",
+        tagName: "button",
+        interactable: true,
+        visible: true,
+        value: "",
+      },
+      {
+        ref: "e2",
+        role: "textbox",
+        name: "Email",
+        tagName: "input",
+        interactable: true,
+        visible: true,
+        value: "",
+      },
+      {
+        ref: "e3",
+        role: "textbox",
+        name: "Password",
+        tagName: "input",
+        interactable: true,
+        visible: true,
+        value: "",
+      },
     ],
     timestamp: Date.now(),
   } as PageSnapshot;
@@ -58,7 +82,9 @@ describe("ActHandler.execute", () => {
   });
 
   it("resolves and executes a fill action", async () => {
-    const llm = createMockLLM('{"type":"fill","ref":"e2","value":"user@test.com","description":"Type email"}');
+    const llm = createMockLLM(
+      '{"type":"fill","ref":"e2","value":"user@test.com","description":"Type email"}',
+    );
     const page = createMockPage();
     const handler = new ActHandler(llm);
 
@@ -93,7 +119,8 @@ describe("ActHandler.execute", () => {
 
   it("retries on action failure with self-healing", async () => {
     const llm = {
-      chat: vi.fn()
+      chat: vi
+        .fn()
         .mockResolvedValueOnce({
           content: '{"type":"click","ref":"e99"}',
           usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
@@ -105,7 +132,8 @@ describe("ActHandler.execute", () => {
     };
 
     const page = createMockPage({
-      click: vi.fn()
+      click: vi
+        .fn()
         .mockRejectedValueOnce(new Error("Element not found"))
         .mockResolvedValueOnce(undefined),
     });
@@ -170,7 +198,8 @@ describe("ActHandler.execute", () => {
     };
 
     const page = createMockPage({
-      click: vi.fn()
+      click: vi
+        .fn()
         .mockRejectedValueOnce(new Error("Element not found")) // cache miss
         .mockResolvedValueOnce(undefined), // LLM resolution works
     });

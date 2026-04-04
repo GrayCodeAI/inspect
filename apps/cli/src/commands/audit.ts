@@ -66,44 +66,58 @@ async function runAudit(options: AuditOptions): Promise<void> {
   // 1. TypeScript type checking
   console.log(chalk.dim("  Checking types..."));
   if (existsSync(resolve(cwd, "tsconfig.json"))) {
-    const tscResult = runCheck(
-      "TypeScript",
-      "npx tsc --noEmit 2>&1",
-      { cwd },
-    );
+    const tscResult = runCheck("TypeScript", "npx tsc --noEmit 2>&1", { cwd });
     results.push(tscResult);
     const icon = tscResult.status === "pass" ? chalk.green("✓") : chalk.red("✗");
-    console.log(`  ${icon} TypeScript: ${tscResult.status === "pass" ? "No errors" : tscResult.message.slice(0, 100)}`);
+    console.log(
+      `  ${icon} TypeScript: ${tscResult.status === "pass" ? "No errors" : tscResult.message.slice(0, 100)}`,
+    );
   } else {
-    results.push({ name: "TypeScript", status: "skip", message: "No tsconfig.json found", duration: 0 });
+    results.push({
+      name: "TypeScript",
+      status: "skip",
+      message: "No tsconfig.json found",
+      duration: 0,
+    });
     console.log(chalk.dim("  - TypeScript: Skipped (no tsconfig.json)"));
   }
 
   // 2. ESLint
   console.log(chalk.dim("  Checking lint..."));
-  const eslintConfig = [".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yml", "eslint.config.js", "eslint.config.mjs"].some(
-    (f) => existsSync(resolve(cwd, f)),
-  );
+  const eslintConfig = [
+    ".eslintrc",
+    ".eslintrc.js",
+    ".eslintrc.json",
+    ".eslintrc.yml",
+    "eslint.config.js",
+    "eslint.config.mjs",
+  ].some((f) => existsSync(resolve(cwd, f)));
   if (eslintConfig) {
     const fixFlag = options.fix ? " --fix" : "";
-    const eslintResult = runCheck(
-      "ESLint",
-      `npx eslint . --ext .ts,.tsx${fixFlag} 2>&1`,
-      { cwd },
-    );
+    const eslintResult = runCheck("ESLint", `npx eslint . --ext .ts,.tsx${fixFlag} 2>&1`, { cwd });
     results.push(eslintResult);
     const icon = eslintResult.status === "pass" ? chalk.green("✓") : chalk.red("✗");
-    console.log(`  ${icon} ESLint: ${eslintResult.status === "pass" ? "No issues" : eslintResult.message.slice(0, 100)}`);
+    console.log(
+      `  ${icon} ESLint: ${eslintResult.status === "pass" ? "No issues" : eslintResult.message.slice(0, 100)}`,
+    );
   } else {
-    results.push({ name: "ESLint", status: "skip", message: "No ESLint config found", duration: 0 });
+    results.push({
+      name: "ESLint",
+      status: "skip",
+      message: "No ESLint config found",
+      duration: 0,
+    });
     console.log(chalk.dim("  - ESLint: Skipped (no config)"));
   }
 
   // 3. Prettier / formatting
   console.log(chalk.dim("  Checking formatting..."));
-  const prettierConfig = [".prettierrc", ".prettierrc.js", ".prettierrc.json", "prettier.config.js"].some(
-    (f) => existsSync(resolve(cwd, f)),
-  );
+  const prettierConfig = [
+    ".prettierrc",
+    ".prettierrc.js",
+    ".prettierrc.json",
+    "prettier.config.js",
+  ].some((f) => existsSync(resolve(cwd, f)));
   if (prettierConfig) {
     const formatCmd = options.fix
       ? 'npx prettier --write "**/*.{ts,tsx,json}" 2>&1'
@@ -111,16 +125,23 @@ async function runAudit(options: AuditOptions): Promise<void> {
     const formatResult = runCheck("Prettier", formatCmd, { cwd });
     results.push(formatResult);
     const icon = formatResult.status === "pass" ? chalk.green("✓") : chalk.yellow("!");
-    console.log(`  ${icon} Prettier: ${formatResult.status === "pass" ? "All formatted" : formatResult.message.slice(0, 100)}`);
+    console.log(
+      `  ${icon} Prettier: ${formatResult.status === "pass" ? "All formatted" : formatResult.message.slice(0, 100)}`,
+    );
   } else {
-    results.push({ name: "Prettier", status: "skip", message: "No Prettier config found", duration: 0 });
+    results.push({
+      name: "Prettier",
+      status: "skip",
+      message: "No Prettier config found",
+      duration: 0,
+    });
     console.log(chalk.dim("  - Prettier: Skipped (no config)"));
   }
 
   // 4. Test suite
   console.log(chalk.dim("  Running tests..."));
-  const vitestConfig = ["vitest.config.ts", "vitest.config.js"].some(
-    (f) => existsSync(resolve(cwd, f)),
+  const vitestConfig = ["vitest.config.ts", "vitest.config.js"].some((f) =>
+    existsSync(resolve(cwd, f)),
   );
   if (vitestConfig) {
     const testResult = runCheck("Tests", "npx vitest run --reporter=verbose 2>&1", { cwd });
@@ -141,12 +162,16 @@ async function runAudit(options: AuditOptions): Promise<void> {
     const auditResult = runCheck("Dependencies", "pnpm audit --prod 2>&1", { cwd });
     results.push(auditResult);
     const icon = auditResult.status === "pass" ? chalk.green("✓") : chalk.yellow("!");
-    console.log(`  ${icon} Dependencies: ${auditResult.status === "pass" ? "No vulnerabilities" : auditResult.message.slice(0, 100)}`);
+    console.log(
+      `  ${icon} Dependencies: ${auditResult.status === "pass" ? "No vulnerabilities" : auditResult.message.slice(0, 100)}`,
+    );
   } else {
     const auditResult = runCheck("Dependencies", "npm audit --production 2>&1", { cwd });
     results.push(auditResult);
     const icon = auditResult.status === "pass" ? chalk.green("✓") : chalk.yellow("!");
-    console.log(`  ${icon} Dependencies: ${auditResult.status === "pass" ? "No vulnerabilities" : auditResult.message.slice(0, 100)}`);
+    console.log(
+      `  ${icon} Dependencies: ${auditResult.status === "pass" ? "No vulnerabilities" : auditResult.message.slice(0, 100)}`,
+    );
   }
 
   // 6. Build check
@@ -154,7 +179,9 @@ async function runAudit(options: AuditOptions): Promise<void> {
   const buildResult = runCheck("Build", "pnpm build 2>&1", { cwd });
   results.push(buildResult);
   const buildIcon = buildResult.status === "pass" ? chalk.green("✓") : chalk.red("✗");
-  console.log(`  ${buildIcon} Build: ${buildResult.status === "pass" ? "Successful" : buildResult.message.slice(0, 100)}`);
+  console.log(
+    `  ${buildIcon} Build: ${buildResult.status === "pass" ? "Successful" : buildResult.message.slice(0, 100)}`,
+  );
 
   const elapsed = Date.now() - startTime;
 
@@ -166,7 +193,9 @@ async function runAudit(options: AuditOptions): Promise<void> {
 
   console.log(chalk.dim("\n─────────────────────────────────────────\n"));
   console.log(chalk.bold("Audit Summary:\n"));
-  console.log(`  ${chalk.green(`${passed} passed`)}  ${failed > 0 ? chalk.red(`${failed} failed`) : ""}  ${skipped > 0 ? chalk.dim(`${skipped} skipped`) : ""}  ${warned > 0 ? chalk.yellow(`${warned} warnings`) : ""}`);
+  console.log(
+    `  ${chalk.green(`${passed} passed`)}  ${failed > 0 ? chalk.red(`${failed} failed`) : ""}  ${skipped > 0 ? chalk.dim(`${skipped} skipped`) : ""}  ${warned > 0 ? chalk.yellow(`${warned} warnings`) : ""}`,
+  );
   console.log(chalk.dim(`  Duration: ${(elapsed / 1000).toFixed(1)}s\n`));
 
   // Show details for failures
@@ -185,7 +214,13 @@ async function runAudit(options: AuditOptions): Promise<void> {
 
   // JSON output
   if (reporter === "json") {
-    console.log(JSON.stringify({ results, summary: { passed, failed, skipped, warned, duration: elapsed } }, null, 2));
+    console.log(
+      JSON.stringify(
+        { results, summary: { passed, failed, skipped, warned, duration: elapsed } },
+        null,
+        2,
+      ),
+    );
   }
 
   if (failed > 0) process.exit(1);

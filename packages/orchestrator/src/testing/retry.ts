@@ -166,9 +166,7 @@ export class RetryExecutor {
 
     // If retryOn is specified, only retry matching errors
     if (this.policy.retryOn.length > 0) {
-      return this.policy.retryOn.some((pattern) =>
-        new RegExp(pattern, "i").test(error),
-      );
+      return this.policy.retryOn.some((pattern) => new RegExp(pattern, "i").test(error));
     }
 
     // Default: retry all errors

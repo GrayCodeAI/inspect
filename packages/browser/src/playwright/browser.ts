@@ -9,7 +9,7 @@ import {
   type Page,
   type LaunchOptions,
 } from "playwright";
-import type { BrowserConfig, CookieParam} from "@inspect/shared";
+import type { BrowserConfig, CookieParam } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("browser/playwright");

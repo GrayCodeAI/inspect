@@ -33,7 +33,7 @@ export class SpeculativePlanner extends ServiceMap.Service<SpeculativePlanner>()
   "@orchestrator/SpeculativePlanner",
   {
     make: Effect.gen(function* () {
-      let plans = new Map<number, SpeculativePlan>();
+      const plans = new Map<number, SpeculativePlan>();
       let stats = new SpeculativeStats({
         generated: 0,
         used: 0,

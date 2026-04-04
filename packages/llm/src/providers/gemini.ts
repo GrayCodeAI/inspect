@@ -103,8 +103,7 @@ export class GeminiProvider extends LLMProvider {
   }
 
   supportsThinking(): boolean {
-    return THINKING_MODELS.has(this.config.model) ||
-      this.config.model.startsWith("gemini-2.5");
+    return THINKING_MODELS.has(this.config.model) || this.config.model.startsWith("gemini-2.5");
   }
 
   async chat(
@@ -282,9 +281,13 @@ export class GeminiProvider extends LLMProvider {
 
     for (const msg of messages) {
       if (msg.role === "system") {
-        const text = typeof msg.content === "string"
-          ? msg.content
-          : msg.content.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("\n");
+        const text =
+          typeof msg.content === "string"
+            ? msg.content
+            : msg.content
+                .filter((p) => p.type === "text")
+                .map((p) => (p as { text: string }).text)
+                .join("\n");
         systemInstruction = systemInstruction ? `${systemInstruction}\n\n${text}` : text;
         continue;
       }
@@ -292,14 +295,17 @@ export class GeminiProvider extends LLMProvider {
       if (msg.role === "tool") {
         contents.push({
           role: "user",
-          parts: [{
-            functionResponse: {
-              name: msg.name ?? "tool",
-              response: {
-                content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+          parts: [
+            {
+              functionResponse: {
+                name: msg.name ?? "tool",
+                response: {
+                  content:
+                    typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+                },
               },
             },
-          }],
+          ],
         });
         continue;
       }
@@ -391,7 +397,8 @@ export class GeminiProvider extends LLMProvider {
       content,
       toolCalls,
       thinking: thinking || undefined,
-      finishReason: toolCalls.length > 0 ? "tool_calls" : (finishReasonMap[candidate.finishReason] ?? "stop"),
+      finishReason:
+        toolCalls.length > 0 ? "tool_calls" : (finishReasonMap[candidate.finishReason] ?? "stop"),
       usage: {
         promptTokens: response.usageMetadata.promptTokenCount,
         completionTokens: response.usageMetadata.candidatesTokenCount,
@@ -402,7 +409,9 @@ export class GeminiProvider extends LLMProvider {
     };
   }
 
-  private parseStreamChunk(chunk: GeminiStreamChunk): Partial<LLMChunk> & { usage?: LLMResponse["usage"] } {
+  private parseStreamChunk(
+    chunk: GeminiStreamChunk,
+  ): Partial<LLMChunk> & { usage?: LLMResponse["usage"] } {
     const result: Partial<LLMChunk> & { usage?: LLMResponse["usage"] } = {};
 
     if (chunk.candidates?.[0]?.content?.parts) {
@@ -458,7 +467,9 @@ export class GeminiProvider extends LLMProvider {
         try {
           parsed.push(JSON.parse(data));
         } catch (error) {
-          logger.debug("Failed to parse Gemini stream chunk", { err: error instanceof Error ? error.message : String(error) });
+          logger.debug("Failed to parse Gemini stream chunk", {
+            err: error instanceof Error ? error.message : String(error),
+          });
           unprocessed.push(line);
         }
       } else if (trimmed) {

@@ -78,8 +78,25 @@ describe("AgentHandler", () => {
         url: "https://example.com",
         title: "Test",
         elements: [
-          { ref: "e1", role: "button", name: "Submit", visible: true, interactable: true, xpath: "", bounds: { x: 0, y: 0, width: 0, height: 0 } },
-          { ref: "e2", role: "paragraph", name: "", visible: true, interactable: false, textContent: "Some text", xpath: "", bounds: { x: 0, y: 0, width: 0, height: 0 } },
+          {
+            ref: "e1",
+            role: "button",
+            name: "Submit",
+            visible: true,
+            interactable: true,
+            xpath: "",
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+          },
+          {
+            ref: "e2",
+            role: "paragraph",
+            name: "",
+            visible: true,
+            interactable: false,
+            textContent: "Some text",
+            xpath: "",
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+          },
         ],
         timestamp: Date.now(),
       });
@@ -93,7 +110,16 @@ describe("AgentHandler", () => {
         url: "https://example.com",
         title: "Test",
         elements: [
-          { ref: "e1", role: "paragraph", name: "", visible: true, interactable: false, textContent: "Hello world", xpath: "", bounds: { x: 0, y: 0, width: 0, height: 0 } },
+          {
+            ref: "e1",
+            role: "paragraph",
+            name: "",
+            visible: true,
+            interactable: false,
+            textContent: "Hello world",
+            xpath: "",
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+          },
         ],
         timestamp: Date.now(),
       });
@@ -106,7 +132,15 @@ describe("AgentHandler", () => {
         url: "https://example.com",
         title: "Test",
         elements: [
-          { ref: "e1", role: "button", name: "Hidden", visible: false, interactable: true, xpath: "", bounds: { x: 0, y: 0, width: 0, height: 0 } },
+          {
+            ref: "e1",
+            role: "button",
+            name: "Hidden",
+            visible: false,
+            interactable: true,
+            xpath: "",
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+          },
         ],
         timestamp: Date.now(),
       });
@@ -117,11 +151,13 @@ describe("AgentHandler", () => {
   describe("parsePlan (private)", () => {
     it("parses a complete plan", () => {
       const h = handler();
-      const plan = h.parsePlan(JSON.stringify({
-        thought: "I need to click the button",
-        action: { type: "click", instruction: "Click submit" },
-        goalComplete: false,
-      }));
+      const plan = h.parsePlan(
+        JSON.stringify({
+          thought: "I need to click the button",
+          action: { type: "click", instruction: "Click submit" },
+          goalComplete: false,
+        }),
+      );
       expect(plan.thought).toBe("I need to click the button");
       expect(plan.action?.type).toBe("click");
       expect(plan.goalComplete).toBe(false);
@@ -129,7 +165,9 @@ describe("AgentHandler", () => {
 
     it("parses plan from markdown code block", () => {
       const h = handler();
-      const plan = h.parsePlan('```json\n{"thought":"thinking","action":null,"goalComplete":true,"summary":"Done"}\n```');
+      const plan = h.parsePlan(
+        '```json\n{"thought":"thinking","action":null,"goalComplete":true,"summary":"Done"}\n```',
+      );
       expect(plan.goalComplete).toBe(true);
       expect(plan.summary).toBe("Done");
       expect(plan.action).toBeNull();
@@ -137,13 +175,15 @@ describe("AgentHandler", () => {
 
     it("handles plan with extracted data", () => {
       const h = handler();
-      const plan = h.parsePlan(JSON.stringify({
-        thought: "Extracting data",
-        action: null,
-        goalComplete: true,
-        extractedData: { price: "$29.99" },
-        summary: "Found the price",
-      }));
+      const plan = h.parsePlan(
+        JSON.stringify({
+          thought: "Extracting data",
+          action: null,
+          goalComplete: true,
+          extractedData: { price: "$29.99" },
+          summary: "Found the price",
+        }),
+      );
       expect(plan.extractedData).toEqual({ price: "$29.99" });
     });
 
@@ -157,7 +197,9 @@ describe("AgentHandler", () => {
 
     it("extracts JSON even with leading text", () => {
       const h = handler();
-      const plan = h.parsePlan('Here is my plan:\n{"thought":"do it","action":{"type":"click","instruction":"click btn"},"goalComplete":false}');
+      const plan = h.parsePlan(
+        'Here is my plan:\n{"thought":"do it","action":{"type":"click","instruction":"click btn"},"goalComplete":false}',
+      );
       expect(plan.thought).toBe("do it");
       expect(plan.action?.type).toBe("click");
     });

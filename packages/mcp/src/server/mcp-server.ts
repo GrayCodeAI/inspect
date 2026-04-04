@@ -150,13 +150,14 @@ export class MCPServer extends EventEmitter {
   /**
    * Handle incoming MCP request
    */
-  async handleRequest(
-    sessionId: string,
-    request: MCPRequest
-  ): Promise<MCPResponse> {
+  async handleRequest(sessionId: string, request: MCPRequest): Promise<MCPResponse> {
     // Validate request
     if (request.jsonrpc !== "2.0") {
-      return this.createError(request.id, MCP_ERROR_CODES.INVALID_REQUEST, "Invalid JSON-RPC version");
+      return this.createError(
+        request.id,
+        MCP_ERROR_CODES.INVALID_REQUEST,
+        "Invalid JSON-RPC version",
+      );
     }
 
     // Update session activity
@@ -171,7 +172,7 @@ export class MCPServer extends EventEmitter {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.RATE_LIMIT_EXCEEDED,
-        "Rate limit exceeded"
+        "Rate limit exceeded",
       );
     }
 
@@ -202,14 +203,14 @@ export class MCPServer extends EventEmitter {
           return this.createError(
             request.id,
             MCP_ERROR_CODES.METHOD_NOT_FOUND,
-            `Method not found: ${request.method}`
+            `Method not found: ${request.method}`,
           );
       }
     } catch (error) {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.INTERNAL_ERROR,
-        error instanceof Error ? error.message : "Internal error"
+        error instanceof Error ? error.message : "Internal error",
       );
     }
   }
@@ -224,7 +225,11 @@ export class MCPServer extends EventEmitter {
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const session: MCPSession = {
       id: sessionId,
-      clientInfo: params?.clientInfo || { name: "unknown", version: "0.0.0", capabilities: this.config.capabilities },
+      clientInfo: params?.clientInfo || {
+        name: "unknown",
+        version: "0.0.0",
+        capabilities: this.config.capabilities,
+      },
       establishedAt: Date.now(),
       lastActivity: Date.now(),
       requestCount: 0,
@@ -266,11 +271,7 @@ export class MCPServer extends EventEmitter {
     const params = request.params as { name: string; arguments?: unknown };
 
     if (!params?.name) {
-      return this.createError(
-        request.id,
-        MCP_ERROR_CODES.INVALID_PARAMS,
-        "Tool name is required"
-      );
+      return this.createError(request.id, MCP_ERROR_CODES.INVALID_PARAMS, "Tool name is required");
     }
 
     const tool = this.toolMap.get(params.name);
@@ -278,22 +279,15 @@ export class MCPServer extends EventEmitter {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.TOOL_NOT_FOUND,
-        `Tool not found: ${params.name}`
+        `Tool not found: ${params.name}`,
       );
     }
 
     try {
       // Validate params against schema
-      const validationError = this.validateParams(
-        params.arguments,
-        tool.inputSchema
-      );
+      const validationError = this.validateParams(params.arguments, tool.inputSchema);
       if (validationError) {
-        return this.createError(
-          request.id,
-          MCP_ERROR_CODES.INVALID_PARAMS,
-          validationError
-        );
+        return this.createError(request.id, MCP_ERROR_CODES.INVALID_PARAMS, validationError);
       }
 
       // Execute tool
@@ -318,7 +312,7 @@ export class MCPServer extends EventEmitter {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.TOOL_EXECUTION_ERROR,
-        error instanceof Error ? error.message : "Tool execution failed"
+        error instanceof Error ? error.message : "Tool execution failed",
       );
     }
   }
@@ -346,7 +340,7 @@ export class MCPServer extends EventEmitter {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.INVALID_PARAMS,
-        "Resource URI is required"
+        "Resource URI is required",
       );
     }
 
@@ -355,7 +349,7 @@ export class MCPServer extends EventEmitter {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.RESOURCE_NOT_FOUND,
-        `Resource not found: ${params.uri}`
+        `Resource not found: ${params.uri}`,
       );
     }
 
@@ -375,7 +369,7 @@ export class MCPServer extends EventEmitter {
       return this.createError(
         request.id,
         MCP_ERROR_CODES.INTERNAL_ERROR,
-        error instanceof Error ? error.message : "Failed to read resource"
+        error instanceof Error ? error.message : "Failed to read resource",
       );
     }
   }
@@ -439,7 +433,7 @@ export class MCPServer extends EventEmitter {
     id: string | number,
     code: number,
     message: string,
-    data?: unknown
+    data?: unknown,
   ): MCPResponse {
     return {
       jsonrpc: "2.0",
@@ -643,7 +637,7 @@ export function createInspectMCPServer(): MCPServer {
             },
           },
         },
-        handler: async (params: unknown) => {
+        handler: async (_params: unknown) => {
           return {
             success: true,
             observation: {
@@ -663,13 +657,7 @@ export function createInspectMCPServer(): MCPServer {
         handler: async () => {
           return {
             browser: ["chrome", "firefox", "webkit"],
-            features: [
-              "navigation",
-              "interaction",
-              "extraction",
-              "screenshots",
-              "accessibility",
-            ],
+            features: ["navigation", "interaction", "extraction", "screenshots", "accessibility"],
           };
         },
       },

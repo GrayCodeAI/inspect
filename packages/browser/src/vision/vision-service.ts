@@ -36,7 +36,7 @@ export class VisionService extends ServiceMap.Service<VisionService>()("@browser
       return screenshot;
     });
 
-    const detectElements = Effect.fn("Vision.detectElements")(function* (screenshot: Screenshot) {
+    const detectElements = Effect.fn("Vision.detectElements")(function* (_screenshot: Screenshot) {
       yield* Effect.annotateCurrentSpan({ action: "detectElements" });
 
       const elements = ["button", "input", "link"];

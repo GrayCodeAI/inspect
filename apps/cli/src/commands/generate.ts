@@ -14,7 +14,9 @@ export interface GenerateOptions {
 async function runGenerate(url: string | undefined, options: GenerateOptions): Promise<void> {
   if (!url && !options.description) {
     console.error(chalk.red("Error: URL or --description is required."));
-    console.log(chalk.dim("Usage: inspect generate <url> or inspect generate --description <text>"));
+    console.log(
+      chalk.dim("Usage: inspect generate <url> or inspect generate --description <text>"),
+    );
     process.exit(1);
   }
 
@@ -36,8 +38,11 @@ async function runGenerate(url: string | undefined, options: GenerateOptions): P
       console.log(chalk.dim("\nAnalyzing page..."));
       const { BrowserManager, AriaSnapshotBuilder } = await import("@inspect/browser");
       const browserMgr = new BrowserManager();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
+      await browserMgr.launchBrowser({
+        headless: true,
+        viewport: { width: 1920, height: 1080 },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
       const page = await browserMgr.newPage();
 
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -67,7 +72,9 @@ async function runGenerate(url: string | undefined, options: GenerateOptions): P
     };
     const apiKey = process.env[keyMap[providerName] ?? "ANTHROPIC_API_KEY"];
     if (!apiKey) {
-      console.error(chalk.red(`No API key found. Set ${keyMap[providerName] ?? "ANTHROPIC_API_KEY"}`));
+      console.error(
+        chalk.red(`No API key found. Set ${keyMap[providerName] ?? "ANTHROPIC_API_KEY"}`),
+      );
       process.exit(1);
     }
 
@@ -116,9 +123,7 @@ Return ONLY the test file content, no explanation.`;
     // Determine output path
     const ext = format === "typescript" ? "ts" : format;
     const defaultOutput = `.inspect/generated-test.${ext}`;
-    const outputPath = options.output
-      ? resolve(options.output)
-      : resolve(defaultOutput);
+    const outputPath = options.output ? resolve(options.output) : resolve(defaultOutput);
 
     // Write output
     writeFileSync(outputPath, generated, "utf-8");

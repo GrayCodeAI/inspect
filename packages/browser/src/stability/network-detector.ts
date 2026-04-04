@@ -5,7 +5,7 @@
  * and XHR/fetch completion for page stability detection
  */
 
-import type { Page, APIResponse } from "playwright";
+import type { Page } from "playwright";
 
 /**
  * Network request tracking
@@ -57,12 +57,7 @@ export const DEFAULT_NETWORK_CONFIG: NetworkDetectorConfig = {
     "xhr",
     "fetch",
   ],
-  ignorePatterns: [
-    /localhost:9222/,
-    /chrome-extension:\/\//,
-    /about:/,
-    /data:/,
-  ],
+  ignorePatterns: [/localhost:9222/, /chrome-extension:\/\//, /about:/, /data:/],
   captureResponse: false,
 };
 
@@ -178,9 +173,7 @@ export class NetworkDetector {
       totalRequests: this.completedRequests.length,
       failedRequests: this.failedRequests.size,
       averageRequestTime:
-        this.completedRequests.length > 0
-          ? totalTime / this.completedRequests.length
-          : 0,
+        this.completedRequests.length > 0 ? totalTime / this.completedRequests.length : 0,
       isIdle: idleTime >= this.config.idleTimeout,
       lastActivityTime: this.lastActivityTime,
       errors: Array.from(this.failedRequests),

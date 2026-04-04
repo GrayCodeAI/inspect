@@ -207,7 +207,10 @@ export class AgentGraph {
               const result = await Promise.race([
                 node.execute(input, state),
                 new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error(`Node "${nodeId}" timed out after ${timeout}ms`)), timeout)
+                  setTimeout(
+                    () => reject(new Error(`Node "${nodeId}" timed out after ${timeout}ms`)),
+                    timeout,
+                  ),
                 ),
               ]);
 
@@ -236,7 +239,11 @@ export class AgentGraph {
       }
 
       const success = errors.size === 0;
-      this.emit({ type: success ? "graph:completed" : "graph:error", timestamp: Date.now(), data: { nodesExecuted, nodesFailed } });
+      this.emit({
+        type: success ? "graph:completed" : "graph:error",
+        timestamp: Date.now(),
+        data: { nodesExecuted, nodesFailed },
+      });
 
       return {
         success,
@@ -253,7 +260,10 @@ export class AgentGraph {
         success: false,
         state,
         nodeResults,
-        errors: new Map([...errors, ["__graph__", err instanceof Error ? err : new Error(String(err))]]),
+        errors: new Map([
+          ...errors,
+          ["__graph__", err instanceof Error ? err : new Error(String(err))],
+        ]),
         duration: Date.now() - startTime,
         nodesExecuted,
         nodesFailed,
@@ -338,7 +348,15 @@ export class AgentGraph {
     // Multiple inputs — merge into object
     const inputs: Record<string, unknown> = {};
     for (const edge of incomingEdges) {
-      if (edge.condition && !edge.condition(results.get(edge.from), { variables: {}, stepResults: results, errors: new Map(), metadata: {} })) {
+      if (
+        edge.condition &&
+        !edge.condition(results.get(edge.from), {
+          variables: {},
+          stepResults: results,
+          errors: new Map(),
+          metadata: {},
+        })
+      ) {
         continue;
       }
       const output = results.get(edge.from);
@@ -370,7 +388,7 @@ export class AgentGraph {
     while (visited.size < this.nodes.size) {
       // Find all nodes with 0 in-degree (not yet visited)
       const batch = [...this.nodes.keys()].filter(
-        (id) => !visited.has(id) && (inDegree.get(id) ?? 0) === 0
+        (id) => !visited.has(id) && (inDegree.get(id) ?? 0) === 0,
       );
 
       if (batch.length === 0) {
@@ -396,7 +414,9 @@ export class AgentGraph {
     for (const handler of handlers) {
       try {
         handler(event);
-      } catch { /* ignore handler errors */ }
+      } catch {
+        /* ignore handler errors */
+      }
     }
   }
 }

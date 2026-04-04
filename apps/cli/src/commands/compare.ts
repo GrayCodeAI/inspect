@@ -162,8 +162,12 @@ async function runCompare(
 
   console.log(chalk.bold("Summary:\n"));
   console.log(`  ${"".padEnd(15)} ${"Baseline".padEnd(12)} ${"Current".padEnd(12)} ${"Change"}`);
-  console.log(`  ${"Total".padEnd(15)} ${String(baseTotal).padEnd(12)} ${String(currTotal).padEnd(12)} ${currTotal - baseTotal >= 0 ? "+" : ""}${currTotal - baseTotal}`);
-  console.log(`  ${"Passed".padEnd(15)} ${String(basePassed).padEnd(12)} ${String(currPassed).padEnd(12)} ${currPassed - basePassed >= 0 ? chalk.green("+" + (currPassed - basePassed)) : chalk.red(String(currPassed - basePassed))}`);
+  console.log(
+    `  ${"Total".padEnd(15)} ${String(baseTotal).padEnd(12)} ${String(currTotal).padEnd(12)} ${currTotal - baseTotal >= 0 ? "+" : ""}${currTotal - baseTotal}`,
+  );
+  console.log(
+    `  ${"Passed".padEnd(15)} ${String(basePassed).padEnd(12)} ${String(currPassed).padEnd(12)} ${currPassed - basePassed >= 0 ? chalk.green("+" + (currPassed - basePassed)) : chalk.red(String(currPassed - basePassed))}`,
+  );
 
   if (comparison.regressed.length > 0) {
     console.log(chalk.red(`\n  Regressions (${comparison.regressed.length}):`));
@@ -235,7 +239,9 @@ export function registerCompareCommand(program: Command): void {
     .option("-o, --output <file>", "Output file path")
     .option("--threshold <ratio>", "Timing change threshold (ratio)", "0.2")
     .option("--json", "Output as JSON")
-    .action(async (baseline: string | undefined, current: string | undefined, opts: CompareOptions) => {
-      await runCompare(baseline, current, opts);
-    });
+    .action(
+      async (baseline: string | undefined, current: string | undefined, opts: CompareOptions) => {
+        await runCompare(baseline, current, opts);
+      },
+    );
 }

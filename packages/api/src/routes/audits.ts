@@ -34,10 +34,7 @@ interface PerfAuditRecord {
  * GET  /api/audits/performance     - Get latest performance audit result
  * POST /api/audits/performance     - Store a performance audit result
  */
-export function registerAuditRoutes(
-  server: APIServer,
-  dataDir: string,
-): void {
+export function registerAuditRoutes(server: APIServer, dataDir: string): void {
   const a11yStore = new JsonStore<A11yAuditRecord>(dataDir, "audits-a11y");
   const perfStore = new JsonStore<PerfAuditRecord>(dataDir, "audits-performance");
 
@@ -97,7 +94,12 @@ export function registerAuditRoutes(
 
     const record: PerfAuditRecord = {
       id: `perf_${Date.now()}`,
-      scores: (body.scores as PerfAuditRecord["scores"]) ?? { performance: 0, accessibility: 0, bestPractices: 0, seo: 0 },
+      scores: (body.scores as PerfAuditRecord["scores"]) ?? {
+        performance: 0,
+        accessibility: 0,
+        bestPractices: 0,
+        seo: 0,
+      },
       metrics: (body.metrics as PerfAuditRecord["metrics"]) ?? {},
       url: (body.url as string) ?? "",
       timestamp: Date.now(),

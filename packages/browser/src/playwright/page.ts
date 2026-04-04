@@ -291,7 +291,10 @@ export class PageManager {
               return true;
             }
             // Scroll the element into view
-            (node.parentElement as HTMLElement)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            (node.parentElement as HTMLElement)?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
             return true;
           }
         }

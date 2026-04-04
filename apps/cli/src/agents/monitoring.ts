@@ -68,7 +68,10 @@ export async function startMonitor(
 
   const threshold = config.alertThreshold ?? DEFAULT_THRESHOLD;
 
-  onProgress("info", `Starting monitor for ${config.url} (interval: ${Math.round(config.interval / 1000)}s)`);
+  onProgress(
+    "info",
+    `Starting monitor for ${config.url} (interval: ${Math.round(config.interval / 1000)}s)`,
+  );
 
   const executeRun = async (): Promise<void> => {
     if (!running) return;
@@ -89,7 +92,10 @@ export async function startMonitor(
       };
 
       saveMonitorResult(result);
-      onProgress("step", `[monitor] Score: ${result.score} | Passed: ${result.passed} | Duration: ${result.duration}ms`);
+      onProgress(
+        "step",
+        `[monitor] Score: ${result.score} | Passed: ${result.passed} | Duration: ${result.duration}ms`,
+      );
 
       // Check for regression
       const history = loadMonitorHistory();
@@ -103,7 +109,10 @@ export async function startMonitor(
             await sendAlert(config.alertWebhook, result, regression);
             onProgress("info", `[monitor] Alert sent to webhook`);
           } catch (err) {
-            onProgress("fail", `[monitor] Failed to send alert: ${err instanceof Error ? err.message : String(err)}`);
+            onProgress(
+              "fail",
+              `[monitor] Failed to send alert: ${err instanceof Error ? err.message : String(err)}`,
+            );
           }
         }
       }
@@ -114,7 +123,10 @@ export async function startMonitor(
         trimHistory(history, maxHistory);
       }
     } catch (err) {
-      onProgress("fail", `[monitor] Test run failed: ${err instanceof Error ? err.message : String(err)}`);
+      onProgress(
+        "fail",
+        `[monitor] Test run failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     // Schedule next run

@@ -6,6 +6,7 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
+      "**/build/**",
       "firecrawl/",
       "lighthouse/",
       "msw/",
@@ -27,6 +28,8 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+      // Effect-TS uses generator functions via Effect.fn even without yield
+      "require-yield": "off",
     },
   },
 );

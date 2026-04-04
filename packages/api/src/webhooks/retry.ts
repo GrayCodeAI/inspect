@@ -46,10 +46,7 @@ export class RetryPolicy {
   private deadLetterQueue: DeadLetterEntry[] = [];
   private maxDeadLetterSize: number;
 
-  constructor(
-    config?: Partial<RetryConfig>,
-    maxDeadLetterSize: number = 1000,
-  ) {
+  constructor(config?: Partial<RetryConfig>, maxDeadLetterSize: number = 1000) {
     this.config = {
       maxRetries: config?.maxRetries ?? 3,
       backoffType: config?.backoffType ?? "exponential",
@@ -92,9 +89,7 @@ export class RetryPolicy {
         lastError = rawError.length > 200 ? rawError.slice(0, 200) + "..." : rawError;
 
         // Extract status code from error message if present
-        const statusMatch = lastError.match(
-          /responded with (\d+)/,
-        );
+        const statusMatch = lastError.match(/responded with (\d+)/);
         if (statusMatch) {
           lastStatusCode = parseInt(statusMatch[1], 10);
 
@@ -133,11 +128,9 @@ export class RetryPolicy {
     let delay: number;
 
     if (this.config.backoffType === "exponential") {
-      delay =
-        this.config.initialDelayMs * Math.pow(2, attempt);
+      delay = this.config.initialDelayMs * Math.pow(2, attempt);
     } else {
-      delay =
-        this.config.initialDelayMs * (attempt + 1);
+      delay = this.config.initialDelayMs * (attempt + 1);
     }
 
     // Cap at max delay
@@ -161,9 +154,7 @@ export class RetryPolicy {
 
     // Trim if too large
     if (this.deadLetterQueue.length > this.maxDeadLetterSize) {
-      this.deadLetterQueue = this.deadLetterQueue.slice(
-        -this.maxDeadLetterSize,
-      );
+      this.deadLetterQueue = this.deadLetterQueue.slice(-this.maxDeadLetterSize);
     }
   }
 

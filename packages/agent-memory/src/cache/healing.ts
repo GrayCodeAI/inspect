@@ -2,11 +2,11 @@
 // @inspect/agent - Self-Healing Selector Recovery
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { LLMProvider, LLMMessage } from "@inspect/llm";
+import type { LLMProvider } from "@inspect/llm";
 import type { ActionCache } from "./action-cache.js";
 import { createLogger } from "@inspect/observability";
 
-const logger = createLogger("agent/cache-healing");
+const _logger = createLogger("agent/cache-healing");
 
 /** Element description used for semantic matching */
 export interface ElementDescription {

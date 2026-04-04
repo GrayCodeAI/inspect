@@ -51,7 +51,12 @@ export const BUDGET_PRESETS = {
   /** Strict mobile-first budgets */
   strict: [
     { metric: "FCP", maxValue: 1800, severity: "error" as const, label: "First Contentful Paint" },
-    { metric: "LCP", maxValue: 2500, severity: "error" as const, label: "Largest Contentful Paint" },
+    {
+      metric: "LCP",
+      maxValue: 2500,
+      severity: "error" as const,
+      label: "Largest Contentful Paint",
+    },
     { metric: "CLS", maxValue: 0.1, severity: "error" as const, label: "Cumulative Layout Shift" },
     { metric: "TBT", maxValue: 200, severity: "error" as const, label: "Total Blocking Time" },
     { metric: "SI", maxValue: 3400, severity: "warning" as const, label: "Speed Index" },
@@ -62,8 +67,18 @@ export const BUDGET_PRESETS = {
   /** Relaxed budgets for complex apps */
   relaxed: [
     { metric: "FCP", maxValue: 3000, severity: "error" as const, label: "First Contentful Paint" },
-    { metric: "LCP", maxValue: 4000, severity: "error" as const, label: "Largest Contentful Paint" },
-    { metric: "CLS", maxValue: 0.25, severity: "warning" as const, label: "Cumulative Layout Shift" },
+    {
+      metric: "LCP",
+      maxValue: 4000,
+      severity: "error" as const,
+      label: "Largest Contentful Paint",
+    },
+    {
+      metric: "CLS",
+      maxValue: 0.25,
+      severity: "warning" as const,
+      label: "Cumulative Layout Shift",
+    },
     { metric: "TBT", maxValue: 600, severity: "warning" as const, label: "Total Blocking Time" },
     { metric: "SI", maxValue: 5800, severity: "warning" as const, label: "Speed Index" },
     { metric: "performance", maxValue: 50, severity: "error" as const, label: "Performance Score" },
@@ -71,9 +86,19 @@ export const BUDGET_PRESETS = {
 
   /** Core Web Vitals only */
   coreWebVitals: [
-    { metric: "LCP", maxValue: 2500, severity: "error" as const, label: "Largest Contentful Paint" },
+    {
+      metric: "LCP",
+      maxValue: 2500,
+      severity: "error" as const,
+      label: "Largest Contentful Paint",
+    },
     { metric: "CLS", maxValue: 0.1, severity: "error" as const, label: "Cumulative Layout Shift" },
-    { metric: "TBT", maxValue: 200, severity: "error" as const, label: "Total Blocking Time (proxy for INP)" },
+    {
+      metric: "TBT",
+      maxValue: 200,
+      severity: "error" as const,
+      label: "Total Blocking Time (proxy for INP)",
+    },
   ] as BudgetThreshold[],
 } as const;
 
@@ -124,9 +149,7 @@ export class BudgetManager {
 
       // For scores, higher is better (actual must be >= maxValue)
       // For timing/size metrics, lower is better (actual must be <= maxValue)
-      const passed = isScoreMetric
-        ? actual >= budget.maxValue
-        : actual <= budget.maxValue;
+      const passed = isScoreMetric ? actual >= budget.maxValue : actual <= budget.maxValue;
 
       const overage = isScoreMetric
         ? budget.maxValue - actual // negative means above budget (good)
@@ -199,7 +222,14 @@ export class BudgetManager {
    * Check if a metric is a score (higher is better).
    */
   private isScoreMetric(metric: string): boolean {
-    return ["performance", "accessibility", "best-practices", "bestPractices", "seo", "pwa"].includes(metric);
+    return [
+      "performance",
+      "accessibility",
+      "best-practices",
+      "bestPractices",
+      "seo",
+      "pwa",
+    ].includes(metric);
   }
 
   /**

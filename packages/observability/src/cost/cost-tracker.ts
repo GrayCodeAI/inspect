@@ -88,7 +88,9 @@ export class CostTracker extends EventEmitter {
   /**
    * Record a cost entry
    */
-  record(entry: Omit<CostEntry, "id" | "timestamp" | "totalCost" | "inputCost" | "outputCost">): CostEntry {
+  record(
+    entry: Omit<CostEntry, "id" | "timestamp" | "totalCost" | "inputCost" | "outputCost">,
+  ): CostEntry {
     const pricing = PRICING[entry.model] || { input: 0, output: 0 };
 
     const inputCost = entry.cached
@@ -124,7 +126,7 @@ export class CostTracker extends EventEmitter {
     model: string,
     inputTokens: number,
     outputTokens: number,
-    options?: { sessionId?: string; taskId?: string; cached?: boolean }
+    options?: { sessionId?: string; taskId?: string; cached?: boolean },
   ): CostEntry {
     return this.record({
       provider,
@@ -148,10 +150,7 @@ export class CostTracker extends EventEmitter {
     const entries = this.entries.filter((e) => e.timestamp >= start);
 
     const totalCost = entries.reduce((sum, e) => sum + e.totalCost, 0);
-    const totalTokens = entries.reduce(
-      (sum, e) => sum + e.inputTokens + e.outputTokens,
-      0
-    );
+    const totalTokens = entries.reduce((sum, e) => sum + e.inputTokens + e.outputTokens, 0);
 
     // Group by provider
     const byProvider: Record<string, { cost: number; tokens: number }> = {};
@@ -268,9 +267,7 @@ export class CostTracker extends EventEmitter {
    * Get total cost
    */
   getTotalCost(since?: number): number {
-    const entries = since
-      ? this.entries.filter((e) => e.timestamp >= since)
-      : this.entries;
+    const entries = since ? this.entries.filter((e) => e.timestamp >= since) : this.entries;
     return entries.reduce((sum, e) => sum + e.totalCost, 0);
   }
 

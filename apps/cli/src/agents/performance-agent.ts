@@ -527,10 +527,7 @@ export async function captureJsErrors(page: Page): Promise<string[]> {
 // API call monitoring
 // ---------------------------------------------------------------------------
 
-export async function monitorApiCalls(
-  page: Page,
-  _url: string,
-): Promise<SlowApiCall[]> {
+export async function monitorApiCalls(page: Page, _url: string): Promise<SlowApiCall[]> {
   const slowCalls: SlowApiCall[] = [];
   const requestTimings = new Map<string, { method: string; start: number }>();
 

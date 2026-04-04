@@ -51,7 +51,13 @@ export class DragDrop {
       const targetBounds = await target.boundingBox();
 
       if (!sourceBounds || !targetBounds) {
-        return { success: false, from: { x: 0, y: 0 }, to: { x: 0, y: 0 }, durationMs: Date.now() - start, error: "Could not get element bounds" };
+        return {
+          success: false,
+          from: { x: 0, y: 0 },
+          to: { x: 0, y: 0 },
+          durationMs: Date.now() - start,
+          error: "Could not get element bounds",
+        };
       }
 
       const fromX = sourceBounds.x + sourceBounds.width / 2;
@@ -61,7 +67,13 @@ export class DragDrop {
 
       return this.dragCoordinates(page, fromX, fromY, toX, toY, options);
     } catch (err) {
-      return { success: false, from: { x: 0, y: 0 }, to: { x: 0, y: 0 }, durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) };
+      return {
+        success: false,
+        from: { x: 0, y: 0 },
+        to: { x: 0, y: 0 },
+        durationMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -106,7 +118,11 @@ export class DragDrop {
       };
     } catch (err) {
       // Ensure mouse is released on error
-      try { await page.mouse.up(); } catch (releaseError) { logger.debug("Failed to release mouse after drag error", { releaseError }); }
+      try {
+        await page.mouse.up();
+      } catch (releaseError) {
+        logger.debug("Failed to release mouse after drag error", { releaseError });
+      }
       return {
         success: false,
         from: { x: Math.round(fromX), y: Math.round(fromY) },

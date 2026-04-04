@@ -105,8 +105,7 @@ export class DeepSeekProvider extends LLMProvider {
   }
 
   supportsThinking(): boolean {
-    return REASONING_MODELS.has(this.config.model) ||
-      this.config.model.includes("reasoner");
+    return REASONING_MODELS.has(this.config.model) || this.config.model.includes("reasoner");
   }
 
   async chat(
@@ -144,7 +143,9 @@ export class DeepSeekProvider extends LLMProvider {
       try {
         delta = JSON.parse(line);
       } catch (error) {
-        logger.debug("Failed to parse DeepSeek stream chunk", { err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Failed to parse DeepSeek stream chunk", {
+          err: error instanceof Error ? error.message : String(error),
+        });
         continue;
       }
 
@@ -262,9 +263,10 @@ export class DeepSeekProvider extends LLMProvider {
       if (msg.role === "system") {
         converted.push({
           role: "system",
-          content: typeof msg.content === "string"
-            ? msg.content
-            : msg.content.map((p) => (p as { text: string }).text).join("\n"),
+          content:
+            typeof msg.content === "string"
+              ? msg.content
+              : msg.content.map((p) => (p as { text: string }).text).join("\n"),
         });
       } else if (msg.role === "tool") {
         converted.push({
@@ -336,7 +338,9 @@ export class DeepSeekProvider extends LLMProvider {
     try {
       return JSON.parse(str);
     } catch (error) {
-      logger.debug("Failed to parse DeepSeek tool call arguments", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to parse DeepSeek tool call arguments", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return {};
     }
   }

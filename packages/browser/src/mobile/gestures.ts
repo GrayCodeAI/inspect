@@ -84,11 +84,13 @@ export class GestureSimulator {
               clientX: x,
               clientY: y,
             });
-            document.dispatchEvent(new TouchEvent("touchmove", {
-              touches: [touch],
-              changedTouches: [touch],
-              bubbles: true,
-            }));
+            document.dispatchEvent(
+              new TouchEvent("touchmove", {
+                touches: [touch],
+                changedTouches: [touch],
+                bubbles: true,
+              }),
+            );
           },
           { x: Math.round(x), y: Math.round(y) },
         );
@@ -105,18 +107,25 @@ export class GestureSimulator {
             clientX: x,
             clientY: y,
           });
-          document.dispatchEvent(new TouchEvent("touchend", {
-            touches: [],
-            changedTouches: [touch],
-            bubbles: true,
-          }));
+          document.dispatchEvent(
+            new TouchEvent("touchend", {
+              touches: [],
+              changedTouches: [touch],
+              bubbles: true,
+            }),
+          );
         },
         { x: options.endX, y: options.endY },
       );
 
       return { gesture: "swipe", success: true, durationMs: Date.now() - start };
     } catch (err) {
-      return { gesture: "swipe", success: false, durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) };
+      return {
+        gesture: "swipe",
+        success: false,
+        durationMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -188,9 +197,13 @@ export class GestureSimulator {
         ({ x, y }) => {
           const el = document.elementFromPoint(x, y) ?? document.body;
           const touch = new Touch({ identifier: 0, target: el, clientX: x, clientY: y });
-          el.dispatchEvent(new TouchEvent("touchstart", {
-            touches: [touch], changedTouches: [touch], bubbles: true,
-          }));
+          el.dispatchEvent(
+            new TouchEvent("touchstart", {
+              touches: [touch],
+              changedTouches: [touch],
+              bubbles: true,
+            }),
+          );
         },
         { x, y },
       );
@@ -203,16 +216,25 @@ export class GestureSimulator {
         ({ x, y }) => {
           const el = document.elementFromPoint(x, y) ?? document.body;
           const touch = new Touch({ identifier: 0, target: el, clientX: x, clientY: y });
-          el.dispatchEvent(new TouchEvent("touchend", {
-            touches: [], changedTouches: [touch], bubbles: true,
-          }));
+          el.dispatchEvent(
+            new TouchEvent("touchend", {
+              touches: [],
+              changedTouches: [touch],
+              bubbles: true,
+            }),
+          );
         },
         { x, y },
       );
 
       return { gesture: "longPress", success: true, durationMs: Date.now() - start };
     } catch (err) {
-      return { gesture: "longPress", success: false, durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) };
+      return {
+        gesture: "longPress",
+        success: false,
+        durationMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -229,7 +251,12 @@ export class GestureSimulator {
 
       return { gesture: "doubleTap", success: true, durationMs: Date.now() - start };
     } catch (err) {
-      return { gesture: "doubleTap", success: false, durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) };
+      return {
+        gesture: "doubleTap",
+        success: false,
+        durationMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -263,7 +290,12 @@ export class GestureSimulator {
       await this.page.touchscreen.tap(x, y);
       return { gesture: "tap", success: true, durationMs: Date.now() - start };
     } catch (err) {
-      return { gesture: "tap", success: false, durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) };
+      return {
+        gesture: "tap",
+        success: false,
+        durationMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 }

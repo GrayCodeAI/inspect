@@ -93,12 +93,18 @@ describe("useDashboardStore", () => {
   });
 
   it("handles run:step_completed event", () => {
-    const run = makeRun({ runId: "run-1", steps: [{ index: 0, description: "Navigate", status: "running" }] });
+    const run = makeRun({
+      runId: "run-1",
+      steps: [{ index: 0, description: "Navigate", status: "running" }],
+    });
     useDashboardStore.getState().handleEvent({ type: "run:started", data: run });
 
     useDashboardStore.getState().handleEvent({
       type: "run:step_completed",
-      data: { runId: "run-1", step: { index: 0, description: "Navigate", status: "pass", duration: 1200 } },
+      data: {
+        runId: "run-1",
+        step: { index: 0, description: "Navigate", status: "pass", duration: 1200 },
+      },
     });
 
     const updated = useDashboardStore.getState().runs.get("run-1");
@@ -122,7 +128,15 @@ describe("useDashboardStore", () => {
   it("handles summary:updated event", () => {
     useDashboardStore.getState().handleEvent({
       type: "summary:updated",
-      data: { totalRuns: 10, completed: 5, passed: 4, failed: 1, running: 3, queued: 2, elapsed: 30000 },
+      data: {
+        totalRuns: 10,
+        completed: 5,
+        passed: 4,
+        failed: 1,
+        running: 3,
+        queued: 2,
+        elapsed: 30000,
+      },
     });
 
     const state = useDashboardStore.getState();

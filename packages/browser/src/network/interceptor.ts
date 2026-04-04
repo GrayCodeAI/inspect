@@ -4,7 +4,7 @@
 // Mock API responses, block requests, and record HAR during testing.
 // ============================================================================
 
-import type { Page, Route} from "playwright";
+import type { Page, Route } from "playwright";
 
 export interface MockRoute {
   /** URL pattern to match (glob or regex) */
@@ -33,7 +33,13 @@ export class NetworkInterceptor {
   private page: Page;
   private mocks: MockRoute[] = [];
   private blocks: BlockRule[] = [];
-  private recordedRequests: Array<{ url: string; method: string; status: number; resourceType: string; timestamp: number }> = [];
+  private recordedRequests: Array<{
+    url: string;
+    method: string;
+    status: number;
+    resourceType: string;
+    timestamp: number;
+  }> = [];
   private recording = false;
 
   constructor(page: Page) {
@@ -51,9 +57,10 @@ export class NetworkInterceptor {
         return;
       }
 
-      const body = typeof route.response.body === "string"
-        ? route.response.body
-        : JSON.stringify(route.response.body);
+      const body =
+        typeof route.response.body === "string"
+          ? route.response.body
+          : JSON.stringify(route.response.body);
 
       await r.fulfill({
         status: route.response.status ?? 200,

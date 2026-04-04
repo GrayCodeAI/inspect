@@ -19,9 +19,19 @@ export interface MaskResult {
 }
 
 const AUTO_DETECT_PATTERNS = [
-  /password/i, /passwd/i, /secret/i, /token/i, /api.?key/i,
-  /auth/i, /credential/i, /private.?key/i, /access.?key/i,
-  /session.?id/i, /cookie/i, /bearer/i, /jwt/i,
+  /password/i,
+  /passwd/i,
+  /secret/i,
+  /token/i,
+  /api.?key/i,
+  /auth/i,
+  /credential/i,
+  /private.?key/i,
+  /access.?key/i,
+  /session.?id/i,
+  /cookie/i,
+  /bearer/i,
+  /jwt/i,
 ];
 
 /**
@@ -102,7 +112,9 @@ export class SensitiveDataMasker {
   /**
    * Mask sensitive values in an array of messages.
    */
-  maskMessages(messages: Array<{ role: string; content: string }>): Array<{ role: string; content: string }> {
+  maskMessages(
+    messages: Array<{ role: string; content: string }>,
+  ): Array<{ role: string; content: string }> {
     return messages.map((msg) => ({
       role: msg.role,
       content: this.mask(msg.content).masked,

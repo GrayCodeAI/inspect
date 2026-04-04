@@ -22,8 +22,18 @@ interface AnnotationLabel {
 export class ScreenshotCapture {
   /** Color palette for element annotations */
   private static readonly COLORS = [
-    "#FF0000", "#00FF00", "#0000FF", "#FF00FF", "#FFFF00", "#00FFFF",
-    "#FF8800", "#8800FF", "#00FF88", "#FF0088", "#88FF00", "#0088FF",
+    "#FF0000",
+    "#00FF00",
+    "#0000FF",
+    "#FF00FF",
+    "#FFFF00",
+    "#00FFFF",
+    "#FF8800",
+    "#8800FF",
+    "#00FF88",
+    "#FF0088",
+    "#88FF00",
+    "#0088FF",
   ];
 
   /**
@@ -66,13 +76,16 @@ export class ScreenshotCapture {
    */
   async annotate(page: Page, elements: ElementSnapshot[]): Promise<Buffer> {
     // Filter elements that have bounding boxes
-    const annotatable = elements.filter((e) => e.bounds && e.bounds.width > 0 && e.bounds.height > 0);
+    const annotatable = elements.filter(
+      (e) => e.bounds && e.bounds.width > 0 && e.bounds.height > 0,
+    );
 
     // Inject annotation overlay
     await page.evaluate((annotations: AnnotationLabel[]) => {
       const overlay = document.createElement("div");
       overlay.id = "__inspect_annotations__";
-      overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999;";
+      overlay.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999;";
 
       for (const ann of annotations) {
         // Border box around element
@@ -113,7 +126,7 @@ export class ScreenshotCapture {
     }, this.buildAnnotationLabels(annotatable));
 
     // Capture screenshot with annotations
-    const screenshot = await page.screenshot({ type: "png" }) as Buffer;
+    const screenshot = (await page.screenshot({ type: "png" })) as Buffer;
 
     // Remove annotation overlay
     await page.evaluate(() => {

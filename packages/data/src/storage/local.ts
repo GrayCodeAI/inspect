@@ -68,14 +68,10 @@ export class LocalStorage {
       throw new Error(`File already exists: ${name}`);
     }
 
-    const buffer =
-      typeof data === "string" ? Buffer.from(data, "utf-8") : data;
+    const buffer = typeof data === "string" ? Buffer.from(data, "utf-8") : data;
     await fsp.writeFile(filePath, buffer);
 
-    const hash = crypto
-      .createHash("sha256")
-      .update(buffer)
-      .digest("hex");
+    const hash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     const stat = await fsp.stat(filePath);
 
@@ -84,8 +80,7 @@ export class LocalStorage {
       path: filePath,
       size: stat.size,
       hash,
-      contentType:
-        options?.contentType ?? this.detectContentType(name),
+      contentType: options?.contentType ?? this.detectContentType(name),
       createdAt: stat.birthtimeMs,
       modifiedAt: stat.mtimeMs,
     };
@@ -105,10 +100,7 @@ export class LocalStorage {
   /**
    * Load a file as a string.
    */
-  async loadText(
-    name: string,
-    encoding: BufferEncoding = "utf-8",
-  ): Promise<string> {
+  async loadText(name: string, encoding: BufferEncoding = "utf-8"): Promise<string> {
     const buffer = await this.load(name);
     return buffer.toString(encoding);
   }
@@ -200,10 +192,7 @@ export class LocalStorage {
 
     const stat = await fsp.stat(filePath);
     const content = await fsp.readFile(filePath);
-    const hash = crypto
-      .createHash("sha256")
-      .update(content)
-      .digest("hex");
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
 
     return {
       name,
@@ -251,10 +240,7 @@ export class LocalStorage {
   /**
    * Recursively walk a directory to find all files.
    */
-  private async walkDir(
-    dir: string,
-    recursive: boolean,
-  ): Promise<string[]> {
+  private async walkDir(dir: string, recursive: boolean): Promise<string[]> {
     const files: string[] = [];
     const entries = await fsp.readdir(dir, { withFileTypes: true });
 

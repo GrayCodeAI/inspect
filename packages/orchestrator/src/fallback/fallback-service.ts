@@ -72,6 +72,7 @@ export class FallbackService extends EventEmitter {
   }
 
   private setupDefaultStrategies(): void {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
     // LLM Provider Fallback
@@ -227,10 +228,7 @@ export class FallbackService extends EventEmitter {
   /**
    * Execute with fallback handling
    */
-  async executeWithFallback<T>(
-    fn: () => Promise<T>,
-    context: ExecutionContext
-  ): Promise<T> {
+  async executeWithFallback<T>(fn: () => Promise<T>, context: ExecutionContext): Promise<T> {
     if (!this.config.enabled) {
       return fn();
     }
@@ -242,10 +240,7 @@ export class FallbackService extends EventEmitter {
         const result = await Promise.race([
           fn(),
           new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error("Fallback timeout")),
-              this.config.timeout
-            )
+            setTimeout(() => reject(new Error("Fallback timeout")), this.config.timeout),
           ),
         ]);
 
@@ -331,7 +326,7 @@ export class FallbackService extends EventEmitter {
   /**
    * Break complex action into sub-actions
    */
-  private breakIntoSubActions(action: string, params: Record<string, unknown>): string[] {
+  private breakIntoSubActions(action: string, _params: Record<string, unknown>): string[] {
     const subActions: string[] = [];
 
     if (action.includes("form")) {
@@ -380,6 +375,7 @@ export class FallbackService extends EventEmitter {
     }
 
     // Always add a generic fallback
+    // eslint-disable-next-line no-useless-escape
     alternatives.push(`text=/\\b${selector.replace(/[#.\[\]]/g, "")}\\b/i`);
 
     return alternatives;

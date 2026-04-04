@@ -49,7 +49,7 @@ const MODEL_ALIASES: Record<string, ModelMapping> = {
   "gpt-4.1": { provider: "openai", model: "gpt-4.1" },
   "gpt-4.1-mini": { provider: "openai", model: "gpt-4.1-mini" },
   "gpt-4.1-nano": { provider: "openai", model: "gpt-4.1-nano" },
-  "o3": { provider: "openai", model: "o3" },
+  o3: { provider: "openai", model: "o3" },
   "o4-mini": { provider: "openai", model: "o4-mini" },
   "gemini-2.5-pro": { provider: "gemini", model: "gemini-2.5-pro" },
   "gemini-2.5-flash": { provider: "gemini", model: "gemini-2.5-flash" },
@@ -211,7 +211,13 @@ export class AgentRouter {
   private inferProvider(model: string): ProviderName {
     const lower = model.toLowerCase();
     if (lower.startsWith("claude") || lower.startsWith("anthropic")) return "anthropic";
-    if (lower.startsWith("gpt") || lower.startsWith("o1") || lower.startsWith("o3") || lower.startsWith("o4")) return "openai";
+    if (
+      lower.startsWith("gpt") ||
+      lower.startsWith("o1") ||
+      lower.startsWith("o3") ||
+      lower.startsWith("o4")
+    )
+      return "openai";
     if (lower.startsWith("gemini")) return "gemini";
     if (lower.startsWith("deepseek")) return "deepseek";
     // Default to ollama for unknown models (assume local)

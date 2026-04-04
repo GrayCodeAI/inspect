@@ -38,7 +38,12 @@ describe("TOTPGenerator", () => {
     });
 
     it("should produce deterministic output for a known timestamp", () => {
-      const gen = new TOTPGenerator({ secret: TEST_SECRET, period: 30, algorithm: "sha1", digits: 6 });
+      const gen = new TOTPGenerator({
+        secret: TEST_SECRET,
+        period: 30,
+        algorithm: "sha1",
+        digits: 6,
+      });
       const code1 = gen.generate(1700000000000);
       const code2 = gen.generate(1700000000000);
       expect(code1).toBe(code2);

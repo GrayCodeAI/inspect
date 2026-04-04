@@ -102,7 +102,7 @@ export async function runLoadTest(
 
   let playwright: typeof import("playwright");
   try {
-      playwright = await import("playwright");
+    playwright = await import("playwright");
   } catch {
     onProgress("fail", "  Playwright is not installed. Cannot run load tests.");
     return {

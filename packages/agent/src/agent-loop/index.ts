@@ -54,7 +54,9 @@ export type AgentConfig = {
 export type AgentAction = { type: string; params: Record<string, unknown> };
 export type AgentOutput = unknown;
 export type Observation = { type: string; content: string; timestamp: number };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type LLMProvider = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ActionRecord = any;
 
 export const DEFAULT_AGENT_CONFIG: AgentConfig = {
@@ -67,5 +69,7 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
 
 export class AgentLoop {
   constructor(_config?: Partial<AgentConfig>) {}
-  run() { return Promise.resolve(); }
+  run() {
+    return Promise.resolve();
+  }
 }

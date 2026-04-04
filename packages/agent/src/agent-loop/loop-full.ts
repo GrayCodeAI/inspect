@@ -18,9 +18,7 @@ export type ActionResult = unknown;
 /**
  * Main agent loop (to be implemented)
  */
-export async function runAgentLoop(
-  config: AgentConfig
-): Promise<void> {
+export async function runAgentLoop(_config: AgentConfig): Promise<void> {
   // Placeholder
   console.log("Agent loop not yet implemented");
 }

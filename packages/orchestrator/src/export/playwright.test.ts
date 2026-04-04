@@ -26,26 +26,30 @@ describe("generatePlaywrightTest", () => {
   });
 
   it("converts navigate tool calls", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Navigate",
-      status: "pass",
-      duration: 100,
-      toolCalls: [{ tool: "navigate", args: { url: "https://app.com/login" }, duration: 100 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Navigate",
+        status: "pass",
+        duration: 100,
+        toolCalls: [{ tool: "navigate", args: { url: "https://app.com/login" }, duration: 100 }],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).toContain('page.goto("https://app.com/login")');
   });
 
   it("converts click tool calls", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Click button",
-      status: "pass",
-      duration: 100,
-      toolCalls: [{ tool: "click", args: { ref: "e5" }, duration: 50 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Click button",
+        status: "pass",
+        duration: 100,
+        toolCalls: [{ tool: "click", args: { ref: "e5" }, duration: 50 }],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).toContain("click()");
@@ -53,17 +57,21 @@ describe("generatePlaywrightTest", () => {
   });
 
   it("converts type tool calls with clear and enter", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Type email",
-      status: "pass",
-      duration: 200,
-      toolCalls: [{
-        tool: "type",
-        args: { ref: "e3", text: "user@test.com", clear: true, pressEnter: true },
-        duration: 150,
-      }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Type email",
+        status: "pass",
+        duration: 200,
+        toolCalls: [
+          {
+            tool: "type",
+            args: { ref: "e3", text: "user@test.com", clear: true, pressEnter: true },
+            duration: 150,
+          },
+        ],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).toContain('fill("")');
@@ -72,56 +80,64 @@ describe("generatePlaywrightTest", () => {
   });
 
   it("converts scroll tool calls", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Scroll",
-      status: "pass",
-      duration: 50,
-      toolCalls: [{ tool: "scroll", args: { direction: "down", amount: 300 }, duration: 50 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Scroll",
+        status: "pass",
+        duration: 50,
+        toolCalls: [{ tool: "scroll", args: { direction: "down", amount: 300 }, duration: 50 }],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).toContain("mouse.wheel(0, 300)");
   });
 
   it("converts keypress tool calls", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Press Enter",
-      status: "pass",
-      duration: 50,
-      toolCalls: [{ tool: "keypress", args: { key: "Escape" }, duration: 50 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Press Enter",
+        status: "pass",
+        duration: 50,
+        toolCalls: [{ tool: "keypress", args: { key: "Escape" }, duration: 50 }],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).toContain('keyboard.press("Escape")');
   });
 
   it("converts screenshot tool calls", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Screenshot",
-      status: "pass",
-      duration: 100,
-      toolCalls: [{ tool: "screenshot", args: { fullPage: true, name: "final" }, duration: 100 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Screenshot",
+        status: "pass",
+        duration: 100,
+        toolCalls: [{ tool: "screenshot", args: { fullPage: true, name: "final" }, duration: 100 }],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
-    expect(code).toContain('screenshot');
+    expect(code).toContain("screenshot");
     expect(code).toContain("fullPage: true");
   });
 
   it("skips done and snapshot tool calls", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Done",
-      status: "pass",
-      duration: 10,
-      toolCalls: [
-        { tool: "snapshot", args: {}, duration: 10 },
-        { tool: "done", args: { passed: true, summary: "all good" }, duration: 10 },
-      ],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Done",
+        status: "pass",
+        duration: 10,
+        toolCalls: [
+          { tool: "snapshot", args: {}, duration: 10 },
+          { tool: "done", args: { passed: true, summary: "all good" }, duration: 10 },
+        ],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).not.toContain("snapshot");
@@ -129,15 +145,19 @@ describe("generatePlaywrightTest", () => {
   });
 
   it("includes comments when enabled", () => {
-    const result = makeResult([{
-      index: 0,
-      description: "Fill in the login form",
-      status: "pass",
-      duration: 100,
-      toolCalls: [{ tool: "click", args: { ref: "e1" }, duration: 50 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: "Fill in the login form",
+        status: "pass",
+        duration: 100,
+        toolCalls: [{ tool: "click", args: { ref: "e1" }, duration: 50 }],
+      },
+    ]);
 
-    const code = generatePlaywrightTest(result, "test", "https://app.com", { includeComments: true });
+    const code = generatePlaywrightTest(result, "test", "https://app.com", {
+      includeComments: true,
+    });
     expect(code).toContain("// Fill in the login form");
   });
 
@@ -148,9 +168,7 @@ describe("generatePlaywrightTest", () => {
         description: "Navigate to login",
         status: "pass",
         duration: 1000,
-        toolCalls: [
-          { tool: "navigate", args: { url: "https://app.com/login" }, duration: 500 },
-        ],
+        toolCalls: [{ tool: "navigate", args: { url: "https://app.com/login" }, duration: 500 }],
       },
       {
         index: 1,
@@ -173,13 +191,15 @@ describe("generatePlaywrightTest", () => {
   });
 
   it("escapes special characters in strings", () => {
-    const result = makeResult([{
-      index: 0,
-      description: 'Type with "quotes" and \\backslash',
-      status: "pass",
-      duration: 100,
-      toolCalls: [{ tool: "type", args: { ref: "e1", text: 'hello "world"' }, duration: 50 }],
-    }]);
+    const result = makeResult([
+      {
+        index: 0,
+        description: 'Type with "quotes" and \\backslash',
+        status: "pass",
+        duration: 100,
+        toolCalls: [{ tool: "type", args: { ref: "e1", text: 'hello "world"' }, duration: 50 }],
+      },
+    ]);
 
     const code = generatePlaywrightTest(result, "test", "https://app.com");
     expect(code).toContain('\\"world\\"');

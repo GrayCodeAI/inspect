@@ -82,9 +82,7 @@ describe("SUPPORTED_MODELS", () => {
   const modelKeys = Object.keys(SUPPORTED_MODELS);
 
   it("has entries for multiple providers", () => {
-    const providers = new Set(
-      Object.values(SUPPORTED_MODELS).map((m) => m.provider),
-    );
+    const providers = new Set(Object.values(SUPPORTED_MODELS).map((m) => m.provider));
     expect(providers.has("anthropic")).toBe(true);
     expect(providers.has("openai")).toBe(true);
     expect(providers.has("google")).toBe(true);

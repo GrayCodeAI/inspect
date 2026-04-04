@@ -46,12 +46,7 @@ export class PDFParser {
     const content = buffer;
 
     // Verify PDF signature
-    if (
-      content[0] !== 0x25 ||
-      content[1] !== 0x50 ||
-      content[2] !== 0x44 ||
-      content[3] !== 0x46
-    ) {
+    if (content[0] !== 0x25 || content[1] !== 0x50 || content[2] !== 0x44 || content[3] !== 0x46) {
       throw new Error("Not a valid PDF file");
     }
 
@@ -98,22 +93,14 @@ export class PDFParser {
     const text = buffer.toString("latin1");
     const metadata: PDFMetadata = {};
 
-    const extractField = (
-      name: string,
-    ): string | undefined => {
+    const extractField = (name: string): string | undefined => {
       // Look for /Name (value) or /Name <hex>
-      const parenRegex = new RegExp(
-        `/${name}\\s*\\(([^)]*?)\\)`,
-        "i",
-      );
+      const parenRegex = new RegExp(`/${name}\\s*\\(([^)]*?)\\)`, "i");
       const match = text.match(parenRegex);
       if (match) return match[1];
 
       // Try hex string
-      const hexRegex = new RegExp(
-        `/${name}\\s*<([0-9a-fA-F]+)>`,
-        "i",
-      );
+      const hexRegex = new RegExp(`/${name}\\s*<([0-9a-fA-F]+)>`, "i");
       const hexMatch = text.match(hexRegex);
       if (hexMatch) {
         return this.hexToString(hexMatch[1]);
@@ -143,11 +130,7 @@ export class PDFParser {
     let pos = 0;
     while (pos < content.length) {
       // Search for "stream" marker
-      const streamStart = this.findBytes(
-        content,
-        Buffer.from("stream"),
-        pos,
-      );
+      const streamStart = this.findBytes(content, Buffer.from("stream"), pos);
       if (streamStart === -1) break;
 
       // Skip past "stream\r\n" or "stream\n"
@@ -156,11 +139,7 @@ export class PDFParser {
       if (content[dataStart] === 0x0a) dataStart++; // \n
 
       // Find "endstream"
-      const endStream = this.findBytes(
-        content,
-        Buffer.from("endstream"),
-        dataStart,
-      );
+      const endStream = this.findBytes(content, Buffer.from("endstream"), dataStart);
       if (endStream === -1) break;
 
       // Extract stream data
@@ -243,9 +222,7 @@ export class PDFParser {
         }
       }
 
-      parts.push(
-        hasLargeNeg ? arrParts.join(" ") : arrParts.join(""),
-      );
+      parts.push(hasLargeNeg ? arrParts.join(" ") : arrParts.join(""));
     }
 
     // ' operator (move to next line and show text)
@@ -297,9 +274,7 @@ export class PDFParser {
       .replace(/\\\(/g, "(")
       .replace(/\\\)/g, ")")
       .replace(/\\\\/g, "\\")
-      .replace(/\\(\d{1,3})/g, (_match, octal: string) =>
-        String.fromCharCode(parseInt(octal, 8)),
-      );
+      .replace(/\\(\d{1,3})/g, (_match, octal: string) => String.fromCharCode(parseInt(octal, 8)));
   }
 
   /**
@@ -316,11 +291,7 @@ export class PDFParser {
   /**
    * Find a byte sequence in a buffer.
    */
-  private findBytes(
-    buffer: Buffer,
-    search: Buffer,
-    start: number,
-  ): number {
+  private findBytes(buffer: Buffer, search: Buffer, start: number): number {
     for (let i = start; i <= buffer.length - search.length; i++) {
       let found = true;
       for (let j = 0; j < search.length; j++) {

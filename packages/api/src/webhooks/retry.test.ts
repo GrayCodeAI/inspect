@@ -37,9 +37,9 @@ describe("RetryPolicy", () => {
         jitter: 0,
       });
 
-      expect(linearPolicy.calculateDelay(0)).toBe(100);  // 100 * 1
-      expect(linearPolicy.calculateDelay(1)).toBe(200);  // 100 * 2
-      expect(linearPolicy.calculateDelay(2)).toBe(300);  // 100 * 3
+      expect(linearPolicy.calculateDelay(0)).toBe(100); // 100 * 1
+      expect(linearPolicy.calculateDelay(1)).toBe(200); // 100 * 2
+      expect(linearPolicy.calculateDelay(2)).toBe(300); // 100 * 3
     });
 
     it("caps delay at maxDelayMs", () => {
@@ -132,7 +132,9 @@ describe("RetryPolicy", () => {
 
     it("respects maxRetries override", async () => {
       const result = await policy.execute(
-        async () => { throw new Error("fail"); },
+        async () => {
+          throw new Error("fail");
+        },
         1, // Override: only 1 retry
       );
 

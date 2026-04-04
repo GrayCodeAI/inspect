@@ -89,17 +89,27 @@ export class Notifier {
   // ── Slack ────────────────────────────────────────────────────────────────
 
   private async sendSlack(notification: TestNotification): Promise<void> {
-    const color = notification.status === "pass" ? "#22c55e"
-      : notification.status === "fail" ? "#ef4444"
-      : "#f59e0b";
+    const color =
+      notification.status === "pass"
+        ? "#22c55e"
+        : notification.status === "fail"
+          ? "#ef4444"
+          : "#f59e0b";
 
-    const emoji = notification.status === "pass" ? ":white_check_mark:"
-      : notification.status === "fail" ? ":x:"
-      : ":warning:";
+    const emoji =
+      notification.status === "pass"
+        ? ":white_check_mark:"
+        : notification.status === "fail"
+          ? ":x:"
+          : ":warning:";
 
     const fields: Array<{ title: string; value: string; short: boolean }> = [
       { title: "Status", value: `${emoji} ${notification.status.toUpperCase()}`, short: true },
-      { title: "Results", value: `${notification.passed}/${notification.total} passed`, short: true },
+      {
+        title: "Results",
+        value: `${notification.passed}/${notification.total} passed`,
+        short: true,
+      },
       { title: "Duration", value: this.fmtMs(notification.durationMs), short: true },
     ];
 
@@ -126,7 +136,10 @@ export class Notifier {
 
     // Add error details
     if (notification.errors && notification.errors.length > 0) {
-      const errorText = notification.errors.slice(0, 5).map((e) => `• ${e}`).join("\n");
+      const errorText = notification.errors
+        .slice(0, 5)
+        .map((e) => `• ${e}`)
+        .join("\n");
       attachments.push({
         color: "#ef4444",
         title: "Errors",
@@ -150,17 +163,27 @@ export class Notifier {
   // ── Discord ──────────────────────────────────────────────────────────────
 
   private async sendDiscord(notification: TestNotification): Promise<void> {
-    const color = notification.status === "pass" ? 0x22c55e
-      : notification.status === "fail" ? 0xef4444
-      : 0xf59e0b;
+    const color =
+      notification.status === "pass"
+        ? 0x22c55e
+        : notification.status === "fail"
+          ? 0xef4444
+          : 0xf59e0b;
 
-    const emoji = notification.status === "pass" ? "\u2705"
-      : notification.status === "fail" ? "\u274C"
-      : "\u26A0\uFE0F";
+    const emoji =
+      notification.status === "pass"
+        ? "\u2705"
+        : notification.status === "fail"
+          ? "\u274C"
+          : "\u26A0\uFE0F";
 
     const fields = [
       { name: "Status", value: `${emoji} ${notification.status.toUpperCase()}`, inline: true },
-      { name: "Results", value: `${notification.passed}/${notification.total} passed`, inline: true },
+      {
+        name: "Results",
+        value: `${notification.passed}/${notification.total} passed`,
+        inline: true,
+      },
       { name: "Duration", value: this.fmtMs(notification.durationMs), inline: true },
     ];
 
@@ -176,7 +199,12 @@ export class Notifier {
 
     let description = "";
     if (notification.errors && notification.errors.length > 0) {
-      description = "**Errors:**\n" + notification.errors.slice(0, 5).map((e) => `- ${e}`).join("\n");
+      description =
+        "**Errors:**\n" +
+        notification.errors
+          .slice(0, 5)
+          .map((e) => `- ${e}`)
+          .join("\n");
     }
 
     const embed = {

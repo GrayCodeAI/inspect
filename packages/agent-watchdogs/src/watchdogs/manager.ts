@@ -225,7 +225,9 @@ export class WatchdogManager {
           result.catch(() => {}); // Don't let callback errors propagate
         }
       } catch (error) {
-        logger.warn("Watchdog callback failed", { err: error instanceof Error ? error.message : String(error) });
+        logger.warn("Watchdog callback failed", {
+          err: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }

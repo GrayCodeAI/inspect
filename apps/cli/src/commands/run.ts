@@ -51,7 +51,11 @@ function parseSimpleYAML(content: string): YAMLTestDefinition {
     if (indent === 0 && stripped.endsWith(":") && !stripped.includes(" ")) {
       // Top-level section
       currentSection = stripped.slice(0, -1);
-      if (currentSection === "steps" || currentSection === "setup" || currentSection === "teardown") {
+      if (
+        currentSection === "steps" ||
+        currentSection === "setup" ||
+        currentSection === "teardown"
+      ) {
         currentArray = [];
         result[currentSection] = currentArray;
       }
@@ -119,7 +123,10 @@ async function runYamlTest(file: string, options: RunOptions): Promise<void> {
         const eqIdx = trimmed.indexOf("=");
         if (eqIdx > 0) {
           const key = trimmed.slice(0, eqIdx).trim();
-          const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+          const value = trimmed
+            .slice(eqIdx + 1)
+            .trim()
+            .replace(/^["']|["']$/g, "");
           process.env[key] = value;
         }
       }
@@ -202,7 +209,10 @@ async function runYamlTest(file: string, options: RunOptions): Promise<void> {
         switch (action) {
           case "navigate":
           case "goto":
-            await page.goto(step.url!, { waitUntil: "domcontentloaded", timeout: step.timeout ?? 30000 });
+            await page.goto(step.url!, {
+              waitUntil: "domcontentloaded",
+              timeout: step.timeout ?? 30000,
+            });
             break;
           case "click":
             await page.click(step.selector!, { timeout: step.timeout ?? 10000 });
@@ -236,7 +246,9 @@ async function runYamlTest(file: string, options: RunOptions): Promise<void> {
             // Prevent writing outside the current working directory
             const resolvedPath = resolve(screenshotPath);
             if (!resolvedPath.startsWith(resolve("."))) {
-              throw new Error(`Screenshot path "${screenshotPath}" resolves outside the current directory`);
+              throw new Error(
+                `Screenshot path "${screenshotPath}" resolves outside the current directory`,
+              );
             }
             await page.screenshot({ path: screenshotPath });
             break;
@@ -287,12 +299,15 @@ export function registerRunCommand(program: Command): void {
     .option("--env <env>", "Environment variables file (.env)")
     .option("--parallel", "Run test steps in parallel where possible")
     .option("--verbose", "Show detailed output")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect run tests/login.yaml
   $ inspect run tests/checkout.json --env .env.staging
   $ inspect run tests/smoke.yaml --verbose
-`)
+`,
+    )
     .action(async (file: string, opts: RunOptions) => {
       await runYamlTest(file, opts);
     });

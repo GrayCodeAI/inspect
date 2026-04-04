@@ -114,15 +114,7 @@ const INTERACTIVE_ROLES = [
   "slider",
 ];
 
-const INTERACTIVE_TAGS = [
-  "a",
-  "button",
-  "input",
-  "select",
-  "textarea",
-  "details",
-  "summary",
-];
+const INTERACTIVE_TAGS = ["a", "button", "input", "select", "textarea", "details", "summary"];
 
 /**
  * Hybrid Snapshot Builder
@@ -205,9 +197,10 @@ export class HybridSnapshotBuilder {
   private async buildHybridTree(
     page: Page,
     a11yMap: Map<string, AccessibilityNode>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     elementHandle?: any,
     depth = 0,
-    parentId?: string
+    parentId?: string,
   ): Promise<HybridNode> {
     const id = `node-${++this.nodeCounter}`;
 
@@ -229,7 +222,18 @@ export class HybridSnapshotBuilder {
 
       // Get relevant DOM attributes
       const domAttributes: Record<string, string> = {};
-      const relevantAttrs = ["id", "class", "name", "type", "placeholder", "value", "href", "src", "alt", "title"];
+      const relevantAttrs = [
+        "id",
+        "class",
+        "name",
+        "type",
+        "placeholder",
+        "value",
+        "href",
+        "src",
+        "alt",
+        "title",
+      ];
       for (const attr of relevantAttrs) {
         const val = el.getAttribute(attr);
         if (val) domAttributes[attr] = val;
@@ -298,19 +302,13 @@ export class HybridSnapshotBuilder {
 
     // Recursively process children
     if (depth < this.config.maxDepth) {
-      const childHandles = await handle.locator(
-        ":scope > *:not(script):not(style):not(noscript)"
-      ).elementHandles();
+      const childHandles = await handle
+        .locator(":scope > *:not(script):not(style):not(noscript)")
+        .elementHandles();
 
       for (const childHandle of childHandles.slice(0, 50)) {
         // Limit children
-        const childNode = await this.buildHybridTree(
-          page,
-          a11yMap,
-          childHandle,
-          depth + 1,
-          id
-        );
+        const childNode = await this.buildHybridTree(page, a11yMap, childHandle, depth + 1, id);
         node.children.push(childNode);
       }
     }
@@ -322,12 +320,14 @@ export class HybridSnapshotBuilder {
    * Get accessibility info for element
    */
   private async getAccessibilityInfo(
-    handle: any,
-    a11yMap: Map<string, AccessibilityNode>
+    _handle: unknown,
+    a11yMap: Map<string, AccessibilityNode>,
   ): Promise<{ role?: string; name?: string; description?: string } | null> {
     try {
       // Try to get backend node ID
-      const nodeId = await handle.evaluate((el: Element) => {
+      const nodeId = await (
+        _handle as { evaluate: (fn: (el: Element) => null) => Promise<null> }
+      ).evaluate((_el: Element) => {
         // This would need CDP access to get actual backend node ID
         // For now, return null and rely on ARIA attributes
         return null;
@@ -354,7 +354,7 @@ export class HybridSnapshotBuilder {
   private isInteractive(
     tag: string,
     role?: string,
-    domAttributes?: Record<string, string>
+    domAttributes?: Record<string, string>,
   ): boolean {
     if (INTERACTIVE_TAGS.includes(tag)) return true;
     if (role && INTERACTIVE_ROLES.includes(role)) return true;
@@ -383,9 +383,7 @@ export class HybridSnapshotBuilder {
   findByText(snapshot: HybridSnapshot, text: string): HybridNode[] {
     const lowerText = text.toLowerCase();
     return Array.from(snapshot.nodeMap.values()).filter(
-      (n) =>
-        n.text?.toLowerCase().includes(lowerText) ||
-        n.name?.toLowerCase().includes(lowerText)
+      (n) => n.text?.toLowerCase().includes(lowerText) || n.name?.toLowerCase().includes(lowerText),
     );
   }
 
@@ -427,10 +425,10 @@ export class HybridSnapshotBuilder {
             })),
           },
           null,
-          2
+          2,
         );
 
-      case "markdown":
+      case "markdown": {
         const lines: string[] = [
           `# Page Snapshot: ${snapshot.metadata.title}`,
           ``,
@@ -443,10 +441,13 @@ export class HybridSnapshotBuilder {
         ];
 
         for (const el of snapshot.interactiveElements.slice(0, 30)) {
-          lines.push(`- **${el.tag}**${el.role ? ` (${el.role})` : ""}: ${el.name || el.text?.slice(0, 50) || "[no text]"}`);
+          lines.push(
+            `- **${el.tag}**${el.role ? ` (${el.role})` : ""}: ${el.name || el.text?.slice(0, 50) || "[no text]"}`,
+          );
         }
 
         return lines.join("\n");
+      }
 
       default:
         return "yaml export not implemented";
@@ -467,7 +468,7 @@ interface AccessibilityNode {
  */
 export async function captureHybridSnapshot(
   page: Page,
-  config?: Partial<HybridSnapshotConfig>
+  config?: Partial<HybridSnapshotConfig>,
 ): Promise<HybridSnapshot> {
   const builder = new HybridSnapshotBuilder(config);
   return builder.build(page);

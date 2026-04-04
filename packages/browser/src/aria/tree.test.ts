@@ -55,9 +55,7 @@ describe("AriaTree", () => {
     });
 
     it("includes attributes in parentheses", () => {
-      const nodes = [
-        snap("e1", "heading", "Title", { attributes: { level: "1" } }),
-      ];
+      const nodes = [snap("e1", "heading", "Title", { attributes: { level: "1" } })];
       const output = tree.format(nodes);
       expect(output).toContain("(level=1)");
     });
@@ -85,9 +83,7 @@ describe("AriaTree", () => {
     it("keeps parent if child matches", () => {
       const nodes = [
         snap("e1", "navigation", "Nav", {
-          children: [
-            snap("e2", "link", "Home", { interactable: true }),
-          ],
+          children: [snap("e2", "link", "Home", { interactable: true })],
         }),
       ];
       const result = tree.filter(nodes, (n) => n.role === "link");

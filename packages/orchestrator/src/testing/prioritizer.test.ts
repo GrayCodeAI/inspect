@@ -29,7 +29,11 @@ describe("TestPrioritizer", () => {
     const now = Date.now();
     const result = prioritizer.prioritize({
       tests: [
-        makeTest({ id: "old-fail", name: "Old failure", lastFailedAt: now - 7 * 24 * 60 * 60 * 1000 }),
+        makeTest({
+          id: "old-fail",
+          name: "Old failure",
+          lastFailedAt: now - 7 * 24 * 60 * 60 * 1000,
+        }),
         makeTest({ id: "recent-fail", name: "Recent failure", lastFailedAt: now - 30 * 60 * 1000 }),
       ],
     });
@@ -41,7 +45,11 @@ describe("TestPrioritizer", () => {
     const result = prioritizer.prioritize({
       tests: [
         makeTest({ id: "no-overlap", name: "No overlap", coveredFiles: ["src/other.ts"] }),
-        makeTest({ id: "overlap", name: "Has overlap", coveredFiles: ["src/login.ts", "src/auth.ts"] }),
+        makeTest({
+          id: "overlap",
+          name: "Has overlap",
+          coveredFiles: ["src/login.ts", "src/auth.ts"],
+        }),
       ],
       changedFiles: ["src/login.ts"],
     });
@@ -97,7 +105,13 @@ describe("TestPrioritizer", () => {
     // Heavy weight on speed
     const speedResult = prioritizer.prioritize({
       tests,
-      weights: { speed: 0.9, flakiness: 0.025, failureRecency: 0.025, changeOverlap: 0.025, reliability: 0.025 },
+      weights: {
+        speed: 0.9,
+        flakiness: 0.025,
+        failureRecency: 0.025,
+        changeOverlap: 0.025,
+        reliability: 0.025,
+      },
     });
 
     expect(speedResult.ranked[0].test.id).toBe("fast");
@@ -105,10 +119,7 @@ describe("TestPrioritizer", () => {
 
   it("estimates total duration", () => {
     const result = prioritizer.prioritize({
-      tests: [
-        makeTest({ lastDurationMs: 5000 }),
-        makeTest({ lastDurationMs: 10000 }),
-      ],
+      tests: [makeTest({ lastDurationMs: 5000 }), makeTest({ lastDurationMs: 10000 })],
     });
 
     expect(result.stats.estimatedDurationMs).toBe(15000);

@@ -4,10 +4,14 @@
 
 /** Supported credential provider types */
 export type CredentialProviderType =
-  | 'native' | 'bitwarden' | '1password' | 'azure-key-vault' | 'custom-http';
+  | "native"
+  | "bitwarden"
+  | "1password"
+  | "azure-key-vault"
+  | "custom-http";
 
 /** Credential type */
-export type CredentialType = 'password' | 'api-key' | 'oauth' | 'totp' | 'certificate';
+export type CredentialType = "password" | "api-key" | "oauth" | "totp" | "certificate";
 
 /** Credential configuration */
 export interface CredentialConfig {

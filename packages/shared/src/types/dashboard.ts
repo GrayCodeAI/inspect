@@ -5,7 +5,7 @@
  * frontend consumers (TUI DashboardScreen, Web Live Dashboard).
  */
 
-import type { DashboardRunState, DashboardSnapshot } from "../models.js";
+import type { DashboardRunState } from "../models.js";
 
 // ---------------------------------------------------------------------------
 // Agent activity — what an agent is doing right now
@@ -32,18 +32,9 @@ export interface DashboardAgentActivity {
 // Per-run state snapshot
 // ---------------------------------------------------------------------------
 
-export type DashboardRunStatus =
-  | "queued"
-  | "running"
-  | "completed"
-  | "failed"
-  | "cancelled";
+export type DashboardRunStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
-export type DashboardRunPhase =
-  | "planning"
-  | "executing"
-  | "verifying"
-  | "done";
+export type DashboardRunPhase = "planning" | "executing" | "verifying" | "done";
 
 export interface DashboardStepSnapshot {
   index: number;
@@ -89,11 +80,30 @@ export interface DashboardLogEntry {
 
 export type DashboardEvent =
   | { type: "run:started"; data: DashboardRunState }
-  | { type: "run:progress"; data: { runId: string; phase: DashboardRunPhase; currentStep: number; totalSteps: number; tokenCount: number; elapsed: number; agentActivity?: DashboardAgentActivity } }
+  | {
+      type: "run:progress";
+      data: {
+        runId: string;
+        phase: DashboardRunPhase;
+        currentStep: number;
+        totalSteps: number;
+        tokenCount: number;
+        elapsed: number;
+        agentActivity?: DashboardAgentActivity;
+      };
+    }
   | { type: "run:step_completed"; data: { runId: string; step: DashboardStepSnapshot } }
   | { type: "run:screenshot"; data: { runId: string; screenshot: string; timestamp: number } }
   | { type: "run:log"; data: DashboardLogEntry }
-  | { type: "run:completed"; data: { runId: string; status: "completed" | "failed" | "cancelled"; duration: number; passed: boolean } }
+  | {
+      type: "run:completed";
+      data: {
+        runId: string;
+        status: "completed" | "failed" | "cancelled";
+        duration: number;
+        passed: boolean;
+      };
+    }
   | { type: "summary:updated"; data: DashboardSummary }
   | { type: "flakiness:updated"; data: DashboardFlakinessReport };
 

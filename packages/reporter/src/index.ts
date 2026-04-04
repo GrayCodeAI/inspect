@@ -11,10 +11,7 @@ export {
   type SuiteResult,
 } from "./formats/markdown.js";
 
-export {
-  HTMLReporter,
-  type HTMLReporterOptions,
-} from "./formats/html.js";
+export { HTMLReporter, type HTMLReporterOptions } from "./formats/html.js";
 
 export {
   JSONReporter,

@@ -1,9 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 /**
  * Tests for act phase
  */
 
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import { describe, it, expect, beforeEach } from "vitest";
 import { actPhase, ActInput } from "./act.js";
 import { BrowserManagerService } from "@inspect/browser";

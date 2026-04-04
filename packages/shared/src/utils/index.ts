@@ -152,10 +152,7 @@ export function parseUrl(text: string): URL | null {
  * @param source - The object to merge on top
  * @returns A new merged object
  */
-export function deepMerge<
-  T extends Record<string, unknown>,
-  S extends Record<string, unknown>,
->(
+export function deepMerge<T extends Record<string, unknown>, S extends Record<string, unknown>>(
   target: T,
   source: S,
 ): T & S {
@@ -165,10 +162,7 @@ export function deepMerge<
     const sourceVal = (source as Record<string, unknown>)[key];
     const targetVal = (target as Record<string, unknown>)[key];
 
-    if (
-      isPlainObject(sourceVal) &&
-      isPlainObject(targetVal)
-    ) {
+    if (isPlainObject(sourceVal) && isPlainObject(targetVal)) {
       result[key] = deepMerge(
         targetVal as Record<string, unknown>,
         sourceVal as Record<string, unknown>,
@@ -311,10 +305,7 @@ export async function mapConcurrent<T, R>(
     }
   }
 
-  const workers = Array.from(
-    { length: Math.min(concurrency, items.length) },
-    () => worker(),
-  );
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
 
   await Promise.all(workers);
   return results;

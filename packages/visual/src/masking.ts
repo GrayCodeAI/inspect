@@ -97,12 +97,16 @@ export class ElementMasking {
       return screenshot;
     } finally {
       // Remove the injected style
-      await page.evaluate(`
+      await page
+        .evaluate(
+          `
         (function() {
           var style = document.getElementById('__inspect_mask_style');
           if (style) style.remove();
         })()
-      `).catch(() => {});
+      `,
+        )
+        .catch(() => {});
     }
   }
 
@@ -122,11 +126,7 @@ export class ElementMasking {
    * Draw solid rectangles over specified pixel regions in a raw image.
    * Useful for masking regions that can't be targeted by CSS selectors.
    */
-  maskRegions(
-    image: RawImage,
-    regions: BoundingBox[],
-    options: MaskOptions = {},
-  ): RawImage {
+  maskRegions(image: RawImage, regions: BoundingBox[], options: MaskOptions = {}): RawImage {
     const fillColor = options.fillColor ?? [128, 128, 128, 255];
     const padding = options.padding ?? 0;
 
@@ -161,11 +161,8 @@ export class ElementMasking {
    * Get bounding boxes of elements matching selectors.
    * Useful for determining which regions to mask in pixel space.
    */
-  async getElementRegions(
-    page: PageHandle,
-    selectors: string[],
-  ): Promise<BoundingBox[]> {
-    const regions = await page.evaluate(`
+  async getElementRegions(page: PageHandle, selectors: string[]): Promise<BoundingBox[]> {
+    const regions = (await page.evaluate(`
       (function() {
         var selectors = ${JSON.stringify(selectors)};
         var boxes = [];
@@ -186,7 +183,7 @@ export class ElementMasking {
         });
         return boxes;
       })()
-    `) as BoundingBox[];
+    `)) as BoundingBox[];
 
     return regions;
   }

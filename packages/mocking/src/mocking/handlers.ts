@@ -49,7 +49,11 @@ export interface MockHandler {
 }
 
 /** Response helper to create MockResponse objects */
-export function response(status: number, body?: unknown, headers?: Record<string, string>): MockResponse {
+export function response(
+  status: number,
+  body?: unknown,
+  headers?: Record<string, string>,
+): MockResponse {
   return {
     status,
     headers: {
@@ -219,7 +223,10 @@ export const graphql = {
  * Match a URL against a pattern with path parameters.
  * Supports patterns like "/api/users/:id" and "/api/posts/:postId/comments/:commentId".
  */
-export function matchUrl(pattern: string, url: string): { matched: boolean; params: Record<string, string> } {
+export function matchUrl(
+  pattern: string,
+  url: string,
+): { matched: boolean; params: Record<string, string> } {
   const params: Record<string, string> = {};
 
   // Handle wildcard
@@ -227,9 +234,7 @@ export function matchUrl(pattern: string, url: string): { matched: boolean; para
 
   // Handle glob patterns
   if (pattern.includes("*")) {
-    const regex = new RegExp(
-      "^" + pattern.replace(/\*/g, ".*").replace(/\//g, "\\/") + "$"
-    );
+    const regex = new RegExp("^" + pattern.replace(/\*/g, ".*").replace(/\//g, "\\/") + "$");
     return { matched: regex.test(url), params };
   }
 
@@ -286,7 +291,9 @@ export function parseQuery(url: string): Record<string, string> {
 /**
  * Detect GraphQL operation from request body.
  */
-export function parseGraphQLOperation(body: unknown): { operationName?: string; variables?: Record<string, unknown> } | null {
+export function parseGraphQLOperation(
+  body: unknown,
+): { operationName?: string; variables?: Record<string, unknown> } | null {
   if (!body || typeof body !== "object") return null;
 
   const obj = body as Record<string, unknown>;

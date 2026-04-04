@@ -71,6 +71,7 @@ const generateEnvironmentId = (): string => {
 
 const findAvailablePort = async (): Promise<number> => {
   return new Promise((resolve) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const server = require("node:net").createServer();
     server.listen(0, () => {
       const port = server.address().port;

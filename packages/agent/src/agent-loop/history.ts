@@ -98,15 +98,12 @@ export class AgentHistoryList {
   tokenUsage(): number {
     return this.entries.reduce(
       (sum, e) => sum + (e.metadata.tokensUsed ?? e.modelOutput.tokens ?? 0),
-      0
+      0,
     );
   }
 
   totalCost(): number {
-    return this.entries.reduce(
-      (sum, e) => sum + (e.metadata.cost ?? e.modelOutput.cost ?? 0),
-      0
-    );
+    return this.entries.reduce((sum, e) => sum + (e.metadata.cost ?? e.modelOutput.cost ?? 0), 0);
   }
 
   successRate(): number {
@@ -114,8 +111,9 @@ export class AgentHistoryList {
     const successfulSteps = this.entries.filter((e) =>
       e.results.every((r) => {
         if (!r || typeof r !== "object") return true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (r as any).success !== false;
-      })
+      }),
     ).length;
     return successfulSteps / this.entries.length;
   }
@@ -136,7 +134,7 @@ export class AgentHistoryList {
         },
       },
       null,
-      2
+      2,
     );
   }
 }

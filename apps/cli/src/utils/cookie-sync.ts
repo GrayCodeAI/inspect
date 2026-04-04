@@ -45,11 +45,7 @@ export async function syncCookies(
 
     console.log(chalk.dim(`  Extracting cookies from ${targetBrowser}...`));
 
-    const cookies = await extractor.extractCookies(
-      targetBrowser,
-      options?.profile,
-      domain,
-    );
+    const cookies = await extractor.extractCookies(targetBrowser, options?.profile, domain);
 
     if (cookies.length === 0) {
       return {
@@ -70,7 +66,7 @@ export async function syncCookies(
     const playwrightCookies = extractor.toPlaywrightFormat(deduped);
 
     // Filter out cookies with empty values (encrypted Chromium cookies)
-    const usable = playwrightCookies.filter(c => c.value && c.value.length > 0);
+    const usable = playwrightCookies.filter((c) => c.value && c.value.length > 0);
 
     if (usable.length > 0) {
       await page.context().addCookies(usable);

@@ -66,7 +66,14 @@ describe("CrossBrowserComparator", () => {
     const firefoxResult = makeResult({
       steps: [
         { index: 0, description: "Navigate", status: "pass", duration: 500, toolCalls: [] },
-        { index: 1, description: "Click button", status: "fail", error: "Element not found", duration: 300, toolCalls: [] },
+        {
+          index: 1,
+          description: "Click button",
+          status: "fail",
+          error: "Element not found",
+          duration: 300,
+          toolCalls: [],
+        },
       ],
       status: "fail",
     });

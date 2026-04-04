@@ -89,7 +89,7 @@ export class SlackNotifier {
    */
   private buildMessage(summary: TestSummary): SlackMessage {
     const status = summary.failed === 0 ? "success" : "failure";
-    const color = status === "success" ? "good" : "danger";
+    const _color = status === "success" ? "good" : "danger";
     const emoji = status === "success" ? ":white_check_mark:" : ":x:";
 
     const blocks: SlackBlock[] = [
@@ -115,9 +115,7 @@ export class SlackNotifier {
     if (summary.branch) {
       blocks.push({
         type: "context",
-        elements: [
-          { type: "mrkdwn", text: `Branch: *${summary.branch}*` },
-        ],
+        elements: [{ type: "mrkdwn", text: `Branch: *${summary.branch}*` }],
       });
     }
 

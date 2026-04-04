@@ -18,8 +18,11 @@ export class SqliteClient extends ServiceMap.Service<SqliteClient>()("@inspect/S
         ),
       );
 
-    const query = (_dbPath: string, _sql: string, _engine: string): Effect.Effect<Record<string, unknown>[], CookieReadError> =>
-      Effect.succeed([]);
+    const query = (
+      _dbPath: string,
+      _sql: string,
+      _engine: string,
+    ): Effect.Effect<Record<string, unknown>[], CookieReadError> => Effect.succeed([]);
 
     return { copyToTemp, query };
   }),

@@ -22,19 +22,13 @@ export interface ValidationResult {
  * Supports expression-based conditions, equality checks, and custom validators.
  */
 export class ValidationBlock {
-  private pageValidator?: (
-    condition: string,
-    context: WorkflowContext,
-  ) => Promise<boolean>;
+  private pageValidator?: (condition: string, context: WorkflowContext) => Promise<boolean>;
 
   /**
    * Register a page state validator (integrates with browser).
    */
   setPageValidator(
-    validator: (
-      condition: string,
-      context: WorkflowContext,
-    ) => Promise<boolean>,
+    validator: (condition: string, context: WorkflowContext) => Promise<boolean>,
   ): void {
     this.pageValidator = validator;
   }
@@ -50,22 +44,13 @@ export class ValidationBlock {
    * - message: custom failure message
    * - pageCondition: condition to check against page state (requires page validator)
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<ValidationResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<ValidationResult> {
     const params = block.parameters;
-    const condition = params.condition
-      ? context.render(String(params.condition))
-      : undefined;
-    const variable = params.variable
-      ? String(params.variable)
-      : undefined;
+    const condition = params.condition ? context.render(String(params.condition)) : undefined;
+    const variable = params.variable ? String(params.variable) : undefined;
     const expected = params.expected;
     const operator = String(params.operator ?? "eq");
-    const customMessage = params.message
-      ? context.render(String(params.message))
-      : undefined;
+    const customMessage = params.message ? context.render(String(params.message)) : undefined;
     const pageCondition = params.pageCondition
       ? context.render(String(params.pageCondition))
       : undefined;
@@ -79,16 +64,14 @@ export class ValidationBlock {
           condition: pageCondition,
           message: passed
             ? "Page validation passed"
-            : customMessage ?? `Page validation failed: ${pageCondition}`,
+            : (customMessage ?? `Page validation failed: ${pageCondition}`),
         };
       } catch (error) {
         return {
           passed: false,
           condition: pageCondition,
           message:
-            error instanceof Error
-              ? error.message
-              : `Page validation error: ${String(error)}`,
+            error instanceof Error ? error.message : `Page validation error: ${String(error)}`,
         };
       }
     }
@@ -111,7 +94,7 @@ export class ValidationBlock {
       passed,
       message: passed
         ? "Validation passed (lastOutput is truthy)"
-        : customMessage ?? "Validation failed (lastOutput is falsy)",
+        : (customMessage ?? "Validation failed (lastOutput is falsy)"),
       actual: lastOutput,
     };
   }
@@ -216,8 +199,8 @@ export class ValidationBlock {
       passed,
       message: passed
         ? `Validation passed: ${variableName} ${operator} ${JSON.stringify(expected)}`
-        : customMessage ??
-          `Validation failed: ${variableName} (${JSON.stringify(actual)}) ${operator} ${JSON.stringify(expected)}`,
+        : (customMessage ??
+          `Validation failed: ${variableName} (${JSON.stringify(actual)}) ${operator} ${JSON.stringify(expected)}`),
       actual,
       expected,
       details: { operator, variable: variableName },
@@ -255,7 +238,7 @@ export class ValidationBlock {
       condition,
       message: passed
         ? `Condition passed: ${condition}`
-        : customMessage ?? `Condition failed: ${condition}`,
+        : (customMessage ?? `Condition failed: ${condition}`),
     };
   }
 

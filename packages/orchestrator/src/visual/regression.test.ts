@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { VisualRegression } from "./regression.js";
-import { existsSync, mkdirSync, rmSync, writeFileSync} from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -30,7 +30,11 @@ describe("VisualRegression", () => {
   });
 
   afterEach(() => {
-    try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    try {
+      rmSync(testDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
   });
 
   describe("compare", () => {

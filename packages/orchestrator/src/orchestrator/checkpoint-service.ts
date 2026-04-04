@@ -7,17 +7,24 @@ export class Checkpoint extends Schema.Class<Checkpoint>("Checkpoint")({
   timestamp: Schema.Number,
 }) {}
 
-export class CheckpointManager extends ServiceMap.Service<CheckpointManager, {
-  readonly save: (stepIndex: number, state: unknown) => Effect.Effect<Checkpoint>;
-  readonly restore: (id: string) => Effect.Effect<Checkpoint | undefined>;
-  readonly list: Effect.Effect<readonly Checkpoint[]>;
-  readonly clear: Effect.Effect<void>;
-}>()("@inspect/CheckpointManager") {
-  static layer = Layer.effect(this, 
+export class CheckpointManager extends ServiceMap.Service<
+  CheckpointManager,
+  {
+    readonly save: (stepIndex: number, state: unknown) => Effect.Effect<Checkpoint>;
+    readonly restore: (id: string) => Effect.Effect<Checkpoint | undefined>;
+    readonly list: Effect.Effect<readonly Checkpoint[]>;
+    readonly clear: Effect.Effect<void>;
+  }
+>()("@inspect/CheckpointManager") {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
       const checkpoints: Checkpoint[] = [];
 
-      const save = Effect.fn("CheckpointManager.save")(function* (stepIndex: number, state: unknown) {
+      const save = Effect.fn("CheckpointManager.save")(function* (
+        stepIndex: number,
+        state: unknown,
+      ) {
         const checkpoint = new Checkpoint({
           id: `cp-${Date.now()}-${stepIndex}`,
           stepIndex,
@@ -33,7 +40,9 @@ export class CheckpointManager extends ServiceMap.Service<CheckpointManager, {
       });
 
       const list = Effect.sync(() => [...checkpoints] as const);
-      const clear = Effect.sync(() => { checkpoints.length = 0; });
+      const clear = Effect.sync(() => {
+        checkpoints.length = 0;
+      });
 
       return { save, restore, list, clear } as const;
     }),

@@ -9,7 +9,7 @@ import type {
   A11yCheckResult,
   A11yImpact,
 } from "@inspect/shared";
-import { createTimer} from "@inspect/shared";
+import { createTimer } from "@inspect/shared";
 import { type A11yRuleDefinition } from "./rules.js";
 import { createLogger } from "@inspect/observability";
 
@@ -54,8 +54,22 @@ export interface A11yAuditOptions {
 
 /** Supported locales for axe-core */
 const SUPPORTED_LOCALES = [
-  "da", "de", "el", "es", "eu", "fr", "he", "it",
-  "ja", "ko", "nl", "no_NB", "pl", "pt_BR", "zh_CN", "zh_TW",
+  "da",
+  "de",
+  "el",
+  "es",
+  "eu",
+  "fr",
+  "he",
+  "it",
+  "ja",
+  "ko",
+  "nl",
+  "no_NB",
+  "pl",
+  "pt_BR",
+  "zh_CN",
+  "zh_TW",
 ] as const;
 
 const DEFAULT_AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js";
@@ -100,27 +114,26 @@ export class AccessibilityAuditor {
         })()
       `) as Promise<AxeRawResults>,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`axe-core audit timed out after ${timeout}ms`)), timeout)
+        setTimeout(() => reject(new Error(`axe-core audit timed out after ${timeout}ms`)), timeout),
       ),
     ]);
 
     // Transform results
     const violations = this.transformResults(rawResults.violations ?? []);
-    const passes = options.includePasses !== false
-      ? this.transformResults(rawResults.passes ?? [])
-      : [];
-    const incomplete = options.includeIncomplete !== false
-      ? this.transformResults(rawResults.incomplete ?? [])
-      : [];
-    const inapplicable = options.includeInapplicable !== false
-      ? this.transformResults(rawResults.inapplicable ?? [])
-      : [];
+    const passes =
+      options.includePasses !== false ? this.transformResults(rawResults.passes ?? []) : [];
+    const incomplete =
+      options.includeIncomplete !== false ? this.transformResults(rawResults.incomplete ?? []) : [];
+    const inapplicable =
+      options.includeInapplicable !== false
+        ? this.transformResults(rawResults.inapplicable ?? [])
+        : [];
 
     // Calculate score
     const score = this.calculateScore(violations, passes);
 
     // Get test environment
-    const testEnv = await page.evaluate(`
+    const testEnv = (await page.evaluate(`
       (function() {
         return {
           userAgent: navigator.userAgent,
@@ -129,7 +142,7 @@ export class AccessibilityAuditor {
           orientation: screen.orientation ? screen.orientation.type : undefined
         };
       })()
-    `) as { userAgent: string; windowWidth: number; windowHeight: number; orientation?: string };
+    `)) as { userAgent: string; windowWidth: number; windowHeight: number; orientation?: string };
 
     return {
       violations,
@@ -203,7 +216,7 @@ export class AccessibilityAuditor {
    */
   private async injectAxe(page: PageHandle, locale?: string): Promise<void> {
     // Check if axe is already loaded
-    const hasAxe = await page.evaluate(`typeof window.axe !== 'undefined'`) as boolean;
+    const hasAxe = (await page.evaluate(`typeof window.axe !== 'undefined'`)) as boolean;
     if (hasAxe) return;
 
     // Inject axe-core via CDN
@@ -213,7 +226,7 @@ export class AccessibilityAuditor {
     await page.waitForFunction(`typeof window.axe !== 'undefined'`, { timeout: 10_000 });
 
     // Apply locale if specified and supported
-    if (locale && SUPPORTED_LOCALES.includes(locale as typeof SUPPORTED_LOCALES[number])) {
+    if (locale && SUPPORTED_LOCALES.includes(locale as (typeof SUPPORTED_LOCALES)[number])) {
       const localeUrl = this.axeCdnUrl.replace("axe.min.js", `locales/${locale}.json`);
       try {
         await page.evaluate(`
@@ -287,16 +300,18 @@ export class AccessibilityAuditor {
       help: item.help,
       helpUrl: item.helpUrl,
       tags: item.tags,
-      nodes: (item.nodes ?? []).map((node): A11yViolationNode => ({
-        html: node.html,
-        target: node.target ?? [],
-        xpath: node.xpath?.[0],
-        ancestry: node.ancestry,
-        failureSummary: node.failureSummary ?? "",
-        any: (node.any ?? []) as A11yCheckResult[],
-        all: (node.all ?? []) as A11yCheckResult[],
-        none: (node.none ?? []) as A11yCheckResult[],
-      })),
+      nodes: (item.nodes ?? []).map(
+        (node): A11yViolationNode => ({
+          html: node.html,
+          target: node.target ?? [],
+          xpath: node.xpath?.[0],
+          ancestry: node.ancestry,
+          failureSummary: node.failureSummary ?? "",
+          any: (node.any ?? []) as A11yCheckResult[],
+          all: (node.all ?? []) as A11yCheckResult[],
+          none: (node.none ?? []) as A11yCheckResult[],
+        }),
+      ),
     }));
   }
 
@@ -363,7 +378,25 @@ interface AxeRawNode {
   xpath?: string[];
   ancestry?: string[];
   failureSummary?: string;
-  any?: Array<{ id: string; data?: unknown; relatedNodes?: unknown[]; impact?: A11yImpact; message: string }>;
-  all?: Array<{ id: string; data?: unknown; relatedNodes?: unknown[]; impact?: A11yImpact; message: string }>;
-  none?: Array<{ id: string; data?: unknown; relatedNodes?: unknown[]; impact?: A11yImpact; message: string }>;
+  any?: Array<{
+    id: string;
+    data?: unknown;
+    relatedNodes?: unknown[];
+    impact?: A11yImpact;
+    message: string;
+  }>;
+  all?: Array<{
+    id: string;
+    data?: unknown;
+    relatedNodes?: unknown[];
+    impact?: A11yImpact;
+    message: string;
+  }>;
+  none?: Array<{
+    id: string;
+    data?: unknown;
+    relatedNodes?: unknown[];
+    impact?: A11yImpact;
+    message: string;
+  }>;
 }

@@ -43,7 +43,7 @@ export function generateGitHubActionsYAML(options?: {
   branches?: string[];
 }): string {
   const branches = options?.branches ?? ["main", "develop"];
-  const branchList = branches.map(b => `      - ${b}`).join("\n");
+  const branchList = branches.map((b) => `      - ${b}`).join("\n");
 
   let onBlock = `on:
   push:
@@ -124,12 +124,9 @@ jobs:
 // GitLab CI YAML generation
 // ---------------------------------------------------------------------------
 
-export function generateGitLabCIYAML(options?: {
-  schedule?: string;
-  branches?: string[];
-}): string {
+export function generateGitLabCIYAML(options?: { schedule?: string; branches?: string[] }): string {
   const branches = options?.branches ?? ["main", "develop"];
-  const branchRefs = branches.map(b => `    - ${b}`).join("\n");
+  const branchRefs = branches.map((b) => `    - ${b}`).join("\n");
 
   let scheduleBlock = "";
   if (options?.schedule) {
@@ -172,10 +169,7 @@ ${branchRefs}
 // Quality gate evaluation
 // ---------------------------------------------------------------------------
 
-export function evaluateQualityGates(
-  report: TestReport,
-  gates: QualityGate[],
-): GateResult[] {
+export function evaluateQualityGates(report: TestReport, gates: QualityGate[]): GateResult[] {
   return gates.map((gate) => {
     const actual = resolveMetric(report, gate.metric);
     const passed = compareValue(actual, gate.threshold, gate.operator);
@@ -189,18 +183,14 @@ function resolveMetric(report: TestReport, metric: string): number {
       return report.summary.overallScore;
     case "a11y": {
       if (report.a11y.length === 0) return 0;
-      return Math.round(
-        report.a11y.reduce((sum, r) => sum + r.score, 0) / report.a11y.length,
-      );
+      return Math.round(report.a11y.reduce((sum, r) => sum + r.score, 0) / report.a11y.length);
     }
     case "security":
       return report.security?.score ?? 0;
     case "performance": {
       const perf = report.performance;
       if (!perf || perf.length === 0) return 0;
-      return Math.round(
-        perf.reduce((sum, r) => sum + r.score, 0) / perf.length,
-      );
+      return Math.round(perf.reduce((sum, r) => sum + r.score, 0) / perf.length);
     }
     case "seo":
       return report.seo?.score ?? 0;
@@ -208,9 +198,7 @@ function resolveMetric(report: TestReport, metric: string): number {
       return report.responsive?.score ?? 0;
     case "pass_rate": {
       if (report.summary.total === 0) return 0;
-      return Math.round(
-        (report.summary.passed / report.summary.total) * 100,
-      );
+      return Math.round((report.summary.passed / report.summary.total) * 100);
     }
     case "failures":
       return report.summary.failed;
@@ -246,33 +234,21 @@ function compareValue(
 // PR comment generation
 // ---------------------------------------------------------------------------
 
-export function generatePRComment(
-  report: TestReport,
-  previousReport?: TestReport,
-): string {
+export function generatePRComment(report: TestReport, previousReport?: TestReport): string {
   const score = report.summary.overallScore;
   const statusEmoji = score >= 80 ? "pass" : score >= 50 ? "warn" : "fail";
   const statusLabel =
-    statusEmoji === "pass"
-      ? "PASSED"
-      : statusEmoji === "warn"
-        ? "WARNING"
-        : "FAILED";
+    statusEmoji === "pass" ? "PASSED" : statusEmoji === "warn" ? "WARNING" : "FAILED";
 
   // Compute category scores
   const a11yScore =
     report.a11y.length > 0
-      ? Math.round(
-          report.a11y.reduce((s, r) => s + r.score, 0) / report.a11y.length,
-        )
+      ? Math.round(report.a11y.reduce((s, r) => s + r.score, 0) / report.a11y.length)
       : null;
   const securityScore = report.security?.score ?? null;
   const perfScore =
     report.performance && report.performance.length > 0
-      ? Math.round(
-          report.performance.reduce((s, r) => s + r.score, 0) /
-            report.performance.length,
-        )
+      ? Math.round(report.performance.reduce((s, r) => s + r.score, 0) / report.performance.length)
       : null;
   const seoScore = report.seo?.score ?? null;
   const responsiveScore = report.responsive?.score ?? null;
@@ -288,7 +264,12 @@ export function generatePRComment(
   }
   scoreTable += "\n";
 
-  const addRow = (label: string, current: number | null, prevReport?: TestReport, metricKey?: string): string => {
+  const addRow = (
+    label: string,
+    current: number | null,
+    prevReport?: TestReport,
+    metricKey?: string,
+  ): string => {
     const val = current !== null ? `${current}/100` : "N/A";
     if (previousReport && prevReport && metricKey) {
       const prev = resolveMetric(prevReport, metricKey);
@@ -320,22 +301,40 @@ export function generatePRComment(
 
   for (const a11yReport of report.a11y) {
     for (const issue of a11yReport.issues) {
-      issues.push({ severity: issue.severity, description: `[A11y] ${issue.rule}: ${issue.description}` });
+      issues.push({
+        severity: issue.severity,
+        description: `[A11y] ${issue.rule}: ${issue.description}`,
+      });
     }
   }
   if (report.security) {
     for (const issue of report.security.issues) {
-      issues.push({ severity: issue.severity, description: `[Security] ${issue.title}: ${issue.description}` });
+      issues.push({
+        severity: issue.severity,
+        description: `[Security] ${issue.title}: ${issue.description}`,
+      });
     }
   }
   if (report.seo) {
     for (const issue of report.seo.issues) {
-      issues.push({ severity: issue.severity, description: `[SEO] ${issue.rule}: ${issue.description}` });
+      issues.push({
+        severity: issue.severity,
+        description: `[SEO] ${issue.rule}: ${issue.description}`,
+      });
     }
   }
 
   // Sort by severity
-  const severityOrder: Record<string, number> = { critical: 0, serious: 1, high: 1, moderate: 2, medium: 2, minor: 3, low: 4, info: 5 };
+  const severityOrder: Record<string, number> = {
+    critical: 0,
+    serious: 1,
+    high: 1,
+    moderate: 2,
+    medium: 2,
+    minor: 3,
+    low: 4,
+    info: 5,
+  };
   issues.sort((a, b) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99));
 
   let issuesList = "";
@@ -381,9 +380,7 @@ export function generateSlackPayload(
 
   const a11yScore =
     report.a11y.length > 0
-      ? Math.round(
-          report.a11y.reduce((s, r) => s + r.score, 0) / report.a11y.length,
-        )
+      ? Math.round(report.a11y.reduce((s, r) => s + r.score, 0) / report.a11y.length)
       : null;
 
   const fields: Array<Record<string, unknown>> = [
@@ -411,8 +408,7 @@ export function generateSlackPayload(
   }
   if (report.performance && report.performance.length > 0) {
     const avgPerf = Math.round(
-      report.performance.reduce((s, r) => s + r.score, 0) /
-        report.performance.length,
+      report.performance.reduce((s, r) => s + r.score, 0) / report.performance.length,
     );
     fields.push({
       type: "mrkdwn",
@@ -450,9 +446,7 @@ export function generateSlackPayload(
 
   // Add failed steps if any
   if (report.summary.failed > 0) {
-    const failedSteps = report.results
-      .filter((s) => s.status === "fail")
-      .slice(0, 5);
+    const failedSteps = report.results.filter((s) => s.status === "fail").slice(0, 5);
     const failedText = failedSteps
       .map((s) => `- ${s.description}${s.error ? `: ${s.error}` : ""}`)
       .join("\n");
@@ -504,12 +498,7 @@ export function generateBadgeSVG(
   const goodThreshold = thresholds?.good ?? 80;
   const okThreshold = thresholds?.ok ?? 50;
 
-  const color =
-    score >= goodThreshold
-      ? "#4c1"
-      : score >= okThreshold
-        ? "#dfb317"
-        : "#e05d44";
+  const color = score >= goodThreshold ? "#4c1" : score >= okThreshold ? "#dfb317" : "#e05d44";
 
   const scoreText = `${score}`;
   const labelWidth = label.length * 6.5 + 12;
@@ -545,10 +534,7 @@ export function generateBadgeSVG(
 
 const DEFAULT_TREND_FILE = join(process.cwd(), ".inspect", "trend.json");
 
-export function saveTrendEntry(
-  report: TestReport,
-  trendFile?: string,
-): void {
+export function saveTrendEntry(report: TestReport, trendFile?: string): void {
   const filePath = trendFile ?? DEFAULT_TREND_FILE;
   const dir = dirname(filePath);
   if (!existsSync(dir)) {
@@ -557,17 +543,12 @@ export function saveTrendEntry(
 
   const a11yScore =
     report.a11y.length > 0
-      ? Math.round(
-          report.a11y.reduce((s, r) => s + r.score, 0) / report.a11y.length,
-        )
+      ? Math.round(report.a11y.reduce((s, r) => s + r.score, 0) / report.a11y.length)
       : 0;
 
   const perfScore =
     report.performance && report.performance.length > 0
-      ? Math.round(
-          report.performance.reduce((s, r) => s + r.score, 0) /
-            report.performance.length,
-        )
+      ? Math.round(report.performance.reduce((s, r) => s + r.score, 0) / report.performance.length)
       : 0;
 
   const entry: TrendEntry = {
@@ -623,8 +604,5 @@ function escapeXmlAttr(str: string): string {
 }
 
 function escapeXmlContent(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

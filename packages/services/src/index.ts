@@ -128,7 +128,4 @@ export {
 } from "./services/lightpanda-manager.js";
 
 // Service Bootstrap — wires all services to infrastructure
-export {
-  ServiceBootstrap,
-  type ServiceBootstrapConfig,
-} from "./bootstrap.js";
+export { ServiceBootstrap, type ServiceBootstrapConfig } from "./bootstrap.js";

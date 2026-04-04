@@ -2,7 +2,7 @@
 // HybridTree - Merge ARIA + DOM trees into a unified representation
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { ElementSnapshot, DOMNode, HybridNode} from "@inspect/shared";
+import type { ElementSnapshot, DOMNode, HybridNode } from "@inspect/shared";
 import { RefManager } from "../aria/refs.js";
 
 /** Tag names that indicate interactive elements */
@@ -19,7 +19,14 @@ const INTERACTIVE_TAGS = new Set([
 ]);
 
 /** Attributes that indicate interactivity */
-const INTERACTIVE_ATTRS = new Set(["onclick", "onchange", "onsubmit", "tabindex", "contenteditable", "role"]);
+const INTERACTIVE_ATTRS = new Set([
+  "onclick",
+  "onchange",
+  "onsubmit",
+  "tabindex",
+  "contenteditable",
+  "role",
+]);
 
 /** Roles that indicate interactivity */
 const INTERACTIVE_ROLES = new Set([
@@ -69,7 +76,8 @@ export class HybridTree {
     const matched = new Set<number>();
 
     for (const ariaNode of flatAria) {
-      let bestMatch: { dom: DOMNode & { _path?: string; _index?: number }; score: number } | null = null;
+      let bestMatch: { dom: DOMNode & { _path?: string; _index?: number }; score: number } | null =
+        null;
 
       for (let i = 0; i < flatDOM.length; i++) {
         if (matched.has(i)) continue;
@@ -100,7 +108,7 @@ export class HybridTree {
         cssSelector,
         bounds: ariaNode.bounds ?? dom?.bounds,
         interactive,
-        visible: ariaNode.visible && (dom?.visible !== false),
+        visible: ariaNode.visible && dom?.visible !== false,
         textContent: ariaNode.textContent ?? dom?.textContent,
         attributes: this.mergeAttributes(ariaNode.attributes, dom?.attributes),
         ariaProperties: ariaNode.ariaProperties,
@@ -151,10 +159,7 @@ export class HybridTree {
     return result;
   }
 
-  private flattenDOM(
-    tree: DOMNode[],
-    parentPath: string,
-  ): (DOMNode & { _path?: string })[] {
+  private flattenDOM(tree: DOMNode[], parentPath: string): (DOMNode & { _path?: string })[] {
     const result: (DOMNode & { _path?: string })[] = [];
     const tagCounts: Record<string, number> = {};
 
@@ -307,11 +312,7 @@ export class HybridTree {
     const tag = dom.tagName.toLowerCase();
     if (dom.attributes?.["id"]) return `#${dom.attributes["id"]}`;
     if (dom.attributes?.["class"]) {
-      const classes = dom.attributes["class"]
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(".");
+      const classes = dom.attributes["class"].split(/\s+/).filter(Boolean).slice(0, 2).join(".");
       return `${tag}.${classes}`;
     }
     if (dom.attributes?.["name"]) return `${tag}[name="${dom.attributes["name"]}"]`;

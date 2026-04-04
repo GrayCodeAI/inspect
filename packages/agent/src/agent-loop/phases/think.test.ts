@@ -31,53 +31,41 @@ describe("think phase", () => {
   });
 
   it("should return brain from LLM response", async () => {
-    const result = await Effect.runPromise(
-      thinkPhase(baseInput).pipe(Effect.provide(testLayer)),
-    );
+    const result = await Effect.runPromise(thinkPhase(baseInput).pipe(Effect.provide(testLayer)));
 
     expect(result.brain).toBeDefined();
   });
 
   it("should return actions from LLM response", async () => {
-    const result = await Effect.runPromise(
-      thinkPhase(baseInput).pipe(Effect.provide(testLayer)),
-    );
+    const result = await Effect.runPromise(thinkPhase(baseInput).pipe(Effect.provide(testLayer)));
 
     expect(result.actions).toBeDefined();
     expect(Array.isArray(result.actions)).toBe(true);
   });
 
   it("should calculate confidence between 0 and 1", async () => {
-    const result = await Effect.runPromise(
-      thinkPhase(baseInput).pipe(Effect.provide(testLayer)),
-    );
+    const result = await Effect.runPromise(thinkPhase(baseInput).pipe(Effect.provide(testLayer)));
 
     expect(result.confidence).toBeGreaterThanOrEqual(0);
     expect(result.confidence).toBeLessThanOrEqual(1);
   });
 
   it("should track tokens used", async () => {
-    const result = await Effect.runPromise(
-      thinkPhase(baseInput).pipe(Effect.provide(testLayer)),
-    );
+    const result = await Effect.runPromise(thinkPhase(baseInput).pipe(Effect.provide(testLayer)));
 
     expect(result.tokensUsed).toBeGreaterThanOrEqual(0);
     expect(typeof result.tokensUsed).toBe("number");
   });
 
   it("should calculate cost in USD", async () => {
-    const result = await Effect.runPromise(
-      thinkPhase(baseInput).pipe(Effect.provide(testLayer)),
-    );
+    const result = await Effect.runPromise(thinkPhase(baseInput).pipe(Effect.provide(testLayer)));
 
     expect(result.costUSD).toBeGreaterThanOrEqual(0);
     expect(typeof result.costUSD).toBe("number");
   });
 
   it("should handle observations with goal", async () => {
-    const result = await Effect.runPromise(
-      thinkPhase(baseInput).pipe(Effect.provide(testLayer)),
-    );
+    const result = await Effect.runPromise(thinkPhase(baseInput).pipe(Effect.provide(testLayer)));
 
     const brain = result.brain as { nextGoal?: string };
     expect(brain.nextGoal).toBeDefined();

@@ -126,7 +126,9 @@ export class PatternStore {
         this.patterns = JSON.parse(readFileSync(this.filePath, "utf-8"));
       }
     } catch (error) {
-      logger.debug("Failed to load patterns from disk", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to load patterns from disk", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       this.patterns = [];
     }
   }
@@ -137,7 +139,9 @@ export class PatternStore {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       writeFileSync(this.filePath, JSON.stringify(this.patterns, null, 2));
     } catch (error) {
-      logger.warn("Failed to save pattern store", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to save pattern store", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

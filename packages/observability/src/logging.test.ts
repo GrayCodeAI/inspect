@@ -60,7 +60,12 @@ describe("Logger", () => {
     });
 
     it("child inherits parent context", () => {
-      const parent = new Logger({ name: "parent", level: "info", stdout: false, context: { service: "api" } });
+      const parent = new Logger({
+        name: "parent",
+        level: "info",
+        stdout: false,
+        context: { service: "api" },
+      });
       const child = parent.child({ requestId: "123" });
       // Child should be a working logger
       expect(child.getLevel()).toBe("info");

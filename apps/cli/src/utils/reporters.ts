@@ -31,26 +31,43 @@ export type ReporterType = "list" | "dot" | "json" | "junit" | "html" | "markdow
  */
 export function formatResults(result: TestRunResult, reporter: ReporterType): string {
   switch (reporter) {
-    case "list": return formatList(result);
-    case "dot": return formatDot(result);
-    case "json": return formatJSON(result);
-    case "junit": return formatJUnit(result);
-    case "html": return formatHTML(result);
-    case "markdown": return formatMarkdown(result);
-    case "github": return formatGitHubAnnotations(result);
-    default: return formatList(result);
+    case "list":
+      return formatList(result);
+    case "dot":
+      return formatDot(result);
+    case "json":
+      return formatJSON(result);
+    case "junit":
+      return formatJUnit(result);
+    case "html":
+      return formatHTML(result);
+    case "markdown":
+      return formatMarkdown(result);
+    case "github":
+      return formatGitHubAnnotations(result);
+    default:
+      return formatList(result);
   }
 }
 
 /**
  * Write results to a file using the appropriate reporter format.
  */
-export function writeReport(result: TestRunResult, reporter: ReporterType, outputPath?: string): string {
+export function writeReport(
+  result: TestRunResult,
+  reporter: ReporterType,
+  outputPath?: string,
+): string {
   const content = formatResults(result, reporter);
 
   const extensions: Record<ReporterType, string> = {
-    list: "txt", dot: "txt", json: "json", junit: "xml",
-    html: "html", markdown: "md", github: "txt",
+    list: "txt",
+    dot: "txt",
+    json: "json",
+    junit: "xml",
+    html: "html",
+    markdown: "md",
+    github: "txt",
   };
 
   const dir = outputPath ?? join(process.cwd(), ".inspect", "reports");
@@ -71,7 +88,9 @@ function formatList(result: TestRunResult): string {
   const icon = result.status === "pass" ? "PASS" : "FAIL";
 
   lines.push(`${icon} ${result.instruction}`);
-  lines.push(`  Agent: ${result.agent} | Device: ${result.device} | Duration: ${formatMs(result.duration)}`);
+  lines.push(
+    `  Agent: ${result.agent} | Device: ${result.device} | Duration: ${formatMs(result.duration)}`,
+  );
   lines.push("");
 
   for (const step of result.steps) {
@@ -83,9 +102,11 @@ function formatList(result: TestRunResult): string {
 
   lines.push("");
   lines.push(`Summary: ${result.summary}`);
-  const passed = result.steps.filter(s => s.result === "pass").length;
-  const failed = result.steps.filter(s => s.result === "fail").length;
-  lines.push(`${passed} passed, ${failed} failed, ${result.steps.length} total (${formatMs(result.duration)})`);
+  const passed = result.steps.filter((s) => s.result === "pass").length;
+  const failed = result.steps.filter((s) => s.result === "fail").length;
+  lines.push(
+    `${passed} passed, ${failed} failed, ${result.steps.length} total (${formatMs(result.duration)})`,
+  );
 
   return lines.join("\n");
 }
@@ -93,17 +114,17 @@ function formatList(result: TestRunResult): string {
 // ── Dot reporter (compact — one char per step) ────────────────────────
 
 function formatDot(result: TestRunResult): string {
-  const dots = result.steps.map(s =>
-    s.result === "pass" ? "." : s.result === "fail" ? "F" : "?"
-  ).join("");
+  const dots = result.steps
+    .map((s) => (s.result === "pass" ? "." : s.result === "fail" ? "F" : "?"))
+    .join("");
 
-  const passed = result.steps.filter(s => s.result === "pass").length;
-  const failed = result.steps.filter(s => s.result === "fail").length;
+  const passed = result.steps.filter((s) => s.result === "pass").length;
+  const failed = result.steps.filter((s) => s.result === "fail").length;
 
   const lines = [dots, ""];
 
   // Show failures
-  const failures = result.steps.filter(s => s.result === "fail");
+  const failures = result.steps.filter((s) => s.result === "fail");
   if (failures.length > 0) {
     lines.push("Failures:");
     for (const f of failures) {
@@ -120,30 +141,39 @@ function formatDot(result: TestRunResult): string {
 // ── JSON reporter ──────────────────────────────────────────────────────
 
 function formatJSON(result: TestRunResult): string {
-  return JSON.stringify({
-    version: "0.1.0",
-    ...result,
-  }, null, 2);
+  return JSON.stringify(
+    {
+      version: "0.1.0",
+      ...result,
+    },
+    null,
+    2,
+  );
 }
 
 // ── JUnit XML reporter ─────────────────────────────────────────────────
 
 function formatJUnit(result: TestRunResult): string {
-  const _passed = result.steps.filter(s => s.result === "pass").length;
-  const failed = result.steps.filter(s => s.result === "fail").length;
-  const skipped = result.steps.filter(s => s.result === "skip" || s.result === "info").length;
+  const _passed = result.steps.filter((s) => s.result === "pass").length;
+  const failed = result.steps.filter((s) => s.result === "fail").length;
+  const skipped = result.steps.filter((s) => s.result === "skip" || s.result === "info").length;
 
-  const escapeXml = (s: string) => s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+  const escapeXml = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
 
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
-  lines.push(`<testsuites name="inspect" tests="${result.steps.length}" failures="${failed}" time="${(result.duration / 1000).toFixed(3)}">`);
-  lines.push(`  <testsuite name="${escapeXml(result.instruction)}" tests="${result.steps.length}" failures="${failed}" skipped="${skipped}" time="${(result.duration / 1000).toFixed(3)}" timestamp="${result.timestamp}">`);
+  lines.push(
+    `<testsuites name="inspect" tests="${result.steps.length}" failures="${failed}" time="${(result.duration / 1000).toFixed(3)}">`,
+  );
+  lines.push(
+    `  <testsuite name="${escapeXml(result.instruction)}" tests="${result.steps.length}" failures="${failed}" skipped="${skipped}" time="${(result.duration / 1000).toFixed(3)}" timestamp="${result.timestamp}">`,
+  );
   lines.push(`    <properties>`);
   lines.push(`      <property name="agent" value="${escapeXml(result.agent)}" />`);
   lines.push(`      <property name="device" value="${escapeXml(result.device)}" />`);
@@ -155,10 +185,14 @@ function formatJUnit(result: TestRunResult): string {
   for (let i = 0; i < result.steps.length; i++) {
     const step = result.steps[i];
     const stepTime = step.duration ? (step.duration / 1000).toFixed(3) : "0.000";
-    lines.push(`    <testcase name="${escapeXml(step.action)}" classname="inspect.${escapeXml(result.agent)}" time="${stepTime}">`);
+    lines.push(
+      `    <testcase name="${escapeXml(step.action)}" classname="inspect.${escapeXml(result.agent)}" time="${stepTime}">`,
+    );
 
     if (step.result === "fail") {
-      lines.push(`      <failure message="${escapeXml(step.error ?? "Assertion failed")}" type="AssertionError">${escapeXml(step.evidence ?? "")}</failure>`);
+      lines.push(
+        `      <failure message="${escapeXml(step.error ?? "Assertion failed")}" type="AssertionError">${escapeXml(step.evidence ?? "")}</failure>`,
+      );
     } else if (step.result === "skip" || step.result === "info") {
       lines.push(`      <skipped />`);
     }
@@ -181,9 +215,10 @@ function formatJUnit(result: TestRunResult): string {
 function formatHTML(result: TestRunResult): string {
   // Delegate to the package reporter for full HTML
   // Simple inline version for CLI
-  const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const passed = result.steps.filter(s => s.result === "pass").length;
-  const _failed = result.steps.filter(s => s.result === "fail").length;
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const passed = result.steps.filter((s) => s.result === "pass").length;
+  const _failed = result.steps.filter((s) => s.result === "fail").length;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Inspect Report</title>
@@ -208,8 +243,8 @@ ${result.steps.map((s, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(s.action)}</
 
 function formatMarkdown(result: TestRunResult): string {
   const icon = result.status === "pass" ? "PASS" : "FAIL";
-  const passed = result.steps.filter(s => s.result === "pass").length;
-  const failed = result.steps.filter(s => s.result === "fail").length;
+  const passed = result.steps.filter((s) => s.result === "pass").length;
+  const failed = result.steps.filter((s) => s.result === "fail").length;
 
   const lines: string[] = [];
   lines.push(`## Inspect Test Results: ${icon}`);
@@ -220,7 +255,9 @@ function formatMarkdown(result: TestRunResult): string {
   lines.push(`| **Agent** | ${result.agent} |`);
   lines.push(`| **Device** | ${result.device} |`);
   lines.push(`| **Duration** | ${formatMs(result.duration)} |`);
-  lines.push(`| **Result** | ${passed}/${result.steps.length} passed${failed > 0 ? `, ${failed} failed` : ""} |`);
+  lines.push(
+    `| **Result** | ${passed}/${result.steps.length} passed${failed > 0 ? `, ${failed} failed` : ""} |`,
+  );
   lines.push("");
   lines.push("| # | Step | Status |");
   lines.push("|---|------|--------|");
@@ -233,7 +270,9 @@ function formatMarkdown(result: TestRunResult): string {
   }
 
   lines.push("");
-  lines.push(`_Generated by [Inspect](https://github.com/nichochar/inspect) at ${result.timestamp}_`);
+  lines.push(
+    `_Generated by [Inspect](https://github.com/nichochar/inspect) at ${result.timestamp}_`,
+  );
   return lines.join("\n");
 }
 
@@ -245,15 +284,17 @@ function formatGitHubAnnotations(result: TestRunResult): string {
   for (const step of result.steps) {
     if (step.result === "fail") {
       // GitHub Actions annotation format
-      lines.push(`::error title=Test Failed: ${step.action}::${step.error ?? step.evidence ?? "Assertion failed"}`);
+      lines.push(
+        `::error title=Test Failed: ${step.action}::${step.error ?? step.evidence ?? "Assertion failed"}`,
+      );
     } else if (step.result === "pass") {
       lines.push(`::notice title=Test Passed: ${step.action}::${step.evidence ?? "OK"}`);
     }
   }
 
   // Summary annotation
-  const passed = result.steps.filter(s => s.result === "pass").length;
-  const failed = result.steps.filter(s => s.result === "fail").length;
+  const passed = result.steps.filter((s) => s.result === "pass").length;
+  const failed = result.steps.filter((s) => s.result === "fail").length;
 
   if (failed > 0) {
     lines.push(`::error title=Inspect: ${failed} test(s) failed::${result.summary}`);

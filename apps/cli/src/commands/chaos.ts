@@ -38,7 +38,7 @@ async function runChaos(url: string | undefined, options: ChaosOptions): Promise
     await browserMgr.launchBrowser({
       headless: !(options.headed ?? false),
       viewport: { width: 1920, height: 1080 },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     const page = await browserMgr.newPage();
 
@@ -78,7 +78,9 @@ async function runChaos(url: string | undefined, options: ChaosOptions): Promise
       const data = {
         interactions,
         elapsed,
-        errors: errors.map((e: unknown) => typeof e === "string" ? e : (e as { message?: string }).message ?? String(e)),
+        errors: errors.map((e: unknown) =>
+          typeof e === "string" ? e : ((e as { message?: string }).message ?? String(e)),
+        ),
         consoleErrors,
         fpsDrops,
         passed: errors.length === 0 && fpsDrops.length === 0,
@@ -94,14 +96,21 @@ async function runChaos(url: string | undefined, options: ChaosOptions): Promise
     console.log(chalk.bold("Chaos Test Results:\n"));
     console.log(`  Interactions:   ${interactions}`);
     console.log(`  Duration:       ${(elapsed / 1000).toFixed(1)}s`);
-    console.log(`  JS Errors:      ${errors.length > 0 ? chalk.red(String(errors.length)) : chalk.green("0")}`);
-    console.log(`  Console Errors: ${consoleErrors.length > 0 ? chalk.yellow(String(consoleErrors.length)) : chalk.green("0")}`);
-    console.log(`  FPS Drops:      ${fpsDrops.length > 0 ? chalk.red(String(fpsDrops.length)) : chalk.green("0")}`);
+    console.log(
+      `  JS Errors:      ${errors.length > 0 ? chalk.red(String(errors.length)) : chalk.green("0")}`,
+    );
+    console.log(
+      `  Console Errors: ${consoleErrors.length > 0 ? chalk.yellow(String(consoleErrors.length)) : chalk.green("0")}`,
+    );
+    console.log(
+      `  FPS Drops:      ${fpsDrops.length > 0 ? chalk.red(String(fpsDrops.length)) : chalk.green("0")}`,
+    );
 
     if (errors.length > 0) {
       console.log(chalk.red("\n  JavaScript Errors:"));
       for (const err of errors.slice(0, 10)) {
-        const msg = typeof err === "string" ? err : (err as { message?: string }).message ?? String(err);
+        const msg =
+          typeof err === "string" ? err : ((err as { message?: string }).message ?? String(err));
         console.log(chalk.dim(`    - ${msg.slice(0, 120)}`));
       }
       if (errors.length > 10) {

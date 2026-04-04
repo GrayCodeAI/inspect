@@ -1,4 +1,9 @@
-import type { BrowserKey, ChromiumBrowserKey, FirefoxBrowserKey, SafariBrowserKey } from "./types.js";
+import type {
+  BrowserKey,
+  ChromiumBrowserKey,
+  FirefoxBrowserKey,
+  SafariBrowserKey,
+} from "./types.js";
 
 interface BrowserConfig {
   readonly displayName: string;
@@ -20,13 +25,27 @@ const CHROMIUM_CONFIGS: Record<ChromiumBrowserKey, BrowserConfig> = {
 
 const FIREFOX_CONFIGS: Record<FirefoxBrowserKey, BrowserConfig> = {
   firefox: { displayName: "Firefox", dataDir: "firefox", profileDir: "" },
-  "firefox-developer": { displayName: "Firefox Developer Edition", dataDir: "firefox-developer", profileDir: "" },
+  "firefox-developer": {
+    displayName: "Firefox Developer Edition",
+    dataDir: "firefox-developer",
+    profileDir: "",
+  },
   "firefox-nightly": { displayName: "Firefox Nightly", dataDir: "firefox-nightly", profileDir: "" },
 };
 
 const SAFARI_CONFIGS: Record<SafariBrowserKey, BrowserConfig> = {
-  safari: { displayName: "Safari", dataDir: "", profileDir: "", cookieFile: "Cookies.binarycookies" },
-  "safari-technology-preview": { displayName: "Safari Technology Preview", dataDir: "", profileDir: "", cookieFile: "Cookies.binarycookies" },
+  safari: {
+    displayName: "Safari",
+    dataDir: "",
+    profileDir: "",
+    cookieFile: "Cookies.binarycookies",
+  },
+  "safari-technology-preview": {
+    displayName: "Safari Technology Preview",
+    dataDir: "",
+    profileDir: "",
+    cookieFile: "Cookies.binarycookies",
+  },
 };
 
 export const BROWSER_CONFIGS: Record<BrowserKey, BrowserConfig> = {

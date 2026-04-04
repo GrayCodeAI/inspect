@@ -20,5 +20,7 @@ export const DEFAULT_HEALING_STRATEGIES: HealingStrategy[] = [];
 
 export class SelfHealingSystem {
   constructor(_config?: SelfHealingConfig) {}
-  async heal() { return {} as HealingResult; }
+  async heal() {
+    return {} as HealingResult;
+  }
 }

@@ -32,12 +32,16 @@ async function showTrace(tracePath?: string, options?: { json?: boolean }): Prom
     }
 
     const files = readdirSync(traceDir)
-      .filter(f => f.endsWith(".json"))
-      .map(f => ({ name: f, path: join(traceDir, f), mtime: statSync(join(traceDir, f)).mtimeMs }))
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => ({
+        name: f,
+        path: join(traceDir, f),
+        mtime: statSync(join(traceDir, f)).mtimeMs,
+      }))
       .sort((a, b) => b.mtime - a.mtime);
 
     if (files.length === 0) {
-      console.error(chalk.yellow("No trace files found. Run: inspect test --trace -m \"...\""));
+      console.error(chalk.yellow('No trace files found. Run: inspect test --trace -m "..."'));
       process.exit(1);
     }
 
@@ -72,8 +76,8 @@ async function showTrace(tracePath?: string, options?: { json?: boolean }): Prom
 
   // Summary stats
   const totalDuration = trace.requests.reduce((sum, r) => sum + r.duration, 0);
-  const failed = trace.requests.filter(r => r.status >= 400);
-  const slow = trace.requests.filter(r => r.duration > 1000);
+  const failed = trace.requests.filter((r) => r.status >= 400);
+  const slow = trace.requests.filter((r) => r.duration > 1000);
 
   console.log(chalk.dim("  Summary:"));
   console.log(`    Total requests:  ${trace.requests.length}`);
@@ -83,7 +87,9 @@ async function showTrace(tracePath?: string, options?: { json?: boolean }): Prom
   console.log();
 
   // Request table
-  console.log(chalk.dim("  " + "Method".padEnd(8) + "Status".padEnd(8) + "Duration".padEnd(10) + "URL"));
+  console.log(
+    chalk.dim("  " + "Method".padEnd(8) + "Status".padEnd(8) + "Duration".padEnd(10) + "URL"),
+  );
   console.log(chalk.dim("  " + "─".repeat(80)));
 
   for (const req of trace.requests) {
@@ -119,12 +125,15 @@ export function registerShowTraceCommand(program: Command): void {
     .description("View network trace from a test run")
     .argument("[trace]", "Path to trace JSON file (default: latest)")
     .option("--json", "Output trace as JSON")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect show-trace                              View latest trace
   $ inspect show-trace .inspect/traces/trace-123.json
   $ inspect show-trace --json | jq '.requests[] | select(.status >= 400)'
-`)
+`,
+    )
     .action(async (tracePath?: string, opts?: { json?: boolean }) => {
       try {
         await showTrace(tracePath, opts);

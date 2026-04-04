@@ -59,9 +59,7 @@ export interface LLMClient {
 
 /** Cache interface for action caching */
 export interface ActionCacheInterface {
-  get(
-    key: string,
-  ):
+  get(key: string):
     | {
         action: AgentAction;
         elementDescription?: { role: string; name: string; tagName?: string; nearbyText?: string };

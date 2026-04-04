@@ -57,7 +57,14 @@ export class DOMDiff {
         const id = node.id ? `#${node.id}` : "";
         const cls = node.className ? `.${String(node.className).split(" ")[0]}` : "";
 
-        if (text || role || tag === "input" || tag === "button" || tag === "a" || tag === "select") {
+        if (
+          text ||
+          role ||
+          tag === "input" ||
+          tag === "button" ||
+          tag === "a" ||
+          tag === "select"
+        ) {
           els.push(`${tag}${id}${cls}|${role}|${ariaLabel}|${text.slice(0, 50)}`);
         }
 
@@ -88,7 +95,14 @@ export class DOMDiff {
         const id = node.id ? `#${node.id}` : "";
         const cls = node.className ? `.${String(node.className).split(" ")[0]}` : "";
 
-        if (text || role || tag === "input" || tag === "button" || tag === "a" || tag === "select") {
+        if (
+          text ||
+          role ||
+          tag === "input" ||
+          tag === "button" ||
+          tag === "a" ||
+          tag === "select"
+        ) {
           els.push(`${tag}${id}${cls}|${role}|${ariaLabel}|${text.slice(0, 50)}`);
         }
 

@@ -74,7 +74,11 @@ describe("TestFilter", () => {
     expect(filter.filter("critical")).toEqual(["login-test"]);
     expect(filter.filter("auth")).toEqual(["login-test", "signup-test"]);
     expect(filter.filter("smoke AND !critical")).toEqual(["signup-test"]);
-    expect(filter.filter("auth OR performance")).toEqual(["login-test", "signup-test", "perf-test"]);
+    expect(filter.filter("auth OR performance")).toEqual([
+      "login-test",
+      "signup-test",
+      "perf-test",
+    ]);
   });
 
   it("getAllTags returns sorted unique tags", () => {

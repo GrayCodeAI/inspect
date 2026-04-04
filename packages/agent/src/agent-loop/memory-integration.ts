@@ -145,7 +145,7 @@ export class LongTermMemory {
         existing.examples.push(example);
       }
       // Increase confidence with more examples
-      existing.confidence = Math.min(1, 0.5 + (existing.frequency * 0.1));
+      existing.confidence = Math.min(1, 0.5 + existing.frequency * 0.1);
     } else {
       this.patterns.push({
         pattern,
@@ -161,9 +161,7 @@ export class LongTermMemory {
    * Get most important memories
    */
   getImportant(count = 5): MemoryItem[] {
-    return [...this.memories]
-      .sort((a, b) => b.importance - a.importance)
-      .slice(0, count);
+    return [...this.memories].sort((a, b) => b.importance - a.importance).slice(0, count);
   }
 
   /**
@@ -207,9 +205,10 @@ export class LongTermMemory {
     averageImportance: number;
     highConfidencePatterns: number;
   } {
-    const avgImportance = this.memories.length > 0
-      ? this.memories.reduce((sum, m) => sum + m.importance, 0) / this.memories.length
-      : 0;
+    const avgImportance =
+      this.memories.length > 0
+        ? this.memories.reduce((sum, m) => sum + m.importance, 0) / this.memories.length
+        : 0;
 
     return {
       totalMemories: this.memories.length,

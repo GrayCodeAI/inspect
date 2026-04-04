@@ -52,7 +52,9 @@ describe("ActHandler", () => {
 
     it("parses JSON in markdown code block", () => {
       const h = handler();
-      const action = h.parseActionResponse('```json\n{"type":"fill","ref":"e2","value":"hello"}\n```');
+      const action = h.parseActionResponse(
+        '```json\n{"type":"fill","ref":"e2","value":"hello"}\n```',
+      );
       expect(action.type).toBe("fill");
       expect(action.target).toBe("e2");
       expect(action.value).toBe("hello");
@@ -67,13 +69,17 @@ describe("ActHandler", () => {
 
     it("uses provided description if present", () => {
       const h = handler();
-      const action = h.parseActionResponse('{"type":"click","ref":"e1","description":"Click the submit button"}');
+      const action = h.parseActionResponse(
+        '{"type":"click","ref":"e1","description":"Click the submit button"}',
+      );
       expect(action.description).toBe("Click the submit button");
     });
 
     it("throws on invalid JSON", () => {
       const h = handler();
-      expect(() => h.parseActionResponse("not json at all")).toThrow("Failed to parse LLM action response");
+      expect(() => h.parseActionResponse("not json at all")).toThrow(
+        "Failed to parse LLM action response",
+      );
     });
 
     it("sets timestamp", () => {

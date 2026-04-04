@@ -196,7 +196,14 @@ export interface FPSMonitorResult {
 
 /** Error monitoring result interface */
 export interface ErrorMonitorResult {
-  errors: Array<{ message: string; stack?: string; timestamp: number; filename?: string; lineno?: number; colno?: number }>;
+  errors: Array<{
+    message: string;
+    stack?: string;
+    timestamp: number;
+    filename?: string;
+    lineno?: number;
+    colno?: number;
+  }>;
   consoleErrors: string[];
   unhandledRejections: string[];
   pageCrashed: boolean;

@@ -13,13 +13,16 @@ interface LLMToolDefinition {
 /** JSON Schema for tool parameters */
 export interface ToolParameterSchema {
   type: "object";
-  properties: Record<string, {
-    type: string;
-    description: string;
-    enum?: string[];
-    default?: unknown;
-    items?: Record<string, unknown>;
-  }>;
+  properties: Record<
+    string,
+    {
+      type: string;
+      description: string;
+      enum?: string[];
+      default?: unknown;
+      items?: Record<string, unknown>;
+    }
+  >;
   required?: string[];
 }
 
@@ -184,8 +187,17 @@ export class ToolRegistry {
         type: "object",
         properties: {
           ref: { type: "string", description: "Element reference ID (e.g., 'e15')" },
-          button: { type: "string", description: "Mouse button", enum: ["left", "right", "middle"], default: "left" },
-          clickCount: { type: "number", description: "Number of clicks (1=single, 2=double)", default: 1 },
+          button: {
+            type: "string",
+            description: "Mouse button",
+            enum: ["left", "right", "middle"],
+            default: "left",
+          },
+          clickCount: {
+            type: "number",
+            description: "Number of clicks (1=single, 2=double)",
+            default: 1,
+          },
           modifiers: { type: "string", description: "Modifier keys (Shift, Control, Alt, Meta)" },
         },
         required: ["ref"],
@@ -206,8 +218,18 @@ export class ToolRegistry {
         properties: {
           ref: { type: "string", description: "Element reference ID" },
           text: { type: "string", description: "Text to type" },
-          clear: { type: "string", description: "Whether to clear existing text first", enum: ["true", "false"], default: "true" },
-          pressEnter: { type: "string", description: "Whether to press Enter after typing", enum: ["true", "false"], default: "false" },
+          clear: {
+            type: "string",
+            description: "Whether to clear existing text first",
+            enum: ["true", "false"],
+            default: "true",
+          },
+          pressEnter: {
+            type: "string",
+            description: "Whether to press Enter after typing",
+            enum: ["true", "false"],
+            default: "false",
+          },
         },
         required: ["ref", "text"],
       },
@@ -226,7 +248,12 @@ export class ToolRegistry {
         type: "object",
         properties: {
           url: { type: "string", description: "URL to navigate to" },
-          waitUntil: { type: "string", description: "When to consider navigation done", enum: ["load", "domcontentloaded", "networkidle"], default: "load" },
+          waitUntil: {
+            type: "string",
+            description: "When to consider navigation done",
+            enum: ["load", "domcontentloaded", "networkidle"],
+            default: "load",
+          },
         },
         required: ["url"],
       },
@@ -244,8 +271,16 @@ export class ToolRegistry {
       {
         type: "object",
         properties: {
-          ref: { type: "string", description: "Element reference for element screenshot (optional)" },
-          fullPage: { type: "string", description: "Capture full page", enum: ["true", "false"], default: "false" },
+          ref: {
+            type: "string",
+            description: "Element reference for element screenshot (optional)",
+          },
+          fullPage: {
+            type: "string",
+            description: "Capture full page",
+            enum: ["true", "false"],
+            default: "false",
+          },
           name: { type: "string", description: "Name for the screenshot" },
         },
       },
@@ -283,9 +318,16 @@ export class ToolRegistry {
       {
         type: "object",
         properties: {
-          direction: { type: "string", description: "Scroll direction", enum: ["up", "down", "left", "right"] },
+          direction: {
+            type: "string",
+            description: "Scroll direction",
+            enum: ["up", "down", "left", "right"],
+          },
           amount: { type: "number", description: "Pixels to scroll (default: 500)" },
-          ref: { type: "string", description: "Element to scroll (optional, scrolls page if omitted)" },
+          ref: {
+            type: "string",
+            description: "Element to scroll (optional, scrolls page if omitted)",
+          },
         },
         required: ["direction"],
       },
@@ -342,7 +384,10 @@ export class ToolRegistry {
         type: "object",
         properties: {
           milliseconds: { type: "number", description: "Fixed wait time in ms" },
-          condition: { type: "string", description: "Wait for condition (element visible, text appears, etc.)" },
+          condition: {
+            type: "string",
+            description: "Wait for condition (element visible, text appears, etc.)",
+          },
           ref: { type: "string", description: "Element to wait for" },
           timeout: { type: "number", description: "Maximum wait time in ms (default: 30000)" },
         },
@@ -363,7 +408,11 @@ export class ToolRegistry {
       {
         type: "object",
         properties: {
-          success: { type: "string", description: "Whether the test passed", enum: ["true", "false"] },
+          success: {
+            type: "string",
+            description: "Whether the test passed",
+            enum: ["true", "false"],
+          },
           summary: { type: "string", description: "Brief summary of what was done and findings" },
         },
         required: ["success", "summary"],

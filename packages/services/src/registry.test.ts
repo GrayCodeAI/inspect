@@ -53,9 +53,15 @@ describe("ServiceRegistry", () => {
 
   describe("querying", () => {
     beforeEach(() => {
-      registry.register(makeService({ name: "crawler", capabilities: ["crawl", "parse"], health: "healthy" }));
-      registry.register(makeService({ name: "scanner", capabilities: ["scan"], health: "degraded" }));
-      registry.register(makeService({ name: "indexer", capabilities: ["crawl", "index"], health: "healthy" }));
+      registry.register(
+        makeService({ name: "crawler", capabilities: ["crawl", "parse"], health: "healthy" }),
+      );
+      registry.register(
+        makeService({ name: "scanner", capabilities: ["scan"], health: "degraded" }),
+      );
+      registry.register(
+        makeService({ name: "indexer", capabilities: ["crawl", "index"], health: "healthy" }),
+      );
     });
 
     it("should list all registered services", () => {
@@ -98,7 +104,9 @@ describe("ServiceRegistry", () => {
 
       registry.updateHealth("evt-svc", "degraded"); // different => event
       expect(events).toHaveLength(1);
-      expect((events[0].data as { oldHealth: string; newHealth: string }).newHealth).toBe("degraded");
+      expect((events[0].data as { oldHealth: string; newHealth: string }).newHealth).toBe(
+        "degraded",
+      );
     });
 
     it("should silently ignore health updates for unknown services", () => {
@@ -156,9 +164,7 @@ describe("ServiceRegistry", () => {
       });
 
       // Should not throw
-      expect(() =>
-        registry.register(makeService({ name: "robust" })),
-      ).not.toThrow();
+      expect(() => registry.register(makeService({ name: "robust" }))).not.toThrow();
       expect(registry.get("robust")).toBeDefined();
     });
   });

@@ -65,12 +65,12 @@ export class CheckpointManager {
   async save(data: CheckpointData): Promise<void> {
     try {
       if (!existsSync(this.dir)) await mkdir(this.dir, { recursive: true });
-      await writeFile(
-        join(this.dir, `${data.runId}.json`),
-        JSON.stringify(data, null, 2),
-      );
+      await writeFile(join(this.dir, `${data.runId}.json`), JSON.stringify(data, null, 2));
     } catch (error) {
-      logger.warn("Failed to save checkpoint", { runId: data.runId, err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to save checkpoint", {
+        runId: data.runId,
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -92,12 +92,17 @@ export class CheckpointManager {
             }
           }
         } catch (error) {
-          logger.debug("Failed to read checkpoint file", { file, err: error instanceof Error ? error.message : String(error) });
+          logger.debug("Failed to read checkpoint file", {
+            file,
+            err: error instanceof Error ? error.message : String(error),
+          });
         }
       }
       return latest;
     } catch (error) {
-      logger.debug("Failed to scan checkpoints directory", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to scan checkpoints directory", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -111,7 +116,10 @@ export class CheckpointManager {
       if (!existsSync(path)) return null;
       return JSON.parse(await readFile(path, "utf-8")) as CheckpointData;
     } catch (error) {
-      logger.debug("Failed to read checkpoint", { runId, err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to read checkpoint", {
+        runId,
+        err: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -163,33 +171,47 @@ export class CheckpointManager {
             const data = JSON.parse(await readFile(join(this.dir, f), "utf-8")) as CheckpointData;
             return { file: f, savedAt: data.savedAt, status: data.status };
           } catch (error) {
-            logger.debug("Failed to parse checkpoint for cleanup", { file: f, err: error instanceof Error ? error.message : String(error) });
+            logger.debug("Failed to parse checkpoint for cleanup", {
+              file: f,
+              err: error instanceof Error ? error.message : String(error),
+            });
             return null;
           }
         }),
       );
 
-      const files = parsed
-        .filter(Boolean)
-        .sort((a, b) => b!.savedAt - a!.savedAt) as Array<{ file: string; savedAt: number; status: string }>;
+      const files = parsed.filter(Boolean).sort((a, b) => b!.savedAt - a!.savedAt) as Array<{
+        file: string;
+        savedAt: number;
+        status: string;
+      }>;
 
       // Keep `keep` most recent, delete the rest (but only completed/failed/abandoned)
       for (const item of files.slice(keep)) {
         if (item.status !== "in-progress") {
-          try { await unlink(join(this.dir, item.file)); } catch (error) {
-            logger.debug("Failed to delete old checkpoint", { file: item.file, err: error instanceof Error ? error.message : String(error) });
+          try {
+            await unlink(join(this.dir, item.file));
+          } catch (error) {
+            logger.debug("Failed to delete old checkpoint", {
+              file: item.file,
+              err: error instanceof Error ? error.message : String(error),
+            });
           }
         }
       }
     } catch (error) {
-      logger.warn("Checkpoint cleanup failed", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Checkpoint cleanup failed", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
   /**
    * List all checkpoints.
    */
-  async list(): Promise<Array<{ runId: string; url: string; status: string; stepIndex: number; savedAt: number }>> {
+  async list(): Promise<
+    Array<{ runId: string; url: string; status: string; stepIndex: number; savedAt: number }>
+  > {
     try {
       if (!existsSync(this.dir)) return [];
       const fileNames = (await readdir(this.dir)).filter((f) => f.endsWith(".json"));
@@ -198,17 +220,34 @@ export class CheckpointManager {
         fileNames.map(async (f) => {
           try {
             const data = JSON.parse(await readFile(join(this.dir, f), "utf-8")) as CheckpointData;
-            return { runId: data.runId, url: data.url, status: data.status, stepIndex: data.stepIndex, savedAt: data.savedAt };
+            return {
+              runId: data.runId,
+              url: data.url,
+              status: data.status,
+              stepIndex: data.stepIndex,
+              savedAt: data.savedAt,
+            };
           } catch (error) {
-            logger.debug("Failed to parse checkpoint for listing", { file: f, err: error instanceof Error ? error.message : String(error) });
+            logger.debug("Failed to parse checkpoint for listing", {
+              file: f,
+              err: error instanceof Error ? error.message : String(error),
+            });
             return null;
           }
         }),
       );
 
-      return parsed.filter(Boolean) as Array<{ runId: string; url: string; status: string; stepIndex: number; savedAt: number }>;
+      return parsed.filter(Boolean) as Array<{
+        runId: string;
+        url: string;
+        status: string;
+        stepIndex: number;
+        savedAt: number;
+      }>;
     } catch (error) {
-      logger.debug("Failed to list checkpoints", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to list checkpoints", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }

@@ -5,7 +5,7 @@
  * Inspired by Shortest's approach.
  */
 
-import type { Page, Browser } from "playwright";
+import type { Page } from "playwright";
 
 export interface NaturalTestConfig {
   /** LLM provider */
@@ -83,16 +83,13 @@ export class NaturalTestRunner {
     options: {
       variables?: Record<string, string>;
       assertions?: string[];
-    } = {}
+    } = {},
   ): Promise<NaturalTestResult> {
     const startTime = Date.now();
     console.log(`📝 ${instruction}`);
 
     // Substitute variables
-    const processedInstruction = this.substituteVariables(
-      instruction,
-      options.variables || {}
-    );
+    const processedInstruction = this.substituteVariables(instruction, options.variables || {});
 
     // Generate plan from instruction
     const plan = await this.generatePlan(processedInstruction);
@@ -156,10 +153,7 @@ export class NaturalTestRunner {
   /**
    * Substitute variables in instruction
    */
-  private substituteVariables(
-    instruction: string,
-    variables: Record<string, string>
-  ): string {
+  private substituteVariables(instruction: string, variables: Record<string, string>): string {
     let result = instruction;
     for (const [key, value] of Object.entries(variables)) {
       result = result.replace(new RegExp(`{{${key}}}`, "g"), value);
@@ -172,7 +166,7 @@ export class NaturalTestRunner {
    * Generate plan from natural language instruction
    */
   private async generatePlan(
-    instruction: string
+    instruction: string,
   ): Promise<Array<{ action: string; params: Record<string, unknown> }>> {
     const prompt = `
 Convert the following instruction into a list of browser automation steps.
@@ -222,7 +216,7 @@ Steps:
    * Fallback parsing for simple instructions
    */
   private parseInstructionFallback(
-    instruction: string
+    instruction: string,
   ): Array<{ action: string; params: Record<string, unknown> }> {
     const steps: Array<{ action: string; params: Record<string, unknown> }> = [];
     const lower = instruction.toLowerCase();
@@ -245,7 +239,9 @@ Steps:
 
     // Type patterns
     if (lower.includes("type ") || lower.includes("enter ")) {
-      const typeMatch = instruction.match(/(?:type|enter)\s+["']?([^"']+)["']?(?:\s+in(?:to)?\s+(?:the\s+)?(.+))?/i);
+      const typeMatch = instruction.match(
+        /(?:type|enter)\s+["']?([^"']+)["']?(?:\s+in(?:to)?\s+(?:the\s+)?(.+))?/i,
+      );
       if (typeMatch) {
         steps.push({
           action: "type",
@@ -274,7 +270,7 @@ Steps:
    */
   private async executeStep(
     page: Page,
-    step: { action: string; params: Record<string, unknown> }
+    step: { action: string; params: Record<string, unknown> },
   ): Promise<StepResult> {
     const stepNum = this.stepHistory.length + 1;
 
@@ -284,34 +280,40 @@ Steps:
           await page.goto(step.params.url as string, { waitUntil: "networkidle" });
           break;
 
-        case "click":
+        case "click": {
           const clickSelector = this.buildSelector(step.params.selector as string);
           await page.click(clickSelector);
           break;
+        }
 
-        case "type":
+        case "type": {
           const typeSelector = this.buildSelector(step.params.selector as string);
           await page.fill(typeSelector, step.params.text as string);
           break;
+        }
 
-        case "select":
+        case "select": {
           const selectSelector = this.buildSelector(step.params.selector as string);
           await page.selectOption(selectSelector, step.params.value as string);
           break;
+        }
 
-        case "scroll":
+        case "scroll": {
           const direction = step.params.direction as string;
           const y = direction === "up" ? -500 : direction === "down" ? 500 : 0;
           await page.evaluate((y) => window.scrollBy(0, y), y);
           break;
+        }
 
-        case "wait":
+        case "wait": {
           await page.waitForTimeout(step.params.ms as number);
           break;
+        }
 
-        case "extract":
+        case "extract": {
           // Extraction happens at end
           break;
+        }
 
         case "assert":
           // Handled separately
@@ -362,7 +364,7 @@ Steps:
   private async healStep(
     page: Page,
     step: { action: string; params: Record<string, unknown> },
-    error?: string
+    error?: string,
   ): Promise<boolean> {
     console.log(`Healing step: ${step.action}`, error);
 
@@ -432,10 +434,7 @@ Steps:
   /**
    * Extract content based on instruction
    */
-  private async extractContent(
-    page: Page,
-    instruction: string
-  ): Promise<string> {
+  private async extractContent(page: Page, instruction: string): Promise<string> {
     if (instruction.toLowerCase().includes("extract")) {
       // Extract all visible text
       return page.evaluate(() => document.body.innerText.slice(0, 5000));
@@ -459,7 +458,7 @@ Steps:
 export async function natural(
   page: Page,
   instruction: string,
-  config?: Partial<NaturalTestConfig>
+  config?: Partial<NaturalTestConfig>,
 ): Promise<NaturalTestResult> {
   const runner = new NaturalTestRunner(config);
   return runner.natural(page, instruction);

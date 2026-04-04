@@ -65,7 +65,10 @@ export class GitManager {
       try {
         return await this.git.diff([`${mainBranch}...HEAD`]);
       } catch (error) {
-        logger.debug("Branch diff failed, falling back to working tree diff", { mainBranch, err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Branch diff failed, falling back to working tree diff", {
+          mainBranch,
+          err: error instanceof Error ? error.message : String(error),
+        });
         return await this.git.diff();
       }
     }
@@ -88,14 +91,14 @@ export class GitManager {
         format: { hash: "%h", message: "%s", date: "%cr" },
       });
 
-      return log.all.map(
-        (entry) => {
-          const e = entry as unknown as { hash: string; message: string; date: string };
-          return `${e.hash} ${e.message} (${e.date})`;
-        }
-      );
+      return log.all.map((entry) => {
+        const e = entry as unknown as { hash: string; message: string; date: string };
+        return `${e.hash} ${e.message} (${e.date})`;
+      });
     } catch (error) {
-      logger.debug("Failed to get recent commits", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to get recent commits", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -108,7 +111,9 @@ export class GitManager {
       const branch = await this.git.revparse(["--abbrev-ref", "HEAD"]);
       return branch.trim();
     } catch (error) {
-      logger.debug("Failed to get current branch", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to get current branch", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return "unknown";
     }
   }
@@ -134,17 +139,18 @@ export class GitManager {
 
       // Fallback: try to get the default from remote
       try {
-        const remote = await this.git.raw([
-          "symbolic-ref",
-          "refs/remotes/origin/HEAD",
-        ]);
+        const remote = await this.git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
         return remote.trim().replace("refs/remotes/origin/", "");
       } catch (error) {
-        logger.debug("Failed to resolve remote HEAD", { err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Failed to resolve remote HEAD", {
+          err: error instanceof Error ? error.message : String(error),
+        });
         return "main";
       }
     } catch (error) {
-      logger.debug("Failed to detect main branch", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to detect main branch", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return "main";
     }
   }
@@ -164,7 +170,10 @@ export class GitManager {
       await this.git.revparse(["--is-inside-work-tree"]);
       return true;
     } catch (error) {
-      logger.debug("Not a git repository", { cwd: this.cwd, err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Not a git repository", {
+        cwd: this.cwd,
+        err: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -181,43 +190,31 @@ export class GitManager {
 
   private async getUnstagedFiles(): Promise<string[]> {
     const status = await this.git.status();
-    return [
-      ...status.modified,
-      ...status.not_added,
-      ...status.created,
-    ];
+    return [...status.modified, ...status.not_added, ...status.created];
   }
 
   private async getBranchChangedFiles(): Promise<string[]> {
     const mainBranch = await this.getMainBranch();
     try {
-      const result = await this.git.diff([
-        "--name-only",
-        `${mainBranch}...HEAD`,
-      ]);
-      return result
-        .trim()
-        .split("\n")
-        .filter(Boolean);
+      const result = await this.git.diff(["--name-only", `${mainBranch}...HEAD`]);
+      return result.trim().split("\n").filter(Boolean);
     } catch (error) {
-      logger.debug("Branch diff --name-only failed, falling back to unstaged", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Branch diff --name-only failed, falling back to unstaged", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return this.getUnstagedFiles();
     }
   }
 
   private async getCommitFiles(sha: string): Promise<string[]> {
     try {
-      const result = await this.git.diff([
-        "--name-only",
-        `${sha}^`,
-        sha,
-      ]);
-      return result
-        .trim()
-        .split("\n")
-        .filter(Boolean);
+      const result = await this.git.diff(["--name-only", `${sha}^`, sha]);
+      return result.trim().split("\n").filter(Boolean);
     } catch (error) {
-      logger.debug("Failed to get commit files", { sha, err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to get commit files", {
+        sha,
+        err: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }

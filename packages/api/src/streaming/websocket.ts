@@ -29,10 +29,7 @@ export interface WSMessage {
 }
 
 /** WebSocket message handler */
-export type WSMessageHandler = (
-  clientId: string,
-  message: WSMessage,
-) => void | Promise<void>;
+export type WSMessageHandler = (clientId: string, message: WSMessage) => void | Promise<void>;
 
 /** WebSocket opcode constants */
 const OPCODE_TEXT = 0x01;
@@ -97,11 +94,7 @@ export class WebSocketManager {
     const client = this.clients.get(clientId);
     if (!client) return false;
 
-    return this.writeFrame(
-      client.socket,
-      JSON.stringify(message),
-      OPCODE_TEXT,
-    );
+    return this.writeFrame(client.socket, JSON.stringify(message), OPCODE_TEXT);
   }
 
   /**
@@ -113,11 +106,7 @@ export class WebSocketManager {
     let sent = 0;
 
     for (const client of this.clients.values()) {
-      if (
-        channel &&
-        !client.channels.has("*") &&
-        !client.channels.has(channel)
-      ) {
+      if (channel && !client.channels.has("*") && !client.channels.has(channel)) {
         continue;
       }
 
@@ -191,11 +180,7 @@ export class WebSocketManager {
   /**
    * Handle the WebSocket upgrade handshake (RFC 6455).
    */
-  private handleUpgrade(
-    req: IncomingMessage,
-    socket: Socket,
-    _head: Buffer,
-  ): void {
+  private handleUpgrade(req: IncomingMessage, socket: Socket, _head: Buffer): void {
     const key = req.headers["sec-websocket-key"];
     if (!key) {
       socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
@@ -279,9 +264,7 @@ export class WebSocketManager {
    * Parse a WebSocket frame from a buffer.
    * Returns null if the frame is incomplete.
    */
-  private parseFrame(
-    buffer: Buffer,
-  ): {
+  private parseFrame(buffer: Buffer): {
     opcode: number;
     payload: Buffer;
     totalLength: number;
@@ -306,7 +289,9 @@ export class WebSocketManager {
       const highBits = buffer.readUInt32BE(2);
       const lowBits = buffer.readUInt32BE(6);
       if (highBits !== 0 || lowBits > 16 * 1024 * 1024) {
-        throw new Error(`WebSocket frame too large: ${highBits > 0 ? "exceeds 4GB" : `${lowBits} bytes`}. Maximum is 16MB.`);
+        throw new Error(
+          `WebSocket frame too large: ${highBits > 0 ? "exceeds 4GB" : `${lowBits} bytes`}. Maximum is 16MB.`,
+        );
       }
       payloadLength = lowBits;
       offset = 10;
@@ -321,18 +306,13 @@ export class WebSocketManager {
 
     if (masked) {
       const maskKey = buffer.subarray(offset, offset + 4);
-      const maskedData = buffer.subarray(
-        offset + 4,
-        offset + 4 + payloadLength,
-      );
+      const maskedData = buffer.subarray(offset + 4, offset + 4 + payloadLength);
       payload = Buffer.alloc(payloadLength);
       for (let i = 0; i < payloadLength; i++) {
         payload[i] = maskedData[i] ^ maskKey[i % 4];
       }
     } else {
-      payload = Buffer.from(
-        buffer.subarray(offset, offset + payloadLength),
-      );
+      payload = Buffer.from(buffer.subarray(offset, offset + payloadLength));
     }
 
     return { opcode, payload, totalLength };
@@ -341,11 +321,7 @@ export class WebSocketManager {
   /**
    * Handle a parsed WebSocket frame.
    */
-  private handleFrame(
-    client: WSClient,
-    opcode: number,
-    payload: Buffer,
-  ): void {
+  private handleFrame(client: WSClient, opcode: number, payload: Buffer): void {
     switch (opcode) {
       case OPCODE_TEXT:
       case OPCODE_BINARY: {
@@ -366,9 +342,7 @@ export class WebSocketManager {
           }
 
           if (this.messageHandler) {
-            Promise.resolve(
-              this.messageHandler(client.id, message),
-            ).catch((err) => {
+            Promise.resolve(this.messageHandler(client.id, message)).catch((err) => {
               logger.error("WebSocket message handler error", { error: err });
             });
           }
@@ -414,16 +388,11 @@ export class WebSocketManager {
    * Write a WebSocket frame to a socket.
    * Server frames are NOT masked (per RFC 6455).
    */
-  private writeFrame(
-    socket: Socket,
-    data: Buffer | string,
-    opcode: number,
-  ): boolean {
+  private writeFrame(socket: Socket, data: Buffer | string, opcode: number): boolean {
     try {
       if (socket.destroyed) return false;
 
-      const payload =
-        typeof data === "string" ? Buffer.from(data, "utf-8") : data;
+      const payload = typeof data === "string" ? Buffer.from(data, "utf-8") : data;
       const length = payload.length;
 
       let header: Buffer;

@@ -151,14 +151,16 @@ export class ChaosEngine {
 
     if (!pageCrashed) {
       try {
-        const fpsResult = await page.evaluate(FPS_MONITOR_STOP_SCRIPT) as FPSMonitorResult;
+        const fpsResult = (await page.evaluate(FPS_MONITOR_STOP_SCRIPT)) as FPSMonitorResult;
         fpsDrops = (fpsResult.drops ?? []).map((d) => ({
           fps: d.fps,
           timestamp: d.timestamp,
           duration: d.duration,
         }));
 
-        const errorResult = await page.evaluate(ERROR_MONITOR_RESULTS_SCRIPT) as ErrorMonitorResult;
+        const errorResult = (await page.evaluate(
+          ERROR_MONITOR_RESULTS_SCRIPT,
+        )) as ErrorMonitorResult;
         consoleErrors = errorResult.consoleErrors ?? [];
         unhandledRejections = errorResult.unhandledRejections ?? [];
 
@@ -171,7 +173,9 @@ export class ChaosEngine {
           });
         }
       } catch (error) {
-        logger.debug("Failed to collect monitor results, page may have navigated away or crashed", { error });
+        logger.debug("Failed to collect monitor results, page may have navigated away or crashed", {
+          error,
+        });
       }
     }
 

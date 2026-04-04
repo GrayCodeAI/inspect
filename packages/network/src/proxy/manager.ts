@@ -164,9 +164,7 @@ export class ProxyManager {
    */
   async healthCheckAll(): Promise<number> {
     const entries = Array.from(this.proxies.values());
-    const results = await Promise.allSettled(
-      entries.map((entry) => this.healthCheck(entry)),
-    );
+    const results = await Promise.allSettled(entries.map((entry) => this.healthCheck(entry)));
 
     let healthyCount = 0;
     for (const result of results) {
@@ -272,9 +270,7 @@ export class ProxyManager {
 }
 
 /** Parse a proxy server URL into hostname and port */
-function parseProxyUrl(
-  server: string,
-): { hostname: string; port: number } | null {
+function parseProxyUrl(server: string): { hostname: string; port: number } | null {
   try {
     // Handle socks5://host:port format
     const normalized = server.replace(/^socks5:\/\//, "http://");

@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   checkElementInteractability,
   getClickableElements,
   getElementState,
-  type InteractabilityResult,
 } from "./interactability.js";
 
 describe("Interactability Detection", () => {
@@ -22,10 +21,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(
-        mockPage as any,
-        "button"
-      );
+      const result = await checkElementInteractability(mockPage as any, "button");
 
       expect(result.isClickable).toBe(true);
       expect(result.isDisabled).toBe(false);
@@ -46,10 +42,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(
-        mockPage as any,
-        "button:disabled"
-      );
+      const result = await checkElementInteractability(mockPage as any, "button:disabled");
 
       expect(result.isClickable).toBe(false);
       expect(result.isDisabled).toBe(true);
@@ -70,10 +63,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(
-        mockPage as any,
-        "[aria-disabled='true']"
-      );
+      const result = await checkElementInteractability(mockPage as any, "[aria-disabled='true']");
 
       expect(result.ariaDisabled).toBe(true);
       expect(result.isClickable).toBe(false);
@@ -93,10 +83,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(
-        mockPage as any,
-        ".no-click"
-      );
+      const result = await checkElementInteractability(mockPage as any, ".no-click");
 
       expect(result.hasPointerEvents).toBe(false);
       expect(result.isClickable).toBe(false);
@@ -116,10 +103,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(
-        mockPage as any,
-        ".hidden"
-      );
+      const result = await checkElementInteractability(mockPage as any, ".hidden");
 
       expect(result.isHidden).toBe(true);
       expect(result.isClickable).toBe(false);
@@ -129,11 +113,7 @@ describe("Interactability Detection", () => {
   describe("getClickableElements", () => {
     it("should return list of clickable element selectors", async () => {
       const mockPage = {
-        evaluate: vi.fn().mockResolvedValue([
-          "button#submit",
-          "a.link",
-          "input[type=submit]",
-        ]),
+        evaluate: vi.fn().mockResolvedValue(["button#submit", "a.link", "input[type=submit]"]),
       };
 
       const result = await getClickableElements(mockPage as any, "button, a, input");
@@ -145,17 +125,12 @@ describe("Interactability Detection", () => {
 
     it("should filter disabled elements", async () => {
       const mockPage = {
-        evaluate: vi.fn().mockResolvedValue([
-          "button#submit",
-          "a.link",
-        ]),
+        evaluate: vi.fn().mockResolvedValue(["button#submit", "a.link"]),
       };
 
-      const result = await getClickableElements(
-        mockPage as any,
-        "button, a",
-        { checkDisabled: true }
-      );
+      const result = await getClickableElements(mockPage as any, "button, a", {
+        checkDisabled: true,
+      });
 
       expect(result.length).toBeGreaterThanOrEqual(0);
     });
@@ -211,10 +186,7 @@ describe("Interactability Detection", () => {
         evaluate: vi.fn().mockResolvedValue(null),
       };
 
-      const result = await getElementState(
-        mockPage as any,
-        ".non-existent"
-      );
+      const result = await getElementState(mockPage as any, ".non-existent");
 
       expect(result).toBeNull();
     });

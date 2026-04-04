@@ -184,7 +184,7 @@ export class CrossBrowserManager {
     }
   }
 
-  private getUserAgent( _engine: BrowserEngine): string | undefined {
+  private getUserAgent(_engine: BrowserEngine): string | undefined {
     // Let Playwright set the default UA for each engine
     return undefined;
   }

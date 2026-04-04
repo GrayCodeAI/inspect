@@ -3,16 +3,16 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 /** Tool/interaction mode for the agent */
-export type AgentMode = 'dom' | 'hybrid' | 'cua';
+export type AgentMode = "dom" | "hybrid" | "cua";
 
 /** Vision mode setting */
-export type VisionMode = 'enabled' | 'disabled' | 'auto';
+export type VisionMode = "enabled" | "disabled" | "auto";
 
 /** Vision detail level */
-export type VisionDetail = 'auto' | 'low' | 'high';
+export type VisionDetail = "auto" | "low" | "high";
 
 /** Snapshot capture mode */
-export type SnapshotMode = 'screenshot' | 'snapshot' | 'annotated';
+export type SnapshotMode = "screenshot" | "snapshot" | "annotated";
 
 /** Bounding rectangle for an element */
 export interface BoundingBox {
@@ -48,7 +48,7 @@ export interface ElementSnapshot {
 
 /** Vision-based action produced when DOM/ARIA snapshots fail */
 export interface VisionAction {
-  type: 'click' | 'type' | 'scroll' | 'drag' | 'hover' | 'doubleClick' | 'rightClick' | 'select';
+  type: "click" | "type" | "scroll" | "drag" | "hover" | "doubleClick" | "rightClick" | "select";
   coordinates: { x: number; y: number };
   endCoordinates?: { x: number; y: number };
   confidence: number;
@@ -62,13 +62,13 @@ export interface VisionAction {
 export interface VisionDetectionRequest {
   screenshot: string;
   instruction: string;
-  provider: 'openai' | 'google' | 'anthropic';
+  provider: "openai" | "google" | "anthropic";
   model?: string;
 }
 
 /** Console message captured from the page */
 export interface ConsoleMessage {
-  type: 'log' | 'warn' | 'error' | 'info' | 'debug';
+  type: "log" | "warn" | "error" | "info" | "debug";
   text: string;
   timestamp: number;
   location?: { url: string; lineNumber: number; columnNumber?: number };
@@ -156,7 +156,7 @@ export interface HybridNode {
 export interface ScreenshotOptions {
   fullPage?: boolean;
   path?: string;
-  type?: 'png' | 'jpeg';
+  type?: "png" | "jpeg";
   quality?: number;
   clip?: { x: number; y: number; width: number; height: number };
   omitBackground?: boolean;
@@ -165,7 +165,18 @@ export interface ScreenshotOptions {
 /** PDF save options */
 export interface PDFOptions {
   path?: string;
-  format?: 'Letter' | 'Legal' | 'Tabloid' | 'Ledger' | 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6';
+  format?:
+    | "Letter"
+    | "Legal"
+    | "Tabloid"
+    | "Ledger"
+    | "A0"
+    | "A1"
+    | "A2"
+    | "A3"
+    | "A4"
+    | "A5"
+    | "A6";
   landscape?: boolean;
   printBackground?: boolean;
   margin?: { top?: string; bottom?: string; left?: string; right?: string };

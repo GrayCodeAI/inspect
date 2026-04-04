@@ -4,7 +4,10 @@ import { readFileSync } from "node:fs";
  * Detect if the current terminal supports inline images.
  * Supports: iTerm2, Kitty, WezTerm, Mintty, Sixel-capable terminals.
  */
-export function supportsInlineImages(): { supported: boolean; protocol: "iterm" | "kitty" | "sixel" | "none" } {
+export function supportsInlineImages(): {
+  supported: boolean;
+  protocol: "iterm" | "kitty" | "sixel" | "none";
+} {
   const term = process.env.TERM_PROGRAM ?? "";
   const _termEnv = process.env.TERM ?? "";
 
@@ -85,7 +88,12 @@ export function renderInlineImage(
  */
 function renderITerm2(
   base64Data: string,
-  options?: { width?: number | "auto"; height?: number | "auto"; name?: string; preserveAspectRatio?: boolean },
+  options?: {
+    width?: number | "auto";
+    height?: number | "auto";
+    name?: string;
+    preserveAspectRatio?: boolean;
+  },
 ): string {
   const params: string[] = [];
   params.push(`inline=1`);

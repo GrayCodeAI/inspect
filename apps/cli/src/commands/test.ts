@@ -748,8 +748,7 @@ export async function runTest(options: TestOptions): Promise<void> {
         agent: config.agent,
         mode: config.mode as "dom" | "hybrid" | "cua",
         url: config.url,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        device: devicePreset as any,
+        device: devicePreset as unknown,
         browser: config.browser as "chromium" | "firefox" | "webkit",
         headed: config.headed,
         a11y: config.a11y,

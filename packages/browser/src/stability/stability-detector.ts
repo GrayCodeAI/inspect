@@ -192,7 +192,7 @@ export class StabilityDetector {
    * Phase 2: Wait for visual stability
    */
   private async waitForVisualStability(
-    page: Page
+    page: Page,
   ): Promise<{ stable: boolean; screenshotsTaken: number; stableFrames: number }> {
     const startTime = Date.now();
     let previousScreenshot: Buffer | null = null;
@@ -222,9 +222,7 @@ export class StabilityDetector {
       previousScreenshot = currentScreenshot;
 
       // Wait before next screenshot
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.config.screenshotInterval)
-      );
+      await new Promise((resolve) => setTimeout(resolve, this.config.screenshotInterval));
     }
 
     return { stable: false, screenshotsTaken, stableFrames };
@@ -284,7 +282,7 @@ export class StabilityDetector {
  */
 export async function waitForStable(
   page: Page,
-  config?: Partial<StabilityConfig>
+  config?: Partial<StabilityConfig>,
 ): Promise<StabilityMetrics> {
   const detector = new StabilityDetector(config);
   return detector.waitForStable(page);

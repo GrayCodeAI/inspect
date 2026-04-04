@@ -94,7 +94,7 @@ export class CaptchaWatchdog {
     return page.evaluate(() => {
       // Check for reCAPTCHA v2
       const recaptchaV2 = document.querySelector(
-        '.g-recaptcha, [data-sitekey], iframe[src*="recaptcha"]'
+        '.g-recaptcha, [data-sitekey], iframe[src*="recaptcha"]',
       );
       if (recaptchaV2) {
         const siteKey =
@@ -118,7 +118,7 @@ export class CaptchaWatchdog {
 
       // Check for hCaptcha
       const hcaptcha = document.querySelector(
-        '.h-captcha, [data-hcaptcha-sitekey], iframe[src*="hcaptcha"]'
+        '.h-captcha, [data-hcaptcha-sitekey], iframe[src*="hcaptcha"]',
       );
       if (hcaptcha) {
         const siteKey =
@@ -134,7 +134,7 @@ export class CaptchaWatchdog {
 
       // Check for Cloudflare Turnstile
       const turnstile = document.querySelector(
-        '.cf-turnstile, [data-sitekey], iframe[src*="challenges.cloudflare"]'
+        '.cf-turnstile, [data-sitekey], iframe[src*="challenges.cloudflare"]',
       );
       if (turnstile) {
         return {
@@ -146,7 +146,7 @@ export class CaptchaWatchdog {
 
       // Check for image CAPTCHA
       const imageCaptcha = document.querySelector(
-        'img[src*="captcha"], img[alt*="captcha" i], .captcha-image'
+        'img[src*="captcha"], img[alt*="captcha" i], .captcha-image',
       );
       if (imageCaptcha) {
         return {
@@ -158,7 +158,7 @@ export class CaptchaWatchdog {
 
       // Check for text-based CAPTCHA
       const textCaptcha = document.querySelector(
-        'input[name*="captcha" i], .captcha-input, [placeholder*="captcha" i]'
+        'input[name*="captcha" i], .captcha-input, [placeholder*="captcha" i]',
       );
       if (textCaptcha) {
         return {
@@ -196,10 +196,7 @@ export class CaptchaWatchdog {
   /**
    * Solve reCAPTCHA v2
    */
-  private async solveRecaptchaV2(
-    page: Page,
-    detection: CaptchaDetection
-  ): Promise<boolean> {
+  private async solveRecaptchaV2(page: Page, detection: CaptchaDetection): Promise<boolean> {
     if (!detection.siteKey || !this.config.solverApiKey) {
       console.warn("Cannot solve reCAPTCHA: missing siteKey or API key");
       return false;
@@ -213,10 +210,7 @@ export class CaptchaWatchdog {
   /**
    * Solve hCaptcha
    */
-  private async solveHCaptcha(
-    page: Page,
-    detection: CaptchaDetection
-  ): Promise<boolean> {
+  private async solveHCaptcha(_page: Page, _detection: CaptchaDetection): Promise<boolean> {
     console.log("hCaptcha solving not yet implemented");
     return false;
   }
@@ -224,10 +218,7 @@ export class CaptchaWatchdog {
   /**
    * Solve Cloudflare Turnstile
    */
-  private async solveTurnstile(
-    page: Page,
-    detection: CaptchaDetection
-  ): Promise<boolean> {
+  private async solveTurnstile(_page: Page, _detection: CaptchaDetection): Promise<boolean> {
     console.log("Turnstile solving not yet implemented");
     return false;
   }
@@ -235,10 +226,7 @@ export class CaptchaWatchdog {
   /**
    * Solve image CAPTCHA using vision LLM
    */
-  private async solveImageCaptcha(
-    page: Page,
-    detection: CaptchaDetection
-  ): Promise<boolean> {
+  private async solveImageCaptcha(_page: Page, _detection: CaptchaDetection): Promise<boolean> {
     console.log("Image CAPTCHA solving not yet implemented");
     return false;
   }

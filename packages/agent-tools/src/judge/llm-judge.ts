@@ -29,7 +29,10 @@ export interface LLMJudgeConfig {
 }
 
 export interface LLMProvider {
-  chat(messages: Array<{ role: string; content: string }>, options: { model: string; temperature: number; maxTokens: number }): Promise<{ content: string }>;
+  chat(
+    messages: Array<{ role: string; content: string }>,
+    options: { model: string; temperature: number; maxTokens: number },
+  ): Promise<{ content: string }>;
 }
 
 export interface EvaluationCriterion {
@@ -305,13 +308,10 @@ export class LLMJudge extends EventEmitter {
             model: this.config.model,
             temperature: this.config.temperature,
             maxTokens: this.config.maxTokens,
-          }
+          },
         ),
         new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error("Evaluation timeout")),
-            this.config.timeout
-          )
+          setTimeout(() => reject(new Error("Evaluation timeout")), this.config.timeout),
         ),
       ]);
 
@@ -362,9 +362,7 @@ export class LLMJudge extends EventEmitter {
 
     for (let i = 0; i < items.length; i += concurrencyLimit) {
       const batch = items.slice(i, i + concurrencyLimit);
-      const batchResults = await Promise.all(
-        batch.map((item) => this.evaluate(item))
-      );
+      const batchResults = await Promise.all(batch.map((item) => this.evaluate(item)));
       results.push(...batchResults);
     }
 
@@ -402,8 +400,7 @@ export class LLMJudge extends EventEmitter {
         task: "calibration",
       });
 
-      const withinTolerance =
-        Math.abs(result.overallScore - example.expectedScore) <= 0.2;
+      const withinTolerance = Math.abs(result.overallScore - example.expectedScore) <= 0.2;
 
       if (withinTolerance) {
         correct++;
@@ -428,10 +425,7 @@ export class LLMJudge extends EventEmitter {
    */
   private buildSystemPrompt(): string {
     const criteria = this.config.criteria
-      .map(
-        (c) =>
-          `- ${c.name} (${c.scale}): ${c.description} (weight: ${c.weight})`
-      )
+      .map((c) => `- ${c.name} (${c.scale}): ${c.description} (weight: ${c.weight})`)
       .join("\n");
 
     return `You are an expert evaluator. Assess the output based on the following criteria:
@@ -519,10 +513,7 @@ ${item.expected ? `Expected Output:\n${item.expected}\n\n` : ""}Evaluate the out
     const scores: Record<string, CriterionScore> = {};
 
     for (const criterion of this.config.criteria) {
-      const regex = new RegExp(
-        `${criterion.name}[:\\s]+(\\d+(?:\\.\\d+)?)`,
-        "i"
-      );
+      const regex = new RegExp(`${criterion.name}[:\\s]+(\\d+(?:\\.\\d+)?)`, "i");
       const match = content.match(regex);
       const score = match ? parseFloat(match[1]) : 5;
       const maxScore = this.getMaxScore(criterion.scale);
@@ -559,9 +550,7 @@ ${item.expected ? `Expected Output:\n${item.expected}\n\n` : ""}Evaluate the out
   /**
    * Calculate overall weighted score
    */
-  private calculateOverallScore(
-    scores: Record<string, CriterionScore>
-  ): number {
+  private calculateOverallScore(scores: Record<string, CriterionScore>): number {
     let totalWeight = 0;
     let weightedScore = 0;
 
@@ -582,8 +571,7 @@ ${item.expected ? `Expected Output:\n${item.expected}\n\n` : ""}Evaluate the out
   private calculateAggregateMetrics(results: EvaluationResult[]): AggregateMetrics {
     const totalEvaluations = results.length;
     const passedCount = results.filter((r) => r.passed).length;
-    const averageScore =
-      results.reduce((sum, r) => sum + r.overallScore, 0) / totalEvaluations;
+    const averageScore = results.reduce((sum, r) => sum + r.overallScore, 0) / totalEvaluations;
 
     // Score distribution
     const scoreDistribution: Record<string, number> = {
@@ -611,8 +599,7 @@ ${item.expected ? `Expected Output:\n${item.expected}\n\n` : ""}Evaluate the out
         .filter((s): s is number => s !== undefined);
 
       byCriterion[criterion.name] = {
-        average:
-          criterionScores.reduce((a, b) => a + b, 0) / criterionScores.length,
+        average: criterionScores.reduce((a, b) => a + b, 0) / criterionScores.length,
         min: Math.min(...criterionScores),
         max: Math.max(...criterionScores),
       };
@@ -677,7 +664,7 @@ ${item.expected ? `Expected Output:\n${item.expected}\n\n` : ""}Evaluate the out
  */
 export function createJudgeFromTemplate(
   templateName: keyof typeof EVALUATION_TEMPLATES,
-  provider: LLMProvider
+  provider: LLMProvider,
 ): LLMJudge {
   const template = EVALUATION_TEMPLATES[templateName];
   return new LLMJudge({
@@ -689,9 +676,6 @@ export function createJudgeFromTemplate(
 /**
  * Convenience function
  */
-export function createLLMJudge(
-  provider: LLMProvider,
-  config?: Partial<LLMJudgeConfig>
-): LLMJudge {
+export function createLLMJudge(provider: LLMProvider, config?: Partial<LLMJudgeConfig>): LLMJudge {
   return new LLMJudge({ ...config, provider });
 }

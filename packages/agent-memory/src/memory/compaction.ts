@@ -151,10 +151,10 @@ export class ContextCompactor {
     return Math.ceil(totalChars / this.options.charsPerToken);
   }
 
-  private async generateSummary(messages: LLMMessage[], llm: LLMProvider): Promise<string> {
+  private async generateSummary(messages: LLMMessage[], _llm: LLMProvider): Promise<string> {
     const formatted = this.formatMessagesForSummary(messages);
 
-    const summaryPrompt: LLMMessage[] = [
+    const _summaryPrompt: LLMMessage[] = [
       {
         role: "system",
         content: `You are a conversation summarizer for a browser testing agent. Summarize the following conversation history, preserving:

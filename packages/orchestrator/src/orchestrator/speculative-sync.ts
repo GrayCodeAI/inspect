@@ -20,6 +20,7 @@ export class SyncSpeculativePlanner {
   private avgPrepTimeMs = DEFAULT_AVG_PREP_TIME_MS;
 
   precompute(stepIndex: number, snapshot: string, prompt: string, url: string): void {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { SpeculativePlan } = require("@inspect/orchestrator");
     this.plans.set(
       stepIndex,

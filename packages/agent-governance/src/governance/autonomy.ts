@@ -69,20 +69,36 @@ export class AutonomyManager {
    */
   canProceed(action: string): { allowed: boolean; requiresApproval: boolean; reason?: string } {
     if (this.escalated) {
-      return { allowed: false, requiresApproval: true, reason: "Agent has been escalated — human approval required" };
+      return {
+        allowed: false,
+        requiresApproval: true,
+        reason: "Agent has been escalated — human approval required",
+      };
     }
 
     if (this.config.requireApprovalFor.includes(action)) {
-      return { allowed: true, requiresApproval: true, reason: "Action requires human approval per policy" };
+      return {
+        allowed: true,
+        requiresApproval: true,
+        reason: "Action requires human approval per policy",
+      };
     }
 
     if (this.currentCost >= this.config.maxCostPerSession) {
-      return { allowed: false, requiresApproval: true, reason: `Cost limit reached ($${this.currentCost.toFixed(2)})` };
+      return {
+        allowed: false,
+        requiresApproval: true,
+        reason: `Cost limit reached ($${this.currentCost.toFixed(2)})`,
+      };
     }
 
     switch (this.config.level) {
       case AutonomyLevel.AUGMENTATION:
-        return { allowed: true, requiresApproval: true, reason: "Augmentation mode — all actions need approval" };
+        return {
+          allowed: true,
+          requiresApproval: true,
+          reason: "Augmentation mode — all actions need approval",
+        };
       case AutonomyLevel.SUPERVISION:
         return { allowed: true, requiresApproval: false };
       case AutonomyLevel.DELEGATION:

@@ -30,8 +30,8 @@ export class JudgeLLMService extends ServiceMap.Service<JudgeLLMService>()("@too
     });
 
     const evaluateWithLLM = Effect.fn("JudgeLLM.evaluateWithLLM")(function* (
-      prompt: string,
-      context: string,
+      _prompt: string,
+      _context: string,
     ) {
       yield* Effect.annotateCurrentSpan({ action: "evaluateWithLLM" });
 

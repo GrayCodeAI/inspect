@@ -41,8 +41,16 @@ describe("MetricsCollector", () => {
 
   describe("getTotal", () => {
     it("aggregates across entries", () => {
-      collector.track("act", "m", { promptTokens: 100, completionTokens: 50, inferenceTimeMs: 200 });
-      collector.track("extract", "m", { promptTokens: 200, completionTokens: 100, inferenceTimeMs: 300 });
+      collector.track("act", "m", {
+        promptTokens: 100,
+        completionTokens: 50,
+        inferenceTimeMs: 200,
+      });
+      collector.track("extract", "m", {
+        promptTokens: 200,
+        completionTokens: 100,
+        inferenceTimeMs: 300,
+      });
 
       const total = collector.getTotal();
       expect(total.promptTokens).toBe(300);

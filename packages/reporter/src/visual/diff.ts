@@ -122,14 +122,23 @@ export class VisualDiff {
           continue;
         }
 
-        const r1 = actual[idx], g1 = actual[idx + 1], b1 = actual[idx + 2], a1 = actual[idx + 3];
-        const r2 = baseline[idx], g2 = baseline[idx + 1], b2 = baseline[idx + 2], a2 = baseline[idx + 3];
+        const r1 = actual[idx],
+          g1 = actual[idx + 1],
+          b1 = actual[idx + 2],
+          a1 = actual[idx + 3];
+        const r2 = baseline[idx],
+          g2 = baseline[idx + 1],
+          b2 = baseline[idx + 2],
+          a2 = baseline[idx + 3];
 
         const distance = this.colorDistance(r1, g1, b1, a1, r2, g2, b2, a2);
 
         if (distance > this.options.threshold) {
           // Check if it might be anti-aliasing
-          if (this.options.antiAliasing && this.isAntiAliased(actual, baseline, x, y, width, height)) {
+          if (
+            this.options.antiAliasing &&
+            this.isAntiAliased(actual, baseline, x, y, width, height)
+          ) {
             // Treat as matching
             diffData[idx] = actual[idx];
             diffData[idx + 1] = actual[idx + 1];
@@ -158,15 +167,14 @@ export class VisualDiff {
       }
     }
 
-    const mismatchPercent = totalPixels > 0
-      ? (mismatchedPixels / totalPixels) * 100
-      : 0;
+    const mismatchPercent = totalPixels > 0 ? (mismatchedPixels / totalPixels) * 100 : 0;
 
     const match = mismatchPercent <= this.options.allowedMismatchPercent;
 
-    const diffBoundingBox = mismatchedPixels > 0
-      ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
-      : undefined;
+    const diffBoundingBox =
+      mismatchedPixels > 0
+        ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
+        : undefined;
 
     return {
       match,
@@ -251,8 +259,14 @@ export class VisualDiff {
    * Normalized to 0-1 range.
    */
   private colorDistance(
-    r1: number, g1: number, b1: number, a1: number,
-    r2: number, g2: number, b2: number, a2: number,
+    r1: number,
+    g1: number,
+    b1: number,
+    a1: number,
+    r2: number,
+    g2: number,
+    b2: number,
+    a2: number,
   ): number {
     // Blend with white background based on alpha
     const blend1R = (r1 * a1 + 255 * (255 - a1)) / 255;
@@ -300,13 +314,25 @@ export class VisualDiff {
         const nIdx = (ny * width + nx) * 4;
 
         const dist1 = this.colorDistance(
-          img1[idx], img1[idx + 1], img1[idx + 2], img1[idx + 3],
-          img1[nIdx], img1[nIdx + 1], img1[nIdx + 2], img1[nIdx + 3],
+          img1[idx],
+          img1[idx + 1],
+          img1[idx + 2],
+          img1[idx + 3],
+          img1[nIdx],
+          img1[nIdx + 1],
+          img1[nIdx + 2],
+          img1[nIdx + 3],
         );
 
         const dist2 = this.colorDistance(
-          img2[idx], img2[idx + 1], img2[idx + 2], img2[idx + 3],
-          img2[nIdx], img2[nIdx + 1], img2[nIdx + 2], img2[nIdx + 3],
+          img2[idx],
+          img2[idx + 1],
+          img2[idx + 2],
+          img2[idx + 3],
+          img2[nIdx],
+          img2[nIdx + 1],
+          img2[nIdx + 2],
+          img2[nIdx + 3],
         );
 
         if (dist1 < 0.05) similar1++;
@@ -324,12 +350,7 @@ export class VisualDiff {
    */
   private isInMask(x: number, y: number): boolean {
     for (const mask of this.options.masks) {
-      if (
-        x >= mask.x &&
-        x < mask.x + mask.width &&
-        y >= mask.y &&
-        y < mask.y + mask.height
-      ) {
+      if (x >= mask.x && x < mask.x + mask.width && y >= mask.y && y < mask.y + mask.height) {
         return true;
       }
     }

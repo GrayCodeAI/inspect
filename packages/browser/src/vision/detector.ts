@@ -15,11 +15,7 @@ export interface VisionLLMClient {
   /**
    * Send a vision request and get structured actions back.
    */
-  detectActions(
-    screenshot: string,
-    instruction: string,
-    model?: string,
-  ): Promise<VisionAction[]>;
+  detectActions(screenshot: string, instruction: string, model?: string): Promise<VisionAction[]>;
 }
 
 /**
@@ -34,7 +30,11 @@ export class OpenAIVisionClient implements VisionLLMClient {
     this.baseUrl = baseUrl;
   }
 
-  async detectActions(screenshot: string, instruction: string, model?: string): Promise<VisionAction[]> {
+  async detectActions(
+    screenshot: string,
+    instruction: string,
+    model?: string,
+  ): Promise<VisionAction[]> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -110,7 +110,11 @@ export class GeminiVisionClient implements VisionLLMClient {
     this.apiKey = apiKey;
   }
 
-  async detectActions(screenshot: string, instruction: string, model?: string): Promise<VisionAction[]> {
+  async detectActions(
+    screenshot: string,
+    instruction: string,
+    model?: string,
+  ): Promise<VisionAction[]> {
     const modelId = model ?? "gemini-2.0-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${this.apiKey}`;
 
@@ -182,7 +186,11 @@ export class VisionDetector {
    * @param llm - Vision LLM client to use
    * @returns Array of detected actions with coordinates and confidence scores
    */
-  async detect(screenshot: string, instruction: string, llm: VisionLLMClient): Promise<VisionAction[]> {
+  async detect(
+    screenshot: string,
+    instruction: string,
+    llm: VisionLLMClient,
+  ): Promise<VisionAction[]> {
     const actions = await llm.detectActions(screenshot, instruction);
 
     // Sort by confidence descending
@@ -201,11 +209,14 @@ export class VisionDetector {
       }
       case "google": {
         const apiKey = process.env["GOOGLE_API_KEY"] ?? process.env["GEMINI_API_KEY"];
-        if (!apiKey) throw new Error("GOOGLE_API_KEY or GEMINI_API_KEY environment variable not set");
+        if (!apiKey)
+          throw new Error("GOOGLE_API_KEY or GEMINI_API_KEY environment variable not set");
         return new GeminiVisionClient(apiKey);
       }
       case "anthropic":
-        throw new Error("Anthropic vision client should be implemented via the agent package with native CUA support.");
+        throw new Error(
+          "Anthropic vision client should be implemented via the agent package with native CUA support.",
+        );
       default:
         throw new Error(`Unsupported vision provider: ${request.provider}`);
     }

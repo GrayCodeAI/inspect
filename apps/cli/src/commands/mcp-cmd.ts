@@ -22,7 +22,7 @@ async function getOrCreateBrowserSession(): Promise<BrowserSession> {
       await browserManager.launchBrowser({
         headless: true,
         viewport: { width: 1280, height: 720 },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       const page = await browserManager.newPage();
       const snapshotBuilder = new AriaSnapshotBuilder();
@@ -143,9 +143,7 @@ async function executeBrowserTool(
 
     case "browser_console": {
       const level = (toolArgs.level as string) ?? "all";
-      const filtered = level === "all"
-        ? consoleLogs
-        : consoleLogs.filter((l) => l.level === level);
+      const filtered = level === "all" ? consoleLogs : consoleLogs.filter((l) => l.level === level);
       if (toolArgs.clear) consoleLogs.length = 0;
       if (filtered.length === 0) return "(No console messages)";
       return filtered.map((m) => `[${m.level.toUpperCase()}] ${m.text}`).join("\n");
@@ -162,12 +160,16 @@ async function executeBrowserTool(
       const amount = (toolArgs.amount as number) ?? 300;
       if (toolArgs.selector) {
         const sel = (toolArgs.selector as string).replace(/'/g, "\\'");
-        const scrollProp = direction === "left" || direction === "right" ? "scrollLeft" : "scrollTop";
+        const scrollProp =
+          direction === "left" || direction === "right" ? "scrollLeft" : "scrollTop";
         const scrollVal = direction === "up" || direction === "left" ? -amount : amount;
         await page.evaluate(`document.querySelector('${sel}').${scrollProp} += ${scrollVal}`);
       } else {
         const scrollMap: Record<string, [number, number]> = {
-          down: [0, amount], up: [0, -amount], right: [amount, 0], left: [-amount, 0],
+          down: [0, amount],
+          up: [0, -amount],
+          right: [amount, 0],
+          left: [-amount, 0],
         };
         const [x, y] = scrollMap[direction] ?? [0, amount];
         await page.mouse.wheel(x, y);
@@ -226,10 +228,9 @@ async function executeBrowserTool(
         return `Selector "${toolArgs.selector}" appeared`;
       } else if (toolArgs.text) {
         const searchText = (toolArgs.text as string).replace(/'/g, "\\'");
-        await page.waitForFunction(
-          `document.body.innerText.includes('${searchText}')`,
-          { timeout },
-        );
+        await page.waitForFunction(`document.body.innerText.includes('${searchText}')`, {
+          timeout,
+        });
         return `Text "${toolArgs.text}" appeared`;
       } else if (toolArgs.navigation) {
         await page.waitForLoadState("networkidle", { timeout });
@@ -269,7 +270,7 @@ async function executeBrowserTool(
         return (val as string) ?? "(null)";
       } else if (storageAction === "set" && toolArgs.key) {
         const escapedKey = (toolArgs.key as string).replace(/'/g, "\\'");
-        const escapedVal = (toolArgs.value as string ?? "").replace(/'/g, "\\'");
+        const escapedVal = ((toolArgs.value as string) ?? "").replace(/'/g, "\\'");
         await page.evaluate(`${storageApi}.setItem('${escapedKey}', '${escapedVal}')`);
         return `Set ${storageApi}.${toolArgs.key}`;
       } else if (storageAction === "clear") {
@@ -388,8 +389,7 @@ const MCP_TOOLS = [
   },
   {
     name: "browser_snapshot",
-    description:
-      "Get an accessibility tree snapshot of the current page with element references",
+    description: "Get an accessibility tree snapshot of the current page with element references",
     inputSchema: {
       type: "object",
       properties: {
@@ -644,9 +644,7 @@ async function handleMCPRequest(request: {
       }
 
       // Dispatch to real browser automation
-      console.error(
-        chalk.dim(`[MCP] Tool call: ${toolName}(${JSON.stringify(toolArgs)})`)
-      );
+      console.error(chalk.dim(`[MCP] Tool call: ${toolName}(${JSON.stringify(toolArgs)})`));
 
       try {
         const resultText = await executeBrowserTool(toolName, toolArgs ?? {});
@@ -761,9 +759,7 @@ async function startSSEMCP(port: number): Promise<void> {
       });
 
       // Send endpoint info
-      res.write(
-        `data: ${JSON.stringify({ endpoint: `/message` })}\n\n`
-      );
+      res.write(`data: ${JSON.stringify({ endpoint: `/message` })}\n\n`);
 
       // Keep alive with heartbeat
       const heartbeat = setInterval(() => {
@@ -792,7 +788,7 @@ async function startSSEMCP(port: number): Promise<void> {
               jsonrpc: "2.0",
               id: null,
               error: { code: -32700, message: `Parse error: ${err}` },
-            })
+            }),
           );
         }
       });
@@ -834,13 +830,13 @@ async function startMCP(options: MCPOptions): Promise<void> {
     case "streamable-http":
       // Streamable HTTP is similar to SSE but with bidirectional streaming
       console.log(
-        chalk.yellow("Streamable HTTP transport not yet implemented. Falling back to SSE.")
+        chalk.yellow("Streamable HTTP transport not yet implemented. Falling back to SSE."),
       );
       await startSSEMCP(port);
       break;
     default:
       console.error(
-        chalk.red(`Unknown transport: ${transport}. Use stdio, sse, or streamable-http.`)
+        chalk.red(`Unknown transport: ${transport}. Use stdio, sse, or streamable-http.`),
       );
       process.exit(1);
   }
@@ -850,16 +846,8 @@ export function registerMCPCommand(program: Command): void {
   program
     .command("mcp")
     .description("Start the MCP (Model Context Protocol) server for AI agents")
-    .option(
-      "--transport <transport>",
-      "Transport: stdio, sse, streamable-http",
-      "stdio"
-    )
-    .option(
-      "-p, --port <port>",
-      "Port for SSE/HTTP transport",
-      "4101"
-    )
+    .option("--transport <transport>", "Transport: stdio, sse, streamable-http", "stdio")
+    .option("-p, --port <port>", "Port for SSE/HTTP transport", "4101")
     .action(async (opts: MCPOptions) => {
       try {
         await startMCP(opts);

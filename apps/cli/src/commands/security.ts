@@ -30,7 +30,8 @@ async function runSecurity(url: string | undefined, options: SecurityOptions): P
   console.log(chalk.dim(`Scanner: ${scanner}`));
   console.log(chalk.dim(`Min severity: ${severity}`));
 
-  const allFindings: Array<{ severity: string; title: string; description: string; url?: string }> = [];
+  const allFindings: Array<{ severity: string; title: string; description: string; url?: string }> =
+    [];
 
   try {
     const startTime = Date.now();
@@ -47,7 +48,9 @@ async function runSecurity(url: string | undefined, options: SecurityOptions): P
       const activeSeverities = severityLevels.slice(minIndex >= 0 ? minIndex : 2);
 
       const nucleiReport = await nuclei.scan(url, {
-        severity: activeSeverities as Array<"informational" | "low" | "medium" | "high" | "critical">,
+        severity: activeSeverities as Array<
+          "informational" | "low" | "medium" | "high" | "critical"
+        >,
         rateLimit,
         templateDir: options.templates,
       });
@@ -127,9 +130,7 @@ async function runSecurity(url: string | undefined, options: SecurityOptions): P
       low: 3,
       informational: 4,
     };
-    allFindings.sort(
-      (a, b) => (severityOrder[a.severity] ?? 5) - (severityOrder[b.severity] ?? 5),
-    );
+    allFindings.sort((a, b) => (severityOrder[a.severity] ?? 5) - (severityOrder[b.severity] ?? 5));
 
     const bySeverity = {
       critical: allFindings.filter((f) => f.severity === "critical"),

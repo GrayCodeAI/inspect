@@ -6,7 +6,7 @@
 export function jqFilter(data: unknown, query: string): unknown {
   if (!query || query === ".") return data;
 
-  const parts = query.split("|").map(p => p.trim());
+  const parts = query.split("|").map((p) => p.trim());
   let result = data;
 
   for (const part of parts) {
@@ -20,7 +20,8 @@ function applyFilter(data: unknown, filter: string): unknown {
   if (filter === ".") return data;
   if (filter === "length") return getLength(data);
   if (filter === "keys") return typeof data === "object" && data !== null ? Object.keys(data) : [];
-  if (filter === "values") return typeof data === "object" && data !== null ? Object.values(data) : [];
+  if (filter === "values")
+    return typeof data === "object" && data !== null ? Object.values(data) : [];
   if (filter === "type") return typeof data;
 
   if (filter.startsWith("select(")) {
@@ -30,7 +31,7 @@ function applyFilter(data: unknown, filter: string): unknown {
   if (filter.startsWith("map(")) {
     const inner = filter.slice(4, -1);
     if (Array.isArray(data)) {
-      return data.map(item => applyFilter(item, inner));
+      return data.map((item) => applyFilter(item, inner));
     }
     return data;
   }
@@ -88,7 +89,7 @@ function applySelect(data: unknown, filter: string): unknown {
   const inner = filter.slice(7, -1).trim();
 
   if (Array.isArray(data)) {
-    return data.filter(item => evaluateCondition(item, inner));
+    return data.filter((item) => evaluateCondition(item, inner));
   }
 
   return evaluateCondition(data, inner) ? data : null;
@@ -110,12 +111,19 @@ function evaluateCondition(data: unknown, condition: string): boolean {
   else expected = Number(rawValue);
 
   switch (op) {
-    case "==": return actual === expected;
-    case "!=": return actual !== expected;
-    case ">": return Number(actual) > Number(expected);
-    case "<": return Number(actual) < Number(expected);
-    case ">=": return Number(actual) >= Number(expected);
-    case "<=": return Number(actual) <= Number(expected);
-    default: return true;
+    case "==":
+      return actual === expected;
+    case "!=":
+      return actual !== expected;
+    case ">":
+      return Number(actual) > Number(expected);
+    case "<":
+      return Number(actual) < Number(expected);
+    case ">=":
+      return Number(actual) >= Number(expected);
+    case "<=":
+      return Number(actual) <= Number(expected);
+    default:
+      return true;
   }
 }

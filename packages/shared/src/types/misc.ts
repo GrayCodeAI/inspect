@@ -2,10 +2,16 @@
 // @inspect/shared - Miscellaneous Shared Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-
 /** Analytics event categories */
 export type AnalyticsEventCategory =
-  | 'session' | 'plan' | 'run' | 'step' | 'browser' | 'agent' | 'flow' | 'error';
+  | "session"
+  | "plan"
+  | "run"
+  | "step"
+  | "browser"
+  | "agent"
+  | "flow"
+  | "error";
 
 /** Analytics event */
 export interface AnalyticsEvent {
@@ -26,7 +32,7 @@ export interface OTelSpan {
   startTime: number;
   endTime?: number;
   attributes?: Record<string, unknown>;
-  status?: 'ok' | 'error' | 'unset';
+  status?: "ok" | "error" | "unset";
 }
 
 /** Webhook configuration */
@@ -35,7 +41,7 @@ export interface WebhookConfig {
   events: string[];
   secret?: string;
   maxRetries: number;
-  retryBackoff: 'linear' | 'exponential';
+  retryBackoff: "linear" | "exponential";
   enabled: boolean;
 }
 
@@ -82,9 +88,7 @@ export interface PaginatedResponse<T> {
 }
 
 /** Generic result type */
-export type Result<T, E = Error> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
+export type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
 
 /** Disposable resource */
 export interface Disposable {
@@ -93,12 +97,12 @@ export interface Disposable {
 
 /** Health check response */
 export interface HealthCheck {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   version: string;
   uptime: number;
   checks: {
     name: string;
-    status: 'pass' | 'fail';
+    status: "pass" | "fail";
     message?: string;
   }[];
 }

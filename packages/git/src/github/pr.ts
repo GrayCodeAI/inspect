@@ -9,7 +9,10 @@ const logger = createLogger("core/github-pr");
  * Safely execute a gh CLI command with arguments as an array.
  * Prevents shell injection by avoiding shell interpolation.
  */
-function ghApi(args: string[], options?: { maxBuffer?: number }): Promise<{ stdout: string; stderr: string }> {
+function ghApi(
+  args: string[],
+  options?: { maxBuffer?: number },
+): Promise<{ stdout: string; stderr: string }> {
   return execFile("gh", ["api", ...args], {
     maxBuffer: options?.maxBuffer ?? 5 * 1024 * 1024,
   });
@@ -53,14 +56,9 @@ export class GitHubPR {
    * - owner/repo#123
    * - 123 (requires defaultRepo)
    */
-  parsePRUrl(
-    input: string,
-    defaultRepo?: string
-  ): PRInfo {
+  parsePRUrl(input: string, defaultRepo?: string): PRInfo {
     // Full URL
-    const urlMatch = input.match(
-      /github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/
-    );
+    const urlMatch = input.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
     if (urlMatch) {
       return {
         owner: urlMatch[1],
@@ -70,9 +68,7 @@ export class GitHubPR {
     }
 
     // Shorthand: owner/repo#123
-    const shortMatch = input.match(
-      /^([^/]+)\/([^#]+)#(\d+)$/
-    );
+    const shortMatch = input.match(/^([^/]+)\/([^#]+)#(\d+)$/);
     if (shortMatch) {
       return {
         owner: shortMatch[1],
@@ -96,7 +92,7 @@ export class GitHubPR {
 
     throw new Error(
       `Cannot parse PR reference: "${input}". ` +
-        `Use URL (https://github.com/owner/repo/pull/123), shorthand (owner/repo#123), or number with --repo.`
+        `Use URL (https://github.com/owner/repo/pull/123), shorthand (owner/repo#123), or number with --repo.`,
     );
   }
 
@@ -112,13 +108,16 @@ export class GitHubPR {
       const { stdout } = await ghApi(
         [
           `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`,
-          "--header", "Accept: application/vnd.github.v3.diff",
+          "--header",
+          "Accept: application/vnd.github.v3.diff",
         ],
         { maxBuffer: 10 * 1024 * 1024 },
       );
       raw = stdout;
     } catch (error) {
-      logger.debug("gh api diff failed, falling back to curl", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("gh api diff failed, falling back to curl", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       // Fallback to curl with argument array (no shell interpolation)
       const curlArgs = ["-sL", "-H", "Accept: application/vnd.github.v3.diff"];
       if (this.token) {
@@ -164,11 +163,14 @@ export class GitHubPR {
     try {
       const { stdout } = await ghApi([
         `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}/files`,
-        "--jq", ".[].filename",
+        "--jq",
+        ".[].filename",
       ]);
       return stdout.trim().split("\n").filter(Boolean);
     } catch (error) {
-      logger.debug("gh api files list failed, falling back to diff parse", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("gh api files list failed, falling back to diff parse", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       // Fallback: parse from diff
       const diff = await this.getPRDiff(pr);
       return diff.files;
@@ -183,36 +185,29 @@ export class GitHubPR {
     try {
       const { stdout } = await ghApi([
         `repos/${pr.owner}/${pr.repo}/issues/${pr.number}/comments`,
-        "--jq", ".[].body",
+        "--jq",
+        ".[].body",
       ]);
 
       // Vercel
-      const vercelMatch = stdout.match(
-        /https:\/\/[a-z0-9][a-z0-9-]*\.vercel\.app/i
-      );
+      const vercelMatch = stdout.match(/https:\/\/[a-z0-9][a-z0-9-]*\.vercel\.app/i);
       if (vercelMatch) return vercelMatch[0];
 
       // Netlify
-      const netlifyMatch = stdout.match(
-        /https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app/i
-      );
+      const netlifyMatch = stdout.match(/https:\/\/[a-z0-9-]+--[a-z0-9-]+\.netlify\.app/i);
       if (netlifyMatch) return netlifyMatch[0];
 
       // Railway
-      const railwayMatch = stdout.match(
-        /https:\/\/[a-z0-9-]+\.up\.railway\.app/i
-      );
+      const railwayMatch = stdout.match(/https:\/\/[a-z0-9-]+\.up\.railway\.app/i);
       if (railwayMatch) return railwayMatch[0];
 
       // Render
-      const renderMatch = stdout.match(
-        /https:\/\/[a-z0-9-]+\.onrender\.com/i
-      );
+      const renderMatch = stdout.match(/https:\/\/[a-z0-9-]+\.onrender\.com/i);
       if (renderMatch) return renderMatch[0];
 
       // Generic "Preview:" or "Deploy preview:" patterns
       const genericMatch = stdout.match(
-        /(?:preview|deploy|staging)[\s:]+(?:url)?[\s:]*(?:\*\*)?(https?:\/\/\S+?)(?:\*\*)?(?:\s|\)|$)/i
+        /(?:preview|deploy|staging)[\s:]+(?:url)?[\s:]*(?:\*\*)?(https?:\/\/\S+?)(?:\*\*)?(?:\s|\)|$)/i,
       );
       if (genericMatch) return genericMatch[1];
 
@@ -220,24 +215,30 @@ export class GitHubPR {
       try {
         const { stdout: deploymentsRaw } = await ghApi([
           `repos/${pr.owner}/${pr.repo}/deployments`,
-          "--jq", ".[0].id",
+          "--jq",
+          ".[0].id",
         ]);
         const deploymentId = deploymentsRaw.trim();
         if (deploymentId && /^\d+$/.test(deploymentId)) {
           const { stdout: statusRaw } = await ghApi([
             `repos/${pr.owner}/${pr.repo}/deployments/${deploymentId}/statuses`,
-            "--jq", ".[0].environment_url",
+            "--jq",
+            ".[0].environment_url",
           ]);
           const envUrl = statusRaw.trim();
           if (envUrl && envUrl !== "null") return envUrl;
         }
       } catch (error) {
-        logger.debug("Deployment API not available", { err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Deployment API not available", {
+          err: error instanceof Error ? error.message : String(error),
+        });
       }
 
       return null;
     } catch (error) {
-      logger.debug("Failed to get preview URL", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to get preview URL", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -255,7 +256,8 @@ export class GitHubPR {
   }> {
     const { stdout } = await ghApi([
       `repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`,
-      "--jq", "{title: .title, body: .body, author: .user.login, headBranch: .head.ref, baseBranch: .base.ref, state: .state}",
+      "--jq",
+      "{title: .title, body: .body, author: .user.login, headBranch: .head.ref, baseBranch: .base.ref, state: .state}",
     ]);
     return JSON.parse(stdout);
   }

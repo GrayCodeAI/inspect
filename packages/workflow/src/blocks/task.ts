@@ -50,10 +50,7 @@ export class TaskBlock {
    * @param context - The workflow execution context
    * @returns TaskBlockResult with execution details
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<TaskBlockResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<TaskBlockResult> {
     const params = block.parameters;
     const prompt = context.render(String(params.prompt ?? ""));
     const url = params.url ? context.render(String(params.url)) : undefined;
@@ -70,10 +67,7 @@ export class TaskBlock {
     const result = await Promise.race<TaskBlockResult>([
       this.executeTask(prompt, url, maxSteps, timeout),
       new Promise<TaskBlockResult>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Task timed out after ${timeout}ms`)),
-          timeout,
-        ),
+        setTimeout(() => reject(new Error(`Task timed out after ${timeout}ms`)), timeout),
       ),
     ]);
 

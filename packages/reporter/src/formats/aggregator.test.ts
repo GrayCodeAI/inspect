@@ -53,13 +53,15 @@ describe("ReportAggregator", () => {
   });
 
   it("counts steps correctly", () => {
-    aggregator.addRun(makeRun({
-      steps: [
-        { index: 0, description: "A", status: "pass", duration: 100 },
-        { index: 1, description: "B", status: "fail", duration: 200 },
-        { index: 2, description: "C", status: "pass", duration: 100 },
-      ],
-    }));
+    aggregator.addRun(
+      makeRun({
+        steps: [
+          { index: 0, description: "A", status: "pass", duration: 100 },
+          { index: 1, description: "B", status: "fail", duration: 200 },
+          { index: 2, description: "C", status: "pass", duration: 100 },
+        ],
+      }),
+    );
 
     const report = aggregator.aggregate();
     expect(report.summary.totalSteps).toBe(3);
@@ -74,7 +76,13 @@ describe("ReportAggregator", () => {
         status: "fail",
         steps: [
           { index: 0, description: "Navigate", status: "pass", duration: 100 },
-          { index: 1, description: "Click submit", status: "fail", duration: 200, error: "Element not found" },
+          {
+            index: 1,
+            description: "Click submit",
+            status: "fail",
+            duration: 200,
+            error: "Element not found",
+          },
         ],
       }),
       makeRun({
@@ -82,7 +90,13 @@ describe("ReportAggregator", () => {
         status: "fail",
         steps: [
           { index: 0, description: "Navigate", status: "pass", duration: 100 },
-          { index: 1, description: "Click submit", status: "fail", duration: 200, error: "Timeout" },
+          {
+            index: 1,
+            description: "Click submit",
+            status: "fail",
+            duration: 200,
+            error: "Timeout",
+          },
         ],
       }),
     ]);
@@ -98,7 +112,9 @@ describe("ReportAggregator", () => {
     aggregator.addRuns([
       makeRun({
         name: "Run 1",
-        steps: [{ index: 0, description: "Unique step", status: "fail", duration: 100, error: "err" }],
+        steps: [
+          { index: 0, description: "Unique step", status: "fail", duration: 100, error: "err" },
+        ],
       }),
       makeRun({ name: "Run 2" }),
     ]);
@@ -108,10 +124,7 @@ describe("ReportAggregator", () => {
   });
 
   it("calculates average duration", () => {
-    aggregator.addRuns([
-      makeRun({ duration: 4000 }),
-      makeRun({ duration: 6000 }),
-    ]);
+    aggregator.addRuns([makeRun({ duration: 4000 }), makeRun({ duration: 6000 })]);
 
     const report = aggregator.aggregate();
     expect(report.summary.avgDuration).toBe(5000);

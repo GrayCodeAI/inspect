@@ -44,11 +44,7 @@ export class DataExtractionBlock {
    * Register an LLM-based extractor for intelligent data extraction.
    */
   setLLMExtractor(
-    extractor: (
-      instruction: string,
-      content: string,
-      schema: ExtractionSchema,
-    ) => Promise<unknown>,
+    extractor: (instruction: string, content: string, schema: ExtractionSchema) => Promise<unknown>,
   ): void {
     this.llmExtractor = extractor;
   }
@@ -62,10 +58,7 @@ export class DataExtractionBlock {
    * - source: context variable name containing input data (defaults to "lastOutput")
    * - retries: number of validation retries (default: 2)
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<ExtractionResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<ExtractionResult> {
     const params = block.parameters;
     const instruction = context.render(String(params.instruction ?? ""));
     const schema = (params.schema as ExtractionSchema) ?? { type: "object" };
@@ -74,9 +67,7 @@ export class DataExtractionBlock {
 
     const sourceData = context.get(sourceKey);
     const sourceStr =
-      typeof sourceData === "string"
-        ? sourceData
-        : JSON.stringify(sourceData ?? "");
+      typeof sourceData === "string" ? sourceData : JSON.stringify(sourceData ?? "");
 
     let lastErrors: string[] = [];
 
@@ -90,11 +81,7 @@ export class DataExtractionBlock {
             attempt > 0
               ? `\n\nPrevious attempt had validation errors: ${lastErrors.join("; ")}. Please fix these issues.`
               : "";
-          extracted = await this.llmExtractor(
-            instruction + retryHint,
-            sourceStr,
-            schema,
-          );
+          extracted = await this.llmExtractor(instruction + retryHint, sourceStr, schema);
         } else {
           // Try direct JSON parsing
           extracted = this.directExtract(sourceStr, schema);
@@ -122,9 +109,7 @@ export class DataExtractionBlock {
           };
         }
       } catch (error) {
-        lastErrors = [
-          error instanceof Error ? error.message : String(error),
-        ];
+        lastErrors = [error instanceof Error ? error.message : String(error)];
 
         if (attempt === maxRetries) {
           return {
@@ -148,10 +133,7 @@ export class DataExtractionBlock {
   /**
    * Direct extraction attempt: parse JSON and map fields based on schema.
    */
-  private directExtract(
-    source: string,
-    schema: ExtractionSchema,
-  ): unknown {
+  private directExtract(source: string, schema: ExtractionSchema): unknown {
     // Try JSON parse first
     try {
       const parsed = JSON.parse(source);
@@ -195,10 +177,7 @@ export class DataExtractionBlock {
   /**
    * Map parsed data to match schema structure.
    */
-  private mapToSchema(
-    data: unknown,
-    schema: ExtractionSchema,
-  ): unknown {
+  private mapToSchema(data: unknown, schema: ExtractionSchema): unknown {
     if (!schema.properties || typeof data !== "object" || data === null) {
       return data;
     }
@@ -212,9 +191,7 @@ export class DataExtractionBlock {
       } else {
         // Try case-insensitive lookup
         const lowerKey = key.toLowerCase();
-        const found = Object.entries(obj).find(
-          ([k]) => k.toLowerCase() === lowerKey,
-        );
+        const found = Object.entries(obj).find(([k]) => k.toLowerCase() === lowerKey);
         if (found) {
           result[key] = this.coerceType(found[1], propSchema);
         } else if (propSchema.default !== undefined) {
@@ -295,18 +272,14 @@ export class DataExtractionBlock {
           errors.push(`${prefix}expected integer but got ${actualType}`);
         }
       } else if (actualType !== schema.type && data !== null && data !== undefined) {
-        errors.push(
-          `${prefix}expected type '${schema.type}' but got '${actualType}'`,
-        );
+        errors.push(`${prefix}expected type '${schema.type}' but got '${actualType}'`);
         return;
       }
     }
 
     // Enum check
     if (schema.enum && !schema.enum.includes(data)) {
-      errors.push(
-        `${prefix}value must be one of: ${schema.enum.map(String).join(", ")}`,
-      );
+      errors.push(`${prefix}value must be one of: ${schema.enum.map(String).join(", ")}`);
     }
 
     // Object property checks
@@ -330,12 +303,7 @@ export class DataExtractionBlock {
       // Validate each property
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         if (key in obj) {
-          this.validateNode(
-            obj[key],
-            propSchema,
-            path ? `${path}.${key}` : key,
-            errors,
-          );
+          this.validateNode(obj[key], propSchema, path ? `${path}.${key}` : key, errors);
         }
       }
     }
@@ -343,12 +311,7 @@ export class DataExtractionBlock {
     // Array items check
     if (schema.type === "array" && schema.items && Array.isArray(data)) {
       for (let i = 0; i < data.length; i++) {
-        this.validateNode(
-          data[i],
-          schema.items,
-          `${path}[${i}]`,
-          errors,
-        );
+        this.validateNode(data[i], schema.items, `${path}[${i}]`, errors);
       }
     }
   }

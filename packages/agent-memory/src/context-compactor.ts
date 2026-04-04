@@ -148,7 +148,7 @@ export class ContextCompactor {
       return this.summarizeHeuristic(messages);
     }
 
-    const prompt = `
+    const _prompt = `
 Summarize the following conversation history concisely. Focus on:
 1. Key facts learned
 2. Actions taken

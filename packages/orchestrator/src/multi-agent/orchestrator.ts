@@ -108,7 +108,10 @@ export class MultiAgentOrchestrator extends EventEmitter {
   private taskQueue: Task[] = [];
   private taskResults = new Map<string, TaskResult>();
   private runningTasks = new Map<string, { task: Task; agentId: string; startedAt: number }>();
-  private taskPromises = new Map<string, { resolve: (result: TaskResult) => void; reject: (error: Error) => void }>();
+  private taskPromises = new Map<
+    string,
+    { resolve: (result: TaskResult) => void; reject: (error: Error) => void }
+  >();
   private roundRobinIndex = 0;
   private maintenanceInterval?: NodeJS.Timeout;
 
@@ -124,7 +127,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
   registerAgent(
     id: string,
     capabilities: AgentCapability[] = [],
-    metadata: Record<string, unknown> = {}
+    metadata: Record<string, unknown> = {},
   ): AgentInstance {
     const agent: AgentInstance = {
       id,
@@ -239,15 +242,12 @@ export class MultiAgentOrchestrator extends EventEmitter {
         requiredCapabilities: task.requiredCapabilities,
         maxRetries: task.maxRetries || 3,
         timeout: task.timeout || 60000,
-      })
+      }),
     );
 
     const results = await Promise.allSettled(promises);
 
-    batch.onProgress?.(
-      results.filter((r) => r.status === "fulfilled").length,
-      batch.tasks.length
-    );
+    batch.onProgress?.(results.filter((r) => r.status === "fulfilled").length, batch.tasks.length);
 
     return results.map((r, i) =>
       r.status === "fulfilled"
@@ -260,7 +260,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
             duration: 0,
             retries: 0,
             completedAt: Date.now(),
-          }
+          },
     );
   }
 
@@ -308,7 +308,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
   private async executeDAG(batch: TaskBatch): Promise<TaskResult[]> {
     const completed = new Set<string>();
     const results = new Map<string, TaskResult>();
-    const tasks = new Map(batch.tasks.map((t) => [t.id, t]));
+    const _tasks = new Map(batch.tasks.map((t) => [t.id, t]));
 
     // Build dependency graph
     const dependents = new Map<string, string[]>();
@@ -329,7 +329,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
         (t) =>
           !completed.has(t.id) &&
           !this.isRunning(t.id) &&
-          (!t.dependencies || t.dependencies.every((d) => completed.has(d)))
+          (!t.dependencies || t.dependencies.every((d) => completed.has(d))),
       );
 
       if (ready.length === 0 && this.runningCount() === 0) {
@@ -350,7 +350,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
           completed.add(task.id);
           results.set(task.id, result);
           batch.onProgress?.(completed.size, batch.tasks.length);
-        })
+        }),
       );
 
       // Wait for at least one task to complete
@@ -362,16 +362,17 @@ export class MultiAgentOrchestrator extends EventEmitter {
       }
     }
 
-    return batch.tasks.map((t) =>
-      results.get(t.id) || {
-        taskId: t.id,
-        agentId: "",
-        status: "cancelled",
-        error: "Task not executed",
-        duration: 0,
-        retries: 0,
-        completedAt: Date.now(),
-      }
+    return batch.tasks.map(
+      (t) =>
+        results.get(t.id) || {
+          taskId: t.id,
+          agentId: "",
+          status: "cancelled",
+          error: "Task not executed",
+          duration: 0,
+          retries: 0,
+          completedAt: Date.now(),
+        },
     );
   }
 
@@ -398,9 +399,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
    * Select best agent for task
    */
   private selectAgent(task: Task): AgentInstance | null {
-    const idleAgents = Array.from(this.agents.values()).filter(
-      (a) => a.status === "idle"
-    );
+    const idleAgents = Array.from(this.agents.values()).filter((a) => a.status === "idle");
 
     if (idleAgents.length === 0) return null;
 
@@ -409,22 +408,23 @@ export class MultiAgentOrchestrator extends EventEmitter {
     if (task.requiredCapabilities && task.requiredCapabilities.length > 0) {
       candidates = idleAgents.filter((agent) =>
         task.requiredCapabilities!.every((req) =>
-          agent.capabilities.some((cap) => cap.name === req)
-        )
+          agent.capabilities.some((cap) => cap.name === req),
+        ),
       );
     }
 
     if (candidates.length === 0) return null;
 
     switch (this.config.distributionStrategy) {
-      case "round-robin":
+      case "round-robin": {
         const agent = candidates[this.roundRobinIndex % candidates.length];
         this.roundRobinIndex++;
         return agent;
+      }
 
       case "least-loaded":
         return candidates.reduce((best, current) =>
-          current.completedTasks < best.completedTasks ? current : best
+          current.completedTasks < best.completedTasks ? current : best,
         );
 
       case "capability-based":
@@ -589,9 +589,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
    */
   private sortQueue(): void {
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-    this.taskQueue.sort(
-      (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
-    );
+    this.taskQueue.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
   }
 
   /**
@@ -660,8 +658,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
     const completedResults = results.filter((r) => r.status === "success");
     const avgDuration =
       completedResults.length > 0
-        ? completedResults.reduce((sum, r) => sum + r.duration, 0) /
-          completedResults.length
+        ? completedResults.reduce((sum, r) => sum + r.duration, 0) / completedResults.length
         : 0;
 
     return {
@@ -682,7 +679,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
   private calculateThroughput(): number {
     const oneMinuteAgo = Date.now() - 60000;
     const recentTasks = Array.from(this.taskResults.values()).filter(
-      (r) => r.completedAt > oneMinuteAgo
+      (r) => r.completedAt > oneMinuteAgo,
     );
     return recentTasks.length;
   }
@@ -739,7 +736,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
  * Convenience function
  */
 export function createMultiAgentOrchestrator(
-  config?: Partial<MultiAgentConfig>
+  config?: Partial<MultiAgentConfig>,
 ): MultiAgentOrchestrator {
   return new MultiAgentOrchestrator(config);
 }

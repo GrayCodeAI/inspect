@@ -162,7 +162,9 @@ export class ReportAggregator {
     for (const run of r.runs) {
       const statusIcon = run.status === "pass" ? "\u2705" : "\u274C";
       const stepsOk = run.steps.filter((s) => s.status === "pass").length;
-      lines.push(`| ${run.name} | ${run.device} | ${run.browser} | ${statusIcon} ${run.status} | ${this.fmtMs(run.duration)} | ${stepsOk}/${run.steps.length} |`);
+      lines.push(
+        `| ${run.name} | ${run.device} | ${run.browser} | ${statusIcon} ${run.status} | ${this.fmtMs(run.duration)} | ${stepsOk}/${run.steps.length} |`,
+      );
     }
 
     // Common failures

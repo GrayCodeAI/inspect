@@ -106,11 +106,17 @@ export class PersistentTaskStore implements TaskStore {
 export class PersistentWorkflowStore implements WorkflowStore {
   private workflows: JsonStore<WorkflowDefinition>;
   private runs: JsonStore<WorkflowRun>;
-  private workflowExecutor?: (workflow: WorkflowDefinition, params?: Record<string, unknown>) => Promise<WorkflowRun>;
+  private workflowExecutor?: (
+    workflow: WorkflowDefinition,
+    params?: Record<string, unknown>,
+  ) => Promise<WorkflowRun>;
 
   constructor(
     dataDir: string,
-    executor?: (workflow: WorkflowDefinition, params?: Record<string, unknown>) => Promise<WorkflowRun>,
+    executor?: (
+      workflow: WorkflowDefinition,
+      params?: Record<string, unknown>,
+    ) => Promise<WorkflowRun>,
   ) {
     this.workflows = new JsonStore<WorkflowDefinition>(dataDir, "workflows");
     this.runs = new JsonStore<WorkflowRun>(dataDir, "workflow-runs");
@@ -128,7 +134,10 @@ export class PersistentWorkflowStore implements WorkflowStore {
   }
 
   setExecutor(
-    executor: (workflow: WorkflowDefinition, params?: Record<string, unknown>) => Promise<WorkflowRun>,
+    executor: (
+      workflow: WorkflowDefinition,
+      params?: Record<string, unknown>,
+    ) => Promise<WorkflowRun>,
   ): void {
     this.workflowExecutor = executor;
   }

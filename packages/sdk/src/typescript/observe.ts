@@ -99,10 +99,10 @@ export class ObserveHandler {
 
       // Call LLM
       const inferenceTimer = performance.now();
-      const response = await this.llm.chat(
-        [{ role: "user", content: prompt }],
-        { temperature, maxTokens },
-      );
+      const response = await this.llm.chat([{ role: "user", content: prompt }], {
+        temperature,
+        maxTokens,
+      });
       const inferenceTimeMs = Math.round(performance.now() - inferenceTimer);
 
       const tokenUsage: TokenMetrics = {
@@ -115,11 +115,7 @@ export class ObserveHandler {
       };
 
       // Parse suggestions from LLM response
-      const suggestions = this.parseSuggestions(
-        response.content,
-        snapshot,
-        maxSuggestions,
-      );
+      const suggestions = this.parseSuggestions(response.content, snapshot, maxSuggestions);
 
       // Filter by action types if specified
       const filtered = options?.actionTypes
@@ -249,8 +245,14 @@ export class ObserveHandler {
 
         const action = String(item.action) as ActionSuggestion["action"];
         const validActions = [
-          "click", "fill", "selectOption", "hover", "scroll",
-          "press", "check", "navigate",
+          "click",
+          "fill",
+          "selectOption",
+          "hover",
+          "scroll",
+          "press",
+          "check",
+          "navigate",
         ];
         if (!validActions.includes(action)) continue;
 
@@ -266,9 +268,8 @@ export class ObserveHandler {
           description: String(item.description),
           action,
           arguments: item.arguments as Record<string, string> | undefined,
-          confidence: typeof item.confidence === "number"
-            ? Math.min(1, Math.max(0, item.confidence))
-            : 0.5,
+          confidence:
+            typeof item.confidence === "number" ? Math.min(1, Math.max(0, item.confidence)) : 0.5,
           ref,
         });
       }

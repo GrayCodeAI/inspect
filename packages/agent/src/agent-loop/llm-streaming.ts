@@ -22,9 +22,7 @@ export interface StreamingLLMProvider {
   /**
    * Collect streaming response into full text
    */
-  collectStream(
-    config: Parameters<StreamingLLMProvider["stream"]>[0],
-  ): Promise<{
+  collectStream(config: Parameters<StreamingLLMProvider["stream"]>[0]): Promise<{
     content: string;
     usage?: { input_tokens: number; output_tokens: number };
   }>;
@@ -34,6 +32,7 @@ export interface StreamingLLMProvider {
  * Streaming LLM wrapper for backwards compatibility
  */
 export class StreamingLLMWrapper {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(private provider: any) {}
 
   /**
@@ -67,7 +66,6 @@ export class StreamingLLMWrapper {
     max_tokens: number;
   }): Promise<{ content: string; usage?: { input_tokens: number; output_tokens: number } }> {
     let fullContent = "";
-    let chunkCount = 0;
 
     // Collect chunks from stream
     for await (const chunk of this.provider.stream({
@@ -75,18 +73,20 @@ export class StreamingLLMWrapper {
       model: config.model,
       temperature: config.temperature,
       maxTokens: config.max_tokens,
-      onChunk: (text: string) => {
+      onChunk: (_text: string) => {
         // Could update UI in real scenario
       },
     })) {
       fullContent += chunk;
-      chunkCount++;
     }
 
     // Estimate token usage from content length
     // Rough estimate: 4 chars per token
     const outputTokens = Math.ceil(fullContent.length / 4);
-    const inputTokens = config.messages.reduce((sum, msg) => sum + Math.ceil(msg.content.length / 4), 0);
+    const inputTokens = config.messages.reduce(
+      (sum, msg) => sum + Math.ceil(msg.content.length / 4),
+      0,
+    );
 
     return {
       content: fullContent,
@@ -131,6 +131,7 @@ export class FallbackLLMChain {
       } catch (fallbackError) {
         throw new Error(
           `Both LLM providers failed. Primary: ${primaryError instanceof Error ? primaryError.message : String(primaryError)}, Fallback: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+          { cause: fallbackError },
         );
       }
     }

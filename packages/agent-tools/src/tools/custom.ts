@@ -75,13 +75,10 @@ export class CustomTools {
   ): void {
     const schema = this.buildSchema(parameters);
 
-    this.registry.register(
-      name,
-      description,
-      schema,
-      handler,
-      { builtin: false, category: "custom" },
-    );
+    this.registry.register(name, description, schema, handler, {
+      builtin: false,
+      category: "custom",
+    });
   }
 
   /**
@@ -89,12 +86,7 @@ export class CustomTools {
    */
   registerAll(tools: CustomToolDefinition[]): void {
     for (const tool of tools) {
-      this.action(
-        tool.name,
-        tool.description,
-        tool.handler,
-        tool.parameters,
-      );
+      this.action(tool.name, tool.description, tool.handler, tool.parameters);
     }
   }
 
@@ -162,16 +154,17 @@ export class CustomTools {
   compose(
     name: string,
     description: string,
-    steps: Array<{ tool: string; args: Record<string, unknown> | ((prev: ToolResult) => Record<string, unknown>) }>,
+    steps: Array<{
+      tool: string;
+      args: Record<string, unknown> | ((prev: ToolResult) => Record<string, unknown>);
+    }>,
   ): void {
     const handler: ToolHandler = async () => {
       const results: ToolResult[] = [];
       let lastResult: ToolResult = { success: true, content: "" };
 
       for (const step of steps) {
-        const args = typeof step.args === "function"
-          ? step.args(lastResult)
-          : step.args;
+        const args = typeof step.args === "function" ? step.args(lastResult) : step.args;
 
         const result = await this.registry.execute(step.tool, args);
         results.push(result);

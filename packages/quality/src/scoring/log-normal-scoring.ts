@@ -146,7 +146,7 @@ export class LogNormalScoringEngine {
    */
   calculateScore(
     metric: "latency" | "successRate" | "steps" | "cost",
-    samples?: PerformanceSample[]
+    samples?: PerformanceSample[],
   ): ScoringResult {
     const data = samples || this.samples;
     const values = this.extractValues(data, metric);
@@ -205,7 +205,7 @@ export class LogNormalScoringEngine {
    */
   calculateCompositeScore(
     weights: Record<string, number>,
-    samples?: PerformanceSample[]
+    samples?: PerformanceSample[],
   ): ScoringResult {
     const data = samples || this.samples;
     const metricScores: Record<string, MetricScore> = {};
@@ -264,10 +264,7 @@ export class LogNormalScoringEngine {
   /**
    * Compare against benchmark
    */
-  compareToBenchmark(
-    metric: string,
-    benchmarkName: string
-  ): BenchmarkComparison | null {
+  compareToBenchmark(metric: string, benchmarkName: string): BenchmarkComparison | null {
     const benchmarkData = this.benchmarks.get(benchmarkName);
     if (!benchmarkData) return null;
 
@@ -301,7 +298,7 @@ export class LogNormalScoringEngine {
    */
   private extractValues(
     samples: PerformanceSample[],
-    metric: "latency" | "successRate" | "steps" | "cost"
+    metric: "latency" | "successRate" | "steps" | "cost",
   ): number[] {
     switch (metric) {
       case "latency":
@@ -310,13 +307,9 @@ export class LogNormalScoringEngine {
         // Return 1 for success, 0 for failure
         return samples.map((s) => (s.success ? 1 : 0));
       case "steps":
-        return samples
-          .map((s) => s.steps)
-          .filter((v): v is number => v !== undefined && v > 0);
+        return samples.map((s) => s.steps).filter((v): v is number => v !== undefined && v > 0);
       case "cost":
-        return samples
-          .map((s) => s.cost)
-          .filter((v): v is number => v !== undefined && v >= 0);
+        return samples.map((s) => s.cost).filter((v): v is number => v !== undefined && v >= 0);
       default:
         return [];
     }
@@ -415,8 +408,8 @@ export class LogNormalScoringEngine {
 
     medians.sort((a, b) => a - b);
 
-    const lowerIndex = Math.floor((1 - this.config.confidenceLevel) / 2 * medians.length);
-    const upperIndex = Math.floor((1 + this.config.confidenceLevel) / 2 * medians.length);
+    const lowerIndex = Math.floor(((1 - this.config.confidenceLevel) / 2) * medians.length);
+    const upperIndex = Math.floor(((1 + this.config.confidenceLevel) / 2) * medians.length);
 
     return [medians[lowerIndex], medians[upperIndex]];
   }
@@ -451,7 +444,7 @@ export class LogNormalScoringEngine {
    */
   private performTTest(
     sample1: number[],
-    sample2: number[]
+    sample2: number[],
   ): { pValue: number; effectSize: number } {
     const mean1 = this.mean(sample1);
     const mean2 = this.mean(sample2);
@@ -496,18 +489,14 @@ export class LogNormalScoringEngine {
     const mean = this.mean(values);
     const stdDev = this.stdDev(values);
     const n = values.length;
-    return (
-      values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 3), 0) / n
-    );
+    return values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 3), 0) / n;
   }
 
   private kurtosis(values: number[]): number {
     const mean = this.mean(values);
     const stdDev = this.stdDev(values);
     const n = values.length;
-    return (
-      values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 4), 0) / n - 3
-    );
+    return values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 4), 0) / n - 3;
   }
 
   private cdfT(t: number, df: number): number {
@@ -565,7 +554,7 @@ export class LogNormalScoringEngine {
  * Convenience function
  */
 export function createLogNormalScoringEngine(
-  config?: Partial<LogNormalConfig>
+  config?: Partial<LogNormalConfig>,
 ): LogNormalScoringEngine {
   return new LogNormalScoringEngine(config);
 }

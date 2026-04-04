@@ -1,14 +1,6 @@
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
-import {
-  BACKGROUND_COLOR,
-  GREEN_COLOR,
-  MUTED_COLOR,
-  OVERLAY_GRADIENT_HEIGHT_PX,
-  RED_COLOR,
-  TEXT_COLOR,
-} from "../constants";
+import { BACKGROUND_COLOR, GREEN_COLOR, MUTED_COLOR, RED_COLOR, TEXT_COLOR } from "../constants";
 import { fontFamily } from "../utils/font";
-import { getBottomOverlayGradient } from "../utils/get-bottom-overlay-gradient";
 
 interface ScannedFile {
   path: string;
@@ -107,7 +99,7 @@ const OVERLAY_APPEAR_FRAME = 40;
 const OVERLAY_FADE_FRAMES = 12;
 const FILL_START_FRAME = 48;
 const FILL_DURATION_FRAMES = 20;
-const SUBTITLE_HEIGHT_PX = 420;
+const _SUBTITLE_HEIGHT_PX = 420;
 const SUBTITLE_FONT_SIZE_PX = 88;
 
 export const CoverageBar = () => {

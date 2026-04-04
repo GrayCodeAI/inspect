@@ -61,7 +61,9 @@ export class TokenTracker {
    * Record token usage for a step.
    */
   record(stepIndex: number, inputTokens: number, outputTokens: number, purpose: string): void {
-    const cost = (inputTokens / 1000) * this.budget.inputCostPer1K + (outputTokens / 1000) * this.budget.outputCostPer1K;
+    const cost =
+      (inputTokens / 1000) * this.budget.inputCostPer1K +
+      (outputTokens / 1000) * this.budget.outputCostPer1K;
 
     this.entries.push({
       stepIndex,
@@ -96,7 +98,7 @@ export class TokenTracker {
    */
   canAfford(estimatedTokens: number): boolean {
     if (this.budget.maxTokens === 0) return true;
-    return (this.totalInput + this.totalOutput + estimatedTokens) <= this.budget.maxTokens;
+    return this.totalInput + this.totalOutput + estimatedTokens <= this.budget.maxTokens;
   }
 
   /**
@@ -104,7 +106,9 @@ export class TokenTracker {
    */
   getSummary(): TokenSummary {
     const total = this.totalInput + this.totalOutput;
-    const cost = (this.totalInput / 1000) * this.budget.inputCostPer1K + (this.totalOutput / 1000) * this.budget.outputCostPer1K;
+    const cost =
+      (this.totalInput / 1000) * this.budget.inputCostPer1K +
+      (this.totalOutput / 1000) * this.budget.outputCostPer1K;
     const pct = this.budget.maxTokens > 0 ? (total / this.budget.maxTokens) * 100 : 0;
 
     return {
@@ -126,7 +130,9 @@ export class TokenTracker {
     // Assume 60% input, 40% output split
     const input = tokens * 0.6;
     const output = tokens * 0.4;
-    return (input / 1000) * this.budget.inputCostPer1K + (output / 1000) * this.budget.outputCostPer1K;
+    return (
+      (input / 1000) * this.budget.inputCostPer1K + (output / 1000) * this.budget.outputCostPer1K
+    );
   }
 
   /**

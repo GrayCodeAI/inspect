@@ -11,7 +11,9 @@ describe("APIServer", () => {
   describe("route registration", () => {
     it("registers GET routes", () => {
       let called = false;
-      server.get("/api/health", () => { called = true; });
+      server.get("/api/health", () => {
+        called = true;
+      });
       // Route is registered internally - verify via JWT round-trip test below
       expect(called).toBe(false); // not called until request
     });

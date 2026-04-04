@@ -5,7 +5,7 @@
 // TestScheduler and compares results to detect browser-specific issues.
 // ============================================================================
 
-import type { ExecutionResult} from "../orchestrator/executor.js";
+import type { ExecutionResult } from "../orchestrator/executor.js";
 
 export interface CrossBrowserConfig {
   browsers: Array<"chromium" | "firefox" | "webkit">;
@@ -75,13 +75,9 @@ export class CrossBrowserComparator {
       };
     }
 
-    const passedBrowsers = runs
-      .filter((r) => r.result.status === "pass")
-      .map((r) => r.browser);
+    const passedBrowsers = runs.filter((r) => r.result.status === "pass").map((r) => r.browser);
 
-    const failedBrowsers = runs
-      .filter((r) => r.result.status !== "pass")
-      .map((r) => r.browser);
+    const failedBrowsers = runs.filter((r) => r.result.status !== "pass").map((r) => r.browser);
 
     // Build step-by-step comparison
     const maxSteps = Math.max(...runs.map((r) => r.result.steps.length));
@@ -99,7 +95,8 @@ export class CrossBrowserComparator {
       });
 
       const statuses = new Set(results.map((r) => r.status));
-      const description = runs.find((r) => r.result.steps[i])?.result.steps[i]?.description ?? `Step ${i + 1}`;
+      const description =
+        runs.find((r) => r.result.steps[i])?.result.steps[i]?.description ?? `Step ${i + 1}`;
 
       stepDiffs.push({
         stepIndex: i,
@@ -117,13 +114,15 @@ export class CrossBrowserComparator {
         totalDuration: r.result.totalDuration,
         tokenCount: r.result.tokenCount,
         stepDurations: durations,
-        avgStepDuration: durations.length > 0
-          ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
-          : 0,
+        avgStepDuration:
+          durations.length > 0
+            ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+            : 0,
       };
     });
 
-    const consistent = passedBrowsers.length === runs.length || failedBrowsers.length === runs.length;
+    const consistent =
+      passedBrowsers.length === runs.length || failedBrowsers.length === runs.length;
     const inconsistentSteps = stepDiffs.filter((d) => !d.consistent);
 
     let summary: string;
@@ -184,7 +183,9 @@ export class CrossBrowserComparator {
       for (const step of inconsistent) {
         lines.push(`**Step ${step.stepIndex + 1}: ${step.description}**`);
         for (const r of step.results) {
-          lines.push(`- ${r.browser}: ${r.status}${r.error ? ` — ${r.error}` : ""} (${this.fmtMs(r.duration)})`);
+          lines.push(
+            `- ${r.browser}: ${r.status}${r.error ? ` — ${r.error}` : ""} (${this.fmtMs(r.duration)})`,
+          );
         }
         lines.push("");
       }

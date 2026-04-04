@@ -2,11 +2,7 @@
 // @inspect/quality - Network Request Interceptor
 // ============================================================================
 
-import type {
-  MockHandler,
-  MockRequest,
-  MockResponse,
-} from "./handlers.js";
+import type { MockHandler, MockRequest, MockResponse } from "./handlers.js";
 import { matchUrl, parseQuery, parseGraphQLOperation, isPassthrough } from "./handlers.js";
 import { createLogger } from "@inspect/observability";
 
@@ -14,14 +10,24 @@ const logger = createLogger("quality/interceptor");
 
 /** Page-like interface with route() method (Playwright compatible) */
 interface PageHandle {
-  route(urlOrPredicate: string | RegExp | ((url: URL) => boolean), handler: RouteHandler): Promise<void>;
-  unroute(urlOrPredicate: string | RegExp | ((url: URL) => boolean), handler?: RouteHandler): Promise<void>;
+  route(
+    urlOrPredicate: string | RegExp | ((url: URL) => boolean),
+    handler: RouteHandler,
+  ): Promise<void>;
+  unroute(
+    urlOrPredicate: string | RegExp | ((url: URL) => boolean),
+    handler?: RouteHandler,
+  ): Promise<void>;
 }
 
 /** Playwright Route interface */
 interface Route {
   request(): RouteRequest;
-  fulfill(options: { status?: number; headers?: Record<string, string>; body?: string }): Promise<void>;
+  fulfill(options: {
+    status?: number;
+    headers?: Record<string, string>;
+    body?: string;
+  }): Promise<void>;
   continue(): Promise<void>;
   abort(errorCode?: string): Promise<void>;
 }
@@ -197,9 +203,7 @@ export class NetworkInterceptor {
         await route.fulfill({
           status: mockRes.status,
           headers: mockRes.headers,
-          body: typeof mockRes.body === "string"
-            ? mockRes.body
-            : JSON.stringify(mockRes.body),
+          body: typeof mockRes.body === "string" ? mockRes.body : JSON.stringify(mockRes.body),
         });
 
         // Log
@@ -234,7 +238,10 @@ export class NetworkInterceptor {
     for (const handler of this.handlers) {
       if (handler.type === "graphql") {
         // GraphQL matching: match by operation name
-        if (req.operationName && (handler.pattern === "*" || handler.pattern === req.operationName)) {
+        if (
+          req.operationName &&
+          (handler.pattern === "*" || handler.pattern === req.operationName)
+        ) {
           return handler;
         }
         continue;

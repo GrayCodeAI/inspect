@@ -3,7 +3,7 @@
 // Supports multiple search providers (Google, DuckDuckGo, Tavily, SerpAPI)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Config, Effect, Layer, Schema, ServiceMap } from "effect";
+import { Effect, Layer, Schema, ServiceMap } from "effect";
 
 export type SearchProvider = "duckduckgo" | "tavily" | "google" | "serpapi" | "brave";
 

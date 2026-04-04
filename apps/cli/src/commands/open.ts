@@ -63,7 +63,7 @@ async function openBrowser(url: string | undefined, options: OpenOptions): Promi
   await browserMgr.launchBrowser({
     headless: false,
     viewport,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
   const page = await browserMgr.newPage();

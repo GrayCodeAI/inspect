@@ -94,7 +94,7 @@ export class RateLimiter extends EventEmitter {
 
   constructor(
     private provider: string,
-    config: Partial<RateLimiterConfig> = {}
+    config: Partial<RateLimiterConfig> = {},
   ) {
     super();
     this.config = { ...DEFAULT_RATE_LIMITER_CONFIG, ...config };
@@ -222,14 +222,13 @@ export class RateLimiter extends EventEmitter {
         this.state.tokens -= tokens;
         break;
 
-      case "sliding-window":
+      case "sliding-window": {
         this.state.windowRequests.push(Date.now());
         // Clean old requests
         const cutoff = Date.now() - 60000;
-        this.state.windowRequests = this.state.windowRequests.filter(
-          (t) => t > cutoff
-        );
+        this.state.windowRequests = this.state.windowRequests.filter((t) => t > cutoff);
         break;
+      }
 
       case "fixed-window":
         this.state.windowRequests.push(Date.now());
@@ -248,10 +247,7 @@ export class RateLimiter extends EventEmitter {
     const refillRate = this.config.requestsPerMinute / 60000; // per ms
     const tokensToAdd = elapsed * refillRate;
 
-    this.state.tokens = Math.min(
-      this.config.burstSize,
-      this.state.tokens + tokensToAdd
-    );
+    this.state.tokens = Math.min(this.config.burstSize, this.state.tokens + tokensToAdd);
     this.state.lastRefill = now;
   }
 
@@ -300,9 +296,7 @@ export class RateLimiter extends EventEmitter {
    */
   private checkSlidingWindow(): boolean {
     const cutoff = Date.now() - 60000;
-    this.state.windowRequests = this.state.windowRequests.filter(
-      (t) => t > cutoff
-    );
+    this.state.windowRequests = this.state.windowRequests.filter((t) => t > cutoff);
 
     return this.state.windowRequests.length < this.config.requestsPerMinute;
   }
@@ -312,9 +306,7 @@ export class RateLimiter extends EventEmitter {
    */
   private checkFixedWindow(): boolean {
     const currentWindow = Math.floor(Date.now() / 60000);
-    const lastWindow = Math.floor(
-      (this.state.windowRequests[0] || Date.now()) / 60000
-    );
+    const lastWindow = Math.floor((this.state.windowRequests[0] || Date.now()) / 60000);
 
     if (currentWindow !== lastWindow) {
       this.state.windowRequests = [];
@@ -335,7 +327,7 @@ export class RateLimiter extends EventEmitter {
       // Exponential backoff
       const backoff = Math.min(
         this.config.maxBackoff,
-        1000 * Math.pow(2, this.state.consecutiveFailures)
+        1000 * Math.pow(2, this.state.consecutiveFailures),
       );
       this.state.currentBackoff = backoff;
     }
@@ -387,9 +379,7 @@ export class RateLimiter extends EventEmitter {
    */
   getStats(): LimiterStats {
     const avgWait =
-      this.stats.allowedRequests > 0
-        ? this.stats.totalWaitTime / this.stats.allowedRequests
-        : 0;
+      this.stats.allowedRequests > 0 ? this.stats.totalWaitTime / this.stats.allowedRequests : 0;
 
     return {
       totalRequests: this.stats.totalRequests,
@@ -481,7 +471,7 @@ export class MultiProviderRateLimiter {
  */
 export function createRateLimiter(
   provider: string,
-  config?: Partial<RateLimiterConfig>
+  config?: Partial<RateLimiterConfig>,
 ): RateLimiter {
   return new RateLimiter(provider, config);
 }

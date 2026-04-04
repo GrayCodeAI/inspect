@@ -12,7 +12,10 @@ export interface LighthouseCliOptions {
   json?: boolean;
 }
 
-async function runLighthouse(url: string | undefined, options: LighthouseCliOptions): Promise<void> {
+async function runLighthouse(
+  url: string | undefined,
+  options: LighthouseCliOptions,
+): Promise<void> {
   if (!url) {
     console.error(chalk.red("Error: URL is required for Lighthouse audit."));
     console.log(chalk.dim("Usage: inspect lighthouse <url>"));
@@ -51,7 +54,9 @@ async function runLighthouse(url: string | undefined, options: LighthouseCliOpti
     const startTime = Date.now();
     const report = await auditor.run(url, {
       device: device as "mobile" | "desktop",
-      categories: categories as Array<"performance" | "accessibility" | "best-practices" | "seo" | "pwa">,
+      categories: categories as Array<
+        "performance" | "accessibility" | "best-practices" | "seo" | "pwa"
+      >,
       budgets,
     });
     const elapsed = Date.now() - startTime;
@@ -59,7 +64,9 @@ async function runLighthouse(url: string | undefined, options: LighthouseCliOpti
     const scores = report.scores ?? {};
 
     if (options.json) {
-      process.stdout.write(JSON.stringify({ scores, metrics: report.metrics ?? null, elapsed }, null, 2) + "\n");
+      process.stdout.write(
+        JSON.stringify({ scores, metrics: report.metrics ?? null, elapsed }, null, 2) + "\n",
+      );
       return;
     }
 
@@ -78,15 +85,20 @@ async function runLighthouse(url: string | undefined, options: LighthouseCliOpti
     const metrics = report.metrics;
     if (metrics) {
       console.log(chalk.dim("\n  Key Metrics:"));
-      const metricEntries = Object.entries(metrics) as Array<[string, { value: number; displayValue?: string; rating?: string }]>;
+      const metricEntries = Object.entries(metrics) as Array<
+        [string, { value: number; displayValue?: string; rating?: string }]
+      >;
       for (const [metric, m] of metricEntries.slice(0, 8)) {
         if (!m || typeof m !== "object") continue;
         const label = metric
           .replace(/([A-Z])/g, " $1")
           .replace(/^./, (s) => s.toUpperCase())
           .trim();
-        const display = m.displayValue ?? (m.value > 1000 ? `${(m.value / 1000).toFixed(1)}s` : `${Math.round(m.value)}ms`);
-        const ratingColor = m.rating === "good" ? chalk.green : m.rating === "average" ? chalk.yellow : chalk.red;
+        const display =
+          m.displayValue ??
+          (m.value > 1000 ? `${(m.value / 1000).toFixed(1)}s` : `${Math.round(m.value)}ms`);
+        const ratingColor =
+          m.rating === "good" ? chalk.green : m.rating === "average" ? chalk.yellow : chalk.red;
         console.log(`    ${label.padEnd(30)} ${ratingColor(display)}`);
       }
     }

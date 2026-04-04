@@ -99,10 +99,7 @@ export class WordParser {
     }
 
     // Remove trailing empty paragraphs
-    while (
-      paragraphs.length > 0 &&
-      paragraphs[paragraphs.length - 1].trim() === ""
-    ) {
+    while (paragraphs.length > 0 && paragraphs[paragraphs.length - 1].trim() === "") {
       paragraphs.pop();
     }
 
@@ -112,16 +109,12 @@ export class WordParser {
   /**
    * Parse metadata from core.xml.
    */
-  private parseMetadata(
-    xml: string | undefined,
-  ): WordMetadata {
+  private parseMetadata(xml: string | undefined): WordMetadata {
     if (!xml) return {};
 
     const metadata: WordMetadata = {};
 
-    const extractTag = (
-      tag: string,
-    ): string | undefined => {
+    const extractTag = (tag: string): string | undefined => {
       const regex = new RegExp(
         `<(?:dc:|cp:|dcterms:)?${tag}[^>]*>([\\s\\S]*?)<\\/(?:dc:|cp:|dcterms:)?${tag}>`,
         "i",
@@ -144,9 +137,7 @@ export class WordParser {
   /**
    * Extract files from a ZIP buffer (minimal ZIP parser).
    */
-  private async extractZip(
-    buffer: Buffer,
-  ): Promise<Map<string, string>> {
+  private async extractZip(buffer: Buffer): Promise<Map<string, string>> {
     const files = new Map<string, string>();
 
     // Find End of Central Directory
@@ -189,23 +180,13 @@ export class WordParser {
       const commentLength = buffer.readUInt16LE(offset + 32);
       const localHeaderOffset = buffer.readUInt32LE(offset + 42);
 
-      const fileName = buffer
-        .subarray(offset + 46, offset + 46 + fileNameLength)
-        .toString("utf-8");
+      const fileName = buffer.subarray(offset + 46, offset + 46 + fileNameLength).toString("utf-8");
 
       // Only process XML files
-      if (
-        fileName.endsWith(".xml") ||
-        fileName.endsWith(".rels")
-      ) {
-        const localNameLength = buffer.readUInt16LE(
-          localHeaderOffset + 26,
-        );
-        const localExtraLength = buffer.readUInt16LE(
-          localHeaderOffset + 28,
-        );
-        const dataStart =
-          localHeaderOffset + 30 + localNameLength + localExtraLength;
+      if (fileName.endsWith(".xml") || fileName.endsWith(".rels")) {
+        const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+        const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+        const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
         const dataEnd = dataStart + compressedSize;
         const rawData = buffer.subarray(dataStart, dataEnd);
 
@@ -217,8 +198,7 @@ export class WordParser {
             const inflated = await inflateRaw(rawData);
             content = inflated.toString("utf-8");
           } else {
-            offset +=
-              46 + fileNameLength + extraFieldLength + commentLength;
+            offset += 46 + fileNameLength + extraFieldLength + commentLength;
             continue;
           }
           files.set(fileName, content);
@@ -227,8 +207,7 @@ export class WordParser {
         }
       }
 
-      offset +=
-        46 + fileNameLength + extraFieldLength + commentLength;
+      offset += 46 + fileNameLength + extraFieldLength + commentLength;
     }
 
     return files;

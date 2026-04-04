@@ -74,7 +74,12 @@ describe("MessageBus", () => {
       );
 
       bus.publish({ topic: "orders", payload: { amount: 50 }, source: "shop", priority: "normal" });
-      bus.publish({ topic: "orders", payload: { amount: 200 }, source: "shop", priority: "normal" });
+      bus.publish({
+        topic: "orders",
+        payload: { amount: 200 },
+        source: "shop",
+        priority: "normal",
+      });
 
       expect(received).toHaveLength(1);
       expect((received[0].payload as { amount: number }).amount).toBe(200);
@@ -107,7 +112,12 @@ describe("MessageBus", () => {
 
     it("should replay dead letter messages back onto the bus", () => {
       // First publish without handlers to populate DLQ
-      bus.publish({ topic: "replay.topic", payload: "retry-me", source: "test", priority: "normal" });
+      bus.publish({
+        topic: "replay.topic",
+        payload: "retry-me",
+        source: "test",
+        priority: "normal",
+      });
       expect(bus.getDeadLetter()).toHaveLength(1);
 
       // Now add a handler and replay

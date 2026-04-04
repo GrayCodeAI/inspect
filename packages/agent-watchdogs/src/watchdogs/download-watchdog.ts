@@ -85,7 +85,9 @@ export class DownloadWatchdog {
    * Handle a download
    */
   private async handleDownload(download: Download): Promise<void> {
-    const id = createHash("md5").update(download.url() + Date.now()).digest("hex");
+    const id = createHash("md5")
+      .update(download.url() + Date.now())
+      .digest("hex");
     const suggestedFilename = download.suggestedFilename();
     const extension = "." + suggestedFilename.split(".").pop()?.toLowerCase();
 
@@ -200,10 +202,7 @@ export class DownloadWatchdog {
     completedCount: number;
     totalSize: number;
   } {
-    const totalSize = this.completedDownloads.reduce(
-      (sum, d) => sum + d.fileSize,
-      0
-    );
+    const totalSize = this.completedDownloads.reduce((sum, d) => sum + d.fileSize, 0);
 
     return {
       activeCount: this.activeDownloads.size,

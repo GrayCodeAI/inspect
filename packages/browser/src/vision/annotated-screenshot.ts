@@ -75,12 +75,27 @@ export class AnnotatedScreenshot {
     const elements = await page.evaluate(
       ({ interactiveOnly, maxElements }) => {
         const interactive = [
-          "a", "button", "input", "select", "textarea",
-          "details", "summary", "label", "option",
+          "a",
+          "button",
+          "input",
+          "select",
+          "textarea",
+          "details",
+          "summary",
+          "label",
+          "option",
         ];
         const interactiveRoles = [
-          "button", "link", "textbox", "checkbox", "radio",
-          "combobox", "listbox", "menuitem", "tab", "switch",
+          "button",
+          "link",
+          "textbox",
+          "checkbox",
+          "radio",
+          "combobox",
+          "listbox",
+          "menuitem",
+          "tab",
+          "switch",
         ];
 
         const results: Array<{
@@ -97,15 +112,21 @@ export class AnnotatedScreenshot {
 
           const tag = el.tagName.toLowerCase();
           const role = el.getAttribute("role") ?? "";
-          const isInteractive = interactive.includes(tag)
-            || interactiveRoles.includes(role)
-            || el.hasAttribute("onclick")
-            || el.hasAttribute("tabindex")
-            || el.getAttribute("contenteditable") === "true";
+          const isInteractive =
+            interactive.includes(tag) ||
+            interactiveRoles.includes(role) ||
+            el.hasAttribute("onclick") ||
+            el.hasAttribute("tabindex") ||
+            el.getAttribute("contenteditable") === "true";
 
           if (!interactiveOnly || isInteractive) {
             const rect = el.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight && rect.bottom > 0) {
+            if (
+              rect.width > 0 &&
+              rect.height > 0 &&
+              rect.top < window.innerHeight &&
+              rect.bottom > 0
+            ) {
               counter++;
               results.push({
                 id: `e${counter}`,
@@ -136,7 +157,8 @@ export class AnnotatedScreenshot {
       ({ elements, boxColor, fontSize, includeText }) => {
         const overlay = document.createElement("div");
         overlay.id = "__inspect_annotations__";
-        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999";
+        overlay.style.cssText =
+          "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999999";
 
         for (const el of elements) {
           // Bounding box

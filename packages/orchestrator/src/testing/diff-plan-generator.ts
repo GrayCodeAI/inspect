@@ -263,7 +263,7 @@ export class DiffPlanGenerator {
         categories.apiRoutes.push(file);
       } else if (/\.(css|scss|less|styl)$/.test(file)) {
         categories.styles.push(file);
-      } else if(/(\.json|\.ya?ml|\.config\.|\.env)/.test(file)) {
+      } else if (/(\.json|\.ya?ml|\.config\.|\.env)/.test(file)) {
         categories.config.push(file);
       } else {
         categories.other.push(file);
@@ -275,10 +275,7 @@ export class DiffPlanGenerator {
 
   // ── Impact Detection ─────────────────────────────────────────────────────
 
-  private detectImpactedAreas(
-    hunks: DiffHunk[],
-    categories: MutableCategories,
-  ): ImpactedArea[] {
+  private detectImpactedAreas(hunks: DiffHunk[], categories: MutableCategories): ImpactedArea[] {
     const areas: ImpactedArea[] = [];
 
     // Pages changed → navigation and functional testing
@@ -428,7 +425,7 @@ export class DiffPlanGenerator {
       }
 
       // Generate interaction steps based on test focus
-      for (const focus of (area.testFocus ?? [])) {
+      for (const focus of area.testFocus ?? []) {
         if (focus.includes("form") || focus.includes("input") || focus.includes("validation")) {
           steps.push({
             id: `step-${index}`,

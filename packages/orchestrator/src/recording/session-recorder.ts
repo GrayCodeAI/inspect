@@ -174,7 +174,10 @@ const IncrementalSource = {
 export class SessionRecorder extends EventEmitter {
   private config: SessionRecorderConfig;
   private recordings = new Map<string, SessionRecording>();
-  private activeRecordings = new Map<string, { page: Page; startTime: number; events: RRWebEvent[] }>();
+  private activeRecordings = new Map<
+    string,
+    { page: Page; startTime: number; events: RRWebEvent[] }
+  >();
   private recordingCounter = 0;
 
   constructor(config: Partial<SessionRecorderConfig> = {}) {
@@ -185,10 +188,7 @@ export class SessionRecorder extends EventEmitter {
   /**
    * Start recording a session
    */
-  async startRecording(
-    page: Page,
-    metadata?: Partial<RecordingMetadata>
-  ): Promise<string> {
+  async startRecording(page: Page, _metadata?: Partial<RecordingMetadata>): Promise<string> {
     // Check sampling
     this.recordingCounter++;
     if (this.recordingCounter % this.config.sampleRate !== 0) {
@@ -202,7 +202,12 @@ export class SessionRecorder extends EventEmitter {
 
     // Start recording
     await page.evaluate(
-      (evalConfig: { maxEvents: number; maskInputs: boolean; inlineStylesheet: boolean; collectFonts: boolean }) => {
+      (evalConfig: {
+        maxEvents: number;
+        maskInputs: boolean;
+        inlineStylesheet: boolean;
+        collectFonts: boolean;
+      }) => {
         // Access global window object
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = globalThis as any;
@@ -229,24 +234,36 @@ export class SessionRecorder extends EventEmitter {
           w["rrwebRecord"] = w["rrweb"].record(rrwebConfig);
         }
       },
-      { maxEvents: this.config.maxEvents, maskInputs: this.config.maskInputs, inlineStylesheet: this.config.inlineStylesheet, collectFonts: this.config.collectFonts }
+      {
+        maxEvents: this.config.maxEvents,
+        maskInputs: this.config.maskInputs,
+        inlineStylesheet: this.config.inlineStylesheet,
+        collectFonts: this.config.collectFonts,
+      },
     );
 
     // Get initial metadata
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pageMetadata = await page.evaluate((): { url: string; title: string; viewport: { width: number; height: number }; userAgent: string } => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const w = globalThis as any;
-      return {
-        url: w.location?.href ?? "",
-        title: w.document?.title ?? "",
-        viewport: {
-          width: w.innerWidth ?? 1280,
-          height: w.innerHeight ?? 720,
-        },
-        userAgent: w.navigator?.userAgent ?? "",
-      };
-    });
+
+    const pageMetadata = await page.evaluate(
+      (): {
+        url: string;
+        title: string;
+        viewport: { width: number; height: number };
+        userAgent: string;
+      } => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = globalThis as any;
+        return {
+          url: w.location?.href ?? "",
+          title: w.document?.title ?? "",
+          viewport: {
+            width: w.innerWidth ?? 1280,
+            height: w.innerHeight ?? 720,
+          },
+          userAgent: w.navigator?.userAgent ?? "",
+        };
+      },
+    );
 
     this.activeRecordings.set(recordingId, {
       page,
@@ -270,7 +287,7 @@ export class SessionRecorder extends EventEmitter {
       }
 
       // Collect events
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events = await page.evaluate(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = globalThis as any;
@@ -311,7 +328,6 @@ export class SessionRecorder extends EventEmitter {
 
     // Collect final events
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const finalEvents = await page.evaluate(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = globalThis as any;
@@ -381,7 +397,9 @@ export class SessionRecorder extends EventEmitter {
     });
 
     // Wait for load
-    await page.waitForFunction(() => !!(globalThis as { [key: string]: unknown })["rrweb"], { timeout: 5000 });
+    await page.waitForFunction(() => !!(globalThis as { [key: string]: unknown })["rrweb"], {
+      timeout: 5000,
+    });
   }
 
   /**
@@ -682,8 +700,6 @@ export class SessionRecorder extends EventEmitter {
 /**
  * Convenience function
  */
-export function createSessionRecorder(
-  config?: Partial<SessionRecorderConfig>
-): SessionRecorder {
+export function createSessionRecorder(config?: Partial<SessionRecorderConfig>): SessionRecorder {
   return new SessionRecorder(config);
 }

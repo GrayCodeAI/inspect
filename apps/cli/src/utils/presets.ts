@@ -69,7 +69,10 @@ export const PRESETS: Record<string, Preset> = {
 /**
  * Apply a preset's options, with CLI flags taking precedence.
  */
-export function applyPreset(presetName: string, cliOptions: Record<string, unknown>): Record<string, unknown> {
+export function applyPreset(
+  presetName: string,
+  cliOptions: Record<string, unknown>,
+): Record<string, unknown> {
   const preset = PRESETS[presetName];
   if (!preset) return cliOptions;
 

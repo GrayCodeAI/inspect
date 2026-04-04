@@ -38,12 +38,12 @@ export class AgentAction extends Schema.Class<AgentAction>("AgentAction")({
   name: Schema.String,
   params: Schema.Unknown,
   description: Schema.String,
-  sequential: Schema.optional(Schema.Boolean),  // Execute sub-actions in sequence
-  subActions: Schema.optional(Schema.Array(Schema.Unknown)),  // Plan-based actions
+  sequential: Schema.optional(Schema.Boolean), // Execute sub-actions in sequence
+  subActions: Schema.optional(Schema.Array(Schema.Unknown)), // Plan-based actions
 }) {}
 
 // Helper to flatten action plans into individual steps
-function flattenActionPlan(action: AgentAction): AgentAction[] {
+function _flattenActionPlan(action: AgentAction): AgentAction[] {
   if (action.sequential && action.subActions && Array.isArray(action.subActions)) {
     return action.subActions.map((subAction: unknown, idx: number) => {
       const sub = subAction as Record<string, unknown>;
@@ -104,7 +104,10 @@ export class AgentLoop extends ServiceMap.Service<AgentLoop>()("@agent/AgentLoop
   make: Effect.gen(function* () {
     yield* Effect.log("Initializing AgentLoop service");
 
-    const run = Effect.fn("AgentLoop.run")(function* (config: AgentLoopConfig, session?: BrowserSession) {
+    const run = Effect.fn("AgentLoop.run")(function* (
+      config: AgentLoopConfig,
+      session?: BrowserSession,
+    ) {
       yield* Effect.annotateCurrentSpan({ goal: config.goal, maxSteps: config.maxSteps });
       yield* Effect.logInfo("Agent loop started", {
         goal: config.goal,
@@ -182,7 +185,12 @@ export class AgentLoop extends ServiceMap.Service<AgentLoop>()("@agent/AgentLoop
 // Phase Implementations
 // ─────────────────────────────────────────────────────────────────────────────
 
-function executeStep(state: AgentState, stepIndex: number, config: AgentLoopConfig, session?: BrowserSession) {
+function executeStep(
+  state: AgentState,
+  stepIndex: number,
+  config: AgentLoopConfig,
+  session?: BrowserSession,
+) {
   return Effect.gen(function* () {
     yield* Effect.annotateCurrentSpan({ stepIndex });
 
@@ -302,7 +310,7 @@ function observePhase(session?: BrowserSession) {
             timestamp: Date.now(),
           }),
         );
-      } catch (e) {
+      } catch (_e) {
         // Fallback: capture raw DOM
         try {
           const domContent = yield* session.evaluate<string>(`
@@ -427,6 +435,7 @@ Respond with a JSON action:
       // Access LLM service from Effect context
       const llm = yield* LLMProviderService;
       const response = yield* llm.complete(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (config.llmProvider || "anthropic") as any,
         config.model,
         messages,
@@ -462,7 +471,8 @@ Respond with a JSON action:
         id: `action-${Date.now()}`,
         name: (actionData.name as string) || "verify",
         params: actionData.params || {},
-        description: (actionData.description as string) || `Step ${state.currentStep + 1}: Taking action`,
+        description:
+          (actionData.description as string) || `Step ${state.currentStep + 1}: Taking action`,
         sequential: (actionData.sequential as boolean) || false,
         subActions: actionData.subActions as unknown[] | undefined,
       });
@@ -473,7 +483,7 @@ Respond with a JSON action:
         tokens: response.totalTokens,
       });
       return action;
-    } catch (e) {
+    } catch (_e) {
       // Fallback to mock if LLM fails
       const mockResponse = {
         name: state.currentStep === 0 ? "navigate" : state.currentStep === 1 ? "click" : "verify",
@@ -581,7 +591,10 @@ function actPhase(action: AgentAction, session?: BrowserSession) {
             case "plan": {
               // Plans are handled at the step execution level
               // This case indicates successful plan submission
-              output = { plan: "submitted", subActionCount: (params.subActions as unknown[])?.length || 0 };
+              output = {
+                plan: "submitted",
+                subActionCount: (params.subActions as unknown[])?.length || 0,
+              };
               success = true;
               break;
             }
@@ -611,7 +624,10 @@ function actPhase(action: AgentAction, session?: BrowserSession) {
               break;
             }
             case "plan": {
-              output = { plan: "submitted", subActionCount: (params.subActions as unknown[])?.length || 0 };
+              output = {
+                plan: "submitted",
+                subActionCount: (params.subActions as unknown[])?.length || 0,
+              };
               break;
             }
             default: {
@@ -692,7 +708,8 @@ Has the goal been achieved? Respond with only "yes" or "no".`,
         const response = yield* llm.complete("anthropic", "claude-3-5-sonnet-20241022", [
           new LLMMessage({
             role: "system",
-            content: "You are a web testing verification agent. Determine if a goal has been achieved based on the current page state. Be strict - only say yes if the goal is definitely complete.",
+            content:
+              "You are a web testing verification agent. Determine if a goal has been achieved based on the current page state. Be strict - only say yes if the goal is definitely complete.",
           }),
           completionCheck,
         ]);

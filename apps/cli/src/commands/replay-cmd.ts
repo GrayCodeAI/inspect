@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { existsSync, readFileSync, mkdirSync } from "node:fs";
+import { resolve } from "node:path";
 import type { SessionRecording } from "@inspect/shared";
 
 export interface ReplayCmdOptions {

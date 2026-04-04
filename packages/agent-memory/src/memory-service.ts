@@ -13,30 +13,37 @@ export class TodoItem extends Schema.Class<TodoItem>("TodoItem")({
   status: Schema.Literals(["pending", "inProgress", "completed", "failed"] as const),
 }) {}
 
-export class MessageManager extends ServiceMap.Service<MessageManager>()("@inspect/MessageManager", {
-  make: Effect.gen(function* () {
-    const messages: Observation[] = [];
-    let frozen = false;
+export class MessageManager extends ServiceMap.Service<MessageManager>()(
+  "@inspect/MessageManager",
+  {
+    make: Effect.gen(function* () {
+      const messages: Observation[] = [];
+      let frozen = false;
 
-    const add = Effect.fn("MessageManager.add")(function* (observation: Observation) {
-      if (frozen) return;
-      messages.push(observation);
-    });
+      const add = Effect.fn("MessageManager.add")(function* (observation: Observation) {
+        if (frozen) return;
+        messages.push(observation);
+      });
 
-    const getAll = Effect.sync(() => [...messages]);
+      const getAll = Effect.sync(() => [...messages]);
 
-    const compact = Effect.fn("MessageManager.compact")(function* () {
-      const last10 = messages.slice(-10);
-      return last10;
-    });
+      const compact = Effect.fn("MessageManager.compact")(function* () {
+        const last10 = messages.slice(-10);
+        return last10;
+      });
 
-    const freeze = Effect.sync(() => { frozen = true; });
-    const unfreeze = Effect.sync(() => { frozen = false; });
-    const count = Effect.sync(() => messages.length);
+      const freeze = Effect.sync(() => {
+        frozen = true;
+      });
+      const unfreeze = Effect.sync(() => {
+        frozen = false;
+      });
+      const count = Effect.sync(() => messages.length);
 
-    return { add, getAll, compact, freeze, unfreeze, count } as const;
-  }),
-}) {
+      return { add, getAll, compact, freeze, unfreeze, count } as const;
+    }),
+  },
+) {
   static layer = Layer.effect(this, this.make);
 }
 
@@ -51,7 +58,10 @@ export class TodoTracker extends ServiceMap.Service<TodoTracker>()("@inspect/Tod
       return item;
     });
 
-    const update = Effect.fn("TodoTracker.update")(function* (id: string, status: TodoItem["status"]) {
+    const update = Effect.fn("TodoTracker.update")(function* (
+      id: string,
+      status: TodoItem["status"],
+    ) {
       const todo = todos.find((t) => t.id === id);
       if (todo) (todo as { status: TodoItem["status"] }).status = status;
     });
@@ -63,7 +73,9 @@ export class TodoTracker extends ServiceMap.Service<TodoTracker>()("@inspect/Tod
       return todos.filter((t) => t.status === "completed").length / todos.length;
     });
 
-    const isComplete = Effect.sync(() => todos.length > 0 && todos.every((t) => t.status === "completed"));
+    const isComplete = Effect.sync(
+      () => todos.length > 0 && todos.every((t) => t.status === "completed"),
+    );
 
     return { create, update, getAll, getProgress, isComplete } as const;
   }),
@@ -84,7 +96,9 @@ export class ActionCache extends ServiceMap.Service<ActionCache>()("@inspect/Act
     const has = Effect.fn("ActionCache.has")(function* (key: string) {
       return cache.has(key);
     });
-    const clear = Effect.sync(() => { cache.clear(); });
+    const clear = Effect.sync(() => {
+      cache.clear();
+    });
 
     return { get, set, has, clear } as const;
   }),

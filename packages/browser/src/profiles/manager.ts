@@ -75,7 +75,10 @@ export class ProfileManager {
   /**
    * Create a new browser profile.
    */
-  async create(name: string, options?: { description?: string; tags?: string[] }): Promise<BrowserProfile> {
+  async create(
+    name: string,
+    options?: { description?: string; tags?: string[] },
+  ): Promise<BrowserProfile> {
     const id = crypto.randomUUID();
     const dataDir = path.join(this.config.profilesDir, id);
 

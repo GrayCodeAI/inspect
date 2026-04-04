@@ -8,7 +8,7 @@ export interface ProxyConfig {
   bypass?: string;
   username?: string;
   password?: string;
-  type?: 'http' | 'https' | 'socks5';
+  type?: "http" | "https" | "socks5";
 }
 
 /** Geolocation configuration */
@@ -29,7 +29,7 @@ export interface CookieData {
   expires: number;
   httpOnly: boolean;
   secure: boolean;
-  sameSite: 'Strict' | 'Lax' | 'None';
+  sameSite: "Strict" | "Lax" | "None";
   source?: string;
 }
 
@@ -50,7 +50,7 @@ export interface BrowserCookieConfig {
     win32?: string[];
   };
   cookieFile: string;
-  encryption: 'chromium' | 'firefox' | 'safari' | 'none';
+  encryption: "chromium" | "firefox" | "safari" | "none";
   profilePattern?: string;
 }
 

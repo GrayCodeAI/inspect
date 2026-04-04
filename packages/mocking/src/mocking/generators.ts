@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { readFile } from "node:fs/promises";
-import type { MockHandler} from "./handlers.js";
+import type { MockHandler } from "./handlers.js";
 import { rest, response } from "./handlers.js";
 import { createLogger } from "@inspect/observability";
 
@@ -69,11 +69,14 @@ interface OpenAPIOperation {
 
 interface OpenAPIResponse {
   description?: string;
-  content?: Record<string, {
-    schema: OpenAPISchema;
-    example?: unknown;
-    examples?: Record<string, { value: unknown }>;
-  }>;
+  content?: Record<
+    string,
+    {
+      schema: OpenAPISchema;
+      example?: unknown;
+      examples?: Record<string, { value: unknown }>;
+    }
+  >;
 }
 
 interface OpenAPIParameter {
@@ -141,7 +144,10 @@ export class MockGenerator {
       try {
         body = JSON.parse(responseBody);
       } catch (error) {
-        logger.debug("Failed to parse HAR response body as JSON, using raw string", { path, error });
+        logger.debug("Failed to parse HAR response body as JSON, using raw string", {
+          path,
+          error,
+        });
         body = responseBody;
       }
 
@@ -154,7 +160,7 @@ export class MockGenerator {
             status,
             headers: responseHeaders,
             body,
-          }))
+          })),
         );
       }
     }
@@ -218,9 +224,7 @@ export class MockGenerator {
         const handlerFn = rest[restMethod];
 
         if (typeof handlerFn === "function") {
-          handlers.push(
-            handlerFn(handlerPath, () => response(status, body))
-          );
+          handlers.push(handlerFn(handlerPath, () => response(status, body)));
         }
       }
     }

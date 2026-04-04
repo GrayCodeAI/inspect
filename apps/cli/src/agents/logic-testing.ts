@@ -698,11 +698,7 @@ Respond with JSON: {"hasItems": true/false, "count": number, "description": "wha
 // 3. testDragDrop — Playwright drag and drop
 // ---------------------------------------------------------------------------
 
-export async function testDragDrop(
-  page: Page,
-  source: string,
-  target: string,
-): Promise<boolean> {
+export async function testDragDrop(page: Page, source: string, target: string): Promise<boolean> {
   // Locate source and target elements
   let sourceLocator: Locator | null = null;
   let targetLocator: Locator | null = null;
@@ -716,21 +712,27 @@ export async function testDragDrop(
         sourceLocator = bySelector.first();
         break;
       }
-    } catch { /* not a valid selector */ }
+    } catch {
+      /* not a valid selector */
+    }
     try {
       const byText = page.getByText(sel, { exact: false }).first();
       if ((await byText.count()) > 0) {
         sourceLocator = byText;
         break;
       }
-    } catch { /* not found by text */ }
+    } catch {
+      /* not found by text */
+    }
     try {
       const byRole = page.getByRole("listitem", { name: sel }).first();
       if ((await byRole.count()) > 0) {
         sourceLocator = byRole;
         break;
       }
-    } catch { /* not found by role */ }
+    } catch {
+      /* not found by role */
+    }
   }
 
   // Try to locate target element
@@ -741,21 +743,27 @@ export async function testDragDrop(
         targetLocator = bySelector.first();
         break;
       }
-    } catch { /* not a valid selector */ }
+    } catch {
+      /* not a valid selector */
+    }
     try {
       const byText = page.getByText(sel, { exact: false }).first();
       if ((await byText.count()) > 0) {
         targetLocator = byText;
         break;
       }
-    } catch { /* not found by text */ }
+    } catch {
+      /* not found by text */
+    }
     try {
       const byRole = page.getByRole("listitem", { name: sel }).first();
       if ((await byRole.count()) > 0) {
         targetLocator = byRole;
         break;
       }
-    } catch { /* not found by role */ }
+    } catch {
+      /* not found by role */
+    }
   }
 
   if (!sourceLocator || !targetLocator) {

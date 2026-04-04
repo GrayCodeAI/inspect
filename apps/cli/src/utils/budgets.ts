@@ -69,7 +69,12 @@ export function checkBudget(
     securityFindings?: number;
   },
 ): Array<{ metric: string; budget: number | string; actual: number | string; passed: boolean }> {
-  const checks: Array<{ metric: string; budget: number | string; actual: number | string; passed: boolean }> = [];
+  const checks: Array<{
+    metric: string;
+    budget: number | string;
+    actual: number | string;
+    passed: boolean;
+  }> = [];
 
   if (budget.maxFailures !== undefined && results.testFailures !== undefined) {
     checks.push({
@@ -98,7 +103,10 @@ export function checkBudget(
         passed: results.lighthouseScores.performance >= budget.performance,
       });
     }
-    if (budget.accessibility !== undefined && results.lighthouseScores.accessibility !== undefined) {
+    if (
+      budget.accessibility !== undefined &&
+      results.lighthouseScores.accessibility !== undefined
+    ) {
       checks.push({
         metric: "LH Accessibility",
         budget: `\u2265 ${budget.accessibility}`,

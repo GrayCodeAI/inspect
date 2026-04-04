@@ -2,7 +2,7 @@
 // Playwright Code Export — Generate standard .spec.ts from test execution results
 // ============================================================================
 
-import type { ExecutionResult} from "../orchestrator/executor.js";
+import type { ExecutionResult } from "../orchestrator/executor.js";
 import type { GeneratedTestSuite, GeneratedStep } from "../testing/generator.js";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -95,8 +95,9 @@ export function exportPlaywrightTest(
 ): string {
   const code = generatePlaywrightTest(result, instruction, url, options);
 
-  const outputPath = options.outputPath
-    ?? join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(instruction)}.spec.ts`);
+  const outputPath =
+    options.outputPath ??
+    join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(instruction)}.spec.ts`);
 
   const dir = dirname(outputPath);
   if (!existsSync(dir)) {
@@ -179,8 +180,9 @@ export function exportPlaywrightFromSuite(
 ): string {
   const code = generatePlaywrightFromSuite(suite, options);
 
-  const outputPath = options.outputPath
-    ?? join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(suite.title)}.spec.ts`);
+  const outputPath =
+    options.outputPath ??
+    join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(suite.title)}.spec.ts`);
 
   const dir = dirname(outputPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -237,8 +239,10 @@ function toolCallToPlaywright(call: ToolCall): string | null {
     case "click": {
       const ref = args.ref as string;
       // Use getByRole or locator based on available info
-      return `await page.locator("[data-ref='${escapeString(ref)}']").or(page.getByRole("button")).first().click();`
-        + ` // ref: ${ref}`;
+      return (
+        `await page.locator("[data-ref='${escapeString(ref)}']").or(page.getByRole("button")).first().click();` +
+        ` // ref: ${ref}`
+      );
     }
 
     case "type": {
@@ -249,9 +253,13 @@ function toolCallToPlaywright(call: ToolCall): string | null {
       const lines: string[] = [];
 
       if (clear) {
-        lines.push(`await page.locator("[data-ref='${escapeString(ref)}']").or(page.locator("input, textarea").nth(0)).fill("");`);
+        lines.push(
+          `await page.locator("[data-ref='${escapeString(ref)}']").or(page.locator("input, textarea").nth(0)).fill("");`,
+        );
       }
-      lines.push(`await page.locator("[data-ref='${escapeString(ref)}']").or(page.locator("input, textarea").nth(0)).fill("${escapeString(text)}"); // ref: ${ref}`);
+      lines.push(
+        `await page.locator("[data-ref='${escapeString(ref)}']").or(page.locator("input, textarea").nth(0)).fill("${escapeString(text)}"); // ref: ${ref}`,
+      );
       if (pressEnter) {
         lines.push(`await page.keyboard.press("Enter");`);
       }
@@ -316,22 +324,24 @@ function toolCallToPlaywright(call: ToolCall): string | null {
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 function escapeString(s: string): string {
-  return s
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r");
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 }
 
 function sanitizeTestName(instruction: string): string {
-  return instruction.slice(0, 60).replace(/[^a-zA-Z0-9 ]/g, "").trim() || "AI-generated test";
+  return (
+    instruction
+      .slice(0, 60)
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .trim() || "AI-generated test"
+  );
 }
 
 function sanitizeFilename(instruction: string): string {
-  return instruction
-    .slice(0, 40)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    || "test";
+  return (
+    instruction
+      .slice(0, 40)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "test"
+  );
 }

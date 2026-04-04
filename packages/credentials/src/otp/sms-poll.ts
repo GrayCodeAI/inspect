@@ -54,13 +54,13 @@ export interface SMSOTPResult {
 
 /** Default SMS OTP patterns */
 const DEFAULT_SMS_PATTERNS: RegExp[] = [
-  /\b(\d{6})\b/,                            // 6-digit code
-  /\b(\d{4})\b/,                             // 4-digit code
-  /code[:\s]+(\d{4,8})/i,                    // "code: 123456"
+  /\b(\d{6})\b/, // 6-digit code
+  /\b(\d{4})\b/, // 4-digit code
+  /code[:\s]+(\d{4,8})/i, // "code: 123456"
   /(?:verification|verify)\s*(?:code)?[:\s]+(\d{4,8})/i,
   /OTP[:\s]+(\d{4,8})/i,
   /(?:pass|pin)[:\s]+(\d{4,8})/i,
-  /is[:\s]+(\d{4,8})/i,                      // "Your code is: 123456"
+  /is[:\s]+(\d{4,8})/i, // "Your code is: 123456"
 ];
 
 /**
@@ -91,10 +91,7 @@ export class SMSPoller {
       },
       ...config,
     };
-    this.patterns =
-      this.config.patterns.length > 0
-        ? this.config.patterns
-        : DEFAULT_SMS_PATTERNS;
+    this.patterns = this.config.patterns.length > 0 ? this.config.patterns : DEFAULT_SMS_PATTERNS;
   }
 
   /**
@@ -171,9 +168,7 @@ export class SMSPoller {
   /**
    * Fetch messages from the SMS API.
    */
-  private async fetchMessages(): Promise<
-    Array<{ body: string; from: string; date: number }>
-  > {
+  private async fetchMessages(): Promise<Array<{ body: string; from: string; date: number }>> {
     const response = await this.httpRequest(this.config.apiUrl);
     const parsed = JSON.parse(response);
 
@@ -193,23 +188,16 @@ export class SMSPoller {
     }
 
     return messages.map(
-      (msg: Record<string, unknown>): {
+      (
+        msg: Record<string, unknown>,
+      ): {
         body: string;
         from: string;
         date: number;
       } => {
-        const body = this.getNestedValue(
-          msg,
-          this.config.fieldPaths.body ?? "body",
-        );
-        const from = this.getNestedValue(
-          msg,
-          this.config.fieldPaths.from ?? "from",
-        );
-        const dateVal = this.getNestedValue(
-          msg,
-          this.config.fieldPaths.date ?? "date_sent",
-        );
+        const body = this.getNestedValue(msg, this.config.fieldPaths.body ?? "body");
+        const from = this.getNestedValue(msg, this.config.fieldPaths.from ?? "from");
+        const dateVal = this.getNestedValue(msg, this.config.fieldPaths.date ?? "date_sent");
 
         let date: number;
         if (typeof dateVal === "number") {
@@ -232,10 +220,7 @@ export class SMSPoller {
   /**
    * Get a nested value from an object using dot notation.
    */
-  private getNestedValue(
-    obj: Record<string, unknown>,
-    path: string,
-  ): unknown {
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     const parts = path.split(".");
     let current: unknown = obj;
 
@@ -299,11 +284,7 @@ export class SMSPoller {
           res.on("end", () => {
             const body = Buffer.concat(chunks).toString("utf-8");
             if ((res.statusCode ?? 0) >= 400) {
-              reject(
-                new Error(
-                  `SMS API error (${res.statusCode}): ${body}`,
-                ),
-              );
+              reject(new Error(`SMS API error (${res.statusCode}): ${body}`));
               return;
             }
             resolve(body);
@@ -311,9 +292,7 @@ export class SMSPoller {
         },
       );
 
-      req.on("error", (err) =>
-        reject(new Error(`SMS API request failed: ${err.message}`)),
-      );
+      req.on("error", (err) => reject(new Error(`SMS API request failed: ${err.message}`)));
       req.on("timeout", () => {
         req.destroy();
         reject(new Error("SMS API request timed out"));

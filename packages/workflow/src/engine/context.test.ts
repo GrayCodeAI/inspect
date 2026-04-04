@@ -114,9 +114,7 @@ describe("WorkflowContext", () => {
         apiKey: { type: "string", required: true },
       };
 
-      expect(
-        () => new WorkflowContext({ apiKey: "secret" }, schema, true),
-      ).not.toThrow();
+      expect(() => new WorkflowContext({ apiKey: "secret" }, schema, true)).not.toThrow();
     });
 
     it("validates type on set in strict mode", () => {
@@ -125,9 +123,7 @@ describe("WorkflowContext", () => {
       };
       const ctx = new WorkflowContext(undefined, schema, true);
 
-      expect(() => ctx.set("count", "not-a-number")).toThrow(
-        "expected type 'number'",
-      );
+      expect(() => ctx.set("count", "not-a-number")).toThrow("expected type 'number'");
     });
 
     it("allows correct type on set in strict mode", () => {
@@ -146,9 +142,7 @@ describe("WorkflowContext", () => {
       };
       const ctx = new WorkflowContext(undefined, schema, true);
 
-      expect(() => ctx.set("items", "not-an-array")).toThrow(
-        "expected type 'array'",
-      );
+      expect(() => ctx.set("items", "not-an-array")).toThrow("expected type 'array'");
       ctx.set("items", [1, 2, 3]);
       expect(ctx.get("items")).toEqual([1, 2, 3]);
     });
@@ -159,9 +153,7 @@ describe("WorkflowContext", () => {
       };
       const ctx = new WorkflowContext(undefined, schema, true);
 
-      expect(() => ctx.set("config", "string")).toThrow(
-        "expected type 'object'",
-      );
+      expect(() => ctx.set("config", "string")).toThrow("expected type 'object'");
       ctx.set("config", { key: "val" });
       expect(ctx.get("config")).toEqual({ key: "val" });
     });
@@ -222,10 +214,7 @@ describe("WorkflowContext", () => {
 
     it("accesses object properties with {{this.prop}}", () => {
       const ctx = new WorkflowContext({
-        users: [
-          { name: "Alice" },
-          { name: "Bob" },
-        ],
+        users: [{ name: "Alice" }, { name: "Bob" }],
       });
       const rendered = ctx.render("{{#each users}}{{this.name}},{{/each}}");
 
@@ -250,9 +239,7 @@ describe("WorkflowContext", () => {
 
     it("renders else branch when falsy", () => {
       const ctx = new WorkflowContext({ loggedIn: false });
-      const rendered = ctx.render(
-        "{{#if loggedIn}}Welcome back{{else}}Please log in{{/if}}",
-      );
+      const rendered = ctx.render("{{#if loggedIn}}Welcome back{{else}}Please log in{{/if}}");
 
       expect(rendered).toBe("Please log in");
     });

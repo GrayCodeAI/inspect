@@ -26,20 +26,21 @@ export function buildCoverageReport(data: {
   elementsFound: number;
   elementsInteracted: number;
 }): CoverageReport {
-  const uniqueRoutes = [...new Set(
-    data.visitedUrls.map(url => {
-      try {
-        const parsed = new URL(url);
-        return `${parsed.origin}${parsed.pathname}`;
-      } catch {
-        return url;
-      }
-    })
-  )];
+  const uniqueRoutes = [
+    ...new Set(
+      data.visitedUrls.map((url) => {
+        try {
+          const parsed = new URL(url);
+          return `${parsed.origin}${parsed.pathname}`;
+        } catch {
+          return url;
+        }
+      }),
+    ),
+  ];
 
-  const interactionCoverage = data.elementsFound > 0
-    ? Math.round((data.elementsInteracted / data.elementsFound) * 100)
-    : 0;
+  const interactionCoverage =
+    data.elementsFound > 0 ? Math.round((data.elementsInteracted / data.elementsFound) * 100) : 0;
 
   return {
     visitedUrls: data.visitedUrls,

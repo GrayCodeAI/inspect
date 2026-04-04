@@ -111,8 +111,7 @@ export function createNetworkLogger(page: Page): {
         // Headers may not be available
       }
 
-      const contentType =
-        headers["content-type"] ?? headers["Content-Type"] ?? "";
+      const contentType = headers["content-type"] ?? headers["Content-Type"] ?? "";
 
       responses.push({
         url,
@@ -195,20 +194,13 @@ export function createWebSocketLogger(page: Page): {
         cdpSession = await page.context().newCDPSession(page);
         await cdpSession.send("Network.enable");
 
-        cdpSession.on(
-          "Network.webSocketCreated",
-          (params: { requestId: string; url: string }) => {
-            getOrCreateLog(params.url);
-          },
-        );
+        cdpSession.on("Network.webSocketCreated", (params: { requestId: string; url: string }) => {
+          getOrCreateLog(params.url);
+        });
 
         cdpSession.on(
           "Network.webSocketFrameSent",
-          (params: {
-            requestId: string;
-            timestamp: number;
-            response: { payloadData: string };
-          }) => {
+          (params: { requestId: string; timestamp: number; response: { payloadData: string } }) => {
             // Look up WebSocket URL by requestId — fall back to finding the first log
             const url = findWebSocketUrl(params.requestId) ?? "";
             const log = getOrCreateLog(url);
@@ -222,11 +214,7 @@ export function createWebSocketLogger(page: Page): {
 
         cdpSession.on(
           "Network.webSocketFrameReceived",
-          (params: {
-            requestId: string;
-            timestamp: number;
-            response: { payloadData: string };
-          }) => {
+          (params: { requestId: string; timestamp: number; response: { payloadData: string } }) => {
             const url = findWebSocketUrl(params.requestId) ?? "";
             const log = getOrCreateLog(url);
             log.messages.push({
@@ -256,13 +244,10 @@ export function createWebSocketLogger(page: Page): {
 
     // Override the CDP listener setup to include requestId tracking
     if (cdpSession) {
-      cdpSession.on(
-        "Network.webSocketCreated",
-        (params: { requestId: string; url: string }) => {
-          requestIdToUrl.set(params.requestId, params.url);
-          getOrCreateLog(params.url);
-        },
-      );
+      cdpSession.on("Network.webSocketCreated", (params: { requestId: string; url: string }) => {
+        requestIdToUrl.set(params.requestId, params.url);
+        getOrCreateLog(params.url);
+      });
     }
   };
 
@@ -321,9 +306,7 @@ function validateValue(
   if (schemaType) {
     const actualType = getJsonType(value);
     if (schemaType !== actualType) {
-      errors.push(
-        `${path || "root"}: expected type "${schemaType}" but got "${actualType}"`,
-      );
+      errors.push(`${path || "root"}: expected type "${schemaType}" but got "${actualType}"`);
       return;
     }
   }
@@ -335,9 +318,7 @@ function validateValue(
       return;
     }
 
-    const properties = schema["properties"] as
-      | Record<string, Record<string, unknown>>
-      | undefined;
+    const properties = schema["properties"] as Record<string, Record<string, unknown>> | undefined;
     const required = schema["required"] as string[] | undefined;
 
     if (required) {
@@ -352,12 +333,7 @@ function validateValue(
       const obj = value as Record<string, unknown>;
       for (const [key, propSchema] of Object.entries(properties)) {
         if (key in obj) {
-          validateValue(
-            obj[key],
-            propSchema,
-            path ? `${path}.${key}` : key,
-            errors,
-          );
+          validateValue(obj[key], propSchema, path ? `${path}.${key}` : key, errors);
         }
       }
     }
@@ -379,16 +355,12 @@ function validateValue(
 
     const minItems = schema["minItems"] as number | undefined;
     if (minItems !== undefined && value.length < minItems) {
-      errors.push(
-        `${path || "root"}: array has ${value.length} items, minimum is ${minItems}`,
-      );
+      errors.push(`${path || "root"}: array has ${value.length} items, minimum is ${minItems}`);
     }
 
     const maxItems = schema["maxItems"] as number | undefined;
     if (maxItems !== undefined && value.length > maxItems) {
-      errors.push(
-        `${path || "root"}: array has ${value.length} items, maximum is ${maxItems}`,
-      );
+      errors.push(`${path || "root"}: array has ${value.length} items, maximum is ${maxItems}`);
     }
   }
 
@@ -403,9 +375,7 @@ function validateValue(
 
     const maxLength = schema["maxLength"] as number | undefined;
     if (maxLength !== undefined && value.length > maxLength) {
-      errors.push(
-        `${path || "root"}: string length ${value.length} exceeds maximum ${maxLength}`,
-      );
+      errors.push(`${path || "root"}: string length ${value.length} exceeds maximum ${maxLength}`);
     }
 
     const pattern = schema["pattern"] as string | undefined;
@@ -413,9 +383,7 @@ function validateValue(
       try {
         const regex = new RegExp(pattern);
         if (!regex.test(value)) {
-          errors.push(
-            `${path || "root"}: string does not match pattern "${pattern}"`,
-          );
+          errors.push(`${path || "root"}: string does not match pattern "${pattern}"`);
         }
       } catch {
         // Invalid pattern in schema — skip
@@ -424,22 +392,15 @@ function validateValue(
   }
 
   // Number validation
-  if (
-    (schemaType === "number" || schemaType === "integer") &&
-    typeof value === "number"
-  ) {
+  if ((schemaType === "number" || schemaType === "integer") && typeof value === "number") {
     const minimum = schema["minimum"] as number | undefined;
     if (minimum !== undefined && value < minimum) {
-      errors.push(
-        `${path || "root"}: value ${value} is less than minimum ${minimum}`,
-      );
+      errors.push(`${path || "root"}: value ${value} is less than minimum ${minimum}`);
     }
 
     const maximum = schema["maximum"] as number | undefined;
     if (maximum !== undefined && value > maximum) {
-      errors.push(
-        `${path || "root"}: value ${value} exceeds maximum ${maximum}`,
-      );
+      errors.push(`${path || "root"}: value ${value} exceeds maximum ${maximum}`);
     }
 
     if (schemaType === "integer" && !Number.isInteger(value)) {
@@ -477,8 +438,7 @@ export async function discoverAPIEndpoints(
   log: NetworkLog,
 ): Promise<Array<{ url: string; method: string; contentType: string }>> {
   const seen = new Set<string>();
-  const endpoints: Array<{ url: string; method: string; contentType: string }> =
-    [];
+  const endpoints: Array<{ url: string; method: string; contentType: string }> = [];
 
   for (const response of log.responses) {
     // Skip static assets
@@ -497,9 +457,7 @@ export async function discoverAPIEndpoints(
     if (!isApiLike) continue;
 
     // Find the corresponding request to get the method
-    const matchingRequest = log.requests.find(
-      (req) => req.url === response.url,
-    );
+    const matchingRequest = log.requests.find((req) => req.url === response.url);
     const method = matchingRequest?.method ?? "GET";
 
     // Normalize URL for deduplication: strip query params and trailing slashes
@@ -680,9 +638,7 @@ export async function testCORS(
 
   // Check Allow-Methods
   if (!corsHeaders.allowMethods) {
-    issues.push(
-      "Missing Access-Control-Allow-Methods header — preflight requests may fail",
-    );
+    issues.push("Missing Access-Control-Allow-Methods header — preflight requests may fail");
   }
 
   // Check Allow-Headers
@@ -693,13 +649,8 @@ export async function testCORS(
   }
 
   // Flag credentials with wildcard origin
-  if (
-    corsHeaders.allowCredentials === "true" &&
-    corsHeaders.allowOrigin === "*"
-  ) {
-    issues.push(
-      "Access-Control-Allow-Credentials with wildcard origin is invalid per the spec",
-    );
+  if (corsHeaders.allowCredentials === "true" && corsHeaders.allowOrigin === "*") {
+    issues.push("Access-Control-Allow-Credentials with wildcard origin is invalid per the spec");
   }
 
   return { valid: issues.length === 0, issues };
@@ -774,8 +725,7 @@ export async function runAPIAudit(
     }
   }
 
-  const avgResponseTime =
-    responseCount > 0 ? Math.round(totalDuration / responseCount) : 0;
+  const avgResponseTime = responseCount > 0 ? Math.round(totalDuration / responseCount) : 0;
 
   // Flag 4xx/5xx responses
   onProgress("step", "  Checking for HTTP errors...");
@@ -783,13 +733,9 @@ export async function runAPIAudit(
     if (STATIC_ASSET_PATTERN.test(res.url)) continue;
 
     if (res.status >= 400 && res.status < 500) {
-      issues.push(
-        `Client error ${res.status}: ${res.url.slice(0, 120)}`,
-      );
+      issues.push(`Client error ${res.status}: ${res.url.slice(0, 120)}`);
     } else if (res.status >= 500) {
-      issues.push(
-        `Server error ${res.status}: ${res.url.slice(0, 120)}`,
-      );
+      issues.push(`Server error ${res.status}: ${res.url.slice(0, 120)}`);
     }
   }
 
@@ -800,9 +746,7 @@ export async function runAPIAudit(
     if (res.status === 204 || res.status === 304) continue; // No body expected
 
     if (!res.contentType) {
-      issues.push(
-        `Missing Content-Type header: ${res.url.slice(0, 120)}`,
-      );
+      issues.push(`Missing Content-Type header: ${res.url.slice(0, 120)}`);
     }
   }
 
@@ -819,9 +763,7 @@ export async function runAPIAudit(
   // Count failed requests
   const failureCount = log.failures.length;
   for (const failure of log.failures) {
-    issues.push(
-      `Request failed: ${failure.url.slice(0, 100)} — ${failure.error}`,
-    );
+    issues.push(`Request failed: ${failure.url.slice(0, 100)} — ${failure.error}`);
   }
 
   // Report results

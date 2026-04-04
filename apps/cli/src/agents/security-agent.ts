@@ -92,10 +92,7 @@ export async function runSecurityAudit(
 // 1. Security headers
 // ---------------------------------------------------------------------------
 
-export async function checkSecurityHeaders(
-  page: Page,
-  url: string,
-): Promise<SecurityHeaders> {
+export async function checkSecurityHeaders(page: Page, url: string): Promise<SecurityHeaders> {
   const responseHeaders: Record<string, string> = {};
 
   try {
@@ -205,10 +202,7 @@ function collectHeaderIssues(headers: SecurityHeaders, url: string): SecurityIss
 // 2. HTTPS enforcement
 // ---------------------------------------------------------------------------
 
-export async function checkHttps(
-  page: Page,
-  url: string,
-): Promise<HttpsStatus> {
+export async function checkHttps(page: Page, url: string): Promise<HttpsStatus> {
   const parsedUrl = new URL(url);
   const isHttps = parsedUrl.protocol === "https:";
 
@@ -416,10 +410,7 @@ const XSS_PAYLOADS = [
   { payload: "<svg onload=alert(1)>", check: "<svg onload=alert(1)>", name: "svg-onload" },
 ];
 
-export async function testXss(
-  page: Page,
-  url: string,
-): Promise<XssTestResult[]> {
+export async function testXss(page: Page, url: string): Promise<XssTestResult[]> {
   const results: XssTestResult[] = [];
 
   // Find text input fields

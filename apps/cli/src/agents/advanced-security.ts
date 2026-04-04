@@ -23,10 +23,7 @@ export interface SecurityTestResult {
 // 1. CSRF token detection
 // ---------------------------------------------------------------------------
 
-export async function testCSRF(
-  page: Page,
-  url: string,
-): Promise<SecurityTestResult> {
+export async function testCSRF(page: Page, url: string): Promise<SecurityTestResult> {
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15_000 });
   } catch {
@@ -91,15 +88,15 @@ export async function testCSRF(
   }
 
   const hasGlobalToken = csrfInfo.hasMetaToken;
-  const allFormsProtected =
-    csrfInfo.formsWithToken === csrfInfo.formsCount || hasGlobalToken;
+  const allFormsProtected = csrfInfo.formsWithToken === csrfInfo.formsCount || hasGlobalToken;
 
   if (allFormsProtected) {
     return {
       test: "CSRF Protection",
       passed: true,
       severity: "info",
-      details: `CSRF protection detected. ${csrfInfo.formsWithToken}/${csrfInfo.formsCount} forms have hidden tokens.` +
+      details:
+        `CSRF protection detected. ${csrfInfo.formsWithToken}/${csrfInfo.formsCount} forms have hidden tokens.` +
         (hasGlobalToken ? " Meta CSRF token tag found." : ""),
     };
   }
@@ -109,9 +106,11 @@ export async function testCSRF(
     test: "CSRF Protection",
     passed: false,
     severity: "high",
-    details: `${unprotectedCount} of ${csrfInfo.formsCount} form(s) lack CSRF tokens. ` +
+    details:
+      `${unprotectedCount} of ${csrfInfo.formsCount} form(s) lack CSRF tokens. ` +
       `No hidden input named csrf/token/_token found and no meta csrf-token tag present.`,
-    fix: "Add CSRF tokens to all state-changing forms. Include a hidden input with a unique " +
+    fix:
+      "Add CSRF tokens to all state-changing forms. Include a hidden input with a unique " +
       "per-session token, or set a meta csrf-token tag and send it via the X-CSRF-TOKEN header.",
   };
 }
@@ -120,11 +119,7 @@ export async function testCSRF(
 // 2. SQL Injection testing
 // ---------------------------------------------------------------------------
 
-const SQL_PAYLOADS = [
-  "' OR 1=1--",
-  "'; DROP TABLE--",
-  "UNION SELECT NULL--",
-];
+const SQL_PAYLOADS = ["' OR 1=1--", "'; DROP TABLE--", "UNION SELECT NULL--"];
 
 const SQL_ERROR_PATTERNS = [
   "mysql",
@@ -141,10 +136,7 @@ const SQL_ERROR_PATTERNS = [
   "microsoft ole db provider for sql server",
 ];
 
-export async function testSQLInjection(
-  page: Page,
-  url: string,
-): Promise<SecurityTestResult[]> {
+export async function testSQLInjection(page: Page, url: string): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
 
   try {
@@ -233,10 +225,12 @@ export async function testSQLInjection(
             test: "SQL Injection",
             passed: false,
             severity: "critical",
-            details: `SQL error reflected for input "${selector}" with payload "${payload}". ` +
+            details:
+              `SQL error reflected for input "${selector}" with payload "${payload}". ` +
               `Detected error keywords: ${matchedErrors.join(", ")}. ` +
               `This indicates the application may be vulnerable to SQL injection.`,
-            fix: "Use parameterized queries or prepared statements for all database operations. " +
+            fix:
+              "Use parameterized queries or prepared statements for all database operations. " +
               "Never concatenate user input directly into SQL queries. " +
               "Suppress detailed database error messages in production.",
           });
@@ -252,7 +246,8 @@ export async function testSQLInjection(
       test: "SQL Injection",
       passed: true,
       severity: "info",
-      details: `Tested ${inputSelectors.length} input field(s) with ${SQL_PAYLOADS.length} SQL payloads. ` +
+      details:
+        `Tested ${inputSelectors.length} input field(s) with ${SQL_PAYLOADS.length} SQL payloads. ` +
         "No SQL error messages detected in responses.",
     });
   }
@@ -271,10 +266,7 @@ export async function testSQLInjection(
 // 3. Clickjacking protection
 // ---------------------------------------------------------------------------
 
-export async function testClickjacking(
-  page: Page,
-  url: string,
-): Promise<SecurityTestResult> {
+export async function testClickjacking(page: Page, url: string): Promise<SecurityTestResult> {
   let xFrameOptions: string | null = null;
   let cspFrameAncestors: string | null = null;
 
@@ -311,8 +303,7 @@ export async function testClickjacking(
 
   const hasXFrameOptions =
     xFrameOptions !== null &&
-    (xFrameOptions.toUpperCase() === "DENY" ||
-      xFrameOptions.toUpperCase() === "SAMEORIGIN");
+    (xFrameOptions.toUpperCase() === "DENY" || xFrameOptions.toUpperCase() === "SAMEORIGIN");
 
   const hasFrameAncestors = cspFrameAncestors !== null;
 
@@ -336,9 +327,11 @@ export async function testClickjacking(
     test: "Clickjacking Protection",
     passed: false,
     severity: "medium",
-    details: "No clickjacking protection found. Neither X-Frame-Options (DENY/SAMEORIGIN) " +
+    details:
+      "No clickjacking protection found. Neither X-Frame-Options (DENY/SAMEORIGIN) " +
       "nor CSP frame-ancestors directive is set. The page can be embedded in iframes on any origin.",
-    fix: "Add the X-Frame-Options header set to DENY or SAMEORIGIN, and/or add a " +
+    fix:
+      "Add the X-Frame-Options header set to DENY or SAMEORIGIN, and/or add a " +
       "Content-Security-Policy header with frame-ancestors 'self'.",
   };
 }
@@ -347,10 +340,7 @@ export async function testClickjacking(
 // 4. CORS configuration check
 // ---------------------------------------------------------------------------
 
-export async function testCORSConfig(
-  page: Page,
-  url: string,
-): Promise<SecurityTestResult> {
+export async function testCORSConfig(page: Page, url: string): Promise<SecurityTestResult> {
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15_000 });
   } catch {
@@ -394,24 +384,26 @@ export async function testCORSConfig(
       test: "CORS Configuration",
       passed: true,
       severity: "info",
-      details: "Could not determine CORS configuration via fetch. " +
+      details:
+        "Could not determine CORS configuration via fetch. " +
         "The server may not include CORS headers for same-origin requests.",
     };
   }
 
   if (corsResult.allowOrigin === "*") {
-    const hasCredentials =
-      corsResult.allowCredentials?.toLowerCase() === "true";
+    const hasCredentials = corsResult.allowCredentials?.toLowerCase() === "true";
 
     if (hasCredentials) {
       return {
         test: "CORS Configuration",
         passed: false,
         severity: "critical",
-        details: "CORS is configured with Access-Control-Allow-Origin: * and " +
+        details:
+          "CORS is configured with Access-Control-Allow-Origin: * and " +
           "Access-Control-Allow-Credentials: true. This is an extremely dangerous " +
           "combination that allows any origin to make authenticated requests.",
-        fix: "Never combine wildcard origin (*) with Allow-Credentials: true. " +
+        fix:
+          "Never combine wildcard origin (*) with Allow-Credentials: true. " +
           "Whitelist specific trusted origins instead.",
       };
     }
@@ -420,10 +412,12 @@ export async function testCORSConfig(
       test: "CORS Configuration",
       passed: false,
       severity: "medium",
-      details: "CORS is configured with Access-Control-Allow-Origin: *. " +
+      details:
+        "CORS is configured with Access-Control-Allow-Origin: *. " +
         "Any website can make cross-origin requests to this endpoint. " +
         "This is acceptable for public APIs but not for authenticated endpoints.",
-      fix: "Restrict Access-Control-Allow-Origin to specific trusted origins " +
+      fix:
+        "Restrict Access-Control-Allow-Origin to specific trusted origins " +
         "instead of using the wildcard (*). Validate the Origin header server-side.",
     };
   }
@@ -433,7 +427,8 @@ export async function testCORSConfig(
       test: "CORS Configuration",
       passed: true,
       severity: "info",
-      details: `CORS Access-Control-Allow-Origin is set to: ${corsResult.allowOrigin}. ` +
+      details:
+        `CORS Access-Control-Allow-Origin is set to: ${corsResult.allowOrigin}. ` +
         "The server restricts cross-origin access to specific origins.",
     };
   }
@@ -442,7 +437,8 @@ export async function testCORSConfig(
     test: "CORS Configuration",
     passed: true,
     severity: "info",
-    details: "No Access-Control-Allow-Origin header detected. " +
+    details:
+      "No Access-Control-Allow-Origin header detected. " +
       "Cross-origin requests are blocked by default browser same-origin policy.",
   };
 }
@@ -459,18 +455,23 @@ const PATH_TRAVERSAL_PAYLOADS = [
   { payload: "....//....//etc/passwd", indicator: "root:" },
 ];
 
-export async function testPathTraversal(
-  page: Page,
-  url: string,
-): Promise<SecurityTestResult[]> {
+export async function testPathTraversal(page: Page, url: string): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
   const parsedUrl = new URL(url);
 
   // Collect existing query params and also try common param names
   const paramNames = Array.from(parsedUrl.searchParams.keys());
   const commonParams = [
-    "file", "path", "page", "doc", "document", "folder",
-    "dir", "template", "include", "src",
+    "file",
+    "path",
+    "page",
+    "doc",
+    "document",
+    "folder",
+    "dir",
+    "template",
+    "include",
+    "src",
   ];
   const allParams = [...new Set([...paramNames, ...commonParams])];
 
@@ -516,10 +517,12 @@ export async function testPathTraversal(
             test: "Path Traversal",
             passed: false,
             severity: "critical",
-            details: `Path traversal vulnerability found! Parameter "${paramName}" with payload ` +
+            details:
+              `Path traversal vulnerability found! Parameter "${paramName}" with payload ` +
               `"${payload}" returned content containing "${indicator}". ` +
               `The application appears to allow reading arbitrary files from the server filesystem.`,
-            fix: "Validate and sanitize all file path inputs. Use a whitelist of allowed files or " +
+            fix:
+              "Validate and sanitize all file path inputs. Use a whitelist of allowed files or " +
               "directories. Never pass user input directly to filesystem operations. " +
               "Use path canonicalization and ensure resolved paths stay within the intended directory.",
           });
@@ -537,7 +540,8 @@ export async function testPathTraversal(
       test: "Path Traversal",
       passed: true,
       severity: "info",
-      details: `Tested ${allParams.length} parameter(s) with ${PATH_TRAVERSAL_PAYLOADS.length} path traversal payloads. ` +
+      details:
+        `Tested ${allParams.length} parameter(s) with ${PATH_TRAVERSAL_PAYLOADS.length} path traversal payloads. ` +
         "No file disclosure detected.",
     });
   }
@@ -556,10 +560,7 @@ export async function testPathTraversal(
 // 6. Information disclosure
 // ---------------------------------------------------------------------------
 
-export async function testInfoDisclosure(
-  page: Page,
-  url: string,
-): Promise<SecurityTestResult[]> {
+export async function testInfoDisclosure(page: Page, url: string): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
 
   // --- Check response headers for server version info ---
@@ -583,9 +584,11 @@ export async function testInfoDisclosure(
           test: "Information Disclosure — Server Header",
           passed: false,
           severity: "low",
-          details: `Server header reveals version information: "${serverHeader}". ` +
+          details:
+            `Server header reveals version information: "${serverHeader}". ` +
             "Attackers can use this to look up known vulnerabilities for this specific server version.",
-          fix: "Remove or obfuscate the Server header version. " +
+          fix:
+            "Remove or obfuscate the Server header version. " +
             "Configure your web server to return a generic Server header without version details.",
         });
       }
@@ -597,9 +600,11 @@ export async function testInfoDisclosure(
           test: "Information Disclosure — X-Powered-By",
           passed: false,
           severity: "low",
-          details: `X-Powered-By header reveals technology stack: "${poweredBy}". ` +
+          details:
+            `X-Powered-By header reveals technology stack: "${poweredBy}". ` +
             "This helps attackers fingerprint the application and target known framework vulnerabilities.",
-          fix: "Remove the X-Powered-By header. In Express.js, use app.disable('x-powered-by') " +
+          fix:
+            "Remove the X-Powered-By header. In Express.js, use app.disable('x-powered-by') " +
             "or use helmet middleware.",
         });
       }
@@ -649,10 +654,12 @@ export async function testInfoDisclosure(
         test: "Information Disclosure — Error Page Stack Traces",
         passed: false,
         severity: "medium",
-        details: `Error page at 404 URL exposes stack traces or internal paths. ` +
+        details:
+          `Error page at 404 URL exposes stack traces or internal paths. ` +
           `Detected patterns: ${detectedTraces.join(", ")}. ` +
           "This reveals internal application structure and can help attackers craft targeted exploits.",
-        fix: "Configure custom error pages that do not reveal stack traces, file paths, or " +
+        fix:
+          "Configure custom error pages that do not reveal stack traces, file paths, or " +
           "internal application details. Use generic error messages in production.",
       });
     }
@@ -696,9 +703,11 @@ export async function testInfoDisclosure(
           test: "Information Disclosure — .env File Exposed",
           passed: false,
           severity: "critical",
-          details: "The /.env file is publicly accessible and appears to contain environment variables. " +
+          details:
+            "The /.env file is publicly accessible and appears to contain environment variables. " +
             "This likely exposes database credentials, API keys, and other secrets.",
-          fix: "Block access to .env files in your web server configuration. " +
+          fix:
+            "Block access to .env files in your web server configuration. " +
             "Add rules to deny access to dotfiles (e.g., in nginx: location ~ /\\. { deny all; }).",
         });
       }
@@ -735,9 +744,11 @@ export async function testInfoDisclosure(
           test: "Information Disclosure — .git Directory Exposed",
           passed: false,
           severity: "critical",
-          details: "The /.git/HEAD file is publicly accessible. This means the entire Git repository " +
+          details:
+            "The /.git/HEAD file is publicly accessible. This means the entire Git repository " +
             "can potentially be downloaded, exposing source code, commit history, and possibly secrets.",
-          fix: "Block access to the .git directory in your web server configuration. " +
+          fix:
+            "Block access to the .git directory in your web server configuration. " +
             "In nginx: location ~ /\\.git { deny all; }. In Apache: RedirectMatch 404 /\\.git.",
         });
       }
@@ -751,7 +762,8 @@ export async function testInfoDisclosure(
       test: "Information Disclosure",
       passed: true,
       severity: "info",
-      details: "No information disclosure issues detected. Server headers do not leak version info, " +
+      details:
+        "No information disclosure issues detected. Server headers do not leak version info, " +
         "error pages do not expose stack traces, and .env/.git files are not publicly accessible.",
     });
   }
@@ -787,7 +799,8 @@ const VULNERABLE_LIBRARIES: VulnerableLibrary[] = [
     name: "jquery",
     maxSafe: "3.5.0",
     severity: "medium",
-    reason: "jQuery versions before 3.5.0 are vulnerable to XSS via cross-site scripting in jQuery.htmlPrefilter.",
+    reason:
+      "jQuery versions before 3.5.0 are vulnerable to XSS via cross-site scripting in jQuery.htmlPrefilter.",
   },
   {
     name: "lodash",
@@ -799,7 +812,8 @@ const VULNERABLE_LIBRARIES: VulnerableLibrary[] = [
     name: "moment",
     maxSafe: "999.0.0",
     severity: "low",
-    reason: "Moment.js is deprecated and no longer maintained. " +
+    reason:
+      "Moment.js is deprecated and no longer maintained. " +
       "It has known ReDoS vulnerabilities and a large bundle size. Migrate to date-fns, Luxon, or Day.js.",
   },
   {
@@ -812,7 +826,8 @@ const VULNERABLE_LIBRARIES: VulnerableLibrary[] = [
     name: "bootstrap",
     maxSafe: "5.0.0",
     severity: "medium",
-    reason: "Bootstrap versions before 5.0.0 have known XSS vulnerabilities in tooltip and popover components.",
+    reason:
+      "Bootstrap versions before 5.0.0 have known XSS vulnerabilities in tooltip and popover components.",
   },
 ];
 
@@ -830,9 +845,7 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-export async function scanDependencies(
-  page: Page,
-): Promise<SecurityTestResult[]> {
+export async function scanDependencies(page: Page): Promise<SecurityTestResult[]> {
   const results: SecurityTestResult[] = [];
 
   const libraries = await safeEvaluate<LibraryInfo[]>(
@@ -914,16 +927,15 @@ export async function scanDependencies(
       test: "Dependency Scan",
       passed: true,
       severity: "info",
-      details: "No known JavaScript libraries detected on the page. " +
+      details:
+        "No known JavaScript libraries detected on the page. " +
         "The application may use bundled/minified code that obscures library versions.",
     });
     return results;
   }
 
   for (const lib of libraries) {
-    const vuln = VULNERABLE_LIBRARIES.find(
-      (v) => v.name === lib.name,
-    );
+    const vuln = VULNERABLE_LIBRARIES.find((v) => v.name === lib.name);
 
     if (!vuln) continue;
 
@@ -944,7 +956,8 @@ export async function scanDependencies(
         test: `Dependency Scan — ${lib.name} ${lib.version}`,
         passed: false,
         severity: vuln.severity,
-        details: `Detected ${lib.name} v${lib.version}, which is older than the safe version ` +
+        details:
+          `Detected ${lib.name} v${lib.version}, which is older than the safe version ` +
           `(${vuln.maxSafe}). ${vuln.reason}`,
         fix: `Update ${lib.name} to version ${vuln.maxSafe} or later.`,
       });
@@ -963,7 +976,8 @@ export async function scanDependencies(
       test: "Dependency Scan",
       passed: true,
       severity: "info",
-      details: `Detected ${libraries.length} library(ies): ` +
+      details:
+        `Detected ${libraries.length} library(ies): ` +
         libraries.map((l) => `${l.name} v${l.version}`).join(", ") +
         ". No known vulnerabilities found for the detected versions.",
     });
@@ -1032,9 +1046,16 @@ export async function detectWAF(
         );
 
         const challengeIndicators = [
-          /challenge/i, /captcha/i, /blocked/i, /firewall/i,
-          /security check/i, /ray id/i, /attention required/i,
-          /access denied/i, /automated/i, /bot detection/i,
+          /challenge/i,
+          /captcha/i,
+          /blocked/i,
+          /firewall/i,
+          /security check/i,
+          /ray id/i,
+          /attention required/i,
+          /access denied/i,
+          /automated/i,
+          /bot detection/i,
         ];
 
         for (const pattern of challengeIndicators) {
@@ -1063,7 +1084,9 @@ export async function detectWAF(
     );
     recommendations.push("Use --skip-security to bypass security tests if WAF blocks probes");
     recommendations.push("Add 2-second delays between security test payloads");
-    recommendations.push("Consider allowlisting your IP in the WAF dashboard for authorized testing");
+    recommendations.push(
+      "Consider allowlisting your IP in the WAF dashboard for authorized testing",
+    );
   }
 
   return { detected, provider, recommendations };
@@ -1100,7 +1123,8 @@ export async function runAdvancedSecurityAudit(
         test: "WAF Detection",
         passed: true,
         severity: "info",
-        details: `Web Application Firewall detected: ${wafProvider}. ` +
+        details:
+          `Web Application Firewall detected: ${wafProvider}. ` +
           "Security test payloads will be throttled. SQL injection testing skipped to avoid IP bans.",
       });
     } else {
@@ -1144,7 +1168,8 @@ export async function runAdvancedSecurityAudit(
       test: "SQL Injection",
       passed: true,
       severity: "info",
-      details: `SQL injection testing skipped — WAF detected (${wafProvider}). ` +
+      details:
+        `SQL injection testing skipped — WAF detected (${wafProvider}). ` +
         "Running SQL injection probes against a WAF risks IP bans and false positives. " +
         "Allowlist your testing IP in the WAF dashboard and re-run without WAF to get accurate results.",
     });

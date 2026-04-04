@@ -129,7 +129,13 @@ export class TagExpression {
 
       // Words (tag names, AND, OR, NOT)
       let word = "";
-      while (i < expr.length && expr[i] !== " " && expr[i] !== "\t" && expr[i] !== "(" && expr[i] !== ")") {
+      while (
+        i < expr.length &&
+        expr[i] !== " " &&
+        expr[i] !== "\t" &&
+        expr[i] !== "(" &&
+        expr[i] !== ")"
+      ) {
         word += expr[i];
         i++;
       }
@@ -202,9 +208,7 @@ export class TestFilter<T = unknown> {
    */
   filter(expression: string): T[] {
     const expr = new TagExpression(expression);
-    return this.tests
-      .filter((t) => expr.matches(t.tags))
-      .map((t) => t.test);
+    return this.tests.filter((t) => expr.matches(t.tags)).map((t) => t.test);
   }
 
   /**

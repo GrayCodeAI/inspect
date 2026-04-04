@@ -5,7 +5,7 @@
  * Part of: observe → think → act → finalize
  */
 
-import { Effect, Schedule, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import type { AgentAction } from "../index.js";
 import { BrowserManagerService } from "@inspect/browser";
 
@@ -38,7 +38,7 @@ export class ActOutput extends Schema.Class<ActOutput>("ActOutput")({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getBrowserService(): any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (BrowserManagerService as any);
+  return BrowserManagerService as any;
 }
 
 export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput) {
@@ -51,12 +51,9 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
   let currentBrowserState = input.browserState;
 
   for (const action of input.actions) {
-    const actionStartTime = Date.now();
+    const _actionStartTime = Date.now();
 
-    const actionResult = yield* executeSingleAction(
-      action as AgentAction,
-      browser,
-    )
+    const actionResult = yield* executeSingleAction(action as AgentAction, browser);
 
     results.push(actionResult);
 
@@ -91,8 +88,11 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
   });
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const executeSingleAction = Effect.fn("ActPhase.executeSingleAction")(function* (action: AgentAction, browser: any) {
+const executeSingleAction = Effect.fn("ActPhase.executeSingleAction")(function* (
+  action: AgentAction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  browser: any,
+) {
   const actionType = action.type as string;
   const params = action.params as Record<string, unknown>;
   const startTime = Date.now();

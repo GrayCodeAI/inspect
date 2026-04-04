@@ -7,7 +7,10 @@
 // ---------------------------------------------------------------------------
 
 /** Message callback for streaming progress to the REPL */
-export type ProgressCallback = (kind: "info" | "step" | "pass" | "fail" | "warn" | "done", message: string) => void;
+export type ProgressCallback = (
+  kind: "info" | "step" | "pass" | "fail" | "warn" | "done",
+  message: string,
+) => void;
 
 /** LLM call function — abstracts the provider */
 export type LLMCall = (messages: Array<{ role: string; content: string }>) => Promise<string>;
@@ -17,9 +20,23 @@ export type LLMCall = (messages: Array<{ role: string; content: string }>) => Pr
 // ---------------------------------------------------------------------------
 
 export type StepAction =
-  | "navigate" | "click" | "fill" | "select" | "scroll" | "hover"
-  | "press" | "assert" | "screenshot" | "upload" | "drag" | "wait"
-  | "check" | "uncheck" | "rightclick" | "dblclick" | "tab";
+  | "navigate"
+  | "click"
+  | "fill"
+  | "select"
+  | "scroll"
+  | "hover"
+  | "press"
+  | "assert"
+  | "screenshot"
+  | "upload"
+  | "drag"
+  | "wait"
+  | "check"
+  | "uncheck"
+  | "rightclick"
+  | "dblclick"
+  | "tab";
 
 export type StepStatus = "pending" | "running" | "pass" | "fail" | "skip";
 
@@ -72,9 +89,23 @@ export interface TestFlow {
 // ---------------------------------------------------------------------------
 
 export type PageType =
-  | "landing" | "auth" | "dashboard" | "form" | "list" | "detail"
-  | "checkout" | "settings" | "error" | "search" | "blog" | "docs"
-  | "pricing" | "contact" | "profile" | "admin" | "unknown";
+  | "landing"
+  | "auth"
+  | "dashboard"
+  | "form"
+  | "list"
+  | "detail"
+  | "checkout"
+  | "settings"
+  | "error"
+  | "search"
+  | "blog"
+  | "docs"
+  | "pricing"
+  | "contact"
+  | "profile"
+  | "admin"
+  | "unknown";
 
 export interface PageInfo {
   url: string;
@@ -114,7 +145,21 @@ export interface BrokenLink {
 // ---------------------------------------------------------------------------
 
 export interface InteractiveElement {
-  type: "link" | "button" | "input" | "select" | "textarea" | "checkbox" | "radio" | "file" | "modal-trigger" | "tab" | "accordion" | "carousel" | "dropdown" | "toggle";
+  type:
+    | "link"
+    | "button"
+    | "input"
+    | "select"
+    | "textarea"
+    | "checkbox"
+    | "radio"
+    | "file"
+    | "modal-trigger"
+    | "tab"
+    | "accordion"
+    | "carousel"
+    | "dropdown"
+    | "toggle";
   text: string;
   selector?: string;
   ref?: string;
@@ -125,7 +170,16 @@ export interface FormInfo {
   method: string;
   fields: FormField[];
   hasSubmitButton: boolean;
-  formType: "login" | "signup" | "search" | "contact" | "checkout" | "filter" | "settings" | "newsletter" | "unknown";
+  formType:
+    | "login"
+    | "signup"
+    | "search"
+    | "contact"
+    | "checkout"
+    | "filter"
+    | "settings"
+    | "newsletter"
+    | "unknown";
 }
 
 export interface FormField {
@@ -431,7 +485,14 @@ export interface ViewportResult {
 }
 
 export interface ResponsiveIssue {
-  type: "overflow" | "touch-target" | "font-size" | "image-scale" | "sticky" | "layout" | "tap-target";
+  type:
+    | "overflow"
+    | "touch-target"
+    | "font-size"
+    | "image-scale"
+    | "sticky"
+    | "layout"
+    | "tap-target";
   description: string;
   element?: string;
   severity: "critical" | "serious" | "moderate" | "minor";

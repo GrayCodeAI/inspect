@@ -48,14 +48,14 @@ export interface OTPResult {
 
 /** Default OTP patterns */
 const DEFAULT_OTP_PATTERNS: RegExp[] = [
-  /\b(\d{6})\b/,                          // 6-digit code
-  /\b(\d{4})\b/,                           // 4-digit code
-  /code[:\s]+(\d{4,8})/i,                  // "code: 123456"
-  /verification[:\s]+(\d{4,8})/i,          // "verification: 123456"
-  /OTP[:\s]+(\d{4,8})/i,                   // "OTP: 123456"
-  /password[:\s]+(\d{4,8})/i,              // "password: 123456"
-  /pin[:\s]+(\d{4,8})/i,                   // "pin: 1234"
-  /token[:\s]+([A-Za-z0-9]{4,8})/i,        // "token: ABC123"
+  /\b(\d{6})\b/, // 6-digit code
+  /\b(\d{4})\b/, // 4-digit code
+  /code[:\s]+(\d{4,8})/i, // "code: 123456"
+  /verification[:\s]+(\d{4,8})/i, // "verification: 123456"
+  /OTP[:\s]+(\d{4,8})/i, // "OTP: 123456"
+  /password[:\s]+(\d{4,8})/i, // "password: 123456"
+  /pin[:\s]+(\d{4,8})/i, // "pin: 1234"
+  /token[:\s]+([A-Za-z0-9]{4,8})/i, // "token: ABC123"
 ];
 
 /**
@@ -80,10 +80,7 @@ export class EmailPoller {
       subjectFilter: "",
       ...config,
     };
-    this.patterns =
-      this.config.patterns.length > 0
-        ? this.config.patterns
-        : DEFAULT_OTP_PATTERNS;
+    this.patterns = this.config.patterns.length > 0 ? this.config.patterns : DEFAULT_OTP_PATTERNS;
   }
 
   /**
@@ -126,9 +123,7 @@ export class EmailPoller {
       }
       if (
         this.config.subjectFilter &&
-        !email.subject
-          .toLowerCase()
-          .includes(this.config.subjectFilter.toLowerCase())
+        !email.subject.toLowerCase().includes(this.config.subjectFilter.toLowerCase())
       ) {
         continue;
       }
@@ -217,9 +212,7 @@ export class EmailPoller {
         () => `${nextTag()} SELECT "${this.config.mailbox}"\r\n`,
         () => {
           const since = new Date(this.config.sinceTimestamp);
-          const dateStr = since
-            .toUTCString()
-            .replace(/\s\d{2}:\d{2}:\d{2}\s.*/, "");
+          const dateStr = since.toUTCString().replace(/\s\d{2}:\d{2}:\d{2}\s.*/, "");
           return `${nextTag()} SEARCH SINCE "${dateStr}"\r\n`;
         },
       ];
@@ -280,11 +273,7 @@ export class EmailPoller {
 
           // Parse SEARCH results
           if (line.startsWith("* SEARCH")) {
-            const ids = line
-              .replace("* SEARCH", "")
-              .trim()
-              .split(/\s+/)
-              .filter(Boolean);
+            const ids = line.replace("* SEARCH", "").trim().split(/\s+/).filter(Boolean);
             // Get last 5 messages (most recent)
             fetchIds = ids.slice(-5);
             if (fetchIds.length > 0) {

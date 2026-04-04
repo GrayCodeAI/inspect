@@ -113,10 +113,10 @@ export class ExtractHandler {
 
         // Call LLM
         const inferenceTimer = performance.now();
-        const response = await this.llm.chat(
-          [{ role: "user", content: prompt }],
-          { temperature, maxTokens },
-        );
+        const response = await this.llm.chat([{ role: "user", content: prompt }], {
+          temperature,
+          maxTokens,
+        });
         const inferenceTimeMs = Math.round(performance.now() - inferenceTimer);
 
         totalTokens = {

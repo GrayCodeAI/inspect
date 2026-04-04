@@ -75,7 +75,7 @@ async function clickByPrompt(page: Page, prompt: string): Promise<void> {
   await snapshotBuilder.buildTree(page);
 
   const tree = snapshotBuilder.getFormattedTree();
-  const matchPrompt = [
+  const _matchPrompt = [
     `Given this page structure, find the element matching: "${prompt}"`,
     `Return the ref ID (e.g., "e5") of the element. Respond with ONLY the ref.`,
     "",

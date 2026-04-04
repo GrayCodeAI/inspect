@@ -33,7 +33,7 @@ async function runDesktopAutomate(
   console.log(chalk.dim(`Script: ${scriptPath}`));
 
   try {
-    const script = readFileSync(resolvedPath, "utf-8");
+    const _script = readFileSync(resolvedPath, "utf-8");
 
     console.log(chalk.dim("\nExecuting desktop automation..."));
 

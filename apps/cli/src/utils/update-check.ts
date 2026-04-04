@@ -28,10 +28,9 @@ export async function checkForUpdate(): Promise<string | null> {
     const timeout = setTimeout(() => controller.abort(), 3000);
 
     try {
-      const response = await fetch(
-        "https://registry.npmjs.org/@inspect/cli/latest",
-        { signal: controller.signal },
-      );
+      const response = await fetch("https://registry.npmjs.org/@inspect/cli/latest", {
+        signal: controller.signal,
+      });
 
       if (!response.ok) return null;
 

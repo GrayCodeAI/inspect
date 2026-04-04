@@ -75,21 +75,15 @@ export class AzureKeyVaultIntegration {
     this.vaultUrl = options.vaultUrl.replace(/\/$/, "");
     this.accessToken = options.accessToken ?? null;
     this.clientId = options.clientId ?? process.env.AZURE_CLIENT_ID;
-    this.clientSecret =
-      options.clientSecret ?? process.env.AZURE_CLIENT_SECRET;
+    this.clientSecret = options.clientSecret ?? process.env.AZURE_CLIENT_SECRET;
     this.tenantId = options.tenantId ?? process.env.AZURE_TENANT_ID;
   }
 
   /**
    * Get a secret value by name.
    */
-  async getSecret(
-    name: string,
-    version?: string,
-  ): Promise<AzureSecret> {
-    const path = version
-      ? `/secrets/${name}/${version}`
-      : `/secrets/${name}`;
+  async getSecret(name: string, version?: string): Promise<AzureSecret> {
+    const path = version ? `/secrets/${name}/${version}` : `/secrets/${name}`;
 
     const result = await this.request<AzureKeyVaultSecretResponse>("GET", path);
     return {
@@ -129,12 +123,8 @@ export class AzureKeyVaultIntegration {
     }
     if (options?.expiresOn || options?.notBefore) {
       body.attributes = {
-        exp: options.expiresOn
-          ? Math.floor(options.expiresOn.getTime() / 1000)
-          : undefined,
-        nbf: options.notBefore
-          ? Math.floor(options.notBefore.getTime() / 1000)
-          : undefined,
+        exp: options.expiresOn ? Math.floor(options.expiresOn.getTime() / 1000) : undefined,
+        nbf: options.notBefore ? Math.floor(options.notBefore.getTime() / 1000) : undefined,
       };
     }
 
@@ -181,9 +171,7 @@ export class AzureKeyVaultIntegration {
   /**
    * Get secret versions.
    */
-  async getSecretVersions(
-    name: string,
-  ): Promise<AzureSecretMetadata[]> {
+  async getSecretVersions(name: string): Promise<AzureSecretMetadata[]> {
     const result = await this.request<AzureKeyVaultListResponse>(
       "GET",
       `/secrets/${name}/versions`,
@@ -224,10 +212,15 @@ export class AzureKeyVaultIntegration {
       scope: "https://vault.azure.net/.default",
     }).toString();
 
-    const response = await this.httpRequest("POST", tokenUrl, {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Content-Length": String(Buffer.byteLength(body)),
-    }, body);
+    const response = await this.httpRequest(
+      "POST",
+      tokenUrl,
+      {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Length": String(Buffer.byteLength(body)),
+      },
+      body,
+    );
 
     const tokenData = JSON.parse(response) as {
       access_token: string;
@@ -295,11 +288,7 @@ export class AzureKeyVaultIntegration {
             const statusCode = res.statusCode ?? 0;
 
             if (statusCode >= 400) {
-              reject(
-                new Error(
-                  `Azure Key Vault API error (${statusCode}): ${responseBody}`,
-                ),
-              );
+              reject(new Error(`Azure Key Vault API error (${statusCode}): ${responseBody}`));
               return;
             }
 
@@ -308,9 +297,7 @@ export class AzureKeyVaultIntegration {
         },
       );
 
-      req.on("error", (err) =>
-        reject(new Error(`Azure Key Vault request failed: ${err.message}`)),
-      );
+      req.on("error", (err) => reject(new Error(`Azure Key Vault request failed: ${err.message}`)));
 
       if (body) req.write(body);
       req.end();

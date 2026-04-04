@@ -50,10 +50,7 @@ export class CSVParser {
   /**
    * Parse CSV data from a Buffer or string.
    */
-  parse(
-    input: Buffer | string,
-    options?: CSVParseOptions,
-  ): CSVParseResult {
+  parse(input: Buffer | string, options?: CSVParseOptions): CSVParseResult {
     const opts: Required<CSVParseOptions> = {
       delimiter: options?.delimiter ?? ",",
       quote: options?.quote ?? '"',
@@ -131,9 +128,7 @@ export class CSVParser {
     }
 
     // Return as arrays
-    const data = dataRows.map((row) =>
-      opts.trim ? row.map((v) => v.trim()) : row,
-    );
+    const data = dataRows.map((row) => (opts.trim ? row.map((v) => v.trim()) : row));
 
     return {
       data,
@@ -147,10 +142,7 @@ export class CSVParser {
   /**
    * Parse text into rows of fields, handling quoted fields properly.
    */
-  private parseRows(
-    text: string,
-    opts: Required<CSVParseOptions>,
-  ): string[][] {
+  private parseRows(text: string, opts: Required<CSVParseOptions>): string[][] {
     const rows: string[][] = [];
     const delimiter = opts.delimiter;
     const quote = opts.quote;
@@ -159,29 +151,16 @@ export class CSVParser {
     const len = text.length;
 
     while (i < len) {
-      const { row, nextIndex } = this.parseRow(
-        text,
-        i,
-        delimiter,
-        quote,
-      );
+      const { row, nextIndex } = this.parseRow(text, i, delimiter, quote);
 
       // Skip comment lines
-      if (
-        opts.commentChar &&
-        row.length > 0 &&
-        row[0].startsWith(opts.commentChar)
-      ) {
+      if (opts.commentChar && row.length > 0 && row[0].startsWith(opts.commentChar)) {
         i = nextIndex;
         continue;
       }
 
       // Skip empty lines
-      if (
-        opts.skipEmpty &&
-        row.length === 1 &&
-        row[0].trim() === ""
-      ) {
+      if (opts.skipEmpty && row.length === 1 && row[0].trim() === "") {
         i = nextIndex;
         continue;
       }
@@ -209,21 +188,14 @@ export class CSVParser {
     while (i < len) {
       if (text[i] === quote) {
         // Quoted field
-        const { value, nextIndex } = this.parseQuotedField(
-          text,
-          i,
-          quote,
-        );
+        const { value, nextIndex } = this.parseQuotedField(text, i, quote);
         fields.push(value);
         i = nextIndex;
 
         // Skip delimiter after quoted field
         if (i < len && text[i] === delimiter) {
           i++;
-        } else if (
-          i < len &&
-          (text[i] === "\n" || text[i] === "\r")
-        ) {
+        } else if (i < len && (text[i] === "\n" || text[i] === "\r")) {
           // End of row
           if (text[i] === "\r" && i + 1 < len && text[i + 1] === "\n") {
             i += 2;
@@ -300,10 +272,7 @@ export class CSVParser {
   /**
    * Decode buffer with BOM detection.
    */
-  private decodeBuffer(
-    buffer: Buffer,
-    fallback: BufferEncoding,
-  ): string {
+  private decodeBuffer(buffer: Buffer, fallback: BufferEncoding): string {
     // UTF-8 BOM
     if (buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
       return buffer.subarray(3).toString("utf-8");

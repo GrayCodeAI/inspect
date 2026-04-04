@@ -78,7 +78,14 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: FailureType }> = [
 ];
 
 const STRATEGY_MAP: Record<FailureType, RecoveryStrategy[]> = {
-  element_not_found: ["reScan", "scrollIntoView", "useVision", "healSelector", "waitForLoad", "retry"],
+  element_not_found: [
+    "reScan",
+    "scrollIntoView",
+    "useVision",
+    "healSelector",
+    "waitForLoad",
+    "retry",
+  ],
   element_not_visible: ["scrollIntoView", "dismissOverlay", "waitForLoad", "reScan", "useVision"],
   element_not_interactable: ["waitForLoad", "dismissOverlay", "scrollIntoView", "reScan", "retry"],
   navigation_timeout: ["waitForLoad", "refreshPage", "retry", "restart"],
@@ -91,17 +98,30 @@ const STRATEGY_MAP: Record<FailureType, RecoveryStrategy[]> = {
   unknown: ["retry", "reScan", "restart", "skip"],
 };
 
-export class RecoveryManager extends ServiceMap.Service<RecoveryManager, {
-  readonly diagnose: (error: string, context?: { selector?: string; url?: string }) => DiagnosisResult;
-  readonly recover: (diagnosis: DiagnosisResult, executors: RecoveryExecutors) => Effect.Effect<boolean>;
-  readonly getHistory: Effect.Effect<readonly RecoveryAttempt[]>;
-  readonly clearHistory: Effect.Effect<void>;
-}>()("@inspect/RecoveryManager") {
-  static layer = Layer.effect(this, 
+export class RecoveryManager extends ServiceMap.Service<
+  RecoveryManager,
+  {
+    readonly diagnose: (
+      error: string,
+      context?: { selector?: string; url?: string },
+    ) => DiagnosisResult;
+    readonly recover: (
+      diagnosis: DiagnosisResult,
+      executors: RecoveryExecutors,
+    ) => Effect.Effect<boolean>;
+    readonly getHistory: Effect.Effect<readonly RecoveryAttempt[]>;
+    readonly clearHistory: Effect.Effect<void>;
+  }
+>()("@inspect/RecoveryManager") {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
       const history: RecoveryAttempt[] = [];
 
-      const diagnose = (error: string, context?: { selector?: string; url?: string }): DiagnosisResult => {
+      const diagnose = (
+        error: string,
+        context?: { selector?: string; url?: string },
+      ): DiagnosisResult => {
         let failureType: FailureType = "unknown";
         let confidence = 0;
         for (const { pattern, type } of ERROR_PATTERNS) {
@@ -124,13 +144,19 @@ export class RecoveryManager extends ServiceMap.Service<RecoveryManager, {
         });
       };
 
-      const recover = Effect.fn("RecoveryManager.recover")(function* (diagnosis: DiagnosisResult, executors: RecoveryExecutors) {
+      const recover = Effect.fn("RecoveryManager.recover")(function* (
+        diagnosis: DiagnosisResult,
+        _executors: RecoveryExecutors,
+      ) {
         for (const strategy of diagnosis.suggestedStrategies) {
           const success = yield* Effect.sync(() => {
             switch (strategy) {
-              case "retry": return true;
-              case "waitForLoad": return true;
-              default: return false;
+              case "retry":
+                return true;
+              case "waitForLoad":
+                return true;
+              default:
+                return false;
             }
           });
           history.push(new RecoveryAttempt({ strategy, success, duration: 0 }));
@@ -140,7 +166,9 @@ export class RecoveryManager extends ServiceMap.Service<RecoveryManager, {
       });
 
       const getHistory = Effect.sync(() => [...history] as const);
-      const clearHistory = Effect.sync(() => { history.length = 0; });
+      const clearHistory = Effect.sync(() => {
+        history.length = 0;
+      });
 
       return { diagnose, recover, getHistory, clearHistory } as const;
     }),

@@ -144,9 +144,10 @@ export class JSONReporter {
         startedAt: new Date(results.startedAt).toISOString(),
         finishedAt: new Date(results.finishedAt).toISOString(),
         totalDuration: results.finishedAt - results.startedAt,
-        averageTestDuration: results.tests.length > 0
-          ? Math.round(results.tests.reduce((s, t) => s + t.duration, 0) / results.tests.length)
-          : 0,
+        averageTestDuration:
+          results.tests.length > 0
+            ? Math.round(results.tests.reduce((s, t) => s + t.duration, 0) / results.tests.length)
+            : 0,
         slowestTest: durations[0] ?? null,
         fastestTest: durations[durations.length - 1] ?? null,
       },
@@ -195,11 +196,13 @@ export class JSONReporter {
         error: step.error,
         thought: this.options.includeThoughts ? step.thought : undefined,
       })),
-      error: test.error ? {
-        message: test.error.message,
-        stack: test.error.stack,
-        screenshot: test.error.screenshot,
-      } : undefined,
+      error: test.error
+        ? {
+            message: test.error.message,
+            stack: test.error.stack,
+            screenshot: test.error.screenshot,
+          }
+        : undefined,
       screenshots: test.screenshots.map((ss) => ({
         name: ss.name,
         path: ss.path,
@@ -215,7 +218,9 @@ export class JSONReporter {
   private getStats(results: SuiteResult) {
     const total = results.tests.length;
     const passed = results.tests.filter((t) => t.status === "passed").length;
-    const failed = results.tests.filter((t) => t.status === "failed" || t.status === "error").length;
+    const failed = results.tests.filter(
+      (t) => t.status === "failed" || t.status === "error",
+    ).length;
     const skipped = results.tests.filter((t) => t.status === "skipped").length;
     const totalSteps = results.tests.reduce((sum, t) => sum + t.steps.length, 0);
     const duration = results.finishedAt - results.startedAt;

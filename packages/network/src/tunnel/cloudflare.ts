@@ -61,10 +61,7 @@ export class TunnelManager {
    * @param options - Tunnel configuration options
    * @returns The public URL for the tunnel
    */
-  async createTunnel(
-    port: number,
-    options?: TunnelOptions,
-  ): Promise<string> {
+  async createTunnel(port: number, options?: TunnelOptions): Promise<string> {
     // Check if tunnel already exists for this port
     const existing = this.tunnels.get(port);
     if (existing && existing.status === "running") {
@@ -94,13 +91,7 @@ export class TunnelManager {
     this.tunnels.set(port, tunnelInfo);
 
     return new Promise<string>((resolve, reject) => {
-      const args = [
-        "tunnel",
-        "--url",
-        targetUrl,
-        "--no-autoupdate",
-        ...extraArgs,
-      ];
+      const args = ["tunnel", "--url", targetUrl, "--no-autoupdate", ...extraArgs];
 
       const child = spawn(cloudflaredPath, args, {
         stdio: ["ignore", "pipe", "pipe"],
@@ -129,9 +120,7 @@ export class TunnelManager {
         stderr += chunk.toString();
 
         // Look for the trycloudflare.com URL in output
-        const urlMatch = stderr.match(
-          /https?:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/,
-        );
+        const urlMatch = stderr.match(/https?:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
         if (urlMatch && !resolved) {
           resolved = true;
           clearTimeout(timer);
@@ -144,9 +133,7 @@ export class TunnelManager {
       // Also check stdout in case output goes there
       child.stdout?.on("data", (chunk: Buffer) => {
         const output = chunk.toString();
-        const urlMatch = output.match(
-          /https?:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/,
-        );
+        const urlMatch = output.match(/https?:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
         if (urlMatch && !resolved) {
           resolved = true;
           clearTimeout(timer);

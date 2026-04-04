@@ -141,7 +141,7 @@ export class EmailPoller {
       /otp[:\s]+(\d{4,8})/i,
       /code[:\s]+(\d{4,8})/i,
       /pin[:\s]+(\d{4,8})/i,
-      /\b(\d{6})\b/,  // Common 6-digit code
+      /\b(\d{6})\b/, // Common 6-digit code
     ];
 
     for (const pattern of patterns) {
@@ -346,14 +346,18 @@ export class EmailPoller {
     const sinceMs = since.getTime();
 
     for (const email of emails) {
-      const emailTime = email.receivedAt
-        ? new Date(email.receivedAt).getTime()
-        : Date.now();
+      const emailTime = email.receivedAt ? new Date(email.receivedAt).getTime() : Date.now();
 
       if (emailTime < sinceMs) continue;
 
-      if (this.config.fromFilter && email.from && !email.from.includes(this.config.fromFilter)) continue;
-      if (this.config.subjectPattern && email.subject && !email.subject.match(this.config.subjectPattern)) continue;
+      if (this.config.fromFilter && email.from && !email.from.includes(this.config.fromFilter))
+        continue;
+      if (
+        this.config.subjectPattern &&
+        email.subject &&
+        !email.subject.match(this.config.subjectPattern)
+      )
+        continue;
 
       const body = email.body ?? email.text ?? "";
       const code = this.extractCode(body);
@@ -379,7 +383,7 @@ export class EmailPoller {
     // the webhook provider as a bridge, or implementing with nodemailer
     throw new Error(
       "Direct IMAP polling requires a TCP library. " +
-      "Consider using a webhook bridge service or the gmail_api provider instead.",
+        "Consider using a webhook bridge service or the gmail_api provider instead.",
     );
   }
 

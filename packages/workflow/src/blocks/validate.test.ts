@@ -119,7 +119,11 @@ describe("ValidationBlock", () => {
 
     it("passes when string matches regex (matches)", async () => {
       context.set("email", "user@example.com");
-      const block = makeBlock({ variable: "email", expected: "^\\w+@\\w+\\.\\w+$", operator: "matches" });
+      const block = makeBlock({
+        variable: "email",
+        expected: "^\\w+@\\w+\\.\\w+$",
+        operator: "matches",
+      });
       const result = await validator.execute(block, context);
 
       expect(result.passed).toBe(true);
@@ -127,7 +131,11 @@ describe("ValidationBlock", () => {
 
     it("fails when string does not match regex (matches)", async () => {
       context.set("email", "not-an-email");
-      const block = makeBlock({ variable: "email", expected: "^\\w+@\\w+\\.\\w+$", operator: "matches" });
+      const block = makeBlock({
+        variable: "email",
+        expected: "^\\w+@\\w+\\.\\w+$",
+        operator: "matches",
+      });
       const result = await validator.execute(block, context);
 
       expect(result.passed).toBe(false);

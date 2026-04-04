@@ -65,14 +65,16 @@ export interface FieldGroup {
  */
 export async function extractFormStructure(
   page: Page,
-  formSelector: string = "form"
+  formSelector: string = "form",
 ): Promise<FormStructure[]> {
   return page.evaluate((formSelector) => {
     const forms = document.querySelectorAll(formSelector);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const structures: any[] = [];
 
     for (const form of forms) {
       const formElement = form as HTMLFormElement;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const structure: any = {
         selector: formSelector,
         id: formElement.id,
@@ -83,9 +85,7 @@ export async function extractFormStructure(
       };
 
       // Task 277: Extract all input fields
-      const inputs = formElement.querySelectorAll(
-        "input, textarea, select"
-      );
+      const inputs = formElement.querySelectorAll("input, textarea, select");
       for (const input of inputs) {
         const field = extractFieldInfo(input);
         if (field) {
@@ -95,7 +95,7 @@ export async function extractFormStructure(
 
       // Task 278: Find submit button
       const submitBtn = formElement.querySelector(
-        'button[type="submit"], input[type="submit"], [role="button"][type="submit"]'
+        'button[type="submit"], input[type="submit"], [role="button"][type="submit"]',
       );
       if (submitBtn) {
         structure.submitButton = {
@@ -105,9 +105,7 @@ export async function extractFormStructure(
       }
 
       // Task 279: Find reset button
-      const resetBtn = formElement.querySelector(
-        'button[type="reset"], input[type="reset"]'
-      );
+      const resetBtn = formElement.querySelector('button[type="reset"], input[type="reset"]');
       if (resetBtn) {
         structure.resetButton = {
           selector: resetBtn.id ? `#${resetBtn.id}` : "button[type=reset]",
@@ -148,9 +146,7 @@ function extractFieldInfo(element: Element): FormField | null {
 
   // Task 281: Get label
   let label: string | undefined;
-  const labelElement = document.querySelector(
-    `label[for="${input.id}"]`
-  );
+  const labelElement = document.querySelector(`label[for="${input.id}"]`);
   if (labelElement) {
     label = labelElement.textContent || undefined;
   } else {
@@ -187,19 +183,12 @@ function extractFieldInfo(element: Element): FormField | null {
   if (element instanceof HTMLSelectElement) {
     const select = element as HTMLSelectElement;
     field.options = Array.from(select.options).map((opt) => opt.text);
-  } else if (
-    input.type === "radio" ||
-    input.type === "checkbox"
-  ) {
+  } else if (input.type === "radio" || input.type === "checkbox") {
     // Get related options with same name
-    const relatedInputs = document.querySelectorAll(
-      `input[name="${input.name}"]`
-    );
+    const relatedInputs = document.querySelectorAll(`input[name="${input.name}"]`);
     field.options = Array.from(relatedInputs)
       .map((inp) => {
-        const label = document.querySelector(
-          `label[for="${(inp as HTMLInputElement).id}"]`
-        );
+        const label = document.querySelector(`label[for="${(inp as HTMLInputElement).id}"]`);
         return label?.textContent || (inp as HTMLInputElement).value;
       })
       .filter(Boolean);
@@ -211,14 +200,12 @@ function extractFieldInfo(element: Element): FormField | null {
 /**
  * Task 289-290: Find related form fields
  */
-export async function findRelatedFields(
-  page: Page,
-  fieldName: string
-): Promise<FormField[]> {
+export async function findRelatedFields(page: Page, fieldName: string): Promise<FormField[]> {
   return page.evaluate((fieldName) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const relatedFields: any[] = [];
     const primaryField = document.querySelector(
-      `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`
+      `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`,
     );
 
     if (!primaryField) return [];
@@ -228,9 +215,7 @@ export async function findRelatedFields(
     if (!form) return [];
 
     // Find related fields by proximity or group
-    const allFields = form.querySelectorAll(
-      "input, textarea, select"
-    );
+    const allFields = form.querySelectorAll("input, textarea, select");
 
     for (const field of allFields) {
       const input = field as HTMLInputElement;
@@ -239,33 +224,23 @@ export async function findRelatedFields(
       // Check if in same fieldset
       const primaryFieldset = primaryField.closest("fieldset");
       const currentFieldset = field.closest("fieldset");
-      if (
-        primaryFieldset &&
-        primaryFieldset === currentFieldset
-      ) {
+      if (primaryFieldset && primaryFieldset === currentFieldset) {
         const info = {
           name: input.name,
           type: input.type,
-          label: document.querySelector(
-            `label[for="${input.id}"]`
-          )?.textContent,
+          label: document.querySelector(`label[for="${input.id}"]`)?.textContent,
           proximity: "same-group",
         };
         relatedFields.push(info);
       }
 
       // Check if names suggest relationship (e.g., first_name/last_name)
-      const baseName = fieldName.replace(/[_\-].*$/, "");
-      if (
-        input.name.startsWith(baseName) &&
-        input.name !== fieldName
-      ) {
+      const baseName = fieldName.replace(/[_-].*$/, "");
+      if (input.name.startsWith(baseName) && input.name !== fieldName) {
         const info = {
           name: input.name,
           type: input.type,
-          label: document.querySelector(
-            `label[for="${input.id}"]`
-          )?.textContent,
+          label: document.querySelector(`label[for="${input.id}"]`)?.textContent,
           proximity: "name-related",
         };
         relatedFields.push(info);
@@ -288,14 +263,14 @@ export interface ValidationError {
 export async function validateFormField(
   page: Page,
   fieldName: string,
-  value: string
+  value: string,
 ): Promise<ValidationError[]> {
   return page.evaluate(
     (args) => {
       const { fieldName, value } = args;
       const errors: any[] = [];
       const field = document.querySelector(
-        `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`
+        `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`,
       ) as HTMLInputElement;
 
       if (!field) {
@@ -364,6 +339,6 @@ export async function validateFormField(
 
       return errors;
     },
-    { fieldName, value }
+    { fieldName, value },
   );
 }

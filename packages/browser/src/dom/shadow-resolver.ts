@@ -2,7 +2,7 @@
 // @inspect/browser - Shadow DOM Resolver
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { ElementSnapshot} from "@inspect/shared";
+import type { ElementSnapshot } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("browser/dom/shadow-resolver");

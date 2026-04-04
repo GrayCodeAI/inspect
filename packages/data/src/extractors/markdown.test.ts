@@ -30,9 +30,7 @@ describe("MarkdownExtractor", () => {
 
   describe("links", () => {
     it("converts anchor tags to markdown links", () => {
-      const result = extractor.extractMarkdown(
-        '<a href="https://example.com">Example</a>',
-      );
+      const result = extractor.extractMarkdown('<a href="https://example.com">Example</a>');
       expect(result).toContain("[Example](https://example.com)");
     });
 
@@ -45,9 +43,7 @@ describe("MarkdownExtractor", () => {
     });
 
     it("skips links with empty text", () => {
-      const result = extractor.extractMarkdown(
-        '<a href="https://example.com"></a>',
-      );
+      const result = extractor.extractMarkdown('<a href="https://example.com"></a>');
       expect(result).not.toContain("[");
     });
   });
@@ -112,27 +108,21 @@ describe("MarkdownExtractor", () => {
 
   describe("images", () => {
     it("converts img tags to markdown images", () => {
-      const result = extractor.extractMarkdown(
-        '<img src="photo.jpg" />',
-      );
+      const result = extractor.extractMarkdown('<img src="photo.jpg" />');
       expect(result).toContain("![](photo.jpg)");
     });
 
     it("converts img with alt text when directly after src", () => {
       // The regex uses [^>]* between src and alt, which may greedily consume alt.
       // Regardless of alt capture, it should produce a valid markdown image.
-      const result = extractor.extractMarkdown(
-        '<img src="photo.jpg" alt="A photo" />',
-      );
+      const result = extractor.extractMarkdown('<img src="photo.jpg" alt="A photo" />');
       expect(result).toContain("photo.jpg");
     });
   });
 
   describe("block elements", () => {
     it("converts blockquotes", () => {
-      const result = extractor.extractMarkdown(
-        "<blockquote>Quoted text</blockquote>",
-      );
+      const result = extractor.extractMarkdown("<blockquote>Quoted text</blockquote>");
       expect(result).toContain("> Quoted text");
     });
 
@@ -144,8 +134,7 @@ describe("MarkdownExtractor", () => {
 
   describe("cleanup", () => {
     it("strips script and style tags", () => {
-      const html =
-        "<script>alert('xss')</script><style>.red{color:red}</style><p>Content</p>";
+      const html = "<script>alert('xss')</script><style>.red{color:red}</style><p>Content</p>";
       const result = extractor.extractMarkdown(html);
       expect(result).not.toContain("alert");
       expect(result).not.toContain("color");
@@ -153,9 +142,7 @@ describe("MarkdownExtractor", () => {
     });
 
     it("strips HTML comments", () => {
-      const result = extractor.extractMarkdown(
-        "<!-- comment --><p>Visible</p>",
-      );
+      const result = extractor.extractMarkdown("<!-- comment --><p>Visible</p>");
       expect(result).not.toContain("comment");
       expect(result).toContain("Visible");
     });
@@ -169,9 +156,7 @@ describe("MarkdownExtractor", () => {
     });
 
     it("removes remaining HTML tags", () => {
-      const result = extractor.extractMarkdown(
-        '<div class="wrapper"><span>text</span></div>',
-      );
+      const result = extractor.extractMarkdown('<div class="wrapper"><span>text</span></div>');
       expect(result).not.toContain("<div");
       expect(result).not.toContain("<span");
       expect(result).toContain("text");

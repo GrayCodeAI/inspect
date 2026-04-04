@@ -151,7 +151,7 @@ export class PerformanceMetrics {
     // Retrieve metrics
     let rawMetrics: Record<string, number>;
     try {
-      rawMetrics = await page.evaluate(WEB_VITALS_RETRIEVAL_SCRIPT) as Record<string, number>;
+      rawMetrics = (await page.evaluate(WEB_VITALS_RETRIEVAL_SCRIPT)) as Record<string, number>;
     } catch (error) {
       logger.debug("Failed to retrieve web vitals metrics", { error });
       return [];
@@ -192,7 +192,7 @@ export class PerformanceMetrics {
     const results: PerformanceMetric[] = [];
 
     try {
-      const timing = await page.evaluate(`
+      const timing = (await page.evaluate(`
         (function() {
           var nav = performance.getEntriesByType('navigation')[0];
           var paints = performance.getEntriesByType('paint');
@@ -209,7 +209,7 @@ export class PerformanceMetrics {
             load: nav ? nav.loadEventEnd : null
           };
         })();
-      `) as {
+      `)) as {
         ttfb: number | null;
         fcp: number | null;
         domContentLoaded: number | null;
@@ -256,11 +256,7 @@ export class PerformanceMetrics {
 /**
  * Rate a metric value against good/poor thresholds.
  */
-function rateMetric(
-  value: number,
-  goodThreshold: number,
-  poorThreshold: number,
-): MetricRating {
+function rateMetric(value: number, goodThreshold: number, poorThreshold: number): MetricRating {
   if (value <= goodThreshold) return "good";
   if (value >= poorThreshold) return "poor";
   return "needs-improvement";

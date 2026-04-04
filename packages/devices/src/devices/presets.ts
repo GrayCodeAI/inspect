@@ -198,9 +198,7 @@ export function getPreset(name: string): DeviceConfig {
   const preset = DevicePresets[name];
   if (!preset) {
     const available = Object.keys(DevicePresets).join(", ");
-    throw new Error(
-      `Unknown device preset: "${name}". Available: ${available}`
-    );
+    throw new Error(`Unknown device preset: "${name}". Available: ${available}`);
   }
   return preset;
 }
@@ -215,25 +213,17 @@ export function listPresets(): DeviceConfig[] {
 /**
  * Get presets filtered by category.
  */
-export function getPresetsByCategory(
-  category: "desktop" | "phone" | "tablet"
-): DeviceConfig[] {
+export function getPresetsByCategory(category: "desktop" | "phone" | "tablet"): DeviceConfig[] {
   return Object.values(DevicePresets).filter((d) => {
     if (category === "desktop") return !d.isMobile;
     if (category === "phone") {
       return (
-        d.isMobile &&
-        d.viewport.width < 500 &&
-        !d.name.includes("ipad") &&
-        !d.name.includes("tab")
+        d.isMobile && d.viewport.width < 500 && !d.name.includes("ipad") && !d.name.includes("tab")
       );
     }
     if (category === "tablet") {
       return (
-        d.isMobile &&
-        (d.viewport.width >= 500 ||
-          d.name.includes("ipad") ||
-          d.name.includes("tab"))
+        d.isMobile && (d.viewport.width >= 500 || d.name.includes("ipad") || d.name.includes("tab"))
       );
     }
     return true;

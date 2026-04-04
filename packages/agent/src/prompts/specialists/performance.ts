@@ -75,9 +75,9 @@ export const PERFORMANCE_THRESHOLDS = {
 
   /** Resource budgets */
   maxTotalTransferSize: 1_600_000, // 1.6 MB
-  maxJSTransferSize: 300_000,      // 300 KB
-  maxCSSTransferSize: 100_000,     // 100 KB
-  maxImageSize: 200_000,           // 200 KB per image
+  maxJSTransferSize: 300_000, // 300 KB
+  maxCSSTransferSize: 100_000, // 100 KB
+  maxImageSize: 200_000, // 200 KB per image
   maxDOMNodes: 1500,
   maxRequestCount: 50,
   maxThirdPartyRequests: 10,
@@ -138,7 +138,9 @@ export function buildPerformanceInstruction(
 /**
  * Generate a performance budget from thresholds.
  */
-export function generateBudget(strictness: "relaxed" | "standard" | "strict"): Record<string, number> {
+export function generateBudget(
+  strictness: "relaxed" | "standard" | "strict",
+): Record<string, number> {
   const multiplier = strictness === "relaxed" ? 1.5 : strictness === "strict" ? 0.7 : 1.0;
 
   return {

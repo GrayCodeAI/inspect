@@ -35,7 +35,10 @@ export interface UserIdentity {
 const DEFAULT_POLICIES: Record<Role, RBACPolicy> = {
   [Role.VIEWER]: {
     role: Role.VIEWER,
-    permissions: [{ resource: "reports", actions: ["read"] }, { resource: "dashboard", actions: ["read"] }],
+    permissions: [
+      { resource: "reports", actions: ["read"] },
+      { resource: "dashboard", actions: ["read"] },
+    ],
     allowedCommands: ["show-report", "show-trace", "devices", "models"],
     allowedProviders: [],
     maxConcurrentTests: 0,
@@ -48,16 +51,24 @@ const DEFAULT_POLICIES: Record<Role, RBACPolicy> = {
       { resource: "reports", actions: ["read"] },
       { resource: "workflows", actions: ["read", "execute"] },
     ],
-    allowedCommands: ["test", "run", "open", "screenshot", "pdf", "codegen", "replay", "compare", "show-report"],
+    allowedCommands: [
+      "test",
+      "run",
+      "open",
+      "screenshot",
+      "pdf",
+      "codegen",
+      "replay",
+      "compare",
+      "show-report",
+    ],
     allowedProviders: ["anthropic", "openai", "gemini", "deepseek", "ollama"],
     maxConcurrentTests: 5,
     costBudget: 50,
   },
   [Role.ADMIN]: {
     role: Role.ADMIN,
-    permissions: [
-      { resource: "*", actions: ["read", "create", "update", "delete"] },
-    ],
+    permissions: [{ resource: "*", actions: ["read", "create", "update", "delete"] }],
     allowedCommands: ["*"],
     allowedProviders: ["anthropic", "openai", "gemini", "deepseek", "ollama"],
     maxConcurrentTests: 20,

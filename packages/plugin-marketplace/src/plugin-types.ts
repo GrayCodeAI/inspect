@@ -20,6 +20,7 @@ export const PluginHook = Schema.Struct({
   priority: Schema.Number,
   handler: Schema.String,
 });
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface PluginHook extends Schema.Schema.Type<typeof PluginHook> {}
 
 export const PluginManifest = Schema.Struct({
@@ -31,6 +32,7 @@ export const PluginManifest = Schema.Struct({
   dependencies: Schema.Record(Schema.String, Schema.String),
   inspectVersion: Schema.String,
 });
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface PluginManifest extends Schema.Schema.Type<typeof PluginManifest> {}
 
 export const PluginInfo = Schema.Struct({
@@ -40,4 +42,5 @@ export const PluginInfo = Schema.Struct({
   error: Schema.Option(Schema.String),
   path: Schema.String,
 });
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface PluginInfo extends Schema.Schema.Type<typeof PluginInfo> {}

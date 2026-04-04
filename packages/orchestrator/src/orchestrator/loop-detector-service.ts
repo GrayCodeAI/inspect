@@ -19,13 +19,17 @@ export class Nudge extends Schema.Class<Nudge>("Nudge")({
   message: Schema.String,
 }) {}
 
-export class LoopDetector extends ServiceMap.Service<LoopDetector, {
-  readonly record: (action: ActionRecord) => Effect.Effect<void>;
-  readonly detectLoop: Effect.Effect<LoopDetection>;
-  readonly getNudge: Effect.Effect<Nudge>;
-  readonly reset: Effect.Effect<void>;
-}>()("@inspect/LoopDetector") {
-  static layer = Layer.effect(this, 
+export class LoopDetector extends ServiceMap.Service<
+  LoopDetector,
+  {
+    readonly record: (action: ActionRecord) => Effect.Effect<void>;
+    readonly detectLoop: Effect.Effect<LoopDetection>;
+    readonly getNudge: Effect.Effect<Nudge>;
+    readonly reset: Effect.Effect<void>;
+  }
+>()("@inspect/LoopDetector") {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
       const actions: ActionRecord[] = [];
       const hashes = new Map<string, number>();
@@ -50,8 +54,13 @@ export class LoopDetector extends ServiceMap.Service<LoopDetector, {
       });
 
       const getNudge = Effect.sync((): Nudge => {
-        if (repetitionCount >= 10) return new Nudge({ severity: "critical", message: "Agent is stuck — consider aborting" });
-        if (repetitionCount >= 5) return new Nudge({ severity: "warning", message: "Repeated action detected — try a different approach" });
+        if (repetitionCount >= 10)
+          return new Nudge({ severity: "critical", message: "Agent is stuck — consider aborting" });
+        if (repetitionCount >= 5)
+          return new Nudge({
+            severity: "warning",
+            message: "Repeated action detected — try a different approach",
+          });
         return new Nudge({ severity: "info", message: "" });
       });
 

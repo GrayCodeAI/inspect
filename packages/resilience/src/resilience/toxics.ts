@@ -7,7 +7,11 @@ import type { NetworkFault, NetworkFaultConfig } from "@inspect/shared";
 /** Route-like interface for request interception */
 interface Route {
   request(): { url(): string; method(): string };
-  fulfill(options: { status?: number; headers?: Record<string, string>; body?: string }): Promise<void>;
+  fulfill(options: {
+    status?: number;
+    headers?: Record<string, string>;
+    body?: string;
+  }): Promise<void>;
   continue(): Promise<void>;
   abort(errorCode?: string): Promise<void>;
 }
@@ -139,7 +143,8 @@ export class SlicerToxic implements Toxic {
   async apply(route: Route): Promise<void> {
     // Calculate estimated chunk count and total delay
     const estimatedResponseSize = 50_000; // 50KB average
-    const chunkSize = this.avgSize + Math.floor(Math.random() * this.sizeVariation * 2) - this.sizeVariation;
+    const chunkSize =
+      this.avgSize + Math.floor(Math.random() * this.sizeVariation * 2) - this.sizeVariation;
     const clampedChunkSize = Math.max(1, chunkSize);
     const chunks = Math.ceil(estimatedResponseSize / clampedChunkSize);
     const totalDelay = chunks * this.delay;

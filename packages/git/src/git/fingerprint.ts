@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join} from "node:path";
+import { join } from "node:path";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("core/git");
@@ -35,11 +35,7 @@ export class Fingerprint {
    * - Diff content
    * - An optional salt (e.g., branch name)
    */
-  generate(
-    files: string[],
-    diff: string,
-    salt?: string
-  ): string {
+  generate(files: string[], diff: string, salt?: string): string {
     const hasher = createHash("sha256");
 
     // Include sorted file paths
@@ -62,12 +58,7 @@ export class Fingerprint {
   /**
    * Save a fingerprint to disk at .inspect/fingerprint.json.
    */
-  save(
-    hash: string,
-    files: string[],
-    diff: string,
-    branch: string
-  ): void {
+  save(hash: string, files: string[], diff: string, branch: string): void {
     const dir = join(this.baseDir, FINGERPRINT_DIR);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -89,11 +80,7 @@ export class Fingerprint {
    * Load the previously saved fingerprint.
    */
   load(): FingerprintData | null {
-    const filepath = join(
-      this.baseDir,
-      FINGERPRINT_DIR,
-      FINGERPRINT_FILE
-    );
+    const filepath = join(this.baseDir, FINGERPRINT_DIR, FINGERPRINT_FILE);
 
     if (!existsSync(filepath)) {
       return null;
@@ -103,7 +90,10 @@ export class Fingerprint {
       const content = readFileSync(filepath, "utf-8");
       return JSON.parse(content) as FingerprintData;
     } catch (error) {
-      logger.warn("Failed to load fingerprint", { filepath, error: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to load fingerprint", {
+        filepath,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -126,7 +116,7 @@ export class Fingerprint {
   async checkForChanges(
     files: string[],
     diff: string,
-    branch: string
+    branch: string,
   ): Promise<{ changed: boolean; hash: string; previousHash?: string }> {
     const currentHash = this.generate(files, diff, branch);
     const saved = this.load();

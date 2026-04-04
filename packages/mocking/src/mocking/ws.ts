@@ -175,7 +175,10 @@ export class WsMessageMatcher {
         const json = JSON.parse(text) as Record<string, unknown>;
         return json[field] === value;
       } catch (error) {
-        logger.debug("Failed to parse WebSocket message as JSON for field matching", { field, error });
+        logger.debug("Failed to parse WebSocket message as JSON for field matching", {
+          field,
+          error,
+        });
         return false;
       }
     };

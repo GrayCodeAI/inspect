@@ -148,11 +148,7 @@ export class AriaSnapshotBuilder {
       }
 
       // Collapse single-child generic wrappers
-      if (
-        this.isGenericWrapper(node) &&
-        compactedChildren &&
-        compactedChildren.length === 1
-      ) {
+      if (this.isGenericWrapper(node) && compactedChildren && compactedChildren.length === 1) {
         result.push(compactedChildren[0]);
         continue;
       }

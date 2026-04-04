@@ -124,7 +124,10 @@ export class ParallelExecutionEngine extends EventEmitter {
   private config: ParallelExecutionConfig;
   private workers = new Map<number, WorkerInfo>();
   private taskQueue: ParallelTask[] = [];
-  private inProgressTasks = new Map<string, { task: ParallelTask; workerId: number; startedAt: number }>();
+  private inProgressTasks = new Map<
+    string,
+    { task: ParallelTask; workerId: number; startedAt: number }
+  >();
   private results: ParallelTaskResult[] = [];
   private taskMap = new Map<string, ParallelTask>();
   private completedTasks = new Set<string>();
@@ -185,9 +188,7 @@ export class ParallelExecutionEngine extends EventEmitter {
     }
 
     // Filter out already completed dependencies
-    const readyTasks = tasks.filter((t) =>
-      t.dependencies.every((d) => this.completedTasks.has(d))
-    );
+    const readyTasks = tasks.filter((t) => t.dependencies.every((d) => this.completedTasks.has(d)));
 
     // Add to queue sorted by priority
     this.taskQueue.push(...readyTasks);
@@ -222,9 +223,7 @@ export class ParallelExecutionEngine extends EventEmitter {
    * Select best available worker
    */
   private selectWorker(): WorkerInfo | null {
-    const idleWorkers = Array.from(this.workers.values()).filter(
-      (w) => w.status === "idle"
-    );
+    const idleWorkers = Array.from(this.workers.values()).filter((w) => w.status === "idle");
 
     if (idleWorkers.length === 0) return null;
 
@@ -234,12 +233,12 @@ export class ParallelExecutionEngine extends EventEmitter {
 
       case "least-loaded":
         return idleWorkers.reduce((best, current) =>
-          current.completedTasks < best.completedTasks ? current : best
+          current.completedTasks < best.completedTasks ? current : best,
         );
 
       case "capacity-based":
         return idleWorkers.reduce((best, current) =>
-          current.resources.memoryMB < best.resources.memoryMB ? current : best
+          current.resources.memoryMB < best.resources.memoryMB ? current : best,
         );
 
       default:
@@ -250,7 +249,7 @@ export class ParallelExecutionEngine extends EventEmitter {
   /**
    * Find task suitable for worker
    */
-  private findSuitableTask(worker: WorkerInfo): ParallelTask | null {
+  private findSuitableTask(_worker: WorkerInfo): ParallelTask | null {
     for (const task of this.taskQueue) {
       // Check dependencies
       if (!task.dependencies.every((d) => this.completedTasks.has(d))) {
@@ -336,9 +335,7 @@ export class ParallelExecutionEngine extends EventEmitter {
    */
   private async runTask(task: ParallelTask, worker: WorkerInfo): Promise<unknown> {
     // Simulate work
-    await new Promise((resolve) =>
-      setTimeout(resolve, task.estimatedDuration || 1000)
-    );
+    await new Promise((resolve) => setTimeout(resolve, task.estimatedDuration || 1000));
 
     // Simulate resource usage
     worker.resources.memoryMB = 100 + Math.random() * 500;
@@ -350,11 +347,7 @@ export class ParallelExecutionEngine extends EventEmitter {
   /**
    * Complete task
    */
-  private completeTask(
-    task: ParallelTask,
-    worker: WorkerInfo,
-    result: ParallelTaskResult
-  ): void {
+  private completeTask(task: ParallelTask, worker: WorkerInfo, result: ParallelTaskResult): void {
     this.inProgressTasks.delete(task.id);
     this.results.push(result);
     this.completedTasks.add(task.id);
@@ -389,9 +382,11 @@ export class ParallelExecutionEngine extends EventEmitter {
         // Check if all deps now complete
         if (task.dependencies.every((d) => this.completedTasks.has(d))) {
           // Add to queue if not already there
-          if (!this.taskQueue.find((t) => t.id === task.id) &&
-              !this.inProgressTasks.has(task.id) &&
-              !this.completedTasks.has(task.id)) {
+          if (
+            !this.taskQueue.find((t) => t.id === task.id) &&
+            !this.inProgressTasks.has(task.id) &&
+            !this.completedTasks.has(task.id)
+          ) {
             this.taskQueue.push(task);
           }
         }
@@ -409,9 +404,7 @@ export class ParallelExecutionEngine extends EventEmitter {
     if (!this.config.workStealing) return;
 
     // Find idle worker to steal for
-    const idleWorker = Array.from(this.workers.values()).find(
-      (w) => w.status === "idle"
-    );
+    const idleWorker = Array.from(this.workers.values()).find((w) => w.status === "idle");
 
     if (!idleWorker) return;
 
@@ -423,10 +416,7 @@ export class ParallelExecutionEngine extends EventEmitter {
    * Wait for all tasks to complete
    */
   async waitForCompletion(): Promise<ParallelTaskResult[]> {
-    while (
-      this.taskQueue.length > 0 ||
-      this.inProgressTasks.size > 0
-    ) {
+    while (this.taskQueue.length > 0 || this.inProgressTasks.size > 0) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
@@ -442,13 +432,9 @@ export class ParallelExecutionEngine extends EventEmitter {
     const durations = this.results.map((r) => r.duration);
 
     const avgDuration =
-      durations.length > 0
-        ? durations.reduce((a, b) => a + b, 0) / durations.length
-        : 0;
+      durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
 
-    const busyWorkers = Array.from(this.workers.values()).filter(
-      (w) => w.status === "busy"
-    ).length;
+    const busyWorkers = Array.from(this.workers.values()).filter((w) => w.status === "busy").length;
 
     return {
       totalTasks: this.taskMap.size,
@@ -522,7 +508,7 @@ export class ParallelExecutionEngine extends EventEmitter {
  * Convenience function
  */
 export function createParallelEngine(
-  config?: Partial<ParallelExecutionConfig>
+  config?: Partial<ParallelExecutionConfig>,
 ): ParallelExecutionEngine {
   return new ParallelExecutionEngine(config);
 }

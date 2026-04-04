@@ -47,10 +47,7 @@ export interface SelfHealResult {
 // PDF download testing
 // ---------------------------------------------------------------------------
 
-export async function testPDFDownload(
-  page: Page,
-  url: string,
-): Promise<PDFTestResult> {
+export async function testPDFDownload(page: Page, url: string): Promise<PDFTestResult> {
   const issues: string[] = [];
   const tempDir = join(tmpdir(), `inspect-pdf-${randomBytes(8).toString("hex")}`);
 

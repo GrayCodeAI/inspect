@@ -59,10 +59,7 @@ export class SendEmailBlock {
    * - smtpUser: SMTP auth username
    * - smtpPass: SMTP auth password
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<EmailResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<EmailResult> {
     const params = block.parameters;
 
     const to = context.render(String(params.to ?? ""));
@@ -70,9 +67,7 @@ export class SendEmailBlock {
       String(params.from ?? this.defaultConfig.host ?? "noreply@inspect.dev"),
     );
     const subject = context.render(String(params.subject ?? ""));
-    const replyTo = params.replyTo
-      ? context.render(String(params.replyTo))
-      : undefined;
+    const replyTo = params.replyTo ? context.render(String(params.replyTo)) : undefined;
     const cc = params.cc ? context.render(String(params.cc)) : undefined;
     const bcc = params.bcc ? context.render(String(params.bcc)) : undefined;
 
@@ -89,19 +84,10 @@ export class SendEmailBlock {
     }
 
     const smtpConfig: SMTPConfig = {
-      host: context.render(
-        String(params.smtpHost ?? this.defaultConfig.host ?? "localhost"),
-      ),
-      port:
-        (params.smtpPort as number) ?? this.defaultConfig.port ?? 587,
-      secure:
-        (params.smtpSecure as boolean) ??
-        this.defaultConfig.secure ??
-        false,
-      timeout:
-        (params.timeout as number) ??
-        this.defaultConfig.timeout ??
-        30_000,
+      host: context.render(String(params.smtpHost ?? this.defaultConfig.host ?? "localhost")),
+      port: (params.smtpPort as number) ?? this.defaultConfig.port ?? 587,
+      secure: (params.smtpSecure as boolean) ?? this.defaultConfig.secure ?? false,
+      timeout: (params.timeout as number) ?? this.defaultConfig.timeout ?? 30_000,
       auth: undefined,
     };
 
@@ -166,12 +152,7 @@ export class SendEmailBlock {
       .filter(Boolean);
 
     try {
-      const response = await this.sendSMTP(
-        smtpConfig,
-        from,
-        recipients,
-        message,
-      );
+      const response = await this.sendSMTP(smtpConfig, from, recipients, message);
 
       return {
         sent: true,
@@ -220,12 +201,8 @@ export class SendEmailBlock {
 
         if (config.auth && !authenticated) {
           cmds.push(`AUTH LOGIN\r\n`);
-          cmds.push(
-            `${Buffer.from(config.auth.username).toString("base64")}\r\n`,
-          );
-          cmds.push(
-            `${Buffer.from(config.auth.password).toString("base64")}\r\n`,
-          );
+          cmds.push(`${Buffer.from(config.auth.username).toString("base64")}\r\n`);
+          cmds.push(`${Buffer.from(config.auth.password).toString("base64")}\r\n`);
         }
 
         cmds.push(`MAIL FROM:<${extractEmail(from)}>\r\n`);

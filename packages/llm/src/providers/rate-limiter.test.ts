@@ -54,7 +54,9 @@ describe("RateLimiter", () => {
 
     // Second acquire should queue
     let resolved = false;
-    const _p = limiter.acquire().then(() => { resolved = true; });
+    const _p = limiter.acquire().then(() => {
+      resolved = true;
+    });
 
     // Not resolved yet
     await new Promise((r) => setTimeout(r, 100));

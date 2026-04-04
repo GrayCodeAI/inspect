@@ -90,10 +90,7 @@ export class DiffPlanner {
   private config: DiffPlannerConfig;
   private cwd: string;
 
-  constructor(
-    cwd: string = process.cwd(),
-    config: Partial<DiffPlannerConfig> = {}
-  ) {
+  constructor(cwd: string = process.cwd(), config: Partial<DiffPlannerConfig> = {}) {
     this.cwd = cwd;
     this.config = { ...DEFAULT_DIFF_PLANNER_CONFIG, ...config };
   }
@@ -147,10 +144,11 @@ export class DiffPlanner {
       case "staged":
         output = this.execGit("diff --cached --name-status");
         break;
-      case "branch":
+      case "branch": {
         const base = this.config.baseBranch || "main";
         output = this.execGit(`diff --name-status ${base}...HEAD`);
         break;
+      }
       case "commit":
         output = this.execGit("diff --name-status HEAD~1 HEAD");
         break;
@@ -292,7 +290,11 @@ export class DiffPlanner {
     }
 
     // Extract name
-    const name = change.path.split("/").pop()?.replace(/\.(tsx?|jsx?|css|scss)$/, "") || "unknown";
+    const name =
+      change.path
+        .split("/")
+        .pop()
+        ?.replace(/\.(tsx?|jsx?|css|scss)$/, "") || "unknown";
 
     return {
       type,
@@ -355,7 +357,7 @@ export class DiffPlanner {
    */
   private async generateTestSteps(
     areas: ImpactedArea[],
-    changes: FileChange[]
+    changes: FileChange[],
   ): Promise<TestStep[]> {
     const steps: TestStep[] = [];
 
@@ -462,8 +464,8 @@ export class DiffPlanner {
    */
   private async enhanceWithLLM(
     steps: TestStep[],
-    areas: ImpactedArea[],
-    changes: FileChange[]
+    _areas: ImpactedArea[],
+    _changes: FileChange[],
   ): Promise<TestStep[]> {
     // For now, return original steps
     // In production, would send to LLM for enhancement
@@ -484,10 +486,7 @@ export class DiffPlanner {
   /**
    * Calculate confidence score
    */
-  private calculateConfidence(
-    changes: FileChange[],
-    areas: ImpactedArea[]
-  ): number {
+  private calculateConfidence(changes: FileChange[], areas: ImpactedArea[]): number {
     let score = 0.5;
 
     // More files = less confidence
@@ -499,8 +498,7 @@ export class DiffPlanner {
     if (highSeverityCount > 0) score += 0.1;
 
     // Code files increase confidence
-    const codeFileRatio =
-      changes.filter((c) => this.isCodeFile(c.path)).length / changes.length;
+    const codeFileRatio = changes.filter((c) => this.isCodeFile(c.path)).length / changes.length;
     score += codeFileRatio * 0.2;
 
     return Math.max(0, Math.min(1, score));
@@ -510,16 +508,7 @@ export class DiffPlanner {
    * Check if file is a code file
    */
   private isCodeFile(path: string): boolean {
-    const codeExtensions = [
-      ".ts",
-      ".tsx",
-      ".js",
-      ".jsx",
-      ".vue",
-      ".svelte",
-      ".css",
-      ".scss",
-    ];
+    const codeExtensions = [".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte", ".css", ".scss"];
     return codeExtensions.some((ext) => path.endsWith(ext));
   }
 
@@ -548,7 +537,7 @@ export class DiffPlanner {
  */
 export async function generateDiffPlan(
   cwd?: string,
-  config?: Partial<DiffPlannerConfig>
+  config?: Partial<DiffPlannerConfig>,
 ): Promise<DiffTestPlan> {
   const planner = new DiffPlanner(cwd, config);
   return planner.generatePlan();

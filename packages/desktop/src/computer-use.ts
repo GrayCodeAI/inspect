@@ -43,12 +43,14 @@ let robotjs: typeof import("robotjs") | undefined;
 let screenshotDesktop: typeof import("screenshot-desktop") | undefined;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   robotjs = require("robotjs");
 } catch {
   robotjs = undefined;
 }
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   screenshotDesktop = require("screenshot-desktop");
 } catch {
   screenshotDesktop = undefined;

@@ -31,15 +31,10 @@ export class WaitBlock {
    * - pollInterval: interval between condition checks (default: 1000ms)
    * - maxWait: maximum time to wait for condition (default: 60000ms)
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<WaitResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<WaitResult> {
     const params = block.parameters;
     const duration = params.duration as number | undefined;
-    const condition = params.condition
-      ? context.render(String(params.condition))
-      : undefined;
+    const condition = params.condition ? context.render(String(params.condition)) : undefined;
     const pollInterval = (params.pollInterval as number) ?? 1_000;
     const maxWait = (params.maxWait as number) ?? 60_000;
 
@@ -92,10 +87,7 @@ export class WaitBlock {
   /**
    * Evaluate a condition expression against the context.
    */
-  private evaluateCondition(
-    condition: string,
-    context: WorkflowContext,
-  ): boolean {
+  private evaluateCondition(condition: string, context: WorkflowContext): boolean {
     try {
       const sandbox = { ...context.toObject(), __result: false };
       sandbox.__result = runInNewContext(`Boolean(${condition})`, sandbox, {

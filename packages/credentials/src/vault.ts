@@ -58,11 +58,7 @@ export class CredentialVault {
   private storagePath: string;
   private loaded: boolean = false;
 
-  constructor(options?: {
-    basePath?: string;
-    masterKey?: string;
-    keyFilePath?: string;
-  }) {
+  constructor(options?: { basePath?: string; masterKey?: string; keyFilePath?: string }) {
     const basePath = options?.basePath ?? process.cwd();
     this.storagePath = path.join(basePath, ".inspect", "credentials.enc");
 
@@ -178,9 +174,7 @@ export class CredentialVault {
       creds = creds.filter((c) => c.type === filter.type);
     }
     if (filter?.domain) {
-      creds = creds.filter(
-        (c) => c.domain && c.domain.includes(filter.domain!),
-      );
+      creds = creds.filter((c) => c.domain && c.domain.includes(filter.domain!));
     }
 
     return creds.map((c) => this.sanitize(c));
@@ -206,22 +200,16 @@ export class CredentialVault {
       switch (cred.type) {
         case "password":
           success = Boolean(cred.data.username && cred.data.password);
-          message = success
-            ? "Username and password are set"
-            : "Missing username or password";
+          message = success ? "Username and password are set" : "Missing username or password";
           break;
 
         case "api-key":
           success = Boolean(cred.data.apiKey || cred.data.key || cred.data.token);
-          message = success
-            ? "API key is present"
-            : "No API key found in credential data";
+          message = success ? "API key is present" : "No API key found in credential data";
           break;
 
         case "oauth":
-          success = Boolean(
-            cred.data.clientId && cred.data.clientSecret,
-          );
+          success = Boolean(cred.data.clientId && cred.data.clientSecret);
           message = success
             ? "OAuth client credentials are set"
             : "Missing clientId or clientSecret";
@@ -229,23 +217,17 @@ export class CredentialVault {
 
         case "totp":
           success = Boolean(cred.totpSecret || cred.data.secret);
-          message = success
-            ? "TOTP secret is configured"
-            : "No TOTP secret found";
+          message = success ? "TOTP secret is configured" : "No TOTP secret found";
           break;
 
         case "certificate":
           success = Boolean(cred.data.certificate || cred.data.certPath);
-          message = success
-            ? "Certificate is configured"
-            : "No certificate data found";
+          message = success ? "Certificate is configured" : "No certificate data found";
           break;
 
         default:
           success = Object.keys(cred.data).length > 0;
-          message = success
-            ? "Credential data is present"
-            : "Credential data is empty";
+          message = success ? "Credential data is present" : "Credential data is empty";
       }
 
       cred.lastTestedAt = Date.now();
@@ -254,8 +236,7 @@ export class CredentialVault {
 
       return { success, message, testedAt: Date.now() };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       cred.lastTestedAt = Date.now();
       cred.lastTestPassed = false;
       this.save();
@@ -288,10 +269,7 @@ export class CredentialVault {
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
-    const encrypted = Buffer.concat([
-      cipher.update(plaintext, "utf-8"),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
     const tag = cipher.getAuthTag();
 
     return Buffer.concat([salt, iv, tag, encrypted]);
@@ -332,17 +310,18 @@ export class CredentialVault {
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(tag);
 
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]).toString("utf-8");
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf-8");
   }
 
   /**
    * Derive a 256-bit key from a passphrase using PBKDF2.
    * Uses a random salt that is stored alongside the encrypted data.
    */
-  private deriveKey(passphrase: string, salt?: Buffer, iterations?: number): { key: Buffer; salt: Buffer } {
+  private deriveKey(
+    passphrase: string,
+    salt?: Buffer,
+    iterations?: number,
+  ): { key: Buffer; salt: Buffer } {
     const keySalt = salt ?? crypto.randomBytes(SALT_LENGTH);
 
     const key = crypto.pbkdf2Sync(
@@ -461,8 +440,7 @@ export class CredentialVault {
     for (const key of sensitiveKeys) {
       if (key in sanitized.data) {
         const val = String(sanitized.data[key]);
-        sanitized.data[key] =
-          val.length > 4 ? `****${val.slice(-4)}` : "****";
+        sanitized.data[key] = val.length > 4 ? `****${val.slice(-4)}` : "****";
       }
     }
 

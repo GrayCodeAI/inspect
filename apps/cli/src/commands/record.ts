@@ -42,7 +42,7 @@ async function runRecord(options: RecordOptions): Promise<void> {
 
     console.log(chalk.dim("\nInitializing browser..."));
     const browserManager = new BrowserManager();
-    const context = await browserManager.launchBrowser({
+    const _context = await browserManager.launchBrowser({
       name: "recording-session",
       headless: false,
       viewport: { width, height },

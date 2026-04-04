@@ -4,16 +4,17 @@
  * Element visibility detection and interactability checks
  */
 
-import { Effect } from "effect";
+// Effect import reserved for future use
+// import { Effect } from "effect";
 import type { Page } from "playwright";
 
 /**
  * Visibility check options
  */
 export interface VisibilityOptions {
-  viewportThreshold: number;  // px beyond viewport to consider visible
-  checkParents: boolean;      // check all parent visibility
-  checkOpacity: boolean;      // check opacity > 0
+  viewportThreshold: number; // px beyond viewport to consider visible
+  checkParents: boolean; // check all parent visibility
+  checkOpacity: boolean; // check opacity > 0
   checkPointerEvents: boolean; // check pointer-events
 }
 
@@ -30,7 +31,7 @@ export const DEFAULT_VISIBILITY_OPTIONS: VisibilityOptions = {
 export async function isElementVisible(
   page: Page,
   selector: string,
-  options: Partial<VisibilityOptions> = {}
+  options: Partial<VisibilityOptions> = {},
 ): Promise<boolean> {
   const opts = { ...DEFAULT_VISIBILITY_OPTIONS, ...options };
 
@@ -83,7 +84,7 @@ export async function isElementVisible(
 
       return true;
     },
-    { selector, opts }
+    { selector, opts },
   );
 }
 
@@ -91,11 +92,11 @@ export async function isElementVisible(
  * Task 246-250: Iframe handling
  */
 export interface IframeConfig {
-  maxDepth: number;      // Task 246: iframe depth limit (default 5)
-  maxCount: number;      // Task 247: iframe quantity limit (default 100)
-  lazyFetch: boolean;    // Task 248: lazy fetch cross-origin
+  maxDepth: number; // Task 246: iframe depth limit (default 5)
+  maxCount: number; // Task 247: iframe quantity limit (default 100)
+  lazyFetch: boolean; // Task 248: lazy fetch cross-origin
   skipInvisible: boolean; // Task 250: skip invisible iframes
-  minSize: number;       // Task 250: minimum iframe size
+  minSize: number; // Task 250: minimum iframe size
 }
 
 export const DEFAULT_IFRAME_CONFIG: IframeConfig = {
@@ -132,7 +133,7 @@ export class DOMSerializer {
       maxDepth: 10,
       skipSelectors: ["script", "style", "link", "meta", "noscript"],
       indexClickable: true,
-    }
+    },
   ) {}
 
   /**
@@ -177,7 +178,10 @@ export class DOMSerializer {
         if (isClickable && opts.indexClickable) {
           // Task 255-257: Format as [index] role: name
           const index = clickableIndex++;
-          selectorMap.set(index, (node as Element & { inspectSelector?: string }).inspectSelector || "");
+          selectorMap.set(
+            index,
+            (node as Element & { inspectSelector?: string }).inspectSelector || "",
+          );
           line += `[${index}] `;
         }
 
@@ -225,10 +229,7 @@ export class DOMSerializer {
 /**
  * Task 258-260: Clickable detector
  */
-export async function isInteractable(
-  page: Page,
-  selector: string
-): Promise<boolean> {
+export async function isInteractable(page: Page, selector: string): Promise<boolean> {
   return page.evaluate((sel) => {
     const element = document.querySelector(sel);
     if (!element) return false;
@@ -244,8 +245,18 @@ export async function isInteractable(
     // 1. Check ARIA widget roles
     const role = element.getAttribute("role");
     const interactiveRoles = [
-      "button", "link", "checkbox", "radio", "textbox", "combobox",
-      "slider", "spinbutton", "listbox", "menuitem", "tab", "treeitem",
+      "button",
+      "link",
+      "checkbox",
+      "radio",
+      "textbox",
+      "combobox",
+      "slider",
+      "spinbutton",
+      "listbox",
+      "menuitem",
+      "tab",
+      "treeitem",
     ];
     if (role && interactiveRoles.includes(role)) return true;
 
@@ -278,10 +289,7 @@ export async function isInteractable(
 /**
  * Check if element is behind another element
  */
-export async function isElementCovered(
-  page: Page,
-  selector: string
-): Promise<boolean> {
+export async function isElementCovered(page: Page, selector: string): Promise<boolean> {
   return page.evaluate((sel) => {
     const element = document.querySelector(sel);
     if (!element) return false;

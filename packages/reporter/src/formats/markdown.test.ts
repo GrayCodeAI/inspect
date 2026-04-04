@@ -16,7 +16,14 @@ function makeSuite(overrides?: Partial<SuiteResult>): SuiteResult {
         finishedAt: 1700000002500,
         steps: [
           { index: 1, action: "click", target: "#login", status: "passed", duration: 500 },
-          { index: 2, action: "fill", target: "#email", value: "user@test.com", status: "passed", duration: 300 },
+          {
+            index: 2,
+            action: "fill",
+            target: "#email",
+            value: "user@test.com",
+            status: "passed",
+            duration: 300,
+          },
         ],
         screenshots: [{ name: "login-page", path: "/tmp/login.png", timestamp: 1700000001000 }],
       },
@@ -27,7 +34,14 @@ function makeSuite(overrides?: Partial<SuiteResult>): SuiteResult {
         startedAt: 1700000002500,
         finishedAt: 1700000004000,
         steps: [
-          { index: 1, action: "click", target: "#submit", status: "failed", duration: 1500, error: "Element not found" },
+          {
+            index: 1,
+            action: "click",
+            target: "#submit",
+            status: "failed",
+            duration: 1500,
+            error: "Element not found",
+          },
         ],
         error: { message: "Element #submit not found" },
         screenshots: [],
@@ -109,15 +123,17 @@ describe("MarkdownReporter", () => {
 
     it("shows PASS when all pass", () => {
       const suite = makeSuite({
-        tests: [{
-          name: "OK test",
-          status: "passed",
-          duration: 100,
-          startedAt: 1700000000000,
-          finishedAt: 1700000000100,
-          steps: [],
-          screenshots: [],
-        }],
+        tests: [
+          {
+            name: "OK test",
+            status: "passed",
+            duration: 100,
+            startedAt: 1700000000000,
+            finishedAt: 1700000000100,
+            steps: [],
+            screenshots: [],
+          },
+        ],
       });
       const compact = reporter.generateCompact(suite);
       expect(compact).toContain("**PASS**");

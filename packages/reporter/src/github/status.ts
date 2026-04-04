@@ -174,10 +174,7 @@ export class GitHubStatus {
   /**
    * Update an existing check run.
    */
-  async updateCheckRun(
-    checkRunId: number,
-    params: Partial<CheckRunParams>,
-  ): Promise<void> {
+  async updateCheckRun(checkRunId: number, params: Partial<CheckRunParams>): Promise<void> {
     const url = `${this.apiUrl}/repos/${this.config.owner}/${this.config.repo}/check-runs/${checkRunId}`;
 
     const body: Record<string, unknown> = {};
@@ -263,7 +260,10 @@ export class GitHubStatus {
   /**
    * Find an existing Inspect comment on a PR (for update-or-create pattern).
    */
-  async findExistingComment(prNumber: number, marker: string = "<!-- inspect-report -->"): Promise<number | null> {
+  async findExistingComment(
+    prNumber: number,
+    marker: string = "<!-- inspect-report -->",
+  ): Promise<number | null> {
     const url = `${this.apiUrl}/repos/${this.config.owner}/${this.config.repo}/issues/${prNumber}/comments?per_page=100`;
 
     const response = await fetch(url, {

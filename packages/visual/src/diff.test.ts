@@ -2,7 +2,14 @@ import { describe, it, expect } from "vitest";
 import { VisualDiff } from "./diff.js";
 import type { RawImage } from "./diff.js";
 
-function createSolidImage(width: number, height: number, r: number, g: number, b: number, a: number = 255): RawImage {
+function createSolidImage(
+  width: number,
+  height: number,
+  r: number,
+  g: number,
+  b: number,
+  a: number = 255,
+): RawImage {
   const data = new Uint8Array(width * height * 4);
   for (let i = 0; i < width * height; i++) {
     data[i * 4] = r;

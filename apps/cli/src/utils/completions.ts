@@ -4,12 +4,31 @@
  */
 
 const COMMANDS = [
-  "test", "run", "pr", "replay", "compare",
-  "a11y", "lighthouse", "security", "chaos", "visual",
-  "serve", "tunnel", "sessions", "mcp",
-  "extract", "workflow", "credentials",
-  "init", "doctor", "generate", "audit",
-  "devices", "agents", "models", "completions",
+  "test",
+  "run",
+  "pr",
+  "replay",
+  "compare",
+  "a11y",
+  "lighthouse",
+  "security",
+  "chaos",
+  "visual",
+  "serve",
+  "tunnel",
+  "sessions",
+  "mcp",
+  "extract",
+  "workflow",
+  "credentials",
+  "init",
+  "doctor",
+  "generate",
+  "audit",
+  "devices",
+  "agents",
+  "models",
+  "completions",
 ];
 
 const AGENTS = ["claude", "gpt", "gemini", "deepseek", "ollama"];
@@ -17,8 +36,14 @@ const MODES = ["dom", "hybrid", "cua"];
 const BROWSERS = ["chromium", "firefox", "webkit"];
 const TARGETS = ["unstaged", "branch", "changes"];
 const DEVICES = [
-  "desktop-chrome", "desktop-firefox", "iphone-15", "iphone-15-pro-max",
-  "ipad-pro", "pixel-8", "galaxy-s24", "macbook-pro-16",
+  "desktop-chrome",
+  "desktop-firefox",
+  "iphone-15",
+  "iphone-15-pro-max",
+  "ipad-pro",
+  "pixel-8",
+  "galaxy-s24",
+  "macbook-pro-16",
 ];
 
 export function generateBashCompletions(): string {
@@ -84,7 +109,7 @@ _inspect() {
   local -a commands agents modes browsers targets devices templates
 
   commands=(
-${COMMANDS.map(c => `    '${c}:${getCommandDescription(c)}'`).join("\n")}
+${COMMANDS.map((c) => `    '${c}:${getCommandDescription(c)}'`).join("\n")}
   )
 
   agents=(${AGENTS.join(" ")})
@@ -145,7 +170,7 @@ _inspect
 export function generateFishCompletions(): string {
   const lines = [
     "# inspect CLI fish completions",
-    '# Add to fish: inspect completions fish | source',
+    "# Add to fish: inspect completions fish | source",
     "",
     "# Disable file completions by default",
     "complete -c inspect -f",
@@ -154,7 +179,9 @@ export function generateFishCompletions(): string {
   ];
 
   for (const cmd of COMMANDS) {
-    lines.push(`complete -c inspect -n '__fish_use_subcommand' -a '${cmd}' -d '${getCommandDescription(cmd)}'`);
+    lines.push(
+      `complete -c inspect -n '__fish_use_subcommand' -a '${cmd}' -d '${getCommandDescription(cmd)}'`,
+    );
   }
 
   lines.push("");
@@ -165,22 +192,44 @@ export function generateFishCompletions(): string {
   lines.push("complete -c inspect -l config -d 'Config file' -r -F");
   lines.push("");
   lines.push("# test subcommand options");
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l message -s m -d 'Test instruction' -r`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l agent -s a -d 'AI agent' -r -a '${AGENTS.join(" ")}'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l mode -d 'Agent mode' -r -a '${MODES.join(" ")}'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l target -s t -d 'Git scope' -r -a '${TARGETS.join(" ")}'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l browser -d 'Browser' -r -a '${BROWSERS.join(" ")}'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l devices -d 'Device presets' -r -a '${DEVICES.join(" ")}'`);
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l message -s m -d 'Test instruction' -r`,
+  );
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l agent -s a -d 'AI agent' -r -a '${AGENTS.join(" ")}'`,
+  );
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l mode -d 'Agent mode' -r -a '${MODES.join(" ")}'`,
+  );
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l target -s t -d 'Git scope' -r -a '${TARGETS.join(" ")}'`,
+  );
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l browser -d 'Browser' -r -a '${BROWSERS.join(" ")}'`,
+  );
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l devices -d 'Device presets' -r -a '${DEVICES.join(" ")}'`,
+  );
   lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l url -d 'Target URL' -r`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l headed -d 'Visible browser'`);
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l headed -d 'Visible browser'`,
+  );
   lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l a11y -d 'A11y audit'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l lighthouse -d 'Lighthouse audit'`);
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l lighthouse -d 'Lighthouse audit'`,
+  );
   lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l json -d 'JSON output'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from test' -l dry-run -d 'Preview only'`);
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from test' -l dry-run -d 'Preview only'`,
+  );
   lines.push("");
   lines.push("# init subcommand");
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from init' -l template -d 'Template' -r -a 'default minimal comprehensive'`);
-  lines.push(`complete -c inspect -n '__fish_seen_subcommand_from init' -s y -l yes -d 'Overwrite'`);
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from init' -l template -d 'Template' -r -a 'default minimal comprehensive'`,
+  );
+  lines.push(
+    `complete -c inspect -n '__fish_seen_subcommand_from init' -s y -l yes -d 'Overwrite'`,
+  );
 
   return lines.join("\n") + "\n";
 }

@@ -118,7 +118,7 @@ export function TuiVisualBuilder({
   const [pickerIndex, setPickerIndex] = useState(0);
   const [inputBuffer, setInputBuffer] = useState("");
   const [pendingCaseName, setPendingCaseName] = useState("");
-  const [pendingCaseUrl, setPendingCaseUrl] = useState("");
+  const [_pendingCaseUrl, _setPendingCaseUrl] = useState("");
 
   const selectedCase = testCases[selectedCaseIndex];
 
@@ -287,6 +287,7 @@ export function TuiVisualBuilder({
         if (key.return) {
           const selectedType = AVAILABLE_STEP_TYPES[pickerIndex];
           if (selectedType && selectedCase) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newStep = new (VisualTestStep as any)({
               id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
               type: selectedType,

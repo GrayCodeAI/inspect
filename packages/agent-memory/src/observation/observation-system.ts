@@ -41,15 +41,15 @@ export interface Observation {
 }
 
 export type ObservationType =
-  | "visual"      // Screenshot, visual state
-  | "dom"         // DOM structure
-  | "action"      // Agent action
-  | "error"       // Error/failure
-  | "state"       // Application state
-  | "network"     // Network activity
-  | "user"        // User interaction
-  | "system"      // System event
-  | "thought";    // Agent reasoning
+  | "visual" // Screenshot, visual state
+  | "dom" // DOM structure
+  | "action" // Agent action
+  | "error" // Error/failure
+  | "state" // Application state
+  | "network" // Network activity
+  | "user" // User interaction
+  | "system" // System event
+  | "thought"; // Agent reasoning
 
 export interface StructuredData {
   elements?: ElementObservation[];
@@ -151,15 +151,15 @@ export const DEFAULT_OBSERVATION_CONFIG: ObservationConfig = {
 
 // Default retention policies by type
 const DEFAULT_RETENTION: Record<ObservationType, RetentionPolicy> = {
-  visual: { priority: "medium", maxAge: 300000, persist: true },      // 5 min
-  dom: { priority: "low", maxAge: 60000, persist: false },            // 1 min
-  action: { priority: "high", maxAge: 3600000, persist: true },       // 1 hour
-  error: { priority: "critical", persist: true },                     // Forever
-  state: { priority: "medium", maxAge: 300000, persist: true },       // 5 min
-  network: { priority: "low", maxAge: 60000, persist: false },       // 1 min
-  user: { priority: "high", maxAge: 3600000, persist: true },        // 1 hour
-  system: { priority: "medium", maxAge: 300000, persist: true },     // 5 min
-  thought: { priority: "low", maxAge: 60000, persist: false },       // 1 min
+  visual: { priority: "medium", maxAge: 300000, persist: true }, // 5 min
+  dom: { priority: "low", maxAge: 60000, persist: false }, // 1 min
+  action: { priority: "high", maxAge: 3600000, persist: true }, // 1 hour
+  error: { priority: "critical", persist: true }, // Forever
+  state: { priority: "medium", maxAge: 300000, persist: true }, // 5 min
+  network: { priority: "low", maxAge: 60000, persist: false }, // 1 min
+  user: { priority: "high", maxAge: 3600000, persist: true }, // 1 hour
+  system: { priority: "medium", maxAge: 300000, persist: true }, // 5 min
+  thought: { priority: "low", maxAge: 60000, persist: false }, // 1 min
 };
 
 /**
@@ -205,9 +205,7 @@ export class InMemoryObservationStorage implements ObservationStorage {
     }
 
     if (filter.tags) {
-      results = results.filter((o) =>
-        filter.tags!.some((t) => o.metadata.tags.includes(t))
-      );
+      results = results.filter((o) => filter.tags!.some((t) => o.metadata.tags.includes(t)));
     }
 
     results.sort((a, b) => b.timestamp - a.timestamp);
@@ -273,9 +271,7 @@ export class ObservationSystem extends EventEmitter {
 
     // Apply retention policy
     const retention = observation.retention || DEFAULT_RETENTION[observation.type];
-    const expiresAt = retention.maxAge
-      ? Date.now() + retention.maxAge
-      : undefined;
+    const expiresAt = retention.maxAge ? Date.now() + retention.maxAge : undefined;
 
     const fullObservation: Observation = {
       ...observation,
@@ -376,7 +372,7 @@ export class ObservationSystem extends EventEmitter {
    */
   async getSessionObservations(
     sessionId: string,
-    options?: { type?: ObservationType; limit?: number }
+    options?: { type?: ObservationType; limit?: number },
   ): Promise<Observation[]> {
     const filter: ObservationFilter = { sessionId };
 
@@ -407,9 +403,7 @@ export class ObservationSystem extends EventEmitter {
     }
 
     // Create summary content
-    const summaryParts: string[] = [
-      `Summary of ${observations.length} observations`,
-    ];
+    const summaryParts: string[] = [`Summary of ${observations.length} observations`];
 
     for (const [type, typeObs] of Object.entries(byType)) {
       summaryParts.push(`  ${type}: ${typeObs.length}`);
@@ -673,7 +667,7 @@ export class ObservationSystem extends EventEmitter {
     }
 
     // Persist all critical observations
-    for (const [id, obs] of this.observations) {
+    for (const [_id, obs] of this.observations) {
       if (obs.retention.priority === "critical" || obs.retention.persist) {
         await this.storage.save(obs);
       }
@@ -684,8 +678,6 @@ export class ObservationSystem extends EventEmitter {
 /**
  * Convenience function
  */
-export function createObservationSystem(
-  config?: Partial<ObservationConfig>
-): ObservationSystem {
+export function createObservationSystem(config?: Partial<ObservationConfig>): ObservationSystem {
   return new ObservationSystem(config);
 }

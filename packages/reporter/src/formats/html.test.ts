@@ -14,7 +14,14 @@ function createSuiteResult(overrides?: Partial<SuiteResult>): SuiteResult {
         duration: 2000,
         steps: [
           { index: 1, action: "click", target: "Login button", status: "passed", duration: 100 },
-          { index: 2, action: "fill", target: "Email input", value: "user@test.com", status: "passed", duration: 50 },
+          {
+            index: 2,
+            action: "fill",
+            target: "Email input",
+            value: "user@test.com",
+            status: "passed",
+            duration: 50,
+          },
         ],
         screenshots: [],
         startedAt: 1700000000000,
@@ -26,7 +33,14 @@ function createSuiteResult(overrides?: Partial<SuiteResult>): SuiteResult {
         duration: 3000,
         steps: [
           { index: 1, action: "click", target: "Add to cart", status: "passed", duration: 100 },
-          { index: 2, action: "click", target: "Checkout", status: "failed", duration: 50, error: "Button not found" },
+          {
+            index: 2,
+            action: "click",
+            target: "Checkout",
+            status: "failed",
+            duration: 50,
+            error: "Button not found",
+          },
         ],
         error: { message: "Checkout button not found on page" },
         screenshots: [],
@@ -45,7 +59,7 @@ describe("HTMLReporter", () => {
     const html = reporter.generate(createSuiteResult());
 
     expect(html).toContain("<!DOCTYPE html>");
-    expect(html).toContain("<html lang=\"en\">");
+    expect(html).toContain('<html lang="en">');
     expect(html).toContain("</html>");
   });
 
@@ -135,7 +149,7 @@ describe("HTMLReporter", () => {
           duration: 100,
           steps: [],
           screenshots: [],
-          error: { message: '<img src=x onerror=alert(1)>' },
+          error: { message: "<img src=x onerror=alert(1)>" },
           startedAt: 0,
           finishedAt: 100,
         },
@@ -143,7 +157,7 @@ describe("HTMLReporter", () => {
     });
     const html = reporter.generate(suite);
 
-    expect(html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(html).not.toContain("<img src=x onerror=alert(1)>");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 
@@ -197,7 +211,12 @@ describe("HTMLReporter", () => {
           duration: 100,
           steps: [],
           screenshots: [
-            { name: "test", path: "", data: 'abc"><script>alert(1)</script>', timestamp: Date.now() },
+            {
+              name: "test",
+              path: "",
+              data: 'abc"><script>alert(1)</script>',
+              timestamp: Date.now(),
+            },
           ],
           startedAt: 0,
           finishedAt: 100,
@@ -218,9 +237,7 @@ describe("HTMLReporter", () => {
           status: "passed",
           duration: 100,
           steps: [],
-          screenshots: [
-            { name: "test", path: '"><script>xss</script>', timestamp: Date.now() },
-          ],
+          screenshots: [{ name: "test", path: '"><script>xss</script>', timestamp: Date.now() }],
           startedAt: 0,
           finishedAt: 100,
         },

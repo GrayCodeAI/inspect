@@ -40,10 +40,7 @@ export class FileParserBlock {
    * - hasHeaders: whether CSV has header row (default: true)
    * - sheet: sheet name/index for spreadsheet formats
    */
-  async execute(
-    block: WorkflowBlock,
-    context: WorkflowContext,
-  ): Promise<FileParseResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<FileParseResult> {
     const params = block.parameters;
     const filePath = context.render(String(params.path ?? ""));
     const format = String(params.format ?? "auto").toLowerCase();
@@ -58,10 +55,7 @@ export class FileParserBlock {
     const fileSize = buffer.length;
 
     // Detect format
-    const ext =
-      format === "auto"
-        ? path.extname(filePath).toLowerCase().replace(".", "")
-        : format;
+    const ext = format === "auto" ? path.extname(filePath).toLowerCase().replace(".", "") : format;
 
     let data: unknown;
     let rows: number | undefined;
@@ -70,10 +64,7 @@ export class FileParserBlock {
     switch (ext) {
       case "csv":
       case "tsv": {
-        const delimiter =
-          ext === "tsv"
-            ? "\t"
-            : String(params.delimiter ?? ",");
+        const delimiter = ext === "tsv" ? "\t" : String(params.delimiter ?? ",");
         const hasHeaders = (params.hasHeaders as boolean) ?? true;
         const text = this.detectAndDecode(buffer, encoding);
         const result = this.parseCSV(text, delimiter, hasHeaders);
@@ -96,9 +87,7 @@ export class FileParserBlock {
       case "markdown": {
         data = {
           text: buffer.toString(encoding),
-          lines: buffer
-            .toString(encoding)
-            .split(/\r?\n/),
+          lines: buffer.toString(encoding).split(/\r?\n/),
         };
         const lines = (data as { lines: string[] }).lines;
         rows = lines.length;
@@ -215,9 +204,7 @@ export class FileParserBlock {
       };
     }
 
-    const rows = lines.map((line) =>
-      parseLine(line).map((f) => f.trim()),
-    );
+    const rows = lines.map((line) => parseLine(line).map((f) => f.trim()));
     return {
       data: rows,
       rows: rows.length,

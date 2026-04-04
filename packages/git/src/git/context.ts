@@ -89,16 +89,10 @@ export class ContextBuilder {
 
     // Apply diff limit
     const diffTruncated = diff.length > this.limits.maxDiffChars;
-    const truncatedDiff = diffTruncated
-      ? diff.slice(0, this.limits.maxDiffChars)
-      : diff;
+    const truncatedDiff = diffTruncated ? diff.slice(0, this.limits.maxDiffChars) : diff;
 
     // Generate fingerprint
-    const hash = this.fingerprint.generate(
-      allChangedFiles,
-      diff,
-      branch
-    );
+    const hash = this.fingerprint.generate(allChangedFiles, diff, branch);
     const hasChangedSinceLastTest = this.fingerprint.hasChanged(hash);
 
     return {
@@ -131,21 +125,21 @@ export class ContextBuilder {
     sections.push(`Branch: ${context.branch} (base: ${context.mainBranch})`);
     sections.push(`Scope: ${context.scope}`);
     sections.push(
-      `Status: ${context.status.modified} modified, ${context.status.staged} staged, ${context.status.untracked} untracked`
+      `Status: ${context.status.modified} modified, ${context.status.staged} staged, ${context.status.untracked} untracked`,
     );
 
     // Changed files
     if (context.changedFiles.length > 0) {
       sections.push("");
       sections.push(
-        `Changed Files (${context.changedFiles.length}${context.totalChangedFiles > context.changedFiles.length ? ` of ${context.totalChangedFiles}` : ""}):`
+        `Changed Files (${context.changedFiles.length}${context.totalChangedFiles > context.changedFiles.length ? ` of ${context.totalChangedFiles}` : ""}):`,
       );
       for (const file of context.changedFiles) {
         sections.push(`  - ${file}`);
       }
       if (context.totalChangedFiles > context.changedFiles.length) {
         sections.push(
-          `  ... and ${context.totalChangedFiles - context.changedFiles.length} more files`
+          `  ... and ${context.totalChangedFiles - context.changedFiles.length} more files`,
         );
       }
     }
@@ -174,9 +168,7 @@ export class ContextBuilder {
     // Fingerprint
     sections.push("");
     sections.push(`Fingerprint: ${context.fingerprint.slice(0, 12)}...`);
-    sections.push(
-      `Changed since last test: ${context.hasChangedSinceLastTest ? "yes" : "no"}`
-    );
+    sections.push(`Changed since last test: ${context.hasChangedSinceLastTest ? "yes" : "no"}`);
 
     return sections.join("\n");
   }
@@ -185,11 +177,6 @@ export class ContextBuilder {
    * Save the current fingerprint (call after successful test run).
    */
   async saveFingerprint(context: GitContext): Promise<void> {
-    this.fingerprint.save(
-      context.fingerprint,
-      context.changedFiles,
-      context.diff,
-      context.branch
-    );
+    this.fingerprint.save(context.fingerprint, context.changedFiles, context.diff, context.branch);
   }
 }

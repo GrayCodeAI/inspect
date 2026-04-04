@@ -3,7 +3,7 @@
 // Supports OpenAI Whisper (STT), OpenAI TTS, Azure Speech, ElevenLabs
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect";
+import { Effect, Layer, Schema, ServiceMap } from "effect";
 import { File } from "node:buffer";
 import * as fs from "node:fs/promises";
 

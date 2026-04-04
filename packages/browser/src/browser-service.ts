@@ -8,30 +8,48 @@ export interface BrowserSession {
   readonly title: Effect.Effect<string>;
   readonly screenshot: (path?: string) => Effect.Effect<string>;
   readonly evaluate: <T>(script: string) => Effect.Effect<T>;
-  readonly waitForSelector: (selector: string, timeout?: number) => Effect.Effect<void, ElementNotFoundError | TimeoutError>;
+  readonly waitForSelector: (
+    selector: string,
+    timeout?: number,
+  ) => Effect.Effect<void, ElementNotFoundError | TimeoutError>;
   readonly click: (selector: string) => Effect.Effect<void, ElementNotFoundError>;
   readonly type: (selector: string, text: string) => Effect.Effect<void, ElementNotFoundError>;
   readonly getText: (selector: string) => Effect.Effect<string, ElementNotFoundError>;
-  readonly getAttribute: (selector: string, attr: string) => Effect.Effect<string, ElementNotFoundError>;
+  readonly getAttribute: (
+    selector: string,
+    attr: string,
+  ) => Effect.Effect<string, ElementNotFoundError>;
   readonly isVisible: (selector: string) => Effect.Effect<boolean>;
   readonly count: (selector: string) => Effect.Effect<number>;
   readonly consoleLogs: Effect.Effect<readonly string[]>;
   readonly networkRequests: Effect.Effect<readonly unknown[]>;
 }
 
-export class BrowserManager extends ServiceMap.Service<BrowserManager, {
-  readonly launch: (options?: { headless?: boolean; channel?: string }) => Effect.Effect<BrowserSession, BrowserError, Scope.Scope>;
-  readonly closeAll: () => Effect.Effect<void>;
-  readonly sessionCount: () => Effect.Effect<number>;
-}>()("@inspect/BrowserManager") {
-  static layer = Layer.effect(this,
+export class BrowserManager extends ServiceMap.Service<
+  BrowserManager,
+  {
+    readonly launch: (options?: {
+      headless?: boolean;
+      channel?: string;
+    }) => Effect.Effect<BrowserSession, BrowserError, Scope.Scope>;
+    readonly closeAll: () => Effect.Effect<void>;
+    readonly sessionCount: () => Effect.Effect<number>;
+  }
+>()("@inspect/BrowserManager") {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
       const sessions = new Set<BrowserSession>();
 
-      const launch = (_options?: { headless?: boolean; channel?: string }): Effect.Effect<BrowserSession, BrowserError, Scope.Scope> => {
+      const launch = (_options?: {
+        headless?: boolean;
+        channel?: string;
+      }): Effect.Effect<BrowserSession, BrowserError, Scope.Scope> => {
         const session: BrowserSession = {
           navigate: (_url: string) => Effect.succeed(undefined),
-          close: Effect.sync(() => { sessions.delete(session); }),
+          close: Effect.sync(() => {
+            sessions.delete(session);
+          }),
           url: Effect.succeed("about:blank"),
           title: Effect.succeed(""),
           screenshot: (_path?: string) => Effect.succeed(""),

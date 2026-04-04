@@ -96,7 +96,9 @@ export function buildTestPrompt(
       parts.push("");
       parts.push(`## Available Input Fields`);
       for (const field of elements.inputFields) {
-        parts.push(`- [${field.ref}] ${field.role}: "${field.name}"${field.type ? ` (type: ${field.type})` : ""}`);
+        parts.push(
+          `- [${field.ref}] ${field.role}: "${field.name}"${field.type ? ` (type: ${field.type})` : ""}`,
+        );
       }
     }
 
@@ -147,7 +149,9 @@ export function buildTestPrompt(
 
   parts.push("");
   parts.push("## Instructions");
-  parts.push("Analyze the target, devise adversarial test cases, and execute them. Report all findings.");
+  parts.push(
+    "Analyze the target, devise adversarial test cases, and execute them. Report all findings.",
+  );
 
   return parts.join("\n");
 }
@@ -157,28 +161,28 @@ export function buildTestPrompt(
  */
 export function getAdversarialPayloads(fieldType?: string): string[] {
   const universal = [
-    "",                                      // empty
-    " ",                                     // whitespace only
-    "a".repeat(10000),                       // very long string
-    "<script>alert(1)</script>",             // XSS basic
-    "'\"><img src=x onerror=alert(1)>",      // XSS attribute breakout
-    "{{7*7}}",                               // SSTI
-    "${7*7}",                                // Template injection
-    "' OR '1'='1' --",                       // SQL injection
-    "'; DROP TABLE users; --",               // SQL injection destructive
-    "../../../etc/passwd",                   // Path traversal
-    "null",                                  // null string
-    "undefined",                             // undefined string
-    "NaN",                                   // NaN string
-    "-1",                                    // negative number
-    "0",                                     // zero
-    "99999999999999999",                     // large number
-    "1e308",                                 // float overflow
-    "\0",                                    // null byte
-    "\n\r\n",                                // newlines
-    "\t\t\t",                                // tabs
-    "test@test.com\nBcc: victim@evil.com",   // email header injection
-    "Robert'); DROP TABLE Students;--",      // Bobby Tables
+    "", // empty
+    " ", // whitespace only
+    "a".repeat(10000), // very long string
+    "<script>alert(1)</script>", // XSS basic
+    "'\"><img src=x onerror=alert(1)>", // XSS attribute breakout
+    "{{7*7}}", // SSTI
+    "${7*7}", // Template injection
+    "' OR '1'='1' --", // SQL injection
+    "'; DROP TABLE users; --", // SQL injection destructive
+    "../../../etc/passwd", // Path traversal
+    "null", // null string
+    "undefined", // undefined string
+    "NaN", // NaN string
+    "-1", // negative number
+    "0", // zero
+    "99999999999999999", // large number
+    "1e308", // float overflow
+    "\0", // null byte
+    "\n\r\n", // newlines
+    "\t\t\t", // tabs
+    "test@test.com\nBcc: victim@evil.com", // email header injection
+    "Robert'); DROP TABLE Students;--", // Bobby Tables
   ];
 
   const byType: Record<string, string[]> = {
@@ -208,19 +212,8 @@ export function getAdversarialPayloads(fieldType?: string): string[] {
       "//evil.com",
       "https://evil.com\\@good.com",
     ],
-    date: [
-      "0000-00-00",
-      "9999-12-31",
-      "2024-13-01",
-      "2024-02-30",
-      "not-a-date",
-    ],
-    phone: [
-      "000-000-0000",
-      "+0000000000000000",
-      "911",
-      "+1 (555) 123-4567 ext. 999999",
-    ],
+    date: ["0000-00-00", "9999-12-31", "2024-13-01", "2024-02-30", "not-a-date"],
+    phone: ["000-000-0000", "+0000000000000000", "911", "+1 (555) 123-4567 ext. 999999"],
   };
 
   return [...universal, ...(byType[fieldType ?? ""] ?? [])];

@@ -24,9 +24,7 @@ import {
 describe("generateId", () => {
   it("returns a valid UUID v4 string", () => {
     const id = generateId();
-    expect(id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it("returns unique values on each call", () => {
@@ -55,40 +53,56 @@ describe("sleep", () => {
 describe("retry", () => {
   it("returns result on first success without retrying", async () => {
     let calls = 0;
-    const result = await retry(async () => {
-      calls++;
-      return "ok";
-    }, 3, 1);
+    const result = await retry(
+      async () => {
+        calls++;
+        return "ok";
+      },
+      3,
+      1,
+    );
     expect(result).toBe("ok");
     expect(calls).toBe(1);
   });
 
   it("retries on failure and eventually succeeds", async () => {
     let calls = 0;
-    const result = await retry(async () => {
-      calls++;
-      if (calls < 3) throw new Error("fail");
-      return "success";
-    }, 3, 1);
+    const result = await retry(
+      async () => {
+        calls++;
+        if (calls < 3) throw new Error("fail");
+        return "success";
+      },
+      3,
+      1,
+    );
     expect(result).toBe("success");
     expect(calls).toBe(3);
   });
 
   it("throws the last error after exhausting retries", async () => {
     await expect(
-      retry(async () => {
-        throw new Error("always fails");
-      }, 2, 1),
+      retry(
+        async () => {
+          throw new Error("always fails");
+        },
+        2,
+        1,
+      ),
     ).rejects.toThrow("always fails");
   });
 
   it("respects maxRetries parameter", async () => {
     let calls = 0;
     try {
-      await retry(async () => {
-        calls++;
-        throw new Error("fail");
-      }, 1, 1);
+      await retry(
+        async () => {
+          calls++;
+          throw new Error("fail");
+        },
+        1,
+        1,
+      );
     } catch {
       // expected
     }
@@ -112,9 +126,7 @@ describe("sha256", () => {
   });
 
   it("matches known SHA-256 for empty string", () => {
-    expect(sha256("")).toBe(
-      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    );
+    expect(sha256("")).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
   });
 });
 
@@ -249,10 +261,7 @@ describe("deepMerge", () => {
   });
 
   it("deep merges nested objects", () => {
-    const result = deepMerge(
-      { nested: { a: 1, b: 2 } },
-      { nested: { b: 3, c: 4 } },
-    );
+    const result = deepMerge({ nested: { a: 1, b: 2 } }, { nested: { b: 3, c: 4 } });
     expect(result).toEqual({ nested: { a: 1, b: 3, c: 4 } });
   });
 

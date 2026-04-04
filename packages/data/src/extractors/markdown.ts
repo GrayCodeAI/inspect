@@ -45,12 +45,9 @@ export class MarkdownExtractor {
     );
 
     // Pre blocks without code
-    result = result.replace(
-      /<pre[^>]*>([\s\S]*?)<\/pre>/gi,
-      (_match, content: string) => {
-        return `\n\n\`\`\`\n${this.decodeEntities(content).trim()}\n\`\`\`\n\n`;
-      },
-    );
+    result = result.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_match, content: string) => {
+      return `\n\n\`\`\`\n${this.decodeEntities(content).trim()}\n\`\`\`\n\n`;
+    });
 
     // Tables
     result = this.convertTables(result);
@@ -86,22 +83,13 @@ export class MarkdownExtractor {
     // Process inline elements
 
     // Bold
-    result = result.replace(
-      /<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi,
-      "**$1**",
-    );
+    result = result.replace(/<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi, "**$1**");
 
     // Italic
-    result = result.replace(
-      /<(?:em|i)[^>]*>([\s\S]*?)<\/(?:em|i)>/gi,
-      "*$1*",
-    );
+    result = result.replace(/<(?:em|i)[^>]*>([\s\S]*?)<\/(?:em|i)>/gi, "*$1*");
 
     // Strikethrough
-    result = result.replace(
-      /<(?:del|s|strike)[^>]*>([\s\S]*?)<\/(?:del|s|strike)>/gi,
-      "~~$1~~",
-    );
+    result = result.replace(/<(?:del|s|strike)[^>]*>([\s\S]*?)<\/(?:del|s|strike)>/gi, "~~$1~~");
 
     // Inline code
     result = result.replace(
@@ -148,56 +136,49 @@ export class MarkdownExtractor {
    * Convert HTML tables to Markdown tables.
    */
   private convertTables(html: string): string {
-    return html.replace(
-      /<table[^>]*>([\s\S]*?)<\/table>/gi,
-      (_match, tableContent: string) => {
-        const rows: string[][] = [];
+    return html.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (_match, tableContent: string) => {
+      const rows: string[][] = [];
 
-        // Extract thead rows
-        const theadMatch = tableContent.match(
-          /<thead[^>]*>([\s\S]*?)<\/thead>/i,
-        );
-        if (theadMatch) {
-          const headerRows = this.extractTableRows(theadMatch[1]);
-          rows.push(...headerRows);
+      // Extract thead rows
+      const theadMatch = tableContent.match(/<thead[^>]*>([\s\S]*?)<\/thead>/i);
+      if (theadMatch) {
+        const headerRows = this.extractTableRows(theadMatch[1]);
+        rows.push(...headerRows);
+      }
+
+      // Extract tbody rows
+      const tbodyMatch = tableContent.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
+      if (tbodyMatch) {
+        const bodyRows = this.extractTableRows(tbodyMatch[1]);
+        rows.push(...bodyRows);
+      }
+
+      // If no thead/tbody, extract rows directly
+      if (rows.length === 0) {
+        rows.push(...this.extractTableRows(tableContent));
+      }
+
+      if (rows.length === 0) return "";
+
+      // Build markdown table
+      const maxCols = Math.max(...rows.map((r) => r.length));
+      const lines: string[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i];
+        // Pad to max columns
+        while (cells.length < maxCols) cells.push("");
+        lines.push(`| ${cells.join(" | ")} |`);
+
+        // Add separator after header row
+        if (i === 0) {
+          const separator = cells.map(() => "---");
+          lines.push(`| ${separator.join(" | ")} |`);
         }
+      }
 
-        // Extract tbody rows
-        const tbodyMatch = tableContent.match(
-          /<tbody[^>]*>([\s\S]*?)<\/tbody>/i,
-        );
-        if (tbodyMatch) {
-          const bodyRows = this.extractTableRows(tbodyMatch[1]);
-          rows.push(...bodyRows);
-        }
-
-        // If no thead/tbody, extract rows directly
-        if (rows.length === 0) {
-          rows.push(...this.extractTableRows(tableContent));
-        }
-
-        if (rows.length === 0) return "";
-
-        // Build markdown table
-        const maxCols = Math.max(...rows.map((r) => r.length));
-        const lines: string[] = [];
-
-        for (let i = 0; i < rows.length; i++) {
-          const cells = rows[i];
-          // Pad to max columns
-          while (cells.length < maxCols) cells.push("");
-          lines.push(`| ${cells.join(" | ")} |`);
-
-          // Add separator after header row
-          if (i === 0) {
-            const separator = cells.map(() => "---");
-            lines.push(`| ${separator.join(" | ")} |`);
-          }
-        }
-
-        return `\n\n${lines.join("\n")}\n\n`;
-      },
-    );
+      return `\n\n${lines.join("\n")}\n\n`;
+    });
   }
 
   /**
@@ -237,20 +218,14 @@ export class MarkdownExtractor {
       const before = result;
 
       // Unordered lists
-      result = result.replace(
-        /<ul[^>]*>([\s\S]*?)<\/ul>/gi,
-        (_match, content: string) => {
-          return this.processListItems(content, "ul", 0);
-        },
-      );
+      result = result.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_match, content: string) => {
+        return this.processListItems(content, "ul", 0);
+      });
 
       // Ordered lists
-      result = result.replace(
-        /<ol[^>]*>([\s\S]*?)<\/ol>/gi,
-        (_match, content: string) => {
-          return this.processListItems(content, "ol", 0);
-        },
-      );
+      result = result.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_match, content: string) => {
+        return this.processListItems(content, "ol", 0);
+      });
 
       if (result === before) break;
     }
@@ -261,11 +236,7 @@ export class MarkdownExtractor {
   /**
    * Process list items.
    */
-  private processListItems(
-    html: string,
-    listType: "ul" | "ol",
-    depth: number,
-  ): string {
+  private processListItems(html: string, listType: "ul" | "ol", depth: number): string {
     const items: string[] = [];
     const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
     let match: RegExpExecArray | null;

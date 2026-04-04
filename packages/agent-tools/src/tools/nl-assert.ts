@@ -8,7 +8,15 @@
 // import type { LLMProvider, LLMMessage, LLMContentPart } from "@inspect/llm";
 // TODO: Refactor to use Effect-TS LLMProviderService
 interface LLMProvider {
-  chat: (messages: unknown[], options?: { systemPrompt?: string; temperature?: number; maxTokens?: number; responseFormat?: string }) => Promise<{ content: string; usage: { totalTokens: number } }>;
+  chat: (
+    messages: unknown[],
+    options?: {
+      systemPrompt?: string;
+      temperature?: number;
+      maxTokens?: number;
+      responseFormat?: string;
+    },
+  ) => Promise<{ content: string; usage: { totalTokens: number } }>;
 }
 type LLMMessage = { role: string; content: unknown };
 type LLMContentPart = { type: string; text?: string; media_type?: string; data?: string };
@@ -101,7 +109,9 @@ export class NLAssert {
         tokenUsage,
       };
     } catch (error) {
-      logger.warn("Failed to parse assertion result JSON", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to parse assertion result JSON", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       const text = response.content.toLowerCase();
       const passed = text.includes("true") || text.includes("passed");
 
@@ -118,10 +128,7 @@ export class NLAssert {
   /**
    * Verify multiple assertions in a single LLM call (batch mode).
    */
-  async verifyBatch(
-    assertions: string[],
-    context: AssertionContext,
-  ): Promise<AssertionResult[]> {
+  async verifyBatch(assertions: string[], context: AssertionContext): Promise<AssertionResult[]> {
     if (assertions.length === 0) return [];
     if (assertions.length === 1) return [await this.verify(assertions[0], context)];
 
@@ -135,7 +142,9 @@ export class NLAssert {
     const messages: LLMMessage[] = [{ role: "user", content: userContent }];
 
     const response = await this.provider.chat(messages, {
-      systemPrompt: ASSERTION_SYSTEM_PROMPT + "\n\nFor batch mode: respond with a JSON array of result objects, one per assertion.",
+      systemPrompt:
+        ASSERTION_SYSTEM_PROMPT +
+        "\n\nFor batch mode: respond with a JSON array of result objects, one per assertion.",
       temperature: 0,
       maxTokens: 1000,
       responseFormat: "json",
@@ -159,24 +168,21 @@ export class NLAssert {
         tokenUsage: perTokenCost,
       }));
     } catch (error) {
-      logger.warn("Failed to parse batch assertion results, falling back to individual verification", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn(
+        "Failed to parse batch assertion results, falling back to individual verification",
+        { err: error instanceof Error ? error.message : String(error) },
+      );
       return Promise.all(assertions.map((a) => this.verify(a, context)));
     }
   }
 
   private buildMessages(assertion: string, context: AssertionContext): LLMMessage[] {
-    const userContent = this.buildUserContent(
-      `Verify this assertion: "${assertion}"`,
-      context,
-    );
+    const userContent = this.buildUserContent(`Verify this assertion: "${assertion}"`, context);
 
     return [{ role: "user", content: userContent }];
   }
 
-  private buildUserContent(
-    prompt: string,
-    context: AssertionContext,
-  ): string | LLMContentPart[] {
+  private buildUserContent(prompt: string, context: AssertionContext): string | LLMContentPart[] {
     let textContent = prompt + "\n\n";
 
     if (context.url) textContent += `**URL:** ${context.url}\n`;

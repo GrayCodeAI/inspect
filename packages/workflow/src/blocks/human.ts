@@ -62,20 +62,14 @@ export class HumanInteractionBlock {
   /**
    * Listen for human interaction requests.
    */
-  onInteractionRequired(
-    handler: (request: HumanInteractionRequest) => void,
-  ): void {
+  onInteractionRequired(handler: (request: HumanInteractionRequest) => void): void {
     this.emitter.on("interaction:required", handler);
   }
 
   /**
    * Resume a paused interaction with response data.
    */
-  resume(
-    runId: string,
-    data: Record<string, unknown>,
-    respondedBy?: string,
-  ): boolean {
+  resume(runId: string, data: Record<string, unknown>, respondedBy?: string): boolean {
     const key = runId;
     const pending = this.pendingInteractions.get(key);
     if (!pending) return false;
@@ -111,9 +105,7 @@ export class HumanInteractionBlock {
     runId: string,
   ): Promise<HumanBlockResult> {
     const params = block.parameters;
-    const prompt = context.render(
-      String(params.prompt ?? "Human input required"),
-    );
+    const prompt = context.render(String(params.prompt ?? "Human input required"));
     const fields = (params.fields as HumanInputField[]) ?? [];
     const deadline = params.deadline as number | undefined;
     const required = (params.required as boolean) ?? true;
@@ -134,11 +126,9 @@ export class HumanInteractionBlock {
     this.emitter.emit("interaction:required", request);
 
     // Wait for response
-    const responsePromise = new Promise<HumanInteractionResponse | null>(
-      (resolve) => {
-        this.pendingInteractions.set(runId, { resolve });
-      },
-    );
+    const responsePromise = new Promise<HumanInteractionResponse | null>((resolve) => {
+      this.pendingInteractions.set(runId, { resolve });
+    });
 
     let response: HumanInteractionResponse | null;
 
@@ -161,9 +151,7 @@ export class HumanInteractionBlock {
     const timedOut = response === null && deadline !== undefined;
 
     if (timedOut && required) {
-      throw new Error(
-        `Human interaction timed out after ${deadline}ms: ${prompt}`,
-      );
+      throw new Error(`Human interaction timed out after ${deadline}ms: ${prompt}`);
     }
 
     // Validate response fields
@@ -190,12 +178,12 @@ export class HumanInteractionBlock {
   /**
    * Validate response data against field definitions.
    */
-  private validateResponse(
-    data: Record<string, unknown>,
-    fields: HumanInputField[],
-  ): void {
+  private validateResponse(data: Record<string, unknown>, fields: HumanInputField[]): void {
     for (const field of fields) {
-      if (field.required && (!(field.name in data) || data[field.name] === undefined || data[field.name] === "")) {
+      if (
+        field.required &&
+        (!(field.name in data) || data[field.name] === undefined || data[field.name] === "")
+      ) {
         throw new Error(`Required field '${field.label}' is missing`);
       }
 
@@ -205,26 +193,17 @@ export class HumanInteractionBlock {
       switch (field.type) {
         case "number":
           if (typeof value !== "number" && isNaN(Number(value))) {
-            throw new Error(
-              `Field '${field.label}' must be a number`,
-            );
+            throw new Error(`Field '${field.label}' must be a number`);
           }
           break;
         case "boolean":
           if (typeof value !== "boolean" && value !== "true" && value !== "false") {
-            throw new Error(
-              `Field '${field.label}' must be a boolean`,
-            );
+            throw new Error(`Field '${field.label}' must be a boolean`);
           }
           break;
         case "select":
-          if (
-            field.options &&
-            !field.options.includes(String(value))
-          ) {
-            throw new Error(
-              `Field '${field.label}' must be one of: ${field.options.join(", ")}`,
-            );
+          if (field.options && !field.options.includes(String(value))) {
+            throw new Error(`Field '${field.label}' must be one of: ${field.options.join(", ")}`);
           }
           break;
       }
@@ -233,9 +212,7 @@ export class HumanInteractionBlock {
       if (field.validation && typeof value === "string") {
         const regex = new RegExp(field.validation);
         if (!regex.test(value)) {
-          throw new Error(
-            `Field '${field.label}' does not match validation pattern`,
-          );
+          throw new Error(`Field '${field.label}' does not match validation pattern`);
         }
       }
     }

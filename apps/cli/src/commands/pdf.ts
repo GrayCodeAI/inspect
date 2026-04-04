@@ -21,7 +21,7 @@ async function generatePDF(url: string, output: string, options: PDFOptions): Pr
   await browserMgr.launchBrowser({
     headless: true,
     viewport: { width: 1280, height: 720 },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   const page = await browserMgr.newPage();
 
@@ -55,7 +55,9 @@ async function generatePDF(url: string, output: string, options: PDFOptions): Pr
 
   console.log(chalk.green(`PDF saved: ${output}`));
   console.log(chalk.dim(`  URL: ${url}`));
-  console.log(chalk.dim(`  Format: ${options.format ?? "A4"}${options.landscape ? " (landscape)" : ""}`));
+  console.log(
+    chalk.dim(`  Format: ${options.format ?? "A4"}${options.landscape ? " (landscape)" : ""}`),
+  );
 }
 
 export function registerPDFCommand(program: Command): void {
@@ -66,16 +68,22 @@ export function registerPDFCommand(program: Command): void {
     .argument("<output>", "Output PDF file path")
     .option("--format <format>", "Paper format: A4, Letter, Legal, Tabloid", "A4")
     .option("--landscape", "Use landscape orientation")
-    .option("--margin <margin>", "Margins: single value or top,right,bottom,left (e.g. 1cm or 1cm,2cm,1cm,2cm)")
+    .option(
+      "--margin <margin>",
+      "Margins: single value or top,right,bottom,left (e.g. 1cm or 1cm,2cm,1cm,2cm)",
+    )
     .option("--no-print-background", "Disable printing background graphics")
     .option("--wait-for-timeout <ms>", "Wait N ms before generating PDF")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect pdf https://example.com page.pdf
   $ inspect pdf https://myapp.com report.pdf --format Letter --landscape
   $ inspect pdf https://docs.site.com docs.pdf --margin "2cm,1cm,2cm,1cm"
   $ inspect pdf https://myapp.com/invoice invoice.pdf --no-print-background
-`)
+`,
+    )
     .action(async (url: string, output: string, opts: PDFOptions) => {
       try {
         await generatePDF(url, output, opts);

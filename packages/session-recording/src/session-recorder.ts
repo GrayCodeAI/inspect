@@ -1,4 +1,3 @@
-/* eslint-disable require-yield */
 import { Effect, Layer, ServiceMap, Schema } from "effect";
 import * as RecError from "./errors.js";
 
@@ -190,6 +189,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
           }
 
           const eventsJson = JSON.stringify(session.events);
+          /* eslint-disable no-useless-escape */
           const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -217,6 +217,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
   <\/script>
 </body>
 </html>`;
+          /* eslint-enable no-useless-escape */
 
           yield* Effect.tryPromise({
             try: async () => {

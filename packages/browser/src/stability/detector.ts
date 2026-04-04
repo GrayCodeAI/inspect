@@ -4,7 +4,8 @@
  * Two-phase stability detection: network + visual
  */
 
-import { Effect, Stream, SubscriptionRef } from "effect";
+// Import reserved for future stability detection features
+// import { Effect, Stream, SubscriptionRef } from "effect";
 import type { Page } from "playwright";
 import { createHash } from "crypto";
 
@@ -46,18 +47,18 @@ export class StabilityDetector {
   constructor(
     private page: Page,
     private options: {
-      networkQuietPeriod: number;    // Task 297: 500ms of no activity
-      visualCheckInterval: number;   // Task 299: 100ms intervals
-      visualStableFrames: number;    // Task 301: 3 consecutive frames
-      visualThreshold: number;       // Task 301: 0.01 difference
-      maxWaitTime: number;           // Task 303: Max wait time
+      networkQuietPeriod: number; // Task 297: 500ms of no activity
+      visualCheckInterval: number; // Task 299: 100ms intervals
+      visualStableFrames: number; // Task 301: 3 consecutive frames
+      visualThreshold: number; // Task 301: 0.01 difference
+      maxWaitTime: number; // Task 303: Max wait time
     } = {
       networkQuietPeriod: 500,
       visualCheckInterval: 100,
       visualStableFrames: 3,
       visualThreshold: 0.01,
       maxWaitTime: 30000,
-    }
+    },
   ) {}
 
   /**
@@ -153,10 +154,8 @@ export class StabilityDetector {
       });
 
       // Keep only recent history
-      const cutoff = Date.now() - (this.options.visualCheckInterval * 5);
-      this.screenshotHistory = this.screenshotHistory.filter(
-        (s) => s.timestamp > cutoff
-      );
+      const cutoff = Date.now() - this.options.visualCheckInterval * 5;
+      this.screenshotHistory = this.screenshotHistory.filter((s) => s.timestamp > cutoff);
 
       // Task 301: Check for 3 consecutive stable frames
       if (this.screenshotHistory.length >= this.options.visualStableFrames) {
@@ -239,7 +238,7 @@ export class TabManager {
     for (const page of this.pages) {
       try {
         const lastActivity = await page.evaluate(
-          () => (window as unknown as { __tabActivityTime?: number }).__tabActivityTime || 0
+          () => (window as unknown as { __tabActivityTime?: number }).__tabActivityTime || 0,
         );
         this.tabActivity.set(page.url(), lastActivity);
       } catch {

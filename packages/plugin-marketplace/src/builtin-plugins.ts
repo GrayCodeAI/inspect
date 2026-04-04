@@ -1,4 +1,4 @@
-import type { PluginHook, PluginManifest, PluginHookName } from "./plugin-types";
+import type { PluginHook, PluginManifest } from "./plugin-types";
 
 interface BuiltinPlugin {
   manifest: PluginManifest;

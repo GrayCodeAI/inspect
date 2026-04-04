@@ -6,7 +6,7 @@
  */
 
 import { Effect, Schema } from "effect";
-import type { AgentBrain } from "../brain.js";
+import type { AgentBrain as _AgentBrain } from "../brain.js";
 import type { AgentHistoryEntry, BrowserState } from "../history.js";
 import { AgentHistoryList } from "../history.js";
 

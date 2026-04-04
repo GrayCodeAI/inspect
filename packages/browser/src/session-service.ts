@@ -1,13 +1,17 @@
 import { Effect, Layer, ServiceMap } from "effect";
 
-export class SessionRecorder extends ServiceMap.Service<SessionRecorder, {
-  readonly start: (outputDir?: string) => Effect.Effect<void>;
-  readonly stop: () => Effect.Effect<readonly unknown[]>;
-  readonly save: (planId: string) => Effect.Effect<string>;
-  readonly generateViewer: (outputPath: string) => Effect.Effect<string>;
-  readonly isRecording: Effect.Effect<boolean>;
-}>()("@inspect/SessionRecorder") {
-  static layer = Layer.effect(this, 
+export class SessionRecorder extends ServiceMap.Service<
+  SessionRecorder,
+  {
+    readonly start: (outputDir?: string) => Effect.Effect<void>;
+    readonly stop: () => Effect.Effect<readonly unknown[]>;
+    readonly save: (planId: string) => Effect.Effect<string>;
+    readonly generateViewer: (outputPath: string) => Effect.Effect<string>;
+    readonly isRecording: Effect.Effect<boolean>;
+  }
+>()("@inspect/SessionRecorder") {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
       let recording = false;
       const events: unknown[] = [];
@@ -31,7 +35,9 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder, {
         return path;
       });
 
-      const generateViewer = Effect.fn("SessionRecorder.generateViewer")(function* (outputPath: string) {
+      const generateViewer = Effect.fn("SessionRecorder.generateViewer")(function* (
+        outputPath: string,
+      ) {
         yield* Effect.logInfo("Replay viewer generated", { path: outputPath });
         return outputPath;
       });

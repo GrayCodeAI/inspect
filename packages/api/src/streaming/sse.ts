@@ -45,10 +45,7 @@ export class SSEManager {
    * Add a new SSE client connection.
    * Sets the appropriate headers and returns the client ID.
    */
-  addClient(
-    res: ServerResponse,
-    channels?: string[],
-  ): string {
+  addClient(res: ServerResponse, channels?: string[]): string {
     const clientId = generateId();
 
     // Set SSE headers
@@ -61,9 +58,7 @@ export class SSEManager {
     });
 
     // Send initial connection event
-    res.write(
-      `event: connected\ndata: ${JSON.stringify({ clientId })}\n\n`,
-    );
+    res.write(`event: connected\ndata: ${JSON.stringify({ clientId })}\n\n`);
 
     const client: SSEClient = {
       id: clientId,
@@ -96,7 +91,10 @@ export class SSEManager {
         client.response.end();
       }
     } catch (error) {
-      logger.debug("SSE client cleanup error", { clientId: id, err: error instanceof Error ? error.message : String(error) });
+      logger.debug("SSE client cleanup error", {
+        clientId: id,
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
 
     this.clients.delete(id);
@@ -122,11 +120,7 @@ export class SSEManager {
 
     for (const client of this.clients.values()) {
       // Check channel filter
-      if (
-        channel &&
-        !client.channels.has("*") &&
-        !client.channels.has(channel)
-      ) {
+      if (channel && !client.channels.has("*") && !client.channels.has(channel)) {
         continue;
       }
 
@@ -175,9 +169,7 @@ export class SSEManager {
   /**
    * Get client info.
    */
-  getClientInfo(
-    id: string,
-  ): Omit<SSEClient, "response"> | undefined {
+  getClientInfo(id: string): Omit<SSEClient, "response"> | undefined {
     const client = this.clients.get(id);
     if (!client) return undefined;
     return {
@@ -222,11 +214,7 @@ export class SSEManager {
   /**
    * Write an SSE event to a client.
    */
-  private writeEvent(
-    client: SSEClient,
-    event: string,
-    data: unknown,
-  ): boolean {
+  private writeEvent(client: SSEClient, event: string, data: unknown): boolean {
     try {
       if (client.response.writableEnded) {
         this.clients.delete(client.id);
@@ -234,8 +222,7 @@ export class SSEManager {
       }
 
       const eventId = ++this.eventId;
-      const dataStr =
-        typeof data === "string" ? data : JSON.stringify(data);
+      const dataStr = typeof data === "string" ? data : JSON.stringify(data);
 
       let message = `id: ${eventId}\n`;
       message += `event: ${event}\n`;
@@ -252,7 +239,10 @@ export class SSEManager {
       client.eventCount++;
       return true;
     } catch (error) {
-      logger.debug("SSE write failed, removing client", { clientId: client.id, err: error instanceof Error ? error.message : String(error) });
+      logger.debug("SSE write failed, removing client", {
+        clientId: client.id,
+        err: error instanceof Error ? error.message : String(error),
+      });
       this.clients.delete(client.id);
       return false;
     }
@@ -272,7 +262,10 @@ export class SSEManager {
         }
         client.response.write(`: keepalive ${Date.now()}\n\n`);
       } catch (error) {
-        logger.debug("SSE keepalive failed, marking client dead", { clientId: id, err: error instanceof Error ? error.message : String(error) });
+        logger.debug("SSE keepalive failed, marking client dead", {
+          clientId: id,
+          err: error instanceof Error ? error.message : String(error),
+        });
         deadClients.push(id);
       }
     }

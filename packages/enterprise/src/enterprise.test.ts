@@ -10,8 +10,15 @@ const _mockLocalProvider = {
   getModel: () => "llama3.1",
   supportsVision: () => false,
   supportsThinking: () => false,
-  chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
-  stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+  chat: async () => ({
+    content: "",
+    toolCalls: [],
+    finishReason: "stop" as const,
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+  }),
+  stream: async function* () {
+    yield { done: true, toolCallDelta: undefined };
+  },
 } as unknown as LLMProvider;
 
 const _mockCloudProvider = {
@@ -19,8 +26,15 @@ const _mockCloudProvider = {
   getModel: () => "claude-sonnet",
   supportsVision: () => true,
   supportsThinking: () => true,
-  chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
-  stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+  chat: async () => ({
+    content: "",
+    toolCalls: [],
+    finishReason: "stop" as const,
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+  }),
+  stream: async function* () {
+    yield { done: true, toolCallDelta: undefined };
+  },
 } as unknown as LLMProvider;
 
 describe("RBACManager", () => {
@@ -73,16 +87,30 @@ describe("HybridRouter", () => {
     getModel: () => "llama3.1",
     supportsVision: () => false,
     supportsThinking: () => false,
-    chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
-    stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+    chat: async () => ({
+      content: "",
+      toolCalls: [],
+      finishReason: "stop" as const,
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
+    stream: async function* () {
+      yield { done: true, toolCallDelta: undefined };
+    },
   } as unknown as LLMProvider;
   const mockCloudProvider = {
     getName: () => "anthropic",
     getModel: () => "claude-sonnet",
     supportsVision: () => true,
     supportsThinking: () => true,
-    chat: async () => ({ content: "", toolCalls: [], finishReason: "stop" as const, usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
-    stream: async function* () { yield { done: true, toolCallDelta: undefined }; },
+    chat: async () => ({
+      content: "",
+      toolCalls: [],
+      finishReason: "stop" as const,
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
+    stream: async function* () {
+      yield { done: true, toolCallDelta: undefined };
+    },
   } as unknown as LLMProvider;
 
   it("should route sensitive data to local", async () => {

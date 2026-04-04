@@ -17,8 +17,8 @@ const CAPTCHA_INDICATORS = {
     ".g-recaptcha",
     ".h-captcha",
     ".cf-turnstile",
-    '[data-sitekey]',
-    '[data-captcha]',
+    "[data-sitekey]",
+    "[data-captcha]",
     "#captcha",
     ".captcha",
     'img[alt*="captcha" i]',
@@ -109,7 +109,7 @@ export class CaptchaWatchdog implements Watchdog {
     if (!this.page || this.detected) return null;
 
     try {
-      const result = await this.page.evaluate(`
+      const result = (await this.page.evaluate(`
         (() => {
           const selectors = ${JSON.stringify(CAPTCHA_INDICATORS.selectors)};
           const textPatterns = ${JSON.stringify(CAPTCHA_INDICATORS.textPatterns)};
@@ -147,7 +147,7 @@ export class CaptchaWatchdog implements Watchdog {
 
           return { found: false };
         })()
-      `) as { found: boolean; type?: string; detail?: string };
+      `)) as { found: boolean; type?: string; detail?: string };
 
       if (result.found) {
         this.detected = true;
@@ -166,7 +166,9 @@ export class CaptchaWatchdog implements Watchdog {
         };
       }
     } catch (error) {
-      logger.debug("Failed to check for CAPTCHA, page may be navigating", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to check for CAPTCHA, page may be navigating", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return null;

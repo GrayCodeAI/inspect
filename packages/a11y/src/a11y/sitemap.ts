@@ -85,12 +85,12 @@ export class SitemapAuditor {
     let filteredUrls = urls.slice(0, maxPages);
     if (options.excludePatterns) {
       filteredUrls = filteredUrls.filter(
-        (url) => !options.excludePatterns!.some((p) => p.test(url))
+        (url) => !options.excludePatterns!.some((p) => p.test(url)),
       );
     }
     if (options.includePatterns) {
-      filteredUrls = filteredUrls.filter(
-        (url) => options.includePatterns!.some((p) => p.test(url))
+      filteredUrls = filteredUrls.filter((url) =>
+        options.includePatterns!.some((p) => p.test(url)),
       );
     }
 
@@ -139,9 +139,8 @@ export class SitemapAuditor {
       });
     }
 
-    const averageScore = scores.length > 0
-      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-      : 0;
+    const averageScore =
+      scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 
     // Sort by score ascending (worst first)
     scoresByPage.sort((a, b) => a.score - b.score);

@@ -136,7 +136,10 @@ describe("LLM Streaming Support", () => {
     });
 
     it("should extract JSON from markdown", () => {
-      const response = "```json\n" + '{"evaluation":{"success":true},"memory":[],"nextGoal":"","actions":[]}' + "\n```";
+      const response =
+        "```json\n" +
+        '{"evaluation":{"success":true},"memory":[],"nextGoal":"","actions":[]}' +
+        "\n```";
       const result = LLMResponseValidator.validateJSON(response);
 
       expect(result.valid).toBe(true);

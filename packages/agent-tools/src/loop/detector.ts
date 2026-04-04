@@ -170,9 +170,10 @@ export class LoopDetector {
         );
     }
 
-    const pattern = this.lastDetection.pattern?.map(
-      (a) => `${a.type}${a.ref ? `[${a.ref}]` : ""}`,
-    ).join(" -> ") ?? "unknown";
+    const pattern =
+      this.lastDetection.pattern
+        ?.map((a) => `${a.type}${a.ref ? `[${a.ref}]` : ""}`)
+        .join(" -> ") ?? "unknown";
 
     return {
       message: `Loop detected (type: ${this.lastDetection.loopType}, repetitions: ${this.lastDetection.repetitions}). Pattern: ${pattern}`,
@@ -251,10 +252,7 @@ export class LoopDetector {
       // Check if this continues further back
       let reps = 2;
       for (let i = window.length - 5; i >= 1; i -= 2) {
-        if (
-          window[i].hash === last4[1].hash &&
-          window[i - 1]?.hash === last4[0].hash
-        ) {
+        if (window[i].hash === last4[1].hash && window[i - 1]?.hash === last4[0].hash) {
           reps++;
         } else {
           break;
@@ -276,10 +274,7 @@ export class LoopDetector {
   /**
    * Detect longer repeating patterns (3+ actions that repeat).
    */
-  private detectRepeatingPattern(
-    window: ActionRecord[],
-    minRepetitions: number,
-  ): LoopDetection {
+  private detectRepeatingPattern(window: ActionRecord[], minRepetitions: number): LoopDetection {
     // Try pattern lengths from 2 to window/2
     for (let patternLen = 2; patternLen <= Math.floor(window.length / 2); patternLen++) {
       const pattern = window.slice(-patternLen);

@@ -47,10 +47,8 @@ export class AzureBlobStorage {
       metadata?: Record<string, string>;
     },
   ): Promise<AzureBlobUploadResult> {
-    const bodyBuffer =
-      typeof body === "string" ? Buffer.from(body) : body;
-    const contentType =
-      options?.contentType ?? "application/octet-stream";
+    const bodyBuffer = typeof body === "string" ? Buffer.from(body) : body;
+    const contentType = options?.contentType ?? "application/octet-stream";
 
     const headers: Record<string, string> = {
       "Content-Type": contentType,
@@ -83,11 +81,7 @@ export class AzureBlobStorage {
    * Download a blob.
    */
   async download(blobName: string): Promise<Buffer> {
-    const response = await this.request(
-      "GET",
-      `/${this.config.container}/${blobName}`,
-      {},
-    );
+    const response = await this.request("GET", `/${this.config.container}/${blobName}`, {});
     return response.body;
   }
 
@@ -95,11 +89,7 @@ export class AzureBlobStorage {
    * Delete a blob.
    */
   async deleteBlob(blobName: string): Promise<void> {
-    await this.request(
-      "DELETE",
-      `/${this.config.container}/${blobName}`,
-      {},
-    );
+    await this.request("DELETE", `/${this.config.container}/${blobName}`, {});
   }
 
   /**
@@ -107,9 +97,7 @@ export class AzureBlobStorage {
    */
   async listBlobs(
     prefix?: string,
-  ): Promise<
-    Array<{ name: string; contentLength: number; lastModified: string }>
-  > {
+  ): Promise<Array<{ name: string; contentLength: number; lastModified: string }>> {
     let path = `/${this.config.container}?restype=container&comp=list`;
     if (prefix) {
       path += `&prefix=${encodeURIComponent(prefix)}`;
@@ -128,19 +116,13 @@ export class AzureBlobStorage {
 
     while ((match = blobRegex.exec(xml)) !== null) {
       const nameMatch = match[1].match(/<Name>(.*?)<\/Name>/);
-      const sizeMatch = match[1].match(
-        /<Content-Length>(.*?)<\/Content-Length>/,
-      );
-      const dateMatch = match[1].match(
-        /<Last-Modified>(.*?)<\/Last-Modified>/,
-      );
+      const sizeMatch = match[1].match(/<Content-Length>(.*?)<\/Content-Length>/);
+      const dateMatch = match[1].match(/<Last-Modified>(.*?)<\/Last-Modified>/);
 
       if (nameMatch) {
         blobs.push({
           name: nameMatch[1],
-          contentLength: sizeMatch
-            ? parseInt(sizeMatch[1], 10)
-            : 0,
+          contentLength: sizeMatch ? parseInt(sizeMatch[1], 10) : 0,
           lastModified: dateMatch ? dateMatch[1] : "",
         });
       }
@@ -154,8 +136,7 @@ export class AzureBlobStorage {
    */
   getBlobUrl(blobName: string): string {
     const baseUrl =
-      this.config.endpoint ??
-      `https://${this.config.accountName}.blob.core.windows.net`;
+      this.config.endpoint ?? `https://${this.config.accountName}.blob.core.windows.net`;
     return `${baseUrl}/${this.config.container}/${blobName}`;
   }
 
@@ -175,8 +156,7 @@ export class AzureBlobStorage {
     return new Promise((resolve, reject) => {
       const now = new Date().toUTCString();
       const baseUrl =
-        this.config.endpoint ??
-        `https://${this.config.accountName}.blob.core.windows.net`;
+        this.config.endpoint ?? `https://${this.config.accountName}.blob.core.windows.net`;
       const parsedUrl = new URL(path, baseUrl);
 
       const msVersion = "2023-11-03";
@@ -188,12 +168,7 @@ export class AzureBlobStorage {
       };
 
       // Build authorization header (Shared Key)
-      const authHeader = this.buildAuthHeader(
-        method,
-        path,
-        allHeaders,
-        body,
-      );
+      const authHeader = this.buildAuthHeader(method, path, allHeaders, body);
       allHeaders["Authorization"] = authHeader;
 
       const req = https.request(
@@ -213,9 +188,7 @@ export class AzureBlobStorage {
 
             if (statusCode >= 400) {
               reject(
-                new Error(
-                  `Azure Blob error (${statusCode}): ${responseBody.toString("utf-8")}`,
-                ),
+                new Error(`Azure Blob error (${statusCode}): ${responseBody.toString("utf-8")}`),
               );
               return;
             }
@@ -229,11 +202,7 @@ export class AzureBlobStorage {
         },
       );
 
-      req.on("error", (err) =>
-        reject(
-          new Error(`Azure Blob request failed: ${err.message}`),
-        ),
-      );
+      req.on("error", (err) => reject(new Error(`Azure Blob request failed: ${err.message}`)));
 
       if (body) req.write(body);
       req.end();
@@ -249,8 +218,7 @@ export class AzureBlobStorage {
     headers: Record<string, string>,
     body?: Buffer,
   ): string {
-    const contentLength =
-      body && body.length > 0 ? String(body.length) : "";
+    const contentLength = body && body.length > 0 ? String(body.length) : "";
     const contentType = headers["Content-Type"] ?? "";
 
     // Canonicalized headers (x-ms-*)
@@ -266,9 +234,7 @@ export class AzureBlobStorage {
 
     if (parsedPath[1]) {
       const params = new URLSearchParams(parsedPath[1]);
-      const sortedParams = [...params.entries()].sort((a, b) =>
-        a[0].localeCompare(b[0]),
-      );
+      const sortedParams = [...params.entries()].sort((a, b) => a[0].localeCompare(b[0]));
       for (const [key, value] of sortedParams) {
         canonicalizedResource += `\n${key}:${value}`;
       }

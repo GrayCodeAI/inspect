@@ -82,7 +82,10 @@ export class VisualDiff {
 
         if (!isMatch) {
           // Check anti-aliasing
-          if (antiAliasing && this.isAntiAliased(actual, baseline, x, y, antiAliasingRadius, threshold)) {
+          if (
+            antiAliasing &&
+            this.isAntiAliased(actual, baseline, x, y, antiAliasingRadius, threshold)
+          ) {
             // Anti-aliased pixel - mark as matching
             if (diffData) {
               this.setPixel(diffData, width, x, y, actualPixel);
@@ -151,7 +154,9 @@ export class VisualDiff {
     const height = Math.max(actual.height, baseline.height);
 
     return {
-      data: result.diffImage ? Buffer.from(result.diffImage, "base64") : new Uint8Array(width * height * 4),
+      data: result.diffImage
+        ? Buffer.from(result.diffImage, "base64")
+        : new Uint8Array(width * height * 4),
       width,
       height,
     };
@@ -348,7 +353,10 @@ export class VisualDiff {
 
       // Compute bounding box for the cluster
       if (cluster.length > 0) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let minX = Infinity,
+          minY = Infinity,
+          maxX = -Infinity,
+          maxY = -Infinity;
         for (const p of cluster) {
           if (p.x < minX) minX = p.x;
           if (p.y < minY) minY = p.y;

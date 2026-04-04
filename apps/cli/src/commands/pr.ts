@@ -19,7 +19,7 @@ interface PRInfo {
   number: number;
 }
 
-interface TestResult {
+interface _TestResult {
   steps?: Array<{ description?: string; status?: string; error?: string }>;
   summary?: string;
 }

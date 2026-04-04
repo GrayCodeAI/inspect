@@ -2,7 +2,13 @@ import { Effect, Layer, Schema, ServiceMap } from "effect";
 
 export class AdversarialFinding extends Schema.Class<AdversarialFinding>("AdversarialFinding")({
   severity: Schema.Literals(["critical", "high", "medium", "low", "info"] as const),
-  category: Schema.Literals(["security", "functionality", "ux", "performance", "accessibility"] as const),
+  category: Schema.Literals([
+    "security",
+    "functionality",
+    "ux",
+    "performance",
+    "accessibility",
+  ] as const),
   instruction: Schema.String,
   finding: Schema.String,
   steps: Schema.Array(Schema.String),
@@ -10,13 +16,23 @@ export class AdversarialFinding extends Schema.Class<AdversarialFinding>("Advers
   actual: Schema.String,
 }) {}
 
-export class AdversarialExecutor extends ServiceMap.Service<AdversarialExecutor, {
-  readonly generateTests: (instruction: string, intensity: "basic" | "standard" | "aggressive") => Effect.Effect<readonly string[]>;
-  readonly execute: (test: string) => Effect.Effect<AdversarialFinding | undefined>;
-}>()("@inspect/AdversarialExecutor") {
-  static layer = Layer.effect(this, 
+export class AdversarialExecutor extends ServiceMap.Service<
+  AdversarialExecutor,
+  {
+    readonly generateTests: (
+      instruction: string,
+      intensity: "basic" | "standard" | "aggressive",
+    ) => Effect.Effect<readonly string[]>;
+    readonly execute: (test: string) => Effect.Effect<AdversarialFinding | undefined>;
+  }
+>()("@inspect/AdversarialExecutor") {
+  static layer = Layer.effect(
+    this,
     Effect.gen(function* () {
-      const generateTests = Effect.fn("AdversarialExecutor.generateTests")(function* (instruction: string, intensity: "basic" | "standard" | "aggressive") {
+      const generateTests = Effect.fn("AdversarialExecutor.generateTests")(function* (
+        instruction: string,
+        intensity: "basic" | "standard" | "aggressive",
+      ) {
         const tests: string[] = [
           "Empty input submission",
           "Maximum length input",

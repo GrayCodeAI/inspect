@@ -105,11 +105,7 @@ export class ActionCache {
   /**
    * Generate cache key from instruction and DOM state
    */
-  generateKey(
-    instruction: string,
-    domState: string,
-    url: string
-  ): string {
+  generateKey(instruction: string, domState: string, url: string): string {
     const normalizedInstruction = instruction.toLowerCase().trim();
     const normalizedUrl = this.normalizeUrl(url);
 
@@ -173,7 +169,7 @@ export class ActionCache {
     domState: string,
     url: string,
     action: Action,
-    ttl?: number
+    ttl?: number,
   ): CachedAction {
     const key = this.generateKey(instruction, domState, url);
     const domHash = this.simpleHash(domState);
@@ -202,11 +198,7 @@ export class ActionCache {
   /**
    * Get cached action
    */
-  get(
-    instruction: string,
-    domState: string,
-    url: string
-  ): CacheHit | undefined {
+  get(instruction: string, domState: string, url: string): CacheHit | undefined {
     const key = this.generateKey(instruction, domState, url);
     const cached = this.cache.get(key);
 
@@ -239,11 +231,7 @@ export class ActionCache {
   /**
    * Find similar cached action
    */
-  private findSimilar(
-    instruction: string,
-    domState: string,
-    url: string
-  ): CacheHit | undefined {
+  private findSimilar(instruction: string, domState: string, url: string): CacheHit | undefined {
     const normalizedUrl = this.normalizeUrl(url);
     const domHash = this.simpleHash(domState);
     const normalizedInstruction = instruction.toLowerCase().trim();
@@ -256,10 +244,7 @@ export class ActionCache {
       if (cached.url !== normalizedUrl) continue;
 
       // Calculate instruction similarity
-      const instructionScore = this.calculateSimilarity(
-        normalizedInstruction,
-        cached.instruction
-      );
+      const instructionScore = this.calculateSimilarity(normalizedInstruction, cached.instruction);
 
       // Calculate DOM similarity (exact or close)
       const domScore = domHash === cached.domHash ? 1.0 : 0.5;
@@ -314,12 +299,7 @@ export class ActionCache {
   /**
    * Report action result for success tracking
    */
-  reportResult(
-    instruction: string,
-    domState: string,
-    url: string,
-    success: boolean
-  ): void {
+  reportResult(instruction: string, domState: string, url: string, success: boolean): void {
     const key = this.generateKey(instruction, domState, url);
     const cached = this.cache.get(key);
 
@@ -329,12 +309,8 @@ export class ActionCache {
       }
 
       // Remove if success rate too low
-      const successRate =
-        cached.stats.timesSucceeded / cached.stats.timesUsed;
-      if (
-        cached.stats.timesUsed >= 3 &&
-        successRate < this.config.minSuccessRate
-      ) {
+      const successRate = cached.stats.timesSucceeded / cached.stats.timesUsed;
+      if (cached.stats.timesUsed >= 3 && successRate < this.config.minSuccessRate) {
         this.cache.delete(key);
       }
     }
@@ -365,9 +341,7 @@ export class ActionCache {
    */
   private calculatePriorityScore(cached: CachedAction): number {
     const successRate =
-      cached.stats.timesUsed > 0
-        ? cached.stats.timesSucceeded / cached.stats.timesUsed
-        : 0;
+      cached.stats.timesUsed > 0 ? cached.stats.timesSucceeded / cached.stats.timesUsed : 0;
 
     const recency = Date.now() - cached.stats.lastUsed;
     const recencyScore = Math.max(0, 1 - recency / (24 * 60 * 60 * 1000)); // 24h decay
@@ -402,9 +376,7 @@ export class ActionCache {
 
     for (const entry of entries) {
       const successRate =
-        entry.stats.timesUsed > 0
-          ? entry.stats.timesSucceeded / entry.stats.timesUsed
-          : 0;
+        entry.stats.timesUsed > 0 ? entry.stats.timesSucceeded / entry.stats.timesUsed : 0;
 
       if (successRate > 0.8) bySuccessRate.high++;
       else if (successRate >= 0.5) bySuccessRate.medium++;

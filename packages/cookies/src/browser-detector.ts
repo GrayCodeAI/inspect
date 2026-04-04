@@ -1,6 +1,12 @@
 import { execSync } from "node:child_process";
 import { Effect, Layer, ServiceMap } from "effect";
-import type { Browser, BrowserKey, ChromiumBrowser, FirefoxBrowser, SafariBrowser } from "./types.js";
+import type {
+  Browser,
+  BrowserKey,
+  ChromiumBrowser,
+  FirefoxBrowser,
+  SafariBrowser,
+} from "./types.js";
 import { BROWSER_CONFIGS } from "./browser-config.js";
 
 const WHICH_COMMAND = process.platform === "win32" ? "where" : "/usr/bin/which";
@@ -23,11 +29,12 @@ export class Browsers extends ServiceMap.Service<Browsers>()("@inspect/Browsers"
     listAvailable: (): Browser[] => {
       const browsers: Browser[] = [];
       const home = process.env.HOME ?? process.env.USERPROFILE ?? "";
-      const configDir = process.platform === "darwin"
-        ? `${home}/Library/Application Support`
-        : process.platform === "win32"
-          ? process.env.LOCALAPPDATA ?? ""
-          : `${home}/.config`;
+      const configDir =
+        process.platform === "darwin"
+          ? `${home}/Library/Application Support`
+          : process.platform === "win32"
+            ? (process.env.LOCALAPPDATA ?? "")
+            : `${home}/.config`;
 
       for (const [key, config] of Object.entries(BROWSER_CONFIGS)) {
         if (!isCommandAvailable(key)) continue;
@@ -36,7 +43,9 @@ export class Browsers extends ServiceMap.Service<Browsers>()("@inspect/Browsers"
           browsers.push({
             _tag: "SafariBrowser",
             key: key as SafariBrowser["key"],
-            cookieFilePath: config.cookieFile ? `${home}/Library/Cookies/${config.cookieFile}` : null,
+            cookieFilePath: config.cookieFile
+              ? `${home}/Library/Cookies/${config.cookieFile}`
+              : null,
           } as SafariBrowser);
         } else if (key === "firefox" || key === "firefox-developer" || key === "firefox-nightly") {
           const profilePath = getProfilePath(`${configDir}/${config.dataDir}`, config.profileDir);

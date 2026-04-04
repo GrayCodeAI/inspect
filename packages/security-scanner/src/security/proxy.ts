@@ -69,7 +69,8 @@ const SECURITY_HEADER_CHECKS: Array<{
           header: "Strict-Transport-Security",
           issue: "HSTS header is missing",
           risk: "high",
-          recommendation: 'Add "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"',
+          recommendation:
+            'Add "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"',
           url: "",
         };
       }
@@ -96,7 +97,8 @@ const SECURITY_HEADER_CHECKS: Array<{
           header: "Content-Security-Policy",
           issue: "CSP header is missing",
           risk: "high",
-          recommendation: "Add a Content-Security-Policy header to prevent XSS and data injection attacks",
+          recommendation:
+            "Add a Content-Security-Policy header to prevent XSS and data injection attacks",
           url: "",
         };
       }
@@ -105,7 +107,8 @@ const SECURITY_HEADER_CHECKS: Array<{
           header: "Content-Security-Policy",
           issue: "CSP allows unsafe-inline and unsafe-eval, which weakens protection",
           risk: "medium",
-          recommendation: "Remove unsafe-inline and unsafe-eval directives; use nonces or hashes instead",
+          recommendation:
+            "Remove unsafe-inline and unsafe-eval directives; use nonces or hashes instead",
           url: "",
           currentValue: value,
         };
@@ -203,7 +206,8 @@ const SECURITY_HEADER_CHECKS: Array<{
           header: "Server",
           issue: `Server header reveals version information: ${value}`,
           risk: "low",
-          recommendation: "Remove or obfuscate the Server header to avoid revealing technology details",
+          recommendation:
+            "Remove or obfuscate the Server header to avoid revealing technology details",
           url: "",
           currentValue: value,
         };
@@ -320,10 +324,7 @@ export class SecurityProxy {
    * Analyze response headers for a given URL.
    * Can be used standalone without the proxy.
    */
-  static analyzeHeaders(
-    url: string,
-    headers: Record<string, string>,
-  ): SecurityHeaderFinding[] {
+  static analyzeHeaders(url: string, headers: Record<string, string>): SecurityHeaderFinding[] {
     const findings: SecurityHeaderFinding[] = [];
     const lowerHeaders: Record<string, string> = {};
 
@@ -417,7 +418,9 @@ export class SecurityProxy {
   /**
    * Flatten Node.js IncomingHttpHeaders to a simple Record.
    */
-  private flattenHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string> {
+  private flattenHeaders(
+    headers: Record<string, string | string[] | undefined>,
+  ): Record<string, string> {
     const flat: Record<string, string> = {};
     for (const [key, value] of Object.entries(headers)) {
       if (value !== undefined) {

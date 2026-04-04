@@ -7,7 +7,7 @@
 
 import { Effect, Schema } from "effect";
 import { LLMProviderService, LLMMessage } from "@inspect/llm";
-import type { AgentAction, AgentOutput } from "../index.js";
+import type { AgentAction } from "../index.js";
 import type { AgentBrain } from "../brain.js";
 import type { Observation } from "../index.js";
 
@@ -35,54 +35,54 @@ export const thinkPhase = (
   input: ThinkInput,
 ): Effect.Effect<ThinkOutput, LLMResponseParseError, LLMProviderService> =>
   Effect.gen(function* () {
-  yield* Effect.annotateCurrentSpan({ goal: input.goal, model: input.model });
+    yield* Effect.annotateCurrentSpan({ goal: input.goal, model: input.model });
 
-  const formattedObservations = yield* formatObservationsForLLM(
-    input.observations as Observation[],
-  );
-  const systemPrompt = yield* buildSystemPrompt(input.systemPrompt);
-  const userPrompt = yield* buildUserPrompt(
-    input.goal,
-    formattedObservations,
-    input.previousThoughts as AgentBrain[],
-  );
+    const formattedObservations = yield* formatObservationsForLLM(
+      input.observations as Observation[],
+    );
+    const systemPrompt = yield* buildSystemPrompt(input.systemPrompt);
+    const userPrompt = yield* buildUserPrompt(
+      input.goal,
+      formattedObservations,
+      input.previousThoughts as AgentBrain[],
+    );
 
-  const messages = [
-    new LLMMessage({ role: "system", content: systemPrompt }),
-    new LLMMessage({ role: "user", content: userPrompt }),
-  ] as const;
+    const messages = [
+      new LLMMessage({ role: "system", content: systemPrompt }),
+      new LLMMessage({ role: "user", content: userPrompt }),
+    ] as const;
 
-  const llmResponse = yield* callLLM(
-    input.llmProvider ?? "anthropic",
-    input.model,
-    messages,
-    input.temperature,
-    input.maxTokens,
-  );
+    const llmResponse = yield* callLLM(
+      input.llmProvider ?? "anthropic",
+      input.model,
+      messages,
+      input.temperature,
+      input.maxTokens,
+    );
 
-  const parsed = yield* parseLLMResponse(llmResponse.text, input.goal);
-  const confidence = yield* calculateConfidence(
-    parsed.brain as AgentBrain,
-    parsed.actions as AgentAction[],
-    0.5,
-  );
+    const parsed = yield* parseLLMResponse(llmResponse.text, input.goal);
+    const confidence = yield* calculateConfidence(
+      parsed.brain as AgentBrain,
+      parsed.actions as AgentAction[],
+      0.5,
+    );
 
-  return new ThinkOutput({
-    brain: parsed.brain,
-    actions: parsed.actions,
-    confidence,
-    tokensUsed: llmResponse.totalTokens,
-    costUSD: llmResponse.costUSD,
-    rawResponse: llmResponse.raw,
+    return new ThinkOutput({
+      brain: parsed.brain,
+      actions: parsed.actions,
+      confidence,
+      tokensUsed: llmResponse.totalTokens,
+      costUSD: llmResponse.costUSD,
+      rawResponse: llmResponse.raw,
+    });
   });
-});
 
 const callLLM = Effect.fn("ThinkPhase.callLLM")(function* (
   provider: string,
   model: string,
   messages: readonly LLMMessage[],
-  temperature: number,
-  maxTokens: number,
+  _temperature: number,
+  _maxTokens: number,
 ) {
   yield* Effect.annotateCurrentSpan({ provider, model });
 
@@ -180,7 +180,7 @@ const buildUserPrompt = Effect.fn("ThinkPhase.buildUserPrompt")(function* (
 
 const parseLLMResponse = Effect.fn("ThinkPhase.parseLLMResponse")(function* (
   response: string,
-  goal: string,
+  _goal: string,
 ) {
   try {
     const jsonMatch = response.match(/\{[\s\S]*\}/);

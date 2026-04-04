@@ -75,11 +75,13 @@ describe("Notifier", () => {
 
   it("includes error details in Slack message", async () => {
     const notifier = new Notifier({ slackWebhookUrl: "https://hooks.slack.com/test" });
-    await notifier.send(makeNotification({
-      status: "fail",
-      failed: 1,
-      errors: ["Element not found: #login-btn"],
-    }));
+    await notifier.send(
+      makeNotification({
+        status: "fail",
+        failed: 1,
+        errors: ["Element not found: #login-btn"],
+      }),
+    );
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.attachments.length).toBe(2);
@@ -88,11 +90,13 @@ describe("Notifier", () => {
 
   it("includes optional fields in notification", async () => {
     const notifier = new Notifier({ slackWebhookUrl: "https://hooks.slack.com/test" });
-    await notifier.send(makeNotification({
-      url: "https://example.com",
-      agent: "claude",
-      device: "desktop-chrome",
-    }));
+    await notifier.send(
+      makeNotification({
+        url: "https://example.com",
+        agent: "claude",
+        device: "desktop-chrome",
+      }),
+    );
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     const fields = body.attachments[0].fields;

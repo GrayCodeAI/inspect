@@ -212,9 +212,7 @@ export class MetricsCollector {
    * Measure the duration of an async function.
    * Returns the function result and elapsed time.
    */
-  static async measure<T>(
-    fn: () => Promise<T>,
-  ): Promise<{ result: T; durationMs: number }> {
+  static async measure<T>(fn: () => Promise<T>): Promise<{ result: T; durationMs: number }> {
     const timer = MetricsCollector.timer();
     const result = await fn();
     return { result, durationMs: timer.stop() };
@@ -260,7 +258,11 @@ export class MetricsCollector {
 
     // Partial match (e.g. "claude-sonnet-4" matches "claude-sonnet-4-20250514")
     for (const [key, def] of Object.entries(this.modelDefinitions)) {
-      if (key.startsWith(model) || def.id.startsWith(model) || def.name.toLowerCase().includes(model.toLowerCase())) {
+      if (
+        key.startsWith(model) ||
+        def.id.startsWith(model) ||
+        def.name.toLowerCase().includes(model.toLowerCase())
+      ) {
         return def;
       }
     }

@@ -39,33 +39,44 @@ const DATE_TIME_PATTERNS_SOURCE = `[
 // ---------------------------------------------------------------------------
 
 const DYNAMIC_CLASS_FRAGMENTS = [
-  "timestamp", "date", "time", "counter", "count", "badge",
-  "avatar", "ad", "sponsor", "dynamic", "live", "random",
+  "timestamp",
+  "date",
+  "time",
+  "counter",
+  "count",
+  "badge",
+  "avatar",
+  "ad",
+  "sponsor",
+  "dynamic",
+  "live",
+  "random",
 ];
 
 // ---------------------------------------------------------------------------
 // Ad network iframe patterns
 // ---------------------------------------------------------------------------
 
-const AD_IFRAME_PATTERNS = [
-  "googlesyndication", "doubleclick", "adsense",
-  "facebook", "twitter",
-];
+const AD_IFRAME_PATTERNS = ["googlesyndication", "doubleclick", "adsense", "facebook", "twitter"];
 
 // ---------------------------------------------------------------------------
 // Avatar/profile image service patterns
 // ---------------------------------------------------------------------------
 
 const AVATAR_IMG_PATTERNS = [
-  "gravatar.com", "avatar", "ui-avatars.com",
-  "profilephoto", "profile-photo", "user-avatar",
+  "gravatar.com",
+  "avatar",
+  "ui-avatars.com",
+  "profilephoto",
+  "profile-photo",
+  "user-avatar",
 ];
 
 // ---------------------------------------------------------------------------
 // 1. detectDynamicContent — find elements likely to change between runs
 // ---------------------------------------------------------------------------
 
-  export async function detectDynamicContent(page: Page): Promise<MaskTarget[]> {
+export async function detectDynamicContent(page: Page): Promise<MaskTarget[]> {
   const targets: MaskTarget[] = [];
   const seenSelectors = new Set<string>();
 
@@ -173,9 +184,7 @@ const AVATAR_IMG_PATTERNS = [
   );
 
   for (const match of dynamicClassMatches) {
-    const fragment = DYNAMIC_CLASS_FRAGMENTS.find((f) =>
-      match.className.toLowerCase().includes(f),
-    );
+    const fragment = DYNAMIC_CLASS_FRAGMENTS.find((f) => match.className.toLowerCase().includes(f));
     addTarget(
       match.selector,
       `CSS class contains "${fragment}": ${match.className.slice(0, 80)}`,
@@ -330,10 +339,7 @@ const AVATAR_IMG_PATTERNS = [
 // 2. applySmartMasks — replace detected dynamic elements with gray blocks
 // ---------------------------------------------------------------------------
 
-export async function applySmartMasks(
-  page: Page,
-  targets?: MaskTarget[],
-): Promise<number> {
+export async function applySmartMasks(page: Page, targets?: MaskTarget[]): Promise<number> {
   const maskTargets = targets ?? (await detectDynamicContent(page));
 
   if (maskTargets.length === 0) {
@@ -406,11 +412,7 @@ export async function applySmartMasks(
  * @param samples — number of screenshots to take (default 3)
  * @returns MaskTarget array of elements that changed between captures
  */
-export async function learnMasks(
-  page: Page,
-  url: string,
-  samples = 3,
-): Promise<MaskTarget[]> {
+export async function learnMasks(page: Page, url: string, samples = 3): Promise<MaskTarget[]> {
   const effectiveSamples = Math.max(2, Math.min(samples, 10));
 
   // Collect pixel data snapshots by dividing the viewport into a grid

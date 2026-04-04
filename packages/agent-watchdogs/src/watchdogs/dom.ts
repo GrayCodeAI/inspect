@@ -138,7 +138,9 @@ export class DOMWatchdog implements Watchdog {
 
       this.observerInstalled = true;
     } catch (error) {
-      logger.debug("Failed to install DOM observer, page may not be ready", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to install DOM observer, page may not be ready", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -149,20 +151,18 @@ export class DOMWatchdog implements Watchdog {
     if (!this.page || !this.observerInstalled) return [];
 
     try {
-      const mutations = await this.page.evaluate(`
+      const mutations = (await this.page.evaluate(`
         (() => {
           const mutations = window.__inspectDOMMutations ?? [];
           window.__inspectDOMMutations = [];
           return mutations;
         })()
-      `) as DOMMutation[];
+      `)) as DOMMutation[];
 
       this.mutations.push(...mutations);
 
       // Check for significant mutation bursts
-      const recentMutations = mutations.filter(
-        (m) => Date.now() - m.timestamp < 1000,
-      );
+      const recentMutations = mutations.filter((m) => Date.now() - m.timestamp < 1000);
 
       if (recentMutations.length > this.mutationThreshold) {
         this.pendingEvents.push({
@@ -194,7 +194,9 @@ export class DOMWatchdog implements Watchdog {
 
       return mutations;
     } catch (error) {
-      logger.debug("Failed to collect DOM mutations", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to collect DOM mutations", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -246,7 +248,9 @@ export class DOMWatchdog implements Watchdog {
         })()
       `);
     } catch (error) {
-      logger.debug("Failed to remove DOM observer, page may be gone", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to remove DOM observer, page may be gone", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
 
     this.observerInstalled = false;

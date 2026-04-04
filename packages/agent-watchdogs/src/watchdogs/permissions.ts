@@ -132,8 +132,6 @@ export class PermissionsWatchdog implements Watchdog {
    * Returns permission names that should be granted upfront.
    */
   getGrantedPermissions(): string[] {
-    return this.rules
-      .filter((r) => r.action === "grant")
-      .map((r) => r.permission);
+    return this.rules.filter((r) => r.action === "grant").map((r) => r.permission);
   }
 }

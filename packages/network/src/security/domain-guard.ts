@@ -30,10 +30,20 @@ export interface BlockedRequest {
 }
 
 const KNOWN_TRACKERS = [
-  "google-analytics.com", "googletagmanager.com", "facebook.net",
-  "doubleclick.net", "hotjar.com", "mixpanel.com", "segment.com",
-  "amplitude.com", "intercom.io", "crisp.chat", "drift.com",
-  "fullstory.com", "mouseflow.com", "clarity.ms",
+  "google-analytics.com",
+  "googletagmanager.com",
+  "facebook.net",
+  "doubleclick.net",
+  "hotjar.com",
+  "mixpanel.com",
+  "segment.com",
+  "amplitude.com",
+  "intercom.io",
+  "crisp.chat",
+  "drift.com",
+  "fullstory.com",
+  "mouseflow.com",
+  "clarity.ms",
 ];
 
 /**

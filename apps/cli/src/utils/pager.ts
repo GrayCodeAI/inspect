@@ -26,7 +26,8 @@ export function pipeToPager(content: string): void {
   }
 
   try {
-    const pager = spawn(pagerCmd, ["-R"], {  // -R for color support
+    const pager = spawn(pagerCmd, ["-R"], {
+      // -R for color support
       stdio: ["pipe", "inherit", "inherit"],
     });
 

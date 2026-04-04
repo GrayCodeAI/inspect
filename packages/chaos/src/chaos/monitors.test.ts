@@ -7,11 +7,7 @@ import {
   ALERT_MONITOR_SCRIPT,
   ALERT_MONITOR_RESULTS_SCRIPT,
 } from "./monitors.js";
-import type {
-  FPSMonitorResult,
-  ErrorMonitorResult,
-  AlertMonitorResult,
-} from "./monitors.js";
+import type { FPSMonitorResult, ErrorMonitorResult, AlertMonitorResult } from "./monitors.js";
 
 describe("Chaos Monitor Scripts", () => {
   describe("FPS_MONITOR_SCRIPT", () => {
@@ -166,7 +162,16 @@ describe("Chaos Monitor Scripts", () => {
 
     it("ErrorMonitorResult shape is correct", () => {
       const result: ErrorMonitorResult = {
-        errors: [{ message: "TypeError", stack: "at foo:1", timestamp: 100, filename: "app.js", lineno: 5, colno: 10 }],
+        errors: [
+          {
+            message: "TypeError",
+            stack: "at foo:1",
+            timestamp: 100,
+            filename: "app.js",
+            lineno: 5,
+            colno: 10,
+          },
+        ],
         consoleErrors: ["something broke"],
         unhandledRejections: ["promise failed"],
         pageCrashed: false,

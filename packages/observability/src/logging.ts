@@ -173,11 +173,7 @@ export class Logger {
 
   // ── Private implementation ─────────────────────────────────────────────
 
-  private log(
-    level: LogLevel,
-    msg: string,
-    data?: Record<string, unknown>,
-  ): void {
+  private log(level: LogLevel, msg: string, data?: Record<string, unknown>): void {
     if (LOG_LEVEL_VALUES[level] < this.levelValue) return;
 
     const entry: LogEntry = {
@@ -189,9 +185,7 @@ export class Logger {
       ...data,
     };
 
-    const serialized = this.pretty
-      ? this.formatPretty(level, entry)
-      : JSON.stringify(entry);
+    const serialized = this.pretty ? this.formatPretty(level, entry) : JSON.stringify(entry);
 
     // Write to stdout
     if (this.stdout) {
@@ -268,7 +262,7 @@ export function createLogger(
     level,
     filePath,
     stdout: true,
-    pretty: options?.pretty ?? (process.env.NODE_ENV === "development"),
+    pretty: options?.pretty ?? process.env.NODE_ENV === "development",
     context: options?.context,
   });
 }

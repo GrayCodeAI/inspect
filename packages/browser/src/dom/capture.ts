@@ -112,7 +112,12 @@ export class DOMCapture {
           range.selectNodeContents(node);
           const rect = range.getBoundingClientRect();
           // Check if text node is in viewport
-          if (rect.bottom < 0 || rect.top > viewportHeight || rect.right < 0 || rect.left > viewportWidth) {
+          if (
+            rect.bottom < 0 ||
+            rect.top > viewportHeight ||
+            rect.right < 0 ||
+            rect.left > viewportWidth
+          ) {
             return null;
           }
           return {

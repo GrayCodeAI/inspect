@@ -17,8 +17,11 @@ export class AgentRuntimeState {
   step = 0;
   failed = 0;
   stalled = false;
-  
-  reset() { this.step = 0; this.failed = 0; }
+
+  reset() {
+    this.step = 0;
+    this.failed = 0;
+  }
 }
 
 // Type stubs for compatibility

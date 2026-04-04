@@ -92,8 +92,7 @@ export class DownloadWatchdog implements Watchdog {
 
     this.downloads.push(download);
 
-    const isExpected = this.expectedDownloads.has(filename) ||
-      this.expectedDownloads.has(url);
+    const isExpected = this.expectedDownloads.has(filename) || this.expectedDownloads.has(url);
 
     this.pendingEvents.push({
       type: "download",
@@ -110,9 +109,7 @@ export class DownloadWatchdog implements Watchdog {
    * Call this when a download completes.
    */
   onDownloadCompleted(filename: string, path: string, size?: number): void {
-    const download = this.downloads.find(
-      (d) => d.suggestedFilename === filename && !d.completedAt,
-    );
+    const download = this.downloads.find((d) => d.suggestedFilename === filename && !d.completedAt);
 
     if (download) {
       download.completedAt = Date.now();
@@ -134,9 +131,7 @@ export class DownloadWatchdog implements Watchdog {
    * Call this when a download fails.
    */
   onDownloadFailed(filename: string, error: string): void {
-    const download = this.downloads.find(
-      (d) => d.suggestedFilename === filename && !d.completedAt,
-    );
+    const download = this.downloads.find((d) => d.suggestedFilename === filename && !d.completedAt);
 
     if (download) {
       download.failed = true;

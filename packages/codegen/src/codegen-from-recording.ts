@@ -163,6 +163,7 @@ export class CodegenFromRecording {
   private generateSelectorName = (action: RecordedAction, counter: number): string => {
     const typePrefix = action.type;
 
+    // eslint-disable-next-line no-useless-escape
     const selectorParts = action.selector.split(/[#.\[\]]/).filter(Boolean);
     const lastPart = selectorParts[selectorParts.length - 1];
 

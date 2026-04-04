@@ -88,12 +88,12 @@ export class StorybookCapture {
       options.onProgress?.(i + 1, filteredStories.length, story.id);
 
       try {
-        const screenshot = await this.captureStory(
-          storybookUrl,
-          story.id,
-          page,
-          { timeout, stabilizeDelay, fullPage, waitForSelector: options.waitForSelector },
-        );
+        const screenshot = await this.captureStory(storybookUrl, story.id, page, {
+          timeout,
+          stabilizeDelay,
+          fullPage,
+          waitForSelector: options.waitForSelector,
+        });
         results.set(story.id, screenshot);
       } catch (error) {
         // Skip stories that fail to render
@@ -114,7 +114,10 @@ export class StorybookCapture {
     storybookUrl: string,
     storyId: string,
     page: PageHandle,
-    options: Pick<StorybookCaptureOptions, "timeout" | "stabilizeDelay" | "fullPage" | "waitForSelector"> = {},
+    options: Pick<
+      StorybookCaptureOptions,
+      "timeout" | "stabilizeDelay" | "fullPage" | "waitForSelector"
+    > = {},
   ): Promise<Buffer> {
     const timeout = options.timeout ?? 10_000;
     const stabilizeDelay = options.stabilizeDelay ?? 500;
@@ -131,7 +134,9 @@ export class StorybookCapture {
     }
 
     // Wait for the storybook root to be present
-    await page.waitForSelector("#storybook-root, #root, [id*='story']", { timeout: 5000 }).catch(() => {});
+    await page
+      .waitForSelector("#storybook-root, #root, [id*='story']", { timeout: 5000 })
+      .catch(() => {});
 
     // Stabilize
     if (stabilizeDelay > 0) {
@@ -157,13 +162,13 @@ export class StorybookCapture {
     // Try the Storybook API endpoint first
     try {
       await page.goto(`${storybookUrl}/index.json`, { waitUntil: "networkidle", timeout });
-      const indexData = await page.evaluate(`
+      const indexData = (await page.evaluate(`
         (function() {
           try {
             return JSON.parse(document.body.innerText);
           } catch(e) { return null; }
         })()
-      `) as StorybookIndex | null;
+      `)) as StorybookIndex | null;
 
       if (indexData?.entries) {
         return Object.entries(indexData.entries)
@@ -183,13 +188,13 @@ export class StorybookCapture {
     // Try stories.json (older Storybook versions)
     try {
       await page.goto(`${storybookUrl}/stories.json`, { waitUntil: "networkidle", timeout });
-      const storiesData = await page.evaluate(`
+      const storiesData = (await page.evaluate(`
         (function() {
           try {
             return JSON.parse(document.body.innerText);
           } catch(e) { return null; }
         })()
-      `) as StoriesJson | null;
+      `)) as StoriesJson | null;
 
       if (storiesData?.stories) {
         return Object.entries(storiesData.stories).map(([id, story]) => ({
@@ -207,7 +212,7 @@ export class StorybookCapture {
     // Fallback: navigate to Storybook and use the client-side API
     await page.goto(storybookUrl, { waitUntil: "networkidle", timeout });
 
-    const stories = await page.evaluate(`
+    const stories = (await page.evaluate(`
       (function() {
         // Wait for __STORYBOOK_CLIENT_API__ or __STORYBOOK_STORE__
         var api = window.__STORYBOOK_CLIENT_API__ || window.__STORYBOOK_STORE__;
@@ -230,7 +235,7 @@ export class StorybookCapture {
 
         return [];
       })()
-    `) as StoryInfo[];
+    `)) as StoryInfo[];
 
     return stories;
   }
@@ -239,23 +244,29 @@ export class StorybookCapture {
 /** Storybook index.json format (Storybook 7+) */
 interface StorybookIndex {
   v: number;
-  entries: Record<string, {
-    type: "story" | "docs";
-    id: string;
-    title: string;
-    name: string;
-    importPath?: string;
-  }>;
+  entries: Record<
+    string,
+    {
+      type: "story" | "docs";
+      id: string;
+      title: string;
+      name: string;
+      importPath?: string;
+    }
+  >;
 }
 
 /** Storybook stories.json format (Storybook 6) */
 interface StoriesJson {
   v: number;
-  stories: Record<string, {
-    id: string;
-    title?: string;
-    kind?: string;
-    name?: string;
-    importPath?: string;
-  }>;
+  stories: Record<
+    string,
+    {
+      id: string;
+      title?: string;
+      kind?: string;
+      name?: string;
+      importPath?: string;
+    }
+  >;
 }

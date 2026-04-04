@@ -19,15 +19,6 @@ export {
   type PopupType,
 } from "./popup-watchdog";
 
-export {
-  CrashWatchdog,
-  type CrashConfig,
-  type CrashInfo,
-  type CrashType,
-} from "./crash-watchdog";
+export { CrashWatchdog, type CrashConfig, type CrashInfo, type CrashType } from "./crash-watchdog";
 
-export {
-  DownloadWatchdog,
-  type DownloadConfig,
-  type DownloadInfo,
-} from "./download-watchdog";
+export { DownloadWatchdog, type DownloadConfig, type DownloadInfo } from "./download-watchdog";

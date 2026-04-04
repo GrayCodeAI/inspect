@@ -2,7 +2,7 @@
 // @inspect/quality - Fault Injector
 // ============================================================================
 
-import type { NetworkFault} from "@inspect/shared";
+import type { NetworkFault } from "@inspect/shared";
 import { generateId } from "@inspect/shared";
 import { createToxic, type Toxic } from "./toxics.js";
 import { createLogger } from "@inspect/observability";
@@ -24,7 +24,11 @@ interface PageHandle {
 /** Route handle interface */
 interface RouteHandle {
   request(): { url(): string; method(): string; resourceType(): string };
-  fulfill(options: { status?: number; headers?: Record<string, string>; body?: string }): Promise<void>;
+  fulfill(options: {
+    status?: number;
+    headers?: Record<string, string>;
+    body?: string;
+  }): Promise<void>;
   continue(): Promise<void>;
   abort(errorCode?: string): Promise<void>;
 }
@@ -203,9 +207,10 @@ export class FaultInjector {
 
       // Check URL pattern match
       if (config.urlPattern) {
-        const matches = config.urlPattern instanceof RegExp
-          ? config.urlPattern.test(url)
-          : this.globMatch(config.urlPattern, url);
+        const matches =
+          config.urlPattern instanceof RegExp
+            ? config.urlPattern.test(url)
+            : this.globMatch(config.urlPattern, url);
         if (!matches) continue;
       }
 
@@ -235,7 +240,11 @@ export class FaultInjector {
         if (faultStats) faultStats.applied++;
         return; // Only apply first matching fault
       } catch (error) {
-        logger.debug("Toxic application failed, continuing to next fault or passthrough", { id, url, error });
+        logger.debug("Toxic application failed, continuing to next fault or passthrough", {
+          id,
+          url,
+          error,
+        });
       }
     }
 
@@ -251,11 +260,11 @@ export class FaultInjector {
     // Convert glob to regex
     const regex = new RegExp(
       "^" +
-      pattern
-        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-        .replace(/\*/g, ".*")
-        .replace(/\?/g, ".") +
-      "$"
+        pattern
+          .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+          .replace(/\*/g, ".*")
+          .replace(/\?/g, ".") +
+        "$",
     );
     return regex.test(url);
   }

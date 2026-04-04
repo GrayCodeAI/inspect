@@ -228,8 +228,9 @@ export class MultiTreeCollector {
       // Get root node
     });
 
-    // Find root node - cast as any to avoid strict role type issues
-    const rootNode = (nodes as any[]).find((n: any) => !n.role);
+    // Find root node - cast as unknown to avoid strict role type issues
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rootNode = (nodes as unknown[]).find((n: any) => !n.role);
     if (!rootNode) {
       return { nodeId: "root", children: [] };
     }
@@ -240,10 +241,7 @@ export class MultiTreeCollector {
   /**
    * Convert CDP AX node to our format
    */
-  private convertAXNode(
-    node: unknown,
-    allNodes: unknown[]
-  ): AXTreeNode {
+  private convertAXNode(node: unknown, allNodes: unknown[]): AXTreeNode {
     const n = node as {
       nodeId: string;
       role?: string;
@@ -260,7 +258,7 @@ export class MultiTreeCollector {
     if (n.childIds) {
       for (const childId of n.childIds) {
         const childNode = (allNodes as Array<{ nodeId: string }>).find(
-          (node) => node.nodeId === childId
+          (node) => node.nodeId === childId,
         );
         if (childNode) {
           children.push(this.convertAXNode(childNode, allNodes));
@@ -283,9 +281,7 @@ export class MultiTreeCollector {
   /**
    * Convert AX properties
    */
-  private convertAXProperties(
-    properties?: unknown[]
-  ): Record<string, unknown> {
+  private convertAXProperties(properties?: unknown[]): Record<string, unknown> {
     if (!properties) return {};
 
     const result: Record<string, unknown> = {};
@@ -301,9 +297,7 @@ export class MultiTreeCollector {
   /**
    * Collect DOM snapshot via CDP
    */
-  private async collectDOMSnapshot(
-    cdpSession: CDPSession
-  ): Promise<DOMSnapshot> {
+  private async collectDOMSnapshot(cdpSession: CDPSession): Promise<DOMSnapshot> {
     const snapshot = await cdpSession.send("DOMSnapshot.captureSnapshot", {
       computedStyles: this.config.includeStyles
         ? ["display", "visibility", "opacity", "position", "z-index"]
@@ -319,11 +313,7 @@ export class MultiTreeCollector {
       title: snapshot.strings[snapshot.documents[0].title],
       baseURL: snapshot.strings[snapshot.documents[0].baseURL],
       layoutTreeNodes: layoutTreeNodes.map(
-        (node: {
-          nodeIndex: number;
-          styles: number[];
-          bounds: number[];
-        }) => ({
+        (node: { nodeIndex: number; styles: number[]; bounds: number[] }) => ({
           nodeIndex: node.nodeIndex,
           styles: node.styles,
           bounds: {
@@ -333,7 +323,7 @@ export class MultiTreeCollector {
             height: node.bounds[3],
           },
           visible: true,
-        })
+        }),
       ),
       computedStyles: computedStyles.map(
         (style: { properties: Array<{ name: number; value: number }> }) => ({
@@ -341,11 +331,9 @@ export class MultiTreeCollector {
             name: snapshot.strings[p.name],
             value: snapshot.strings[p.value],
           })),
-        })
+        }),
       ),
-      paintOrder: layoutTreeNodes.map(
-        (_n: unknown, i: number) => i
-      ),
+      paintOrder: layoutTreeNodes.map((_n: unknown, i: number) => i),
     };
   }
 
@@ -360,7 +348,7 @@ export class MultiTreeCollector {
     const walkDOM = (
       node: DOMTreeNode,
       depth: number,
-      parent?: EnhancedElement
+      parent?: EnhancedElement,
     ): EnhancedElement | undefined => {
       if (depth > this.config.maxDepth) return undefined;
       if (elements.length >= this.config.maxNodes) return undefined;
@@ -370,7 +358,7 @@ export class MultiTreeCollector {
 
       // Get layout data
       const layoutNode = collection.snapshot.layoutTreeNodes.find(
-        (n) => n.nodeIndex === node.nodeId
+        (n) => n.nodeIndex === node.nodeId,
       );
 
       // Skip hidden elements if configured
@@ -426,10 +414,7 @@ export class MultiTreeCollector {
   /**
    * Find matching AX node for DOM node
    */
-  private findMatchingAXNode(
-    domNode: DOMTreeNode,
-    axRoot: AXTreeNode
-  ): AXTreeNode | undefined {
+  private findMatchingAXNode(domNode: DOMTreeNode, axRoot: AXTreeNode): AXTreeNode | undefined {
     // Match by backendNodeId if available
     if (domNode.backendNodeId) {
       const findByBackendId = (node: AXTreeNode): AXTreeNode | undefined => {
@@ -456,18 +441,10 @@ export class MultiTreeCollector {
   private isInteractable(
     domNode: DOMTreeNode,
     axNode?: AXTreeNode,
-    computedStyles?: Record<string, string>
+    computedStyles?: Record<string, string>,
   ): boolean {
     // Check tag name
-    const interactiveTags = [
-      "a",
-      "button",
-      "input",
-      "select",
-      "textarea",
-      "details",
-      "summary",
-    ];
+    const interactiveTags = ["a", "button", "input", "select", "textarea", "details", "summary"];
     if (interactiveTags.includes(domNode.nodeName.toLowerCase())) {
       return true;
     }

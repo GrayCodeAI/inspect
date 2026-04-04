@@ -42,10 +42,7 @@ export class JSONParser {
   /**
    * Parse JSON from a Buffer or string with error recovery.
    */
-  parse(
-    input: Buffer | string,
-    options?: JSONParseOptions,
-  ): JSONParseResult {
+  parse(input: Buffer | string, options?: JSONParseOptions): JSONParseResult {
     const opts: Required<JSONParseOptions> = {
       stripComments: options?.stripComments ?? true,
       stripBlockComments: options?.stripBlockComments ?? true,
@@ -56,10 +53,7 @@ export class JSONParser {
       maxDepth: options?.maxDepth ?? 100,
     };
 
-    const text =
-      typeof input === "string"
-        ? input
-        : this.decodeBuffer(input);
+    const text = typeof input === "string" ? input : this.decodeBuffer(input);
     const warnings: string[] = [];
 
     // First try direct parse
@@ -141,10 +135,7 @@ export class JSONParser {
       return {
         data: null,
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : String(error),
+        error: error instanceof Error ? error.message : String(error),
         warnings,
         recovered: false,
       };
@@ -155,10 +146,7 @@ export class JSONParser {
    * Strict parse without recovery (just standard JSON.parse).
    */
   parseStrict(input: Buffer | string): unknown {
-    const text =
-      typeof input === "string"
-        ? input
-        : this.decodeBuffer(input);
+    const text = typeof input === "string" ? input : this.decodeBuffer(input);
     return JSON.parse(text);
   }
 
@@ -190,11 +178,7 @@ export class JSONParser {
           stringChar = text[i];
           result += text[i];
           i++;
-        } else if (
-          text[i] === "/" &&
-          i + 1 < text.length &&
-          text[i + 1] === "/"
-        ) {
+        } else if (text[i] === "/" && i + 1 < text.length && text[i + 1] === "/") {
           // Skip until end of line
           while (i < text.length && text[i] !== "\n") {
             i++;
@@ -236,17 +220,10 @@ export class JSONParser {
           stringChar = text[i];
           result += text[i];
           i++;
-        } else if (
-          text[i] === "/" &&
-          i + 1 < text.length &&
-          text[i + 1] === "*"
-        ) {
+        } else if (text[i] === "/" && i + 1 < text.length && text[i + 1] === "*") {
           // Skip until */
           i += 2;
-          while (
-            i < text.length - 1 &&
-            !(text[i] === "*" && text[i + 1] === "/")
-          ) {
+          while (i < text.length - 1 && !(text[i] === "*" && text[i + 1] === "/")) {
             i++;
           }
           i += 2; // Skip past */
@@ -330,10 +307,7 @@ export class JSONParser {
    */
   private quoteUnquotedKeys(text: string): string {
     // Match unquoted keys: word characters followed by :
-    return text.replace(
-      /(?<=^|[{,\n])\s*([a-zA-Z_$][\w$]*)\s*:/gm,
-      '"$1":',
-    );
+    return text.replace(/(?<=^|[{,\n])\s*([a-zA-Z_$][\w$]*)\s*:/gm, '"$1":');
   }
 
   /**
@@ -378,15 +352,9 @@ export class JSONParser {
 
       if (trimmed[i] === '"') {
         inStr = true;
-      } else if (
-        trimmed[i] === "{" ||
-        trimmed[i] === "["
-      ) {
+      } else if (trimmed[i] === "{" || trimmed[i] === "[") {
         depth++;
-      } else if (
-        trimmed[i] === "}" ||
-        trimmed[i] === "]"
-      ) {
+      } else if (trimmed[i] === "}" || trimmed[i] === "]") {
         depth--;
         if (depth === 0 && trimmed[i] === endChar) {
           const candidate = trimmed.substring(start, i + 1);
@@ -406,20 +374,12 @@ export class JSONParser {
   /**
    * Check object nesting depth.
    */
-  private checkDepth(
-    data: unknown,
-    maxDepth: number,
-    currentDepth: number = 0,
-  ): void {
+  private checkDepth(data: unknown, maxDepth: number, currentDepth: number = 0): void {
     if (currentDepth > maxDepth) {
-      throw new Error(
-        `JSON nesting depth exceeds maximum of ${maxDepth}`,
-      );
+      throw new Error(`JSON nesting depth exceeds maximum of ${maxDepth}`);
     }
     if (typeof data === "object" && data !== null) {
-      const values = Array.isArray(data)
-        ? data
-        : Object.values(data);
+      const values = Array.isArray(data) ? data : Object.values(data);
       for (const val of values) {
         this.checkDepth(val, maxDepth, currentDepth + 1);
       }

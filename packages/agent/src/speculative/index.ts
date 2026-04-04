@@ -17,10 +17,14 @@ export const DEFAULT_SPECULATIVE_CONFIG: SpeculativeConfig = { enabled: false };
 
 export class SpeculativePlanner {
   constructor(_config?: SpeculativeConfig) {}
-  createPlan() { return {} as SpeculativePlan; }
+  createPlan() {
+    return {} as SpeculativePlan;
+  }
 }
 
 export class SpeculativeExecutor {
   constructor(_config?: SpeculativeConfig) {}
-  execute() { return Promise.resolve(); }
+  execute() {
+    return Promise.resolve();
+  }
 }

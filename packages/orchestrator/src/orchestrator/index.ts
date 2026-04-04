@@ -1,13 +1,25 @@
 // Orchestrator exports - avoid duplicates between implementation and service files
 // Core schemas and types (from implementation files)
 export {
-  FailureType, RecoveryStrategy, DiagnosisResult, RecoveryAttempt,
-  RecoveryManager, type RecoveryExecutors
+  FailureType,
+  RecoveryStrategy,
+  DiagnosisResult,
+  RecoveryAttempt,
+  RecoveryManager,
+  type RecoveryExecutors,
 } from "./recovery.js";
 export { SpeculativePlanner, SpeculativePlan, SpeculativeStats } from "./speculative.js";
 
 // Service-layer exports
-export { TestExecutor, ExecutionConfig, ExecutionResult, ExecutionProgress, StepPlan, StepResult, AdversarialFinding } from "./executor-service.js";
+export {
+  TestExecutor,
+  ExecutionConfig,
+  ExecutionResult,
+  ExecutionProgress,
+  StepPlan,
+  StepResult,
+  AdversarialFinding,
+} from "./executor-service.js";
 export { RecoveryManager as RecoveryManagerService } from "./recovery-service.js";
 export { CheckpointManager } from "./checkpoint-service.js";
 export { TestScheduler } from "./scheduler-service.js";

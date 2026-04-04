@@ -67,7 +67,10 @@ export class MessageCompactor {
 
     const compacted: ChatMessage[] = [
       ...systemMessages,
-      { role: "user", content: `[Previous context - ${oldMessages.length} messages summarized]\n${summary}` },
+      {
+        role: "user",
+        content: `[Previous context - ${oldMessages.length} messages summarized]\n${summary}`,
+      },
       ...recentMessages,
     ];
 
@@ -78,7 +81,10 @@ export class MessageCompactor {
    * Check if compaction is needed.
    */
   needsCompaction(messages: ChatMessage[]): boolean {
-    return messages.length > this.config.maxMessages || this.estimateTokens(messages) > this.config.maxTokens;
+    return (
+      messages.length > this.config.maxMessages ||
+      this.estimateTokens(messages) > this.config.maxTokens
+    );
   }
 
   /**
@@ -105,9 +111,16 @@ export class MessageCompactor {
       } else if (msg.role === "user") {
         // Results/observations
         if (content.includes("Step") || content.includes("pass") || content.includes("fail")) {
-          const lines = content.split("\n").filter((l) =>
-            l.includes("Step") || l.includes("✓") || l.includes("✗") || l.includes("Navigat") || l.includes("Click"),
-          );
+          const lines = content
+            .split("\n")
+            .filter(
+              (l) =>
+                l.includes("Step") ||
+                l.includes("✓") ||
+                l.includes("✗") ||
+                l.includes("Navigat") ||
+                l.includes("Click"),
+            );
           results.push(...lines.slice(0, 3).map((l) => l.trim()));
         }
       }

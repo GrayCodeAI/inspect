@@ -73,7 +73,11 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
         console.log("  " + "-".repeat(90));
         for (const session of sessions) {
           const statusColor =
-            session.status === "active" ? chalk.green : session.status === "idle" ? chalk.yellow : chalk.dim;
+            session.status === "active"
+              ? chalk.green
+              : session.status === "idle"
+                ? chalk.yellow
+                : chalk.dim;
           console.log(
             `  ${session.id.padEnd(38)} ${session.browser.padEnd(12)} ${statusColor(session.status.padEnd(10))} ${`${session.viewport.width}x${session.viewport.height}`.padEnd(14)} ${session.lastActivity}`,
           );
@@ -99,7 +103,7 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
         await browserMgr.launchBrowser({
           headless: !(options.headed ?? false),
           viewport,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         const sessionId = randomUUID();
@@ -129,7 +133,9 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
           console.log(chalk.dim("\nClosing session..."));
           await browserMgr.closeBrowser();
           const updatedSessions = loadSessions().map((s) =>
-            s.id === sessionId ? { ...s, status: "closed" as const, lastActivity: new Date().toISOString() } : s,
+            s.id === sessionId
+              ? { ...s, status: "closed" as const, lastActivity: new Date().toISOString() }
+              : s,
           );
           saveSessions(updatedSessions);
           console.log(chalk.dim("Session closed."));
@@ -174,7 +180,9 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
 
       // Update session activity
       const updatedSessions = sessions.map((s) =>
-        s.id === session.id ? { ...s, status: "active" as const, lastActivity: new Date().toISOString() } : s,
+        s.id === session.id
+          ? { ...s, status: "active" as const, lastActivity: new Date().toISOString() }
+          : s,
       );
       saveSessions(updatedSessions);
 
@@ -189,7 +197,9 @@ async function runSessions(action: string, options: SessionsOptions): Promise<vo
       }
 
       const sessions = loadSessions();
-      const sessionIdx = sessions.findIndex((s) => s.id === options.id || s.id.startsWith(options.id!));
+      const sessionIdx = sessions.findIndex(
+        (s) => s.id === options.id || s.id.startsWith(options.id!),
+      );
 
       if (sessionIdx === -1) {
         console.error(chalk.red(`Session not found: ${options.id}`));

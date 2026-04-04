@@ -68,12 +68,10 @@ export class LLMExtractor {
     options?: LLMExtractOptions,
   ): Promise<LLMExtractionResult> {
     const format = options?.format ?? "json";
-    const maxLength =
-      options?.maxContentLength ?? this.defaultMaxLength;
+    const maxLength = options?.maxContentLength ?? this.defaultMaxLength;
     const content = this.getContent(page, maxLength);
 
-    const systemPrompt =
-      options?.systemPrompt ?? this.buildSystemPrompt(format);
+    const systemPrompt = options?.systemPrompt ?? this.buildSystemPrompt(format);
     const userPrompt = this.buildUserPrompt(
       instruction,
       content,
@@ -118,11 +116,7 @@ export class LLMExtractor {
 
     // Ensure result is an array
     if (!Array.isArray(result.data)) {
-      if (
-        result.data &&
-        typeof result.data === "object" &&
-        !Array.isArray(result.data)
-      ) {
+      if (result.data && typeof result.data === "object" && !Array.isArray(result.data)) {
         // Try common wrapper keys
         const obj = result.data as Record<string, unknown>;
         for (const key of ["items", "results", "data", "list", "entries"]) {
@@ -151,10 +145,8 @@ export class LLMExtractor {
     const style = options?.style ?? "brief";
     const styleInstruction = {
       brief: "Provide a brief 2-3 sentence summary.",
-      detailed:
-        "Provide a detailed summary covering all key points.",
-      bullets:
-        "Provide a bullet-point summary of the key information.",
+      detailed: "Provide a detailed summary covering all key points.",
+      bullets: "Provide a bullet-point summary of the key information.",
     }[style];
 
     const result = await this.extractWithLLM(
@@ -170,11 +162,7 @@ export class LLMExtractor {
   /**
    * Answer a question about page content.
    */
-  async answer(
-    question: string,
-    page: LLMPageContent,
-    llm: LLMProvider,
-  ): Promise<string> {
+  async answer(question: string, page: LLMPageContent, llm: LLMProvider): Promise<string> {
     const result = await this.extractWithLLM(
       `Based on the page content, answer this question: ${question}`,
       page,
@@ -253,11 +241,11 @@ export class LLMExtractor {
         try {
           return JSON.parse(response);
         } catch (error) {
-          logger.debug("Direct JSON parse of LLM response failed, trying fallback extraction", { error });
+          logger.debug("Direct JSON parse of LLM response failed, trying fallback extraction", {
+            error,
+          });
           // Try extracting from code fences
-          const fenceMatch = response.match(
-            /```(?:json)?\s*\n?([\s\S]*?)\n?```/,
-          );
+          const fenceMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
           if (fenceMatch) {
             try {
               return JSON.parse(fenceMatch[1]);
@@ -287,9 +275,7 @@ export class LLMExtractor {
   /**
    * Parse a CSV response into structured data.
    */
-  private parseCSVResponse(
-    text: string,
-  ): Record<string, string>[] {
+  private parseCSVResponse(text: string): Record<string, string>[] {
     // Strip code fences if present
     const cleaned = text
       .replace(/```(?:csv)?\s*\n?/g, "")

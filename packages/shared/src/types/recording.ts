@@ -46,7 +46,7 @@ export interface HAREntry {
   timings: { send: number; wait: number; receive: number };
 }
 
-export type RecordingFormat = 'rrweb' | 'video' | 'gif' | 'har';
+export type RecordingFormat = "rrweb" | "video" | "gif" | "har";
 
 export interface RecordingConfig {
   format: RecordingFormat;

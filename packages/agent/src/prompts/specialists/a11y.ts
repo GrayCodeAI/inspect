@@ -88,9 +88,18 @@ export const WCAG_CHECKS = {
   requiredFormAttributes: ["label", "aria-label", "aria-labelledby"],
   /** Interactive elements that must be keyboard accessible */
   keyboardRequired: [
-    "a[href]", "button", "input", "select", "textarea",
-    "[role=button]", "[role=link]", "[role=tab]", "[role=menuitem]",
-    "[role=checkbox]", "[role=radio]", "[role=switch]",
+    "a[href]",
+    "button",
+    "input",
+    "select",
+    "textarea",
+    "[role=button]",
+    "[role=link]",
+    "[role=tab]",
+    "[role=menuitem]",
+    "[role=checkbox]",
+    "[role=radio]",
+    "[role=switch]",
   ],
 } as const;
 

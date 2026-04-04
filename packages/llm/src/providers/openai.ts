@@ -91,9 +91,15 @@ const REASONING_MODELS = new Set(["o1", "o1-preview", "o1-mini", "o3", "o3-mini"
 
 /** Models supporting vision inputs */
 const VISION_MODELS = new Set([
-  "gpt-4o", "gpt-4o-mini", "gpt-4o-2024-11-20",
-  "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
-  "o1", "o3", "o4-mini",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-4o-2024-11-20",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "o1",
+  "o3",
+  "o4-mini",
 ]);
 
 /**
@@ -115,9 +121,11 @@ export class OpenAIProvider extends LLMProvider {
   }
 
   supportsVision(): boolean {
-    return VISION_MODELS.has(this.config.model) ||
+    return (
+      VISION_MODELS.has(this.config.model) ||
       this.config.model.startsWith("gpt-4o") ||
-      this.config.model.startsWith("gpt-4.1");
+      this.config.model.startsWith("gpt-4.1")
+    );
   }
 
   supportsThinking(): boolean {
@@ -163,7 +171,9 @@ export class OpenAIProvider extends LLMProvider {
       try {
         delta = JSON.parse(line);
       } catch (error) {
-        logger.debug("Failed to parse OpenAI stream chunk", { err: error instanceof Error ? error.message : String(error) });
+        logger.debug("Failed to parse OpenAI stream chunk", {
+          err: error instanceof Error ? error.message : String(error),
+        });
         continue;
       }
 
@@ -230,10 +240,12 @@ export class OpenAIProvider extends LLMProvider {
   // ── Private helpers ──────────────────────────────────────────────────────
 
   private isReasoningModel(): boolean {
-    return REASONING_MODELS.has(this.config.model) ||
+    return (
+      REASONING_MODELS.has(this.config.model) ||
       this.config.model.startsWith("o1") ||
       this.config.model.startsWith("o3") ||
-      this.config.model.startsWith("o4");
+      this.config.model.startsWith("o4")
+    );
   }
 
   private getHeaders(): Record<string, string> {
@@ -260,7 +272,8 @@ export class OpenAIProvider extends LLMProvider {
       body.max_completion_tokens = options?.maxTokens ?? this.config.defaultMaxTokens ?? 16384;
       // Reasoning models handle their own "thinking" via reasoning_effort
       if (options?.thinking && options.thinkingBudget) {
-        body.reasoning_effort = options.thinkingBudget > 8000 ? "high" : options.thinkingBudget > 3000 ? "medium" : "low";
+        body.reasoning_effort =
+          options.thinkingBudget > 8000 ? "high" : options.thinkingBudget > 3000 ? "medium" : "low";
       }
     } else {
       body.max_tokens = options?.maxTokens ?? this.config.defaultMaxTokens ?? 8192;
@@ -291,10 +304,7 @@ export class OpenAIProvider extends LLMProvider {
     return body;
   }
 
-  private convertMessages(
-    messages: LLMMessage[],
-    systemPrompt?: string,
-  ): unknown[] {
+  private convertMessages(messages: LLMMessage[], systemPrompt?: string): unknown[] {
     const converted: unknown[] = [];
     const isReasoning = this.isReasoningModel();
 
@@ -426,7 +436,9 @@ export class OpenAIProvider extends LLMProvider {
     try {
       return JSON.parse(str);
     } catch (error) {
-      logger.debug("Failed to parse OpenAI tool call arguments", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to parse OpenAI tool call arguments", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return {};
     }
   }

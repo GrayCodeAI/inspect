@@ -42,7 +42,7 @@ export function detectApiKeys(): { provider: string; envVar: string }[] {
     { provider: "Google (Gemini)", envVar: "GOOGLE_AI_KEY" },
     { provider: "DeepSeek", envVar: "DEEPSEEK_API_KEY" },
   ];
-  return keys.filter(k => !!process.env[k.envVar]);
+  return keys.filter((k) => !!process.env[k.envVar]);
 }
 
 /**

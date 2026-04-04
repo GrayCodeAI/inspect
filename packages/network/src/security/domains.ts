@@ -84,10 +84,7 @@ export class DomainSecurity {
    * @param patterns - Array of host patterns to block
    */
   setBlockedHosts(patterns: string[]): void {
-    this.blockedPatterns = [
-      ...DEFAULT_BLOCKED,
-      ...patterns.map((p) => p.toLowerCase()),
-    ];
+    this.blockedPatterns = [...DEFAULT_BLOCKED, ...patterns.map((p) => p.toLowerCase())];
   }
 
   /**
@@ -158,9 +155,7 @@ export class DomainSecurity {
 
     // If allowlist is set, the host must match at least one pattern
     if (this.allowedPatterns.length > 0) {
-      const matches = this.allowedPatterns.some((pattern) =>
-        matchWildcard(hostname, pattern),
-      );
+      const matches = this.allowedPatterns.some((pattern) => matchWildcard(hostname, pattern));
       if (!matches) {
         return {
           valid: false,
@@ -247,20 +242,20 @@ function matchWildcard(hostname: string, pattern: string): boolean {
  * Covers loopback, private networks, link-local, and special-use addresses.
  */
 function isBlockedIpValue(ipVal: number): boolean {
-  if (ipVal < 0 || ipVal > 0xFFFFFFFF) return false;
+  if (ipVal < 0 || ipVal > 0xffffffff) return false;
 
   // 0.0.0.0
   if (ipVal === 0) return true;
   // 127.0.0.0/8 (loopback)
-  if ((ipVal >>> 24) === 127) return true;
+  if (ipVal >>> 24 === 127) return true;
   // 10.0.0.0/8
-  if ((ipVal >>> 24) === 10) return true;
+  if (ipVal >>> 24 === 10) return true;
   // 172.16.0.0/12
-  if ((ipVal >>> 20) === (172 << 4 | 1)) return true; // 0xAC1 = 172.16-31
+  if (ipVal >>> 20 === ((172 << 4) | 1)) return true; // 0xAC1 = 172.16-31
   // 192.168.0.0/16
-  if ((ipVal >>> 16) === (192 << 8 | 168)) return true; // 0xC0A8
+  if (ipVal >>> 16 === ((192 << 8) | 168)) return true; // 0xC0A8
   // 169.254.0.0/16 (link-local / metadata)
-  if ((ipVal >>> 16) === (169 << 8 | 254)) return true; // 0xA9FE
+  if (ipVal >>> 16 === ((169 << 8) | 254)) return true; // 0xA9FE
 
   return false;
 }

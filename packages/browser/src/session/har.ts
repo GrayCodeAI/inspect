@@ -50,7 +50,10 @@ export class HARRecorder {
           queryString,
           bodySize: request.postData()?.length ?? 0,
           postData: request.postData()
-            ? { mimeType: request.headers()["content-type"] ?? "application/octet-stream", text: request.postData()! }
+            ? {
+                mimeType: request.headers()["content-type"] ?? "application/octet-stream",
+                text: request.postData()!,
+              }
             : undefined,
         },
         response: {

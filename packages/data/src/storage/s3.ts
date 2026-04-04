@@ -55,8 +55,7 @@ export class S3Storage {
     },
   ): Promise<S3UploadResult> {
     const bodyBuffer = typeof body === "string" ? Buffer.from(body) : body;
-    const contentType =
-      options?.contentType ?? "application/octet-stream";
+    const contentType = options?.contentType ?? "application/octet-stream";
 
     const headers: Record<string, string> = {
       "Content-Type": contentType,
@@ -73,12 +72,7 @@ export class S3Storage {
       }
     }
 
-    const response = await this.request(
-      "PUT",
-      `/${key}`,
-      headers,
-      bodyBuffer,
-    );
+    const response = await this.request("PUT", `/${key}`, headers, bodyBuffer);
 
     return {
       key,
@@ -99,11 +93,7 @@ export class S3Storage {
   /**
    * Generate a presigned URL for temporary access.
    */
-  getPresignedUrl(
-    key: string,
-    expiresIn: number = 86_400,
-    method: string = "GET",
-  ): string {
+  getPresignedUrl(key: string, expiresIn: number = 86_400, method: string = "GET"): string {
     const now = new Date();
     const dateStamp = this.formatDate(now);
     const amzDate = this.formatAmzDate(now);
@@ -122,9 +112,7 @@ export class S3Storage {
 
     // Sort query parameters
     const sortedParams = new URLSearchParams(
-      [...queryParams.entries()].sort((a, b) =>
-        a[0].localeCompare(b[0]),
-      ),
+      [...queryParams.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     );
 
     const canonicalRequest = [
@@ -148,9 +136,7 @@ export class S3Storage {
 
     sortedParams.set("X-Amz-Signature", signature);
 
-    const protocol = this.config.endpoint?.startsWith("http://")
-      ? "http"
-      : "https";
+    const protocol = this.config.endpoint?.startsWith("http://") ? "http" : "https";
     return `${protocol}://${hostname}${basePath}?${sortedParams.toString()}`;
   }
 
@@ -171,10 +157,7 @@ export class S3Storage {
       const response = await this.request("HEAD", `/${key}`, {});
       return {
         exists: true,
-        contentLength: parseInt(
-          response.headers["content-length"] ?? "0",
-          10,
-        ),
+        contentLength: parseInt(response.headers["content-length"] ?? "0", 10),
         contentType: response.headers["content-type"],
       };
     } catch (error) {
@@ -189,9 +172,7 @@ export class S3Storage {
   async listObjects(
     prefix?: string,
     maxKeys: number = 1000,
-  ): Promise<
-    Array<{ key: string; size: number; lastModified: string }>
-  > {
+  ): Promise<Array<{ key: string; size: number; lastModified: string }>> {
     const queryParams = new URLSearchParams({
       "list-type": "2",
       "max-keys": String(maxKeys),
@@ -200,11 +181,7 @@ export class S3Storage {
       queryParams.set("prefix", prefix);
     }
 
-    const response = await this.request(
-      "GET",
-      `/?${queryParams.toString()}`,
-      {},
-    );
+    const response = await this.request("GET", `/?${queryParams.toString()}`, {});
     const xml = response.body.toString("utf-8");
 
     const objects: Array<{
@@ -212,16 +189,13 @@ export class S3Storage {
       size: number;
       lastModified: string;
     }> = [];
-    const contentsRegex =
-      /<Contents>([\s\S]*?)<\/Contents>/g;
+    const contentsRegex = /<Contents>([\s\S]*?)<\/Contents>/g;
     let match: RegExpExecArray | null;
 
     while ((match = contentsRegex.exec(xml)) !== null) {
       const keyMatch = match[1].match(/<Key>(.*?)<\/Key>/);
       const sizeMatch = match[1].match(/<Size>(.*?)<\/Size>/);
-      const dateMatch = match[1].match(
-        /<LastModified>(.*?)<\/LastModified>/,
-      );
+      const dateMatch = match[1].match(/<LastModified>(.*?)<\/LastModified>/);
 
       if (keyMatch) {
         objects.push({
@@ -272,13 +246,14 @@ export class S3Storage {
       const canonicalHeaders = Object.keys(reqHeaders)
         .map((k) => k.toLowerCase())
         .sort()
-        .map((k) => `${k}:${reqHeaders[Object.keys(reqHeaders).find((h) => h.toLowerCase() === k)!].trim()}`)
+        .map(
+          (k) =>
+            `${k}:${reqHeaders[Object.keys(reqHeaders).find((h) => h.toLowerCase() === k)!].trim()}`,
+        )
         .join("\n");
 
       const [pathPart, queryPart] = fullPath.split("?");
-      const canonicalQueryString = queryPart
-        ? this.sortQueryString(queryPart)
-        : "";
+      const canonicalQueryString = queryPart ? this.sortQueryString(queryPart) : "";
 
       const canonicalRequest = [
         method,
@@ -300,9 +275,8 @@ export class S3Storage {
       const signingKey = this.getSigningKey(dateStamp);
       const signature = this.hmac(signingKey, stringToSign).toString("hex");
 
-      reqHeaders[
-        "Authorization"
-      ] = `AWS4-HMAC-SHA256 Credential=${this.config.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+      reqHeaders["Authorization"] =
+        `AWS4-HMAC-SHA256 Credential=${this.config.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
       const req = https.request(
         {
@@ -320,11 +294,7 @@ export class S3Storage {
             const responseBody = Buffer.concat(chunks);
 
             if (statusCode >= 400) {
-              reject(
-                new Error(
-                  `S3 error (${statusCode}): ${responseBody.toString("utf-8")}`,
-                ),
-              );
+              reject(new Error(`S3 error (${statusCode}): ${responseBody.toString("utf-8")}`));
               return;
             }
 
@@ -337,9 +307,7 @@ export class S3Storage {
         },
       );
 
-      req.on("error", (err) =>
-        reject(new Error(`S3 request failed: ${err.message}`)),
-      );
+      req.on("error", (err) => reject(new Error(`S3 request failed: ${err.message}`)));
 
       if (body) req.write(body);
       req.end();
@@ -354,9 +322,7 @@ export class S3Storage {
   } {
     if (this.config.endpoint) {
       const url = new URL(this.config.endpoint);
-      const fullPath = this.config.forcePathStyle
-        ? `/${this.config.bucket}${path}`
-        : path;
+      const fullPath = this.config.forcePathStyle ? `/${this.config.bucket}${path}` : path;
       return {
         hostname: this.config.forcePathStyle
           ? url.hostname
@@ -383,10 +349,7 @@ export class S3Storage {
   }
 
   private getSigningKey(dateStamp: string): Buffer {
-    const kDate = this.hmac(
-      Buffer.from("AWS4" + this.config.secretAccessKey),
-      dateStamp,
-    );
+    const kDate = this.hmac(Buffer.from("AWS4" + this.config.secretAccessKey), dateStamp);
     const kRegion = this.hmac(kDate, this.config.region);
     const kService = this.hmac(kRegion, this.service);
     return this.hmac(kService, "aws4_request");
@@ -397,14 +360,14 @@ export class S3Storage {
   }
 
   private sha256(data: Buffer | string): string {
-    return crypto
-      .createHash("sha256")
-      .update(data)
-      .digest("hex");
+    return crypto.createHash("sha256").update(data).digest("hex");
   }
 
   private formatAmzDate(date: Date): string {
-    return date.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z/, "Z");
+    return date
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d+Z/, "Z");
   }
 
   private formatDate(date: Date): string {
@@ -412,9 +375,6 @@ export class S3Storage {
   }
 
   private sortQueryString(qs: string): string {
-    return qs
-      .split("&")
-      .sort()
-      .join("&");
+    return qs.split("&").sort().join("&");
   }
 }

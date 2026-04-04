@@ -95,7 +95,9 @@ export class LongTermMemory {
     try {
       await access(filePath);
     } catch (error) {
-      logger.debug("Memory entry not found on disk", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Memory entry not found on disk", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
 
@@ -107,7 +109,9 @@ export class LongTermMemory {
       this.cache.set(key, data);
       return data.value;
     } catch (error) {
-      logger.debug("Failed to read memory entry", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to read memory entry", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -116,7 +120,11 @@ export class LongTermMemory {
    * Learn from an action result. Over time, patterns emerge about
    * what works and what doesn't on specific pages/elements.
    */
-  async learnPattern(action: string, result: "success" | "failure", context: string): Promise<void> {
+  async learnPattern(
+    action: string,
+    result: "success" | "failure",
+    context: string,
+  ): Promise<void> {
     const patternKey = this.hashPattern(action, context);
     const existing = this.patterns.get(patternKey);
     const now = Date.now();
@@ -193,7 +201,9 @@ export class LongTermMemory {
         .filter((f) => f.endsWith(".json") && f !== "patterns.json")
         .map((f) => f.replace(".json", ""));
     } catch (error) {
-      logger.debug("Failed to list memory keys", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to list memory keys", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -208,7 +218,9 @@ export class LongTermMemory {
       await unlink(filePath);
       return true;
     } catch (error) {
-      logger.debug("Failed to delete memory entry", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Failed to delete memory entry", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -219,7 +231,9 @@ export class LongTermMemory {
     try {
       await access(this.memoryDir);
     } catch (error) {
-      logger.debug("Memory directory not found, creating it", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Memory directory not found, creating it", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       await mkdir(this.memoryDir, { recursive: true });
     }
   }
@@ -234,7 +248,9 @@ export class LongTermMemory {
     try {
       await writeFile(this.entryPath(key), JSON.stringify(entry, null, 2));
     } catch (error) {
-      logger.warn("Failed to persist memory entry", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to persist memory entry", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -242,7 +258,9 @@ export class LongTermMemory {
     try {
       await access(this.patternsFile);
     } catch (error) {
-      logger.debug("Patterns file not found, starting fresh", { err: error instanceof Error ? error.message : String(error) });
+      logger.debug("Patterns file not found, starting fresh", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       return;
     }
 
@@ -254,7 +272,9 @@ export class LongTermMemory {
         this.patterns.set(key, pattern);
       }
     } catch (error) {
-      logger.warn("Failed to load patterns, starting fresh", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to load patterns, starting fresh", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -263,7 +283,9 @@ export class LongTermMemory {
       const data = Array.from(this.patterns.values());
       await writeFile(this.patternsFile, JSON.stringify(data, null, 2));
     } catch (error) {
-      logger.warn("Failed to save patterns", { err: error instanceof Error ? error.message : String(error) });
+      logger.warn("Failed to save patterns", {
+        err: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -273,7 +295,7 @@ export class LongTermMemory {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash |= 0; // Convert to 32-bit integer
     }
     return `p_${Math.abs(hash).toString(36)}`;

@@ -31,8 +31,11 @@ async function runExtract(url: string | undefined, options: ExtractOptions): Pro
     console.log(chalk.dim("\nLaunching browser..."));
     const { BrowserManager } = await import("@inspect/browser");
     const browserMgr = new BrowserManager();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await browserMgr.launchBrowser({ headless: true, viewport: { width: 1920, height: 1080 } } as any);
+    await browserMgr.launchBrowser({
+      headless: true,
+      viewport: { width: 1920, height: 1080 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
     const page = await browserMgr.newPage();
 
     console.log(chalk.dim(`Navigating to ${url}...`));
@@ -40,7 +43,7 @@ async function runExtract(url: string | undefined, options: ExtractOptions): Pro
 
     // Get page content
     const title = await page.title();
-    const content = await page.evaluate("document.body.innerText") as string;
+    const content = (await page.evaluate("document.body.innerText")) as string;
     const pageUrl = page.url();
 
     console.log(chalk.dim(`Page: ${title}`));
@@ -70,7 +73,9 @@ async function runExtract(url: string | undefined, options: ExtractOptions): Pro
     };
     const apiKey = process.env[keyMap[providerName] ?? "ANTHROPIC_API_KEY"];
     if (!apiKey) {
-      console.error(chalk.red(`No API key found. Set ${keyMap[providerName] ?? "ANTHROPIC_API_KEY"}`));
+      console.error(
+        chalk.red(`No API key found. Set ${keyMap[providerName] ?? "ANTHROPIC_API_KEY"}`),
+      );
       await browserMgr.closeBrowser();
       process.exit(1);
     }
@@ -90,14 +95,20 @@ async function runExtract(url: string | undefined, options: ExtractOptions): Pro
     const startTime = Date.now();
     const response = await provider.chat([
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Page URL: ${pageUrl}\nPage Title: ${title}\n\nContent:\n${truncatedContent}` },
+      {
+        role: "user",
+        content: `Page URL: ${pageUrl}\nPage Title: ${title}\n\nContent:\n${truncatedContent}`,
+      },
     ]);
     const elapsed = Date.now() - startTime;
 
     // Parse the response
     let extracted: unknown;
     try {
-      const jsonStr = response.content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+      const jsonStr = response.content
+        .replace(/```json?\n?/g, "")
+        .replace(/```/g, "")
+        .trim();
       extracted = JSON.parse(jsonStr);
     } catch {
       extracted = { raw: response.content };

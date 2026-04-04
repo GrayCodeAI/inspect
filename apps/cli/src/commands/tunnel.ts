@@ -51,7 +51,11 @@ async function runTunnel(options: TunnelOptions): Promise<void> {
       await execFile("cloudflared", ["--version"]);
     } catch {
       console.error(chalk.red("\nError: cloudflared is not installed."));
-      console.error(chalk.dim("  Install: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/"));
+      console.error(
+        chalk.dim(
+          "  Install: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/",
+        ),
+      );
       console.error(chalk.dim("  Or: brew install cloudflared"));
       process.exit(1);
     }
@@ -85,7 +89,9 @@ async function runTunnel(options: TunnelOptions): Promise<void> {
       process.on("SIGINT", () => {
         console.log(chalk.dim("\nClosing tunnel..."));
         child.kill("SIGTERM");
-        setTimeout(() => { if (!child.killed) child.kill("SIGKILL"); }, 3000);
+        setTimeout(() => {
+          if (!child.killed) child.kill("SIGKILL");
+        }, 3000);
         resolve();
       });
       process.on("SIGTERM", () => {

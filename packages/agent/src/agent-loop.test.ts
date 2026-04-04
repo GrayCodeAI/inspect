@@ -5,7 +5,7 @@
  */
 
 import { Effect, Layer } from "effect";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { AgentLoop, AgentLoopConfig } from "./agent-loop.js";
 import { LLMProviderService } from "@inspect/llm";
 
@@ -16,7 +16,8 @@ const createMockBrowserSession = () => ({
   url: Effect.succeed("https://example.com"),
   title: Effect.succeed("Example Domain"),
   screenshot: (_path?: string) => Effect.succeed("data:image/png;base64,mock"),
-  evaluate: <T>(_script: string) => Effect.succeed("<html><body>Mock DOM</body></html>" as unknown as T),
+  evaluate: <T>(_script: string) =>
+    Effect.succeed("<html><body>Mock DOM</body></html>" as unknown as T),
   click: (selector: string) => Effect.logDebug(`Clicked ${selector}`),
   type: (selector: string, text: string) => Effect.logDebug(`Typed "${text}" in ${selector}`),
   getText: (selector: string) => Effect.succeed(`Text from ${selector}`),
@@ -39,9 +40,7 @@ describe("AgentLoop", () => {
         const loop = yield* AgentLoop;
         const state = yield* loop.run(config);
         return state;
-      }).pipe(
-        Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer)),
-      ),
+      }).pipe(Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer))),
     );
 
     expect(result).toBeDefined();
@@ -66,9 +65,7 @@ describe("AgentLoop", () => {
         const loop = yield* AgentLoop;
         const state = yield* loop.run(config);
         return state;
-      }).pipe(
-        Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer)),
-      ),
+      }).pipe(Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer))),
     );
 
     const elapsed = Date.now() - startTime;
@@ -91,9 +88,7 @@ describe("AgentLoop", () => {
         const loop = yield* AgentLoop;
         const state = yield* loop.run(config);
         return state;
-      }).pipe(
-        Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer)),
-      ),
+      }).pipe(Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer))),
     );
 
     expect(result.observations).toBeDefined();
@@ -114,9 +109,7 @@ describe("AgentLoop", () => {
         const loop = yield* AgentLoop;
         const state = yield* loop.run(config);
         return state;
-      }).pipe(
-        Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer)),
-      ),
+      }).pipe(Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer))),
     );
 
     expect(result.steps).toBeDefined();
@@ -145,11 +138,10 @@ describe("AgentLoop", () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const loop = yield* AgentLoop;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const state = yield* loop.run(config, session as any);
         return state;
-      }).pipe(
-        Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer)),
-      ),
+      }).pipe(Effect.provide(Layer.merge(AgentLoop.layer, LLMProviderService.layer))),
     );
 
     expect(result).toBeDefined();

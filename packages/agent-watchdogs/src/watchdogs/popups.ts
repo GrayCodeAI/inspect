@@ -120,7 +120,10 @@ export class PopupWatchdog implements Watchdog {
   /**
    * Called when a browser dialog (alert/confirm/prompt) appears.
    */
-  onDialog(dialogType: "alert" | "confirm" | "prompt" | "beforeunload", message: string): {
+  onDialog(
+    dialogType: "alert" | "confirm" | "prompt" | "beforeunload",
+    message: string,
+  ): {
     action: "accept" | "dismiss";
     promptValue?: string;
   } {

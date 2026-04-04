@@ -61,7 +61,8 @@ export class StallDetector {
 
     const urlChanged = indicators.url !== this.lastUrl;
     const elementsChanged = Math.abs(indicators.elementCount - this.lastElementCount) > 3;
-    const madeProgress = urlChanged || elementsChanged || indicators.stepPassed || indicators.dataExtracted;
+    const madeProgress =
+      urlChanged || elementsChanged || indicators.stepPassed || indicators.dataExtracted;
 
     if (madeProgress) {
       this.lastProgressStep = this.currentStep;
@@ -87,7 +88,8 @@ export class StallDetector {
         replanCount: this.replanCount,
         forceStop: true,
         reason: `Agent stalled after ${this.config.maxReplans} replanning attempts`,
-        nudgeMessage: "STOPPING: Multiple replanning attempts have failed. The task may not be achievable with the current page state.",
+        nudgeMessage:
+          "STOPPING: Multiple replanning attempts have failed. The task may not be achievable with the current page state.",
       };
     }
 

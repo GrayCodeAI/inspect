@@ -9,9 +9,33 @@ function createMockPage(): PageInterface {
     url: "https://example.com/products",
     title: "Products Page",
     elements: [
-      { ref: "e1", role: "heading", name: "Product List", tagName: "h1", interactable: false, visible: true, value: "" },
-      { ref: "e2", role: "listitem", name: "Widget A - $10", tagName: "li", interactable: false, visible: true, value: "" },
-      { ref: "e3", role: "listitem", name: "Widget B - $20", tagName: "li", interactable: false, visible: true, value: "" },
+      {
+        ref: "e1",
+        role: "heading",
+        name: "Product List",
+        tagName: "h1",
+        interactable: false,
+        visible: true,
+        value: "",
+      },
+      {
+        ref: "e2",
+        role: "listitem",
+        name: "Widget A - $10",
+        tagName: "li",
+        interactable: false,
+        visible: true,
+        value: "",
+      },
+      {
+        ref: "e3",
+        role: "listitem",
+        name: "Widget B - $20",
+        tagName: "li",
+        interactable: false,
+        visible: true,
+        value: "",
+      },
     ],
     timestamp: Date.now(),
   } as PageSnapshot;
@@ -41,7 +65,9 @@ function createMockLLM(response: string): LLMClient {
 
 describe("ExtractHandler.execute", () => {
   it("extracts structured JSON data from page", async () => {
-    const llm = createMockLLM('{"products":[{"name":"Widget A","price":10},{"name":"Widget B","price":20}]}');
+    const llm = createMockLLM(
+      '{"products":[{"name":"Widget A","price":10},{"name":"Widget B","price":20}]}',
+    );
     const page = createMockPage();
     const handler = new ExtractHandler(llm);
 
@@ -93,7 +119,8 @@ describe("ExtractHandler.execute", () => {
 
   it("retries when schema validation fails", async () => {
     const llm = {
-      chat: vi.fn()
+      chat: vi
+        .fn()
         .mockResolvedValueOnce({
           content: '{"wrong":"format"}',
           usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
@@ -163,7 +190,8 @@ describe("ExtractHandler.execute", () => {
 
   it("accumulates tokens across retries", async () => {
     const llm = {
-      chat: vi.fn()
+      chat: vi
+        .fn()
         .mockResolvedValueOnce({
           content: "not json",
           usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },

@@ -61,12 +61,14 @@ export const DEFAULT_LOOP_CONFIG: LoopDetectorConfig = {
     },
     {
       repetitions: 8,
-      message: "You're repeating the same action ({count} times). Try a different strategy to make progress.",
+      message:
+        "You're repeating the same action ({count} times). Try a different strategy to make progress.",
       severity: "suggestive",
     },
     {
       repetitions: 12,
-      message: "STUCK DETECTED: You've repeated this action {count} times. Consider breaking out of this loop by exploring a completely different part of the page or asking for help.",
+      message:
+        "STUCK DETECTED: You've repeated this action {count} times. Consider breaking out of this loop by exploring a completely different part of the page or asking for help.",
       severity: "forceful",
     },
   ],
@@ -139,8 +141,7 @@ export class LoopDetector {
       // Strip click indices
       else if (key === "index" || key === "elementIndex") {
         continue; // Skip indices
-      }
-      else {
+      } else {
         normalized[key] = value;
       }
     }
@@ -235,16 +236,15 @@ export class LoopDetector {
    */
   getNudge(loop: LoopInfo): Nudge | null {
     // Sort nudge levels by repetitions descending
-    const sortedLevels = [...this.config.nudgeLevels].sort(
-      (a, b) => b.repetitions - a.repetitions
-    );
+    const sortedLevels = [...this.config.nudgeLevels].sort((a, b) => b.repetitions - a.repetitions);
 
     // Find applicable nudge
     for (let i = 0; i < sortedLevels.length; i++) {
       const level = sortedLevels[i];
 
       if (loop.repetitions === level.repetitions) {
-        const severity = level.severity || (i === 0 ? "forceful" : i === 1 ? "suggestive" : "gentle");
+        const severity =
+          level.severity || (i === 0 ? "forceful" : i === 1 ? "suggestive" : "gentle");
         const nudge: Nudge = {
           level: sortedLevels.length - i,
           repetitions: level.repetitions,

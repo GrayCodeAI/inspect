@@ -45,7 +45,7 @@ export class DevicePool {
    */
   async runOnDevices<T>(
     devices: DeviceConfig[],
-    testFn: (device: DeviceConfig) => Promise<T>
+    testFn: (device: DeviceConfig) => Promise<T>,
   ): Promise<DeviceRunResult<T>[]> {
     const results: DeviceRunResult<T>[] = [];
     const queue = [...devices];
@@ -78,10 +78,7 @@ export class DevicePool {
               results.push({
                 device,
                 status: "error",
-                error:
-                  err instanceof Error
-                    ? err.message
-                    : String(err),
+                error: err instanceof Error ? err.message : String(err),
                 duration: Date.now() - startTime,
               });
             })
@@ -105,7 +102,7 @@ export class DevicePool {
    */
   async runSequential<T>(
     devices: DeviceConfig[],
-    testFn: (device: DeviceConfig) => Promise<T>
+    testFn: (device: DeviceConfig) => Promise<T>,
   ): Promise<DeviceRunResult<T>[]> {
     const results: DeviceRunResult<T>[] = [];
 
@@ -123,8 +120,7 @@ export class DevicePool {
         results.push({
           device,
           status: "error",
-          error:
-            err instanceof Error ? err.message : String(err),
+          error: err instanceof Error ? err.message : String(err),
           duration: Date.now() - startTime,
         });
       }
@@ -139,15 +135,11 @@ export class DevicePool {
    */
   compareResults<T>(
     results: DeviceRunResult<T>[],
-    equalityFn?: (a: T, b: T) => boolean
+    equalityFn?: (a: T, b: T) => boolean,
   ): CrossDeviceComparison<T> {
-    const failures = results
-      .filter((r) => r.status === "error")
-      .map((r) => r.device.name);
+    const failures = results.filter((r) => r.status === "error").map((r) => r.device.name);
 
-    const _successes = results.filter(
-      (r) => r.status === "success"
-    );
+    const _successes = results.filter((r) => r.status === "success");
 
     // Group by result equality
     const groups: CrossDeviceComparison<T>["groups"] = [];
@@ -163,14 +155,10 @@ export class DevicePool {
           break;
         }
 
-        if (
-          run.status === "success" &&
-          group.result !== undefined
-        ) {
+        if (run.status === "success" && group.result !== undefined) {
           const isEqual = equalityFn
             ? equalityFn(run.result!, group.result as T)
-            : JSON.stringify(run.result) ===
-              JSON.stringify(group.result);
+            : JSON.stringify(run.result) === JSON.stringify(group.result);
 
           if (isEqual) {
             group.devices.push(run.device.name);
@@ -189,15 +177,12 @@ export class DevicePool {
       }
     }
 
-    const consistent =
-      groups.length <= 1 && failures.length === 0;
+    const consistent = groups.length <= 1 && failures.length === 0;
 
     const summary = consistent
       ? `All ${results.length} devices produced consistent results`
       : `${groups.length} different outcomes across ${results.length} devices` +
-        (failures.length > 0
-          ? ` (${failures.length} failures)`
-          : "");
+        (failures.length > 0 ? ` (${failures.length} failures)` : "");
 
     return {
       consistent,

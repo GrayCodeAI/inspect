@@ -628,6 +628,7 @@ export function executeTest(
 // ============================================================================
 
 /** Legacy interface for backward compatibility */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ExecutorDependencies extends ExecutionDeps {}
 
 /** Legacy TestExecutor class for backward compatibility */

@@ -6,12 +6,12 @@ import { safeEvaluate } from "./evaluate.js";
 // axe-core injection and execution
 // ---------------------------------------------------------------------------
 
-  async function runAxeCore(page: Page, url: string): Promise<A11yIssue[]> {
+async function runAxeCore(page: Page, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
   try {
     // Inject axe-core — try local node_modules first, then CDN fallback
-    const alreadyLoaded = await page.evaluate("typeof window.axe !== 'undefined'") as boolean;
+    const alreadyLoaded = (await page.evaluate("typeof window.axe !== 'undefined'")) as boolean;
     if (!alreadyLoaded) {
       let injected = false;
 
@@ -46,7 +46,7 @@ import { safeEvaluate } from "./evaluate.js";
     }
 
     // Run axe
-    const results = await page.evaluate(`
+    const results = (await page.evaluate(`
       (async () => {
         try {
           const results = await window.axe.run(document, {
@@ -70,7 +70,7 @@ import { safeEvaluate } from "./evaluate.js";
           return [{ id: "axe-error", impact: "minor", description: e.message, help: "", nodes: [] }];
         }
       })()
-    `) as Array<{
+    `)) as Array<{
       id: string;
       impact: string;
       description: string;
@@ -107,10 +107,14 @@ import { safeEvaluate } from "./evaluate.js";
 
 function mapAxeSeverity(impact: string): "critical" | "serious" | "moderate" | "minor" {
   switch (impact) {
-    case "critical": return "critical";
-    case "serious": return "serious";
-    case "moderate": return "moderate";
-    default: return "minor";
+    case "critical":
+      return "critical";
+    case "serious":
+      return "serious";
+    case "moderate":
+      return "moderate";
+    default:
+      return "minor";
   }
 }
 
@@ -126,8 +130,10 @@ function extractWcag(tags: string[]): string | undefined {
 // Manual accessibility checks (run always, augment axe results)
 // ---------------------------------------------------------------------------
 
-  async function checkImagesAlt(page: Page, url: string): Promise<A11yIssue[]> {
-  const results = await safeEvaluate<Array<{ src: string; html: string }>>(page, `
+async function checkImagesAlt(page: Page, url: string): Promise<A11yIssue[]> {
+  const results = await safeEvaluate<Array<{ src: string; html: string }>>(
+    page,
+    `
     (() => {
       const imgs = Array.from(document.querySelectorAll("img"));
       return imgs
@@ -138,9 +144,11 @@ function extractWcag(tags: string[]): string | undefined {
         })
         .map(i => ({ src: i.src?.slice(0, 80) ?? "unknown", html: i.outerHTML.slice(0, 120) }));
     })()
-  `, []);
+  `,
+    [],
+  );
 
-  return results.map(img => ({
+  return results.map((img) => ({
     severity: "serious" as const,
     rule: "image-alt",
     description: `Image missing alt text: ${img.src}`,
@@ -151,8 +159,12 @@ function extractWcag(tags: string[]): string | undefined {
   }));
 }
 
-  async function checkFormLabels(page: Page, url: string): Promise<A11yIssue[]> {
-  const results = await safeEvaluate<Array<{ tag: string; type: string; name: string; id: string; html: string }>>(page, `
+async function checkFormLabels(page: Page, url: string): Promise<A11yIssue[]> {
+  const results = await safeEvaluate<
+    Array<{ tag: string; type: string; name: string; id: string; html: string }>
+  >(
+    page,
+    `
     (() => {
       const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
       return inputs.filter(el => {
@@ -172,9 +184,11 @@ function extractWcag(tags: string[]): string | undefined {
         html: el.outerHTML.slice(0, 120),
       }));
     })()
-  `, []);
+  `,
+    [],
+  );
 
-  return results.map(input => ({
+  return results.map((input) => ({
     severity: "serious" as const,
     rule: "label",
     description: `${input.tag} (type=${input.type}, name=${input.name}) has no accessible label`,
@@ -185,10 +199,12 @@ function extractWcag(tags: string[]): string | undefined {
   }));
 }
 
-  async function checkHeadingHierarchy(page: Page, url: string): Promise<A11yIssue[]> {
+async function checkHeadingHierarchy(page: Page, url: string): Promise<A11yIssue[]> {
   const issues: A11yIssue[] = [];
 
-  const headings = await safeEvaluate<Array<{ level: number; text: string; html: string }>>(page, `
+  const headings = await safeEvaluate<Array<{ level: number; text: string; html: string }>>(
+    page,
+    `
     (() => {
       const hs = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"));
       return hs.map(h => ({
@@ -197,9 +213,11 @@ function extractWcag(tags: string[]): string | undefined {
         html: h.outerHTML.slice(0, 120),
       }));
     })()
-  `, []);
+  `,
+    [],
+  );
 
-  const h1s = headings.filter(h => h.level === 1);
+  const h1s = headings.filter((h) => h.level === 1);
   if (h1s.length === 0) {
     issues.push({
       severity: "moderate",
@@ -239,8 +257,19 @@ function extractWcag(tags: string[]): string | undefined {
   return issues;
 }
 
-  async function checkColorContrast(page: Page, url: string): Promise<A11yIssue[]> {
-  const results = await safeEvaluate<Array<{ text: string; ratio: string; required: string; color: string; bgColor: string; html: string }>>(page, `
+async function checkColorContrast(page: Page, url: string): Promise<A11yIssue[]> {
+  const results = await safeEvaluate<
+    Array<{
+      text: string;
+      ratio: string;
+      required: string;
+      color: string;
+      bgColor: string;
+      html: string;
+    }>
+  >(
+    page,
+    `
     (() => {
       const issues = [];
 
@@ -299,9 +328,11 @@ function extractWcag(tags: string[]): string | undefined {
       }
       return issues;
     })()
-  `, []);
+  `,
+    [],
+  );
 
-  return results.map(r => ({
+  return results.map((r) => ({
     severity: "serious" as const,
     rule: "color-contrast",
     description: `Low contrast (${r.ratio}:1, need ${r.required}:1): "${r.text}" — ${r.color} on ${r.bgColor}`,
@@ -312,51 +343,69 @@ function extractWcag(tags: string[]): string | undefined {
   }));
 }
 
-  async function checkLangAttribute(page: Page, url: string): Promise<A11yIssue[]> {
-  const hasLang = await safeEvaluate<boolean>(page, `!!document.documentElement.getAttribute("lang")`, false);
+async function checkLangAttribute(page: Page, url: string): Promise<A11yIssue[]> {
+  const hasLang = await safeEvaluate<boolean>(
+    page,
+    `!!document.documentElement.getAttribute("lang")`,
+    false,
+  );
   if (!hasLang) {
-    return [{
-      severity: "serious",
-      rule: "html-lang",
-      description: "HTML element missing lang attribute",
-      page: url,
-      wcag: "3.1.1",
-      fix: 'Add lang attribute to <html> element, e.g., <html lang="en">',
-    }];
+    return [
+      {
+        severity: "serious",
+        rule: "html-lang",
+        description: "HTML element missing lang attribute",
+        page: url,
+        wcag: "3.1.1",
+        fix: 'Add lang attribute to <html> element, e.g., <html lang="en">',
+      },
+    ];
   }
 
-  const lang = await safeEvaluate<string>(page, `document.documentElement.getAttribute("lang")`, "");
+  const lang = await safeEvaluate<string>(
+    page,
+    `document.documentElement.getAttribute("lang")`,
+    "",
+  );
   if (lang && !/^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
-    return [{
-      severity: "moderate",
-      rule: "html-lang-valid",
-      description: `Invalid lang attribute value: "${lang}"`,
-      page: url,
-      wcag: "3.1.1",
-      fix: "Use a valid BCP 47 language tag (e.g., 'en', 'en-US', 'fr')",
-    }];
+    return [
+      {
+        severity: "moderate",
+        rule: "html-lang-valid",
+        description: `Invalid lang attribute value: "${lang}"`,
+        page: url,
+        wcag: "3.1.1",
+        fix: "Use a valid BCP 47 language tag (e.g., 'en', 'en-US', 'fr')",
+      },
+    ];
   }
 
   return [];
 }
 
-  async function checkViewportMeta(page: Page, url: string): Promise<A11yIssue[]> {
-  const viewport = await safeEvaluate<string | null>(page, `
+async function checkViewportMeta(page: Page, url: string): Promise<A11yIssue[]> {
+  const viewport = await safeEvaluate<string | null>(
+    page,
+    `
     (() => {
       const meta = document.querySelector('meta[name="viewport"]');
       return meta ? meta.getAttribute("content") : null;
     })()
-  `, null);
+  `,
+    null,
+  );
 
   if (!viewport) {
-    return [{
-      severity: "serious",
-      rule: "viewport",
-      description: "Missing viewport meta tag",
-      page: url,
-      wcag: "1.4.10",
-      fix: 'Add <meta name="viewport" content="width=device-width, initial-scale=1">',
-    }];
+    return [
+      {
+        severity: "serious",
+        rule: "viewport",
+        description: "Missing viewport meta tag",
+        page: url,
+        wcag: "1.4.10",
+        fix: 'Add <meta name="viewport" content="width=device-width, initial-scale=1">',
+      },
+    ];
   }
 
   const issues: A11yIssue[] = [];
@@ -390,11 +439,15 @@ function extractWcag(tags: string[]): string | undefined {
 // Keyboard navigation testing
 // ---------------------------------------------------------------------------
 
-  async function testKeyboardNavigation(page: Page, _url: string): Promise<KeyboardNavResult> {
+async function testKeyboardNavigation(page: Page, _url: string): Promise<KeyboardNavResult> {
   // Count total focusable elements
-  const focusableCount = await safeEvaluate<number>(page, `
+  const focusableCount = await safeEvaluate<number>(
+    page,
+    `
     document.querySelectorAll('a[href], button, input:not([type="hidden"]), textarea, select, [tabindex]:not([tabindex="-1"])').length
-  `, 0);
+  `,
+    0,
+  );
 
   // Tab through elements and track focus
   const focusOrder: string[] = [];
@@ -409,7 +462,15 @@ function extractWcag(tags: string[]): string | undefined {
     await page.keyboard.press("Tab");
     await page.waitForTimeout(50);
 
-    const focused = await safeEvaluate<{ tag: string; text: string; role: string; hasFocusIndicator: boolean; selector: string } | null>(page, `
+    const focused = await safeEvaluate<{
+      tag: string;
+      text: string;
+      role: string;
+      hasFocusIndicator: boolean;
+      selector: string;
+    } | null>(
+      page,
+      `
       (() => {
         const el = document.activeElement;
         if (!el || el === document.body) return null;
@@ -425,7 +486,9 @@ function extractWcag(tags: string[]): string | undefined {
 
         return { tag, text, role, hasFocusIndicator, selector: tag + (el.id ? "#" + el.id : "") + (el.className ? "." + el.className.split(" ")[0] : "") };
       })()
-    `, null);
+    `,
+      null,
+    );
 
     if (!focused) continue;
 
@@ -462,8 +525,10 @@ function extractWcag(tags: string[]): string | undefined {
 // Skip navigation check
 // ---------------------------------------------------------------------------
 
-  async function checkSkipNavigation(page: Page): Promise<boolean> {
-  return safeEvaluate<boolean>(page, `
+async function checkSkipNavigation(page: Page): Promise<boolean> {
+  return safeEvaluate<boolean>(
+    page,
+    `
     (() => {
       // Check for skip-to-content links
       const links = Array.from(document.querySelectorAll("a"));
@@ -474,15 +539,19 @@ function extractWcag(tags: string[]): string | undefined {
                (href.startsWith("#") && (href.includes("content") || href.includes("main")));
       });
     })()
-  `, false);
+  `,
+    false,
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Focus indicator check
 // ---------------------------------------------------------------------------
 
-  async function checkFocusIndicators(page: Page): Promise<boolean> {
-  return safeEvaluate<boolean>(page, `
+async function checkFocusIndicators(page: Page): Promise<boolean> {
+  return safeEvaluate<boolean>(
+    page,
+    `
     (() => {
       // Check a sample of interactive elements for focus styles
       const elements = Array.from(document.querySelectorAll("a[href], button, input, textarea, select")).slice(0, 10);
@@ -501,15 +570,19 @@ function extractWcag(tags: string[]): string | undefined {
       // If >70% have focus indicators, consider it good
       return elements.length === 0 || (withIndicator / elements.length) > 0.7;
     })()
-  `, false);
+  `,
+    false,
+  );
 }
 
 // ---------------------------------------------------------------------------
 // ARIA validation
 // ---------------------------------------------------------------------------
 
-  async function checkAriaUsage(page: Page, _url: string): Promise<A11yIssue[]> {
-  return safeEvaluate<A11yIssue[]>(page, `
+async function checkAriaUsage(page: Page, _url: string): Promise<A11yIssue[]> {
+  return safeEvaluate<A11yIssue[]>(
+    page,
+    `
     (() => {
       const issues = [];
 
@@ -576,7 +649,9 @@ function extractWcag(tags: string[]): string | undefined {
 
       return issues.slice(0, 20);
     })()
-  `, []);
+  `,
+    [],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -601,7 +676,7 @@ export async function checkAccessibility(
   }
 
   // 2. Manual checks (supplement axe-core or run standalone)
-  const existingRules = new Set(axeIssues.map(i => i.rule));
+  const existingRules = new Set(axeIssues.map((i) => i.rule));
 
   // Only run manual checks for rules axe-core didn't cover
   if (!existingRules.has("image-alt")) {
@@ -633,7 +708,7 @@ export async function checkAccessibility(
   // 3. ARIA validation
   onProgress("info", "  Checking ARIA usage...");
   const ariaIssues = await checkAriaUsage(page, url);
-  allIssues.push(...ariaIssues.map(i => ({ ...i, page: url })));
+  allIssues.push(...ariaIssues.map((i) => ({ ...i, page: url })));
 
   // 4. Keyboard navigation
   onProgress("info", "  Testing keyboard navigation...");
@@ -678,13 +753,14 @@ export async function checkAccessibility(
   const hasFocusIndicators = await checkFocusIndicators(page);
 
   // Calculate score
-  const criticalCount = allIssues.filter(i => i.severity === "critical").length;
-  const seriousCount = allIssues.filter(i => i.severity === "serious").length;
-  const moderateCount = allIssues.filter(i => i.severity === "moderate").length;
-  const minorCount = allIssues.filter(i => i.severity === "minor").length;
-  const score = Math.max(0, Math.min(100,
-    100 - criticalCount * 15 - seriousCount * 8 - moderateCount * 4 - minorCount * 1,
-  ));
+  const criticalCount = allIssues.filter((i) => i.severity === "critical").length;
+  const seriousCount = allIssues.filter((i) => i.severity === "serious").length;
+  const moderateCount = allIssues.filter((i) => i.severity === "moderate").length;
+  const minorCount = allIssues.filter((i) => i.severity === "minor").length;
+  const score = Math.max(
+    0,
+    Math.min(100, 100 - criticalCount * 15 - seriousCount * 8 - moderateCount * 4 - minorCount * 1),
+  );
 
   const report: A11yReport = {
     url,
@@ -708,7 +784,10 @@ export async function checkAccessibility(
 
     // Show top 5 issues
     for (const issue of allIssues.slice(0, 5)) {
-      onProgress("warn", `    [${issue.severity}] ${issue.rule}: ${issue.description.slice(0, 80)}`);
+      onProgress(
+        "warn",
+        `    [${issue.severity}] ${issue.rule}: ${issue.description.slice(0, 80)}`,
+      );
     }
   }
 
@@ -716,7 +795,10 @@ export async function checkAccessibility(
   if (keyboardNav.traps.length > 0) {
     onProgress("fail", `Keyboard: Focus trap detected`);
   } else if (keyboardNav.missingIndicators.length > 0) {
-    onProgress("warn", `  ⚠ Keyboard: ${keyboardNav.missingIndicators.length} elements missing focus indicators`);
+    onProgress(
+      "warn",
+      `  ⚠ Keyboard: ${keyboardNav.missingIndicators.length} elements missing focus indicators`,
+    );
   } else {
     onProgress("pass", `  ✓ Keyboard: ${keyboardNav.reachable} elements reachable, no traps`);
   }

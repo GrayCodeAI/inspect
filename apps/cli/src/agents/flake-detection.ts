@@ -126,7 +126,10 @@ export function getFlakeReport(historyFile?: string): FlakeReport {
   const records = readHistory(historyFile);
 
   // Group by step description
-  const groups = new Map<string, { action: string; passes: number; fails: number; lastSeen: string }>();
+  const groups = new Map<
+    string,
+    { action: string; passes: number; fails: number; lastSeen: string }
+  >();
 
   for (const record of records) {
     const key = record.description;
@@ -181,9 +184,7 @@ export function getFlakeReport(historyFile?: string): FlakeReport {
   stable.sort((a, b) => a.stepDescription.localeCompare(b.stepDescription));
 
   const totalSteps = groups.size;
-  const flakyPercentage = totalSteps > 0
-    ? Math.round((flaky.length / totalSteps) * 1000) / 10
-    : 0;
+  const flakyPercentage = totalSteps > 0 ? Math.round((flaky.length / totalSteps) * 1000) / 10 : 0;
 
   return { flaky, stable, totalSteps, flakyPercentage };
 }

@@ -45,7 +45,7 @@ export const DEFAULT_INTERACTABILITY_OPTIONS: InteractabilityOptions = {
 export async function checkElementInteractability(
   page: Page,
   selector: string,
-  options: Partial<InteractabilityOptions> = {}
+  options: Partial<InteractabilityOptions> = {},
 ): Promise<InteractabilityResult> {
   const opts = { ...DEFAULT_INTERACTABILITY_OPTIONS, ...options };
 
@@ -146,11 +146,7 @@ export async function checkElementInteractability(
         // Check for event listeners (note: can't reliably detect in all cases)
         // This is a heuristic - we check if element is a button or link
         const tagName = element.tagName.toLowerCase();
-        if (
-          tagName === "button" ||
-          tagName === "a" ||
-          tagName === "[object HTMLButtonElement]"
-        ) {
+        if (tagName === "button" || tagName === "a" || tagName === "[object HTMLButtonElement]") {
           result.hasClickHandler = true;
         }
       }
@@ -174,7 +170,7 @@ export async function checkElementInteractability(
 
       return result;
     },
-    { selector, opts }
+    { selector, opts },
   );
 }
 
@@ -184,7 +180,7 @@ export async function checkElementInteractability(
 export async function checkElementsInteractability(
   page: Page,
   selectors: string[],
-  options: Partial<InteractabilityOptions> = {}
+  options: Partial<InteractabilityOptions> = {},
 ): Promise<Map<string, InteractabilityResult>> {
   const results = new Map<string, InteractabilityResult>();
 
@@ -202,7 +198,7 @@ export async function checkElementsInteractability(
 export async function getClickableElements(
   page: Page,
   baseSelector: string = "*",
-  options: Partial<InteractabilityOptions> = {}
+  options: Partial<InteractabilityOptions> = {},
 ): Promise<string[]> {
   const opts = { ...DEFAULT_INTERACTABILITY_OPTIONS, ...options };
 
@@ -219,18 +215,12 @@ export async function getClickableElements(
         if (opts.checkDisabled && (element as any).disabled) continue;
 
         // Skip if aria-disabled
-        if (
-          opts.checkAriaDisabled &&
-          element.getAttribute("aria-disabled") === "true"
-        ) {
+        if (opts.checkAriaDisabled && element.getAttribute("aria-disabled") === "true") {
           continue;
         }
 
         // Skip if readonly
-        if (
-          opts.checkReadOnly &&
-          (element as HTMLInputElement).readOnly
-        ) {
+        if (opts.checkReadOnly && (element as HTMLInputElement).readOnly) {
           continue;
         }
 
@@ -254,7 +244,7 @@ export async function getClickableElements(
 
       return clickable;
     },
-    { baseSelector, opts }
+    { baseSelector, opts },
   );
 }
 
@@ -274,10 +264,7 @@ export interface ElementState {
 /**
  * Get detailed element state
  */
-export async function getElementState(
-  page: Page,
-  selector: string
-): Promise<ElementState | null> {
+export async function getElementState(page: Page, selector: string): Promise<ElementState | null> {
   return page.evaluate((selector) => {
     const element = document.querySelector(selector);
     if (!element) return null;
@@ -288,9 +275,7 @@ export async function getElementState(
 
     return {
       isVisible:
-        style.display !== "none" &&
-        style.visibility !== "hidden" &&
-        parseFloat(style.opacity) > 0,
+        style.display !== "none" && style.visibility !== "hidden" && parseFloat(style.opacity) > 0,
       isClickable:
         !(html as any).disabled &&
         style.pointerEvents !== "none" &&
@@ -305,7 +290,7 @@ export async function getElementState(
           acc[attr.name] = attr.value;
           return acc;
         },
-        {} as Record<string, string>
+        {} as Record<string, string>,
       ),
     };
   }, selector);

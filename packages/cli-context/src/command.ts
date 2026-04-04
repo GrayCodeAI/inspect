@@ -3,7 +3,13 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { Command } from "commander";
-import { CLIContext, type ProviderName, type BrowserSession, type AgentSession, EXIT_CODES } from "./index.js";
+import {
+  CLIContext,
+  type ProviderName,
+  type BrowserSession,
+  type AgentSession,
+  EXIT_CODES,
+} from "./index.js";
 
 /**
  * Common options that most Inspect commands share.
@@ -68,7 +74,7 @@ export interface CommandResult {
  */
 export type CommandHandler<TOptions extends CommonCommandOptions> = (
   ctx: CommandContext,
-  options: TOptions
+  options: TOptions,
 ) => Promise<CommandResult | void>;
 
 /**
@@ -95,14 +101,14 @@ export interface InspectCommandConfig<TOptions extends CommonCommandOptions> {
 
 /**
  * InspectCommand - Base class for standardized CLI commands.
- * 
+ *
  * Provides:
  * - Common options (--agent, --headed, --verbose, --json, --url)
  * - Unified provider resolution via CLIContext
  * - Automatic browser/agent initialization
  * - Standard error handling with exit codes
  * - JSON output mode
- * 
+ *
  * @example
  * ```typescript
  * const testCommand = new InspectCommand({
@@ -121,7 +127,7 @@ export interface InspectCommandConfig<TOptions extends CommonCommandOptions> {
  *     "$ inspect test -m 'test login flow' --url https://myapp.com",
  *   ],
  * });
- * 
+ *
  * testCommand.register(program);
  * ```
  */
@@ -136,9 +142,7 @@ export class InspectCommand<TOptions extends CommonCommandOptions = CommonComman
    * Register this command with a Commander program.
    */
   register(program: Command): void {
-    const cmd = program
-      .command(this.config.name)
-      .description(this.config.description);
+    const cmd = program.command(this.config.name).description(this.config.description);
 
     // Add aliases
     if (this.config.aliases) {
@@ -157,7 +161,10 @@ export class InspectCommand<TOptions extends CommonCommandOptions = CommonComman
 
     // Add examples to help
     if (this.config.examples && this.config.examples.length > 0) {
-      cmd.addHelpText("after", `\nExamples:\n${this.config.examples.map(e => `  ${e}`).join("\n")}\n`);
+      cmd.addHelpText(
+        "after",
+        `\nExamples:\n${this.config.examples.map((e) => `  ${e}`).join("\n")}\n`,
+      );
     }
 
     // Set up action handler
@@ -177,7 +184,11 @@ export class InspectCommand<TOptions extends CommonCommandOptions = CommonComman
       .option("--json", "Output as JSON")
       .option("--url <url>", "Target URL")
       .option("--browser <browser>", "Browser: chromium, firefox, webkit", "chromium")
-      .option("--device <device>", "Device preset (e.g., iphone-15, desktop-chrome)", "desktop-chrome")
+      .option(
+        "--device <device>",
+        "Device preset (e.g., iphone-15, desktop-chrome)",
+        "desktop-chrome",
+      )
       .option("--config <path>", "Path to config file");
   }
 
@@ -235,10 +246,9 @@ export class InspectCommand<TOptions extends CommonCommandOptions = CommonComman
       }
 
       process.exit(result?.exitCode ?? EXIT_CODES.SUCCESS);
-
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      
+
       // Error output
       if (options.json) {
         console.log(JSON.stringify({ error: error.message, success: false }, null, 2));
@@ -263,7 +273,7 @@ export class InspectCommand<TOptions extends CommonCommandOptions = CommonComman
   private printTroubleshooting(error: Error): void {
     const msg = error.message.toLowerCase();
     console.error("\nTroubleshooting:");
-    
+
     if (msg.includes("api") || msg.includes("key") || msg.includes("401") || msg.includes("403")) {
       console.error("  → Check your API key: inspect doctor");
       console.error("  → Set the key: export ANTHROPIC_API_KEY=sk-...");
@@ -283,7 +293,7 @@ export class InspectCommand<TOptions extends CommonCommandOptions = CommonComman
  * Helper to create and register a command in one call.
  */
 export function createCommand<TOptions extends CommonCommandOptions>(
-  config: InspectCommandConfig<TOptions>
+  config: InspectCommandConfig<TOptions>,
 ): InspectCommand<TOptions> {
   return new InspectCommand(config);
 }

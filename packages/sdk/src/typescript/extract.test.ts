@@ -21,7 +21,7 @@ describe("ExtractHandler", () => {
 
     it("parses plain JSON array", () => {
       const h = handler();
-      expect(h.parseJsonResponse('[1, 2, 3]')).toEqual([1, 2, 3]);
+      expect(h.parseJsonResponse("[1, 2, 3]")).toEqual([1, 2, 3]);
     });
 
     it("extracts JSON from markdown code block", () => {

@@ -46,7 +46,9 @@ async function openReport(reportPath?: string): Promise<void> {
     console.log(chalk.dim(`Opening latest report: ${files[0].name}`));
 
     if (files.length > 1) {
-      console.log(chalk.dim(`  (${files.length} reports available — pass a path to open a specific one)`));
+      console.log(
+        chalk.dim(`  (${files.length} reports available — pass a path to open a specific one)`),
+      );
     }
   }
 
@@ -75,11 +77,14 @@ export function registerShowReportCommand(program: Command): void {
     .command("show-report")
     .description("Open the latest HTML test report in your browser")
     .argument("[report]", "Path to a specific report file")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Examples:
   $ inspect show-report                          Open the latest report
   $ inspect show-report .inspect/reports/r1.html  Open a specific report
-`)
+`,
+    )
     .action(async (report?: string) => {
       try {
         await openReport(report);
