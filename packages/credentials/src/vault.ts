@@ -5,6 +5,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Config, ConfigProvider, Effect } from "effect";
 import { generateId } from "@inspect/shared";
 import type { CredentialConfig, CredentialProviderType, CredentialType } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
@@ -63,10 +64,16 @@ export class CredentialVault {
     this.storagePath = path.join(basePath, ".inspect", "credentials.enc");
 
     // Derive master key from environment, provided key, or keyfile
+    const envKeys = Effect.runSync(
+      Config.all({
+        credentialKey: Config.option(Config.string("INSPECT_CREDENTIAL_KEY")),
+        masterKey: Config.option(Config.string("INSPECT_MASTER_KEY")),
+      }).parse(ConfigProvider.fromEnv()),
+    );
     const rawKey =
       options?.masterKey ??
-      process.env.INSPECT_CREDENTIAL_KEY ??
-      process.env.INSPECT_MASTER_KEY ??
+      (envKeys.credentialKey._tag === "Some" ? envKeys.credentialKey.value : undefined) ??
+      (envKeys.masterKey._tag === "Some" ? envKeys.masterKey.value : undefined) ??
       this.readKeyFile(options?.keyFilePath ?? path.join(basePath, ".inspect", "master.key"));
 
     if (!rawKey) {

@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { randomUUID } from "node:crypto";
+import { Config, ConfigProvider, Effect } from "effect";
 import { createLogger } from "./logging.js";
 
 const logger = createLogger("observability/analytics");
@@ -172,8 +173,10 @@ export class Analytics {
 
   constructor(config?: AnalyticsConfig) {
     // Check INSPECT_TELEMETRY env var for opt-out
-    const telemetryEnv = process.env.INSPECT_TELEMETRY;
-    this.enabled = telemetryEnv !== "false" && telemetryEnv !== "0";
+    const telemetryEnabled = Effect.runSync(
+      Config.withDefault(Config.boolean("INSPECT_TELEMETRY"), true).parse(ConfigProvider.fromEnv()),
+    );
+    this.enabled = telemetryEnabled;
 
     this.maxQueueSize = config?.maxQueueSize ?? 100;
     this.flushIntervalMs = config?.flushIntervalMs ?? 30_000;

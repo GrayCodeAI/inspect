@@ -2,6 +2,7 @@
 // @inspect/observability - Structured Logging (Pino-compatible format)
 // ──────────────────────────────────────────────────────────────────────────────
 
+import { Config, ConfigProvider, Effect } from "effect";
 import { existsSync, mkdirSync } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
@@ -262,7 +263,13 @@ export function createLogger(
     level,
     filePath,
     stdout: true,
-    pretty: options?.pretty ?? process.env.NODE_ENV === "development",
+    pretty:
+      options?.pretty ??
+      Effect.runSync(
+        Config.withDefault(Config.string("NODE_ENV"), "production")
+          .pipe(Config.map((env) => env === "development"))
+          .parse(ConfigProvider.fromEnv()),
+      ),
     context: options?.context,
   });
 }
@@ -271,7 +278,9 @@ export function createLogger(
  * Get the default log level from INSPECT_LOG_LEVEL env var.
  */
 function getDefaultLogLevel(): LogLevel {
-  const envLevel = process.env.INSPECT_LOG_LEVEL?.toLowerCase();
+  const envLevel = Effect.runSync(
+    Config.withDefault(Config.string("INSPECT_LOG_LEVEL"), "info").parse(ConfigProvider.fromEnv()),
+  );
   if (envLevel && envLevel in LOG_LEVEL_VALUES) {
     return envLevel as LogLevel;
   }

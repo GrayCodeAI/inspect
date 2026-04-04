@@ -355,11 +355,23 @@ export function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+import { Config, ConfigProvider, Effect } from "effect";
+
+/** Helper: synchronously resolve a Config from environment variables */
+function readEnv<T>(config: Config.Config<T>): T {
+  return Effect.runSync(config.parse(ConfigProvider.fromEnv()));
+}
+
 /**
  * Check if we are running inside a Docker container.
  */
 export function isDocker(): boolean {
-  return process.env.IN_DOCKER === "true" || process.env.DOCKER === "true";
+  return readEnv(
+    Config.all({
+      inDocker: Config.withDefault(Config.boolean("IN_DOCKER"), false),
+      docker: Config.withDefault(Config.boolean("DOCKER"), false),
+    }).pipe(Config.map(({ inDocker, docker }) => inDocker || docker)),
+  );
 }
 
 /**
@@ -367,10 +379,11 @@ export function isDocker(): boolean {
  * Throws if the variable is not set and no default is provided.
  */
 export function getEnv(name: string, defaultValue?: string): string {
-  const value = process.env[name];
-  if (value !== undefined) return value;
-  if (defaultValue !== undefined) return defaultValue;
-  throw new Error(`Required environment variable ${name} is not set`);
+  const config =
+    defaultValue !== undefined
+      ? Config.withDefault(Config.string(name), defaultValue)
+      : Config.string(name);
+  return readEnv(config);
 }
 
 /**
@@ -378,23 +391,16 @@ export function getEnv(name: string, defaultValue?: string): string {
  * Returns true for "true", "1", "yes"; false otherwise.
  */
 export function getEnvBool(name: string, defaultValue: boolean = false): boolean {
-  const value = process.env[name];
-  if (value === undefined) return defaultValue;
-  return ["true", "1", "yes"].includes(value.toLowerCase());
+  return readEnv(Config.withDefault(Config.boolean(name), defaultValue));
 }
 
 /**
  * Get an environment variable as a number.
  */
 export function getEnvNumber(name: string, defaultValue?: number): number {
-  const value = process.env[name];
-  if (value === undefined) {
-    if (defaultValue !== undefined) return defaultValue;
-    throw new Error(`Required environment variable ${name} is not set`);
-  }
-  const num = Number(value);
-  if (Number.isNaN(num)) {
-    throw new Error(`Environment variable ${name} is not a valid number: ${value}`);
-  }
-  return num;
+  const config =
+    defaultValue !== undefined
+      ? Config.withDefault(Config.int(name), defaultValue)
+      : Config.int(name);
+  return readEnv(config);
 }

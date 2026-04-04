@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { randomBytes } from "node:crypto";
+import { Config, ConfigProvider, Effect } from "effect";
 import type { OTelSpan } from "@inspect/shared";
 import { createLogger } from "./logging.js";
 
@@ -78,11 +79,16 @@ export class Tracer {
     }
 
     // Also check environment for OTLP endpoint
-    const envEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-    if (envEndpoint && !this.exporterConfig) {
+    const envConfig = Effect.runSync(
+      Config.all({
+        endpoint: Config.option(Config.string("OTEL_EXPORTER_OTLP_ENDPOINT")),
+        headers: Config.withDefault(Config.string("OTEL_EXPORTER_OTLP_HEADERS"), ""),
+      }).parse(ConfigProvider.fromEnv()),
+    );
+    if (envConfig.endpoint._tag === "Some" && !this.exporterConfig) {
       this.exporterConfig = {
-        endpoint: `${envEndpoint}/v1/traces`,
-        headers: parseOtlpHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS),
+        endpoint: `${envConfig.endpoint.value}/v1/traces`,
+        headers: parseOtlpHeaders(envConfig.headers),
       };
       this.startExportTimer();
     }
