@@ -116,16 +116,13 @@ async function runWorkflow(filePath: string): Promise<void> {
       // Execute step based on type
       switch (step.type) {
         case "test": {
-          const { BrowserManager, AriaSnapshotBuilder } = await import("@inspect/browser");
-          const { AgentRouter } = await import("@inspect/agent");
-
+          const { BrowserManager } = await import("@inspect/browser");
           const browserMgr = new BrowserManager();
 
           await browserMgr.launchBrowser({
             headless: true,
             viewport: { width: 1920, height: 1080 },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any);
+          } as unknown as Parameters<typeof browserMgr.launchBrowser>[0]);
           const page = await browserMgr.newPage();
 
           const url = (step.config.url ?? step.config.value) as string | undefined;
@@ -148,7 +145,7 @@ async function runWorkflow(filePath: string): Promise<void> {
           await browserMgr.launchBrowser({
             headless: true,
             viewport: { width: 1920, height: 1080 },
-          } as any);
+          } as unknown as Parameters<typeof browserMgr.launchBrowser>[0]);
           const page = await browserMgr.newPage();
           if (step.config.url)
             await page.goto(step.config.url as string, {
@@ -159,8 +156,10 @@ async function runWorkflow(filePath: string): Promise<void> {
           try {
             const { AccessibilityAuditor } = await import("@inspect/quality");
             const auditor = new AccessibilityAuditor();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const report = await auditor.audit(page as any);
+
+            const report = await auditor.audit(
+              page as unknown as Parameters<typeof auditor.audit>[0],
+            );
             const minScore = (step.config.threshold as number) ?? 80;
             stepResult.status = report.score >= minScore ? "pass" : "fail";
             stepResult.evidence = `Score: ${report.score}/100, ${report.violations.length} violations`;
@@ -201,7 +200,7 @@ async function runWorkflow(filePath: string): Promise<void> {
           await browserMgr.launchBrowser({
             headless: true,
             viewport: { width: 1920, height: 1080 },
-          } as any);
+          } as unknown as Parameters<typeof browserMgr.launchBrowser>[0]);
           const page = await browserMgr.newPage();
           if (step.config.url)
             await page.goto(step.config.url as string, {
@@ -260,8 +259,7 @@ async function runWorkflow(filePath: string): Promise<void> {
           await browserMgr.launchBrowser({
             headless: true,
             viewport: { width: 1920, height: 1080 },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any);
+          } as unknown as Parameters<typeof browserMgr.launchBrowser>[0]);
           const page = await browserMgr.newPage();
           if (step.config.url)
             await page.goto(step.config.url as string, {
@@ -292,7 +290,7 @@ async function runWorkflow(filePath: string): Promise<void> {
           await browserMgr.launchBrowser({
             headless: true,
             viewport: { width: 1920, height: 1080 },
-          } as any);
+          } as unknown as Parameters<typeof browserMgr.launchBrowser>[0]);
           const page = await browserMgr.newPage();
           if (step.config.url)
             await page.goto(step.config.url as string, {
@@ -477,8 +475,7 @@ async function observeWorkflow(): Promise<void> {
   await browserMgr.launchBrowser({
     headless: true,
     viewport: { width: 1920, height: 1080 },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  } as unknown as Parameters<typeof browserMgr.launchBrowser>[0]);
   const page = await browserMgr.newPage();
 
   const recordedSteps: WorkflowStep[] = [];

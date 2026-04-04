@@ -1,3 +1,4 @@
+import type { Page } from "playwright";
 import { describe, it, expect, vi } from "vitest";
 import {
   checkElementInteractability,
@@ -21,7 +22,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(mockPage as any, "button");
+      const result = await checkElementInteractability(mockPage as unknown as Page, "button");
 
       expect(result.isClickable).toBe(true);
       expect(result.isDisabled).toBe(false);
@@ -42,7 +43,10 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(mockPage as any, "button:disabled");
+      const result = await checkElementInteractability(
+        mockPage as unknown as Page,
+        "button:disabled",
+      );
 
       expect(result.isClickable).toBe(false);
       expect(result.isDisabled).toBe(true);
@@ -63,7 +67,10 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(mockPage as any, "[aria-disabled='true']");
+      const result = await checkElementInteractability(
+        mockPage as unknown as Page,
+        "[aria-disabled='true']",
+      );
 
       expect(result.ariaDisabled).toBe(true);
       expect(result.isClickable).toBe(false);
@@ -83,7 +90,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(mockPage as any, ".no-click");
+      const result = await checkElementInteractability(mockPage as unknown as Page, ".no-click");
 
       expect(result.hasPointerEvents).toBe(false);
       expect(result.isClickable).toBe(false);
@@ -103,7 +110,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await checkElementInteractability(mockPage as any, ".hidden");
+      const result = await checkElementInteractability(mockPage as unknown as Page, ".hidden");
 
       expect(result.isHidden).toBe(true);
       expect(result.isClickable).toBe(false);
@@ -116,7 +123,7 @@ describe("Interactability Detection", () => {
         evaluate: vi.fn().mockResolvedValue(["button#submit", "a.link", "input[type=submit]"]),
       };
 
-      const result = await getClickableElements(mockPage as any, "button, a, input");
+      const result = await getClickableElements(mockPage as unknown as Page, "button, a, input");
 
       expect(result).toHaveLength(3);
       expect(result).toContain("button#submit");
@@ -128,7 +135,7 @@ describe("Interactability Detection", () => {
         evaluate: vi.fn().mockResolvedValue(["button#submit", "a.link"]),
       };
 
-      const result = await getClickableElements(mockPage as any, "button, a", {
+      const result = await getClickableElements(mockPage as unknown as Page, "button, a", {
         checkDisabled: true,
       });
 
@@ -153,7 +160,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await getElementState(mockPage as any, "button");
+      const result = await getElementState(mockPage as unknown as Page, "button");
 
       expect(result).not.toBeNull();
       expect(result?.isVisible).toBe(true);
@@ -176,7 +183,7 @@ describe("Interactability Detection", () => {
         }),
       };
 
-      const result = await getElementState(mockPage as any, "input:focus");
+      const result = await getElementState(mockPage as unknown as Page, "input:focus");
 
       expect(result?.isFocused).toBe(true);
     });
@@ -186,7 +193,7 @@ describe("Interactability Detection", () => {
         evaluate: vi.fn().mockResolvedValue(null),
       };
 
-      const result = await getElementState(mockPage as any, ".non-existent");
+      const result = await getElementState(mockPage as unknown as Page, ".non-existent");
 
       expect(result).toBeNull();
     });

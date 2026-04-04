@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import _React from "react";
 import chalk from "chalk";
+import type { DevicePreset } from "@inspect/shared";
 
 export interface TestOptions {
   message?: string;
@@ -1001,7 +1002,7 @@ export async function runTestWithResult(options: TestOptions): Promise<{
       agent: options.agent ?? "claude",
       mode: (options.mode ?? "hybrid") as "dom" | "hybrid" | "cua",
       url: options.url,
-      device: devicePreset as any,
+      device: devicePreset as unknown as DevicePreset,
       browser: (options.browser ?? "chromium") as "chromium" | "firefox" | "webkit",
       headed: false,
       a11y: false,

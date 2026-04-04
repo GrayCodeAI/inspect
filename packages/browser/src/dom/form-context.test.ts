@@ -1,3 +1,4 @@
+import type { Page } from "playwright";
 import { describe, it, expect, vi } from "vitest";
 import {
   extractFormStructure,
@@ -49,8 +50,7 @@ describe("Form Context Extraction", () => {
         evaluate: vi.fn().mockResolvedValue([mockStructure]),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await extractFormStructure(mockPage as any, "form");
+      const result = await extractFormStructure(mockPage as unknown as Page, "form");
 
       expect(result).toHaveLength(1);
       expect(result[0].fields).toHaveLength(2);
@@ -83,8 +83,7 @@ describe("Form Context Extraction", () => {
         evaluate: vi.fn().mockResolvedValue([mockStructure]),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await extractFormStructure(mockPage as any, "form");
+      const result = await extractFormStructure(mockPage as unknown as Page, "form");
 
       expect(result[0].fields[0].minLength).toBe(3);
       expect(result[0].fields[0].maxLength).toBe(20);
@@ -114,8 +113,7 @@ describe("Form Context Extraction", () => {
         evaluate: vi.fn().mockResolvedValue([mockStructure]),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await extractFormStructure(mockPage as any, "form");
+      const result = await extractFormStructure(mockPage as unknown as Page, "form");
 
       expect(result[0].fields[0].options).toEqual(["USA", "Canada", "Mexico"]);
     });
@@ -140,8 +138,7 @@ describe("Form Context Extraction", () => {
         evaluate: vi.fn().mockResolvedValue([mockStructure]),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await extractFormStructure(mockPage as any, "form");
+      const result = await extractFormStructure(mockPage as unknown as Page, "form");
 
       expect(result[0].fieldGroups).toHaveLength(2);
       expect(result[0].fieldGroups[0].name).toBe("Billing Address");
@@ -167,8 +164,7 @@ describe("Form Context Extraction", () => {
         ]),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await findRelatedFields(mockPage as any, "first_name");
+      const result = await findRelatedFields(mockPage as unknown as Page, "first_name");
 
       expect(result.length).toBeGreaterThan(0);
       expect(result.some((f) => f.name === "last_name")).toBe(true);
@@ -188,8 +184,7 @@ describe("Form Context Extraction", () => {
         ]),
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await findRelatedFields(mockPage as any, "ship_street");
+      const result = await findRelatedFields(mockPage as unknown as Page, "ship_street");
 
       expect(result.some((f) => f.name === "ship_city")).toBe(true);
     });
@@ -199,7 +194,7 @@ describe("Form Context Extraction", () => {
         evaluate: vi.fn().mockResolvedValue([]),
       };
 
-      const result = await findRelatedFields(mockPage as any, "non_existent");
+      const result = await findRelatedFields(mockPage as unknown as Page, "non_existent");
 
       expect(result).toEqual([]);
     });
@@ -217,7 +212,7 @@ describe("Form Context Extraction", () => {
         ]),
       };
 
-      const result = await validateFormField(mockPage as any, "email", "");
+      const result = await validateFormField(mockPage as unknown as Page, "email", "");
 
       expect(result).toHaveLength(1);
       expect(result[0].constraint).toBe("required");
@@ -234,7 +229,7 @@ describe("Form Context Extraction", () => {
         ]),
       };
 
-      const result = await validateFormField(mockPage as any, "password", "short");
+      const result = await validateFormField(mockPage as unknown as Page, "password", "short");
 
       expect(result.some((e) => e.constraint === "minLength")).toBe(true);
     });
@@ -250,7 +245,7 @@ describe("Form Context Extraction", () => {
         ]),
       };
 
-      const result = await validateFormField(mockPage as any, "email", "invalid-email");
+      const result = await validateFormField(mockPage as unknown as Page, "email", "invalid-email");
 
       expect(result.some((e) => e.constraint === "pattern")).toBe(true);
     });
@@ -266,7 +261,7 @@ describe("Form Context Extraction", () => {
         ]),
       };
 
-      const result = await validateFormField(mockPage as any, "age", "15");
+      const result = await validateFormField(mockPage as unknown as Page, "age", "15");
 
       expect(result.some((e) => e.constraint === "min")).toBe(true);
     });
@@ -276,7 +271,11 @@ describe("Form Context Extraction", () => {
         evaluate: vi.fn().mockResolvedValue([]),
       };
 
-      const result = await validateFormField(mockPage as any, "email", "valid@example.com");
+      const result = await validateFormField(
+        mockPage as unknown as Page,
+        "email",
+        "valid@example.com",
+      );
 
       expect(result).toEqual([]);
     });

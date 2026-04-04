@@ -3,7 +3,7 @@ import { Effect, FileSystem, Layer, Option, Path, Schema, ServiceMap } from "eff
 import { BUILTIN_PLUGINS } from "./builtin-plugins";
 import { InvalidPluginManifestError, PluginLoadError } from "./plugin-errors";
 import { PluginRegistry } from "./plugin-registry";
-import type { PluginHookName, PluginInfo, PluginManifest } from "./plugin-types";
+import type { PluginHookName, PluginInfo } from "./plugin-types";
 import { PluginManifest as PluginManifestSchema } from "./plugin-types";
 
 export class PluginLoader extends ServiceMap.Service<PluginLoader>()(

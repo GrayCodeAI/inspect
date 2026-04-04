@@ -213,7 +213,10 @@ export class LogNormalScoringEngine {
     let totalWeight = 0;
 
     for (const [metric, weight] of Object.entries(weights)) {
-      const values = this.extractValues(data, metric as any);
+      const values = this.extractValues(
+        data,
+        metric as "latency" | "successRate" | "steps" | "cost",
+      );
       if (values.length === 0) continue;
 
       const { cleaned } = this.removeOutliers(values);
@@ -268,7 +271,10 @@ export class LogNormalScoringEngine {
     const benchmarkData = this.benchmarks.get(benchmarkName);
     if (!benchmarkData) return null;
 
-    const currentValues = this.extractValues(this.samples, metric as any);
+    const currentValues = this.extractValues(
+      this.samples,
+      metric as "latency" | "successRate" | "steps" | "cost",
+    );
     if (currentValues.length === 0) return null;
 
     // Perform t-test

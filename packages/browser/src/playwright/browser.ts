@@ -58,7 +58,12 @@ export class BrowserManager {
     }
 
     if (config.proxy) {
-      const p = config.proxy as any;
+      const p = config.proxy as {
+        server: string;
+        username?: string;
+        password?: string;
+        bypass?: string;
+      };
       launchOptions.proxy = {
         server: p.server,
         username: p.username,
@@ -74,13 +79,13 @@ export class BrowserManager {
         viewport: config.viewport,
         locale: config.locale,
         timezoneId: config.timezone,
-        geolocation: config.geolocation as any,
+        geolocation: config.geolocation as { longitude: number; latitude: number } | undefined,
         permissions: config.permissions ? [...config.permissions] : undefined,
         ignoreHTTPSErrors: config.ignoreHTTPSErrors,
         deviceScaleFactor: config.deviceScaleFactor,
         isMobile: config.isMobile,
         hasTouch: config.hasTouch,
-        extraHTTPHeaders: config.extraHTTPHeaders as any,
+        extraHTTPHeaders: config.extraHTTPHeaders as Record<string, string> | undefined,
       });
       // Persistent context owns its own browser — set to null to avoid double-close
       this.browser = null;
@@ -90,13 +95,13 @@ export class BrowserManager {
         viewport: config.viewport,
         locale: config.locale,
         timezoneId: config.timezone,
-        geolocation: config.geolocation as any,
+        geolocation: config.geolocation as { longitude: number; latitude: number } | undefined,
         permissions: config.permissions ? [...config.permissions] : undefined,
         ignoreHTTPSErrors: config.ignoreHTTPSErrors,
         deviceScaleFactor: config.deviceScaleFactor,
         isMobile: config.isMobile,
         hasTouch: config.hasTouch,
-        extraHTTPHeaders: config.extraHTTPHeaders as any,
+        extraHTTPHeaders: config.extraHTTPHeaders as Record<string, string> | undefined,
         storageState: config.storageStatePath ?? undefined,
       });
     }

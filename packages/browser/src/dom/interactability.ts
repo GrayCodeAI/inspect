@@ -80,7 +80,7 @@ export async function checkElementInteractability(
       if (opts.checkDisabled) {
         const isDisabledAttr =
           element.hasAttribute("disabled") ||
-          (element as any).disabled === true ||
+          (element as HTMLInputElement).disabled === true ||
           element.getAttribute("data-disabled") === "true";
 
         if (isDisabledAttr) {
@@ -212,7 +212,11 @@ export async function getClickableElements(
         const element = elements[i] as HTMLElement;
 
         // Skip if disabled
-        if (opts.checkDisabled && (element as any).disabled) continue;
+        if (
+          opts.checkDisabled &&
+          (element as HTMLInputElement | HTMLButtonElement | HTMLSelectElement).disabled
+        )
+          continue;
 
         // Skip if aria-disabled
         if (opts.checkAriaDisabled && element.getAttribute("aria-disabled") === "true") {
@@ -277,7 +281,7 @@ export async function getElementState(page: Page, selector: string): Promise<Ele
       isVisible:
         style.display !== "none" && style.visibility !== "hidden" && parseFloat(style.opacity) > 0,
       isClickable:
-        !(html as any).disabled &&
+        !(html as HTMLInputElement | HTMLButtonElement | HTMLSelectElement).disabled &&
         style.pointerEvents !== "none" &&
         rect.width > 0 &&
         rect.height > 0,

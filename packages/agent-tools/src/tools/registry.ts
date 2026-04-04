@@ -1,4 +1,4 @@
-import { Schema, Predicate } from "effect";
+import { Schema } from "effect";
 
 export interface ToolParameterSchema {
   type: string;
