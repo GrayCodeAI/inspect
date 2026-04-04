@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { getCwd } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("core/git");
@@ -25,7 +26,7 @@ export class Fingerprint {
   private baseDir: string;
 
   constructor(baseDir?: string) {
-    this.baseDir = baseDir ?? process.cwd();
+    this.baseDir = baseDir ?? getCwd();
   }
 
   /**

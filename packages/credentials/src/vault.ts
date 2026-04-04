@@ -6,7 +6,7 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Config, ConfigProvider, Effect } from "effect";
-import { generateId } from "@inspect/shared";
+import { generateId, getCwd } from "@inspect/shared";
 import type { CredentialConfig, CredentialProviderType, CredentialType } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 
@@ -60,7 +60,7 @@ export class CredentialVault {
   private loaded: boolean = false;
 
   constructor(options?: { basePath?: string; masterKey?: string; keyFilePath?: string }) {
-    const basePath = options?.basePath ?? process.cwd();
+    const basePath = options?.basePath ?? getCwd();
     this.storagePath = path.join(basePath, ".inspect", "credentials.enc");
 
     // Derive master key from environment, provided key, or keyfile
