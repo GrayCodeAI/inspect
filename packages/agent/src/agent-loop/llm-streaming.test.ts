@@ -18,6 +18,8 @@ describe("LLM Streaming Support", () => {
           content: '{"evaluation":{"success":true},"memory":[],"nextGoal":"","actions":[]}',
           usage: { input_tokens: 100, output_tokens: 50 },
         }),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const wrapper = new StreamingLLMWrapper(mockProvider);
@@ -39,6 +41,8 @@ describe("LLM Streaming Support", () => {
           yield 'uation":{"success":true},';
           yield '"memory":[],"nextGoal":"","actions":[]}';
         },
+        chat: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const wrapper = new StreamingLLMWrapper(mockProvider);
@@ -61,10 +65,14 @@ describe("LLM Streaming Support", () => {
           content: "primary response",
           usage: { input_tokens: 100, output_tokens: 50 },
         }),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const mockFallback = {
         chat: vi.fn(),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const chain = new FallbackLLMChain(mockPrimary, mockFallback);
@@ -83,6 +91,8 @@ describe("LLM Streaming Support", () => {
     it("should fall back to secondary provider on primary failure", async () => {
       const mockPrimary = {
         chat: vi.fn().mockRejectedValue(new Error("Primary failed")),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const mockFallback = {
@@ -90,6 +100,8 @@ describe("LLM Streaming Support", () => {
           content: "fallback response",
           usage: { input_tokens: 100, output_tokens: 50 },
         }),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const chain = new FallbackLLMChain(mockPrimary, mockFallback);
@@ -107,10 +119,14 @@ describe("LLM Streaming Support", () => {
     it("should throw if both providers fail", async () => {
       const mockPrimary = {
         chat: vi.fn().mockRejectedValue(new Error("Primary failed")),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const mockFallback = {
         chat: vi.fn().mockRejectedValue(new Error("Fallback failed")),
+        stream: vi.fn(),
+        collectStream: vi.fn(),
       };
 
       const chain = new FallbackLLMChain(mockPrimary, mockFallback);

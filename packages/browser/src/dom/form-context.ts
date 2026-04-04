@@ -99,7 +99,7 @@ export async function extractFormStructure(
       if (submitBtn) {
         structure.submitButton = {
           selector: submitBtn.id ? `#${submitBtn.id}` : "button[type=submit]",
-          text: submitBtn.textContent || submitBtn.getAttribute("value"),
+          text: submitBtn.textContent ?? submitBtn.getAttribute("value") ?? "",
         };
       }
 
@@ -108,7 +108,7 @@ export async function extractFormStructure(
       if (resetBtn) {
         structure.resetButton = {
           selector: resetBtn.id ? `#${resetBtn.id}` : "button[type=reset]",
-          text: resetBtn.textContent || resetBtn.getAttribute("value"),
+          text: resetBtn.textContent ?? resetBtn.getAttribute("value") ?? "",
         };
       }
 
@@ -199,9 +199,19 @@ function extractFieldInfo(element: Element): FormField | null {
 /**
  * Task 289-290: Find related form fields
  */
-export async function findRelatedFields(page: Page, fieldName: string): Promise<FormField[]> {
+export interface RelatedFieldHint {
+  name: string;
+  type: string;
+  label?: string;
+  proximity: string;
+}
+
+export async function findRelatedFields(
+  page: Page,
+  fieldName: string,
+): Promise<RelatedFieldHint[]> {
   return page.evaluate((fieldName) => {
-    const relatedFields: FormField[] = [];
+    const relatedFields: RelatedFieldHint[] = [];
     const primaryField = document.querySelector(
       `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`,
     );
@@ -266,7 +276,7 @@ export async function validateFormField(
   return page.evaluate(
     (args) => {
       const { fieldName, value } = args;
-      const errors: any[] = [];
+      const errors: ValidationError[] = [];
       const field = document.querySelector(
         `input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`,
       ) as HTMLInputElement;

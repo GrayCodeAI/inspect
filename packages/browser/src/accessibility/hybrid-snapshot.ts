@@ -5,7 +5,7 @@
  * Inspired by Stagehand and Skyvern patterns.
  */
 
-import type { Page } from "playwright";
+import type { Page, ElementHandle } from "playwright";
 
 export interface HybridSnapshotConfig {
   /** Include accessibility attributes */
@@ -197,15 +197,27 @@ export class HybridSnapshotBuilder {
   private async buildHybridTree(
     page: Page,
     a11yMap: Map<string, AccessibilityNode>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    elementHandle?: any,
+    elementHandle?: ElementHandle,
     depth = 0,
     parentId?: string,
   ): Promise<HybridNode> {
     const id = `node-${++this.nodeCounter}`;
 
     // Get element info via Playwright
-    const handle = elementHandle || (await page.locator("body").elementHandle());
+    const handle = elementHandle ?? (await page.locator("body").elementHandle());
+    if (!handle) {
+      return {
+        id,
+        role: "root",
+        tag: "html",
+        ariaAttributes: {},
+        domAttributes: {},
+        visible: true,
+        interactive: false,
+        children: [],
+        depth,
+      } as unknown as HybridNode;
+    }
 
     // Extract DOM and accessibility info
     const elementInfo = await handle.evaluate((el: Element) => {
@@ -302,9 +314,7 @@ export class HybridSnapshotBuilder {
 
     // Recursively process children
     if (depth < this.config.maxDepth) {
-      const childHandles = await handle
-        .locator(":scope > *:not(script):not(style):not(noscript)")
-        .elementHandles();
+      const childHandles = await handle.$$(":scope > *:not(script):not(style):not(noscript)");
 
       for (const childHandle of childHandles.slice(0, 50)) {
         // Limit children

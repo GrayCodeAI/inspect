@@ -8,21 +8,31 @@
  * Streaming LLM response interface
  */
 export interface StreamingLLMProvider {
-  /**
-   * Stream response from LLM
-   */
-  stream(config: {
+  readonly stream?: (config: {
     messages: Array<{ role: "user" | "system" | "assistant"; content: string }>;
     model: string;
     temperature: number;
     maxTokens: number;
     onChunk?: (chunk: string) => void;
-  }): AsyncIterableIterator<string>;
+  }) => AsyncIterableIterator<string>;
 
-  /**
-   * Collect streaming response into full text
-   */
-  collectStream(config: Parameters<StreamingLLMProvider["stream"]>[0]): Promise<{
+  readonly collectStream?: (config: {
+    messages: Array<{ role: "user" | "system" | "assistant"; content: string }>;
+    model: string;
+    temperature: number;
+    maxTokens: number;
+    onChunk?: (chunk: string) => void;
+  }) => Promise<{
+    content: string;
+    usage?: { input_tokens: number; output_tokens: number };
+  }>;
+
+  chat?(config: {
+    messages: Array<{ role: "user" | "system" | "assistant"; content: string }>;
+    model: string;
+    temperature: number;
+    max_tokens: number;
+  }): Promise<{
     content: string;
     usage?: { input_tokens: number; output_tokens: number };
   }>;
@@ -52,7 +62,11 @@ export class StreamingLLMWrapper {
     }
 
     // Fall back to regular chat
-    return this.provider.chat(config);
+    if (this.provider.chat) {
+      return this.provider.chat(config);
+    }
+
+    throw new Error("Provider has neither stream nor chat method");
   }
 
   /**
@@ -64,6 +78,10 @@ export class StreamingLLMWrapper {
     temperature: number;
     max_tokens: number;
   }): Promise<{ content: string; usage?: { input_tokens: number; output_tokens: number } }> {
+    if (!this.provider.stream) {
+      throw new Error("Provider does not support streaming");
+    }
+
     let fullContent = "";
 
     // Collect chunks from stream
@@ -120,18 +138,21 @@ export class FallbackLLMChain {
   }> {
     try {
       // Try primary provider
+      if (!this.primary.chat) {
+        throw new Error("Primary provider does not support chat");
+      }
       const result = await this.primary.chat(config);
       return { ...result, provider: "primary" };
-    } catch (primaryError) {
+    } catch (_primaryError) {
       try {
         // Fall back to secondary
+        if (!this.fallback.chat) {
+          throw new Error("Fallback provider does not support chat", { cause: _primaryError });
+        }
         const result = await this.fallback.chat(config);
         return { ...result, provider: "fallback" };
-      } catch (fallbackError) {
-        throw new Error(
-          `Both LLM providers failed. Primary: ${primaryError instanceof Error ? primaryError.message : String(primaryError)}, Fallback: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
-          { cause: fallbackError },
-        );
+      } catch (error) {
+        throw new Error(`Both LLM providers failed`, { cause: error });
       }
     }
   }

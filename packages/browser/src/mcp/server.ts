@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { createInterface } from "node:readline";
-import type { CookieParam } from "@inspect/shared";
+import type { CookieParam, BrowserConfig } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 import { BrowserManager } from "../playwright/browser.js";
 
@@ -33,19 +33,6 @@ interface JsonRpcResponse {
 interface MCPToolResult {
   content: Array<{ type: string; text?: string; [key: string]: unknown }>;
   isError?: boolean;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface BrowserConfig {
-  name: string;
-  headless?: boolean;
-  stealth?: boolean;
-  viewport?: { width: number; height: number };
-  locale?: string;
-  timezone?: string;
-  userDataDir?: string;
-  executablePath?: string;
-  proxy?: { server: string; username?: string; password?: string };
 }
 
 /**
@@ -228,7 +215,7 @@ export class MCPServer {
   private async toolOpen(args: Record<string, unknown>): Promise<MCPToolResult> {
     const vp = args["viewport"] as { width?: number; height?: number } | undefined;
 
-    const config: any = {
+    const config: BrowserConfig = {
       name: "chromium",
       headless: (args["headless"] as boolean) ?? true,
       stealth: (args["stealth"] as boolean) ?? false,

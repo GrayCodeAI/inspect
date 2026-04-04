@@ -228,9 +228,7 @@ export class MultiTreeCollector {
       // Get root node
     });
 
-    // Find root node - cast as unknown to avoid strict role type issues
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rootNode = (nodes as unknown[]).find((n: any) => !n.role);
+    const rootNode = (nodes as unknown[]).find((n) => !(n as Record<string, unknown>).role);
     if (!rootNode) {
       return { nodeId: "root", children: [] };
     }
@@ -305,26 +303,33 @@ export class MultiTreeCollector {
     });
 
     // Handle CDP response structure
-    const layoutTreeNodes = (snapshot as any).layoutTreeNodes || [];
-    const computedStyles = (snapshot as any).computedStyles || [];
+    const snapshotRecord: Record<string, unknown> = snapshot as Record<string, unknown>;
+    const layoutTreeNodes =
+      (snapshotRecord.layoutTreeNodes as Array<{
+        nodeIndex: number;
+        styles: number[];
+        bounds: number[];
+      }>) || [];
+    const computedStyles =
+      (snapshotRecord.computedStyles as Array<{
+        properties: Array<{ name: number; value: number }>;
+      }>) || [];
 
     return {
       documentURL: snapshot.strings[snapshot.documents[0].documentURL],
       title: snapshot.strings[snapshot.documents[0].title],
       baseURL: snapshot.strings[snapshot.documents[0].baseURL],
-      layoutTreeNodes: layoutTreeNodes.map(
-        (node: { nodeIndex: number; styles: number[]; bounds: number[] }) => ({
-          nodeIndex: node.nodeIndex,
-          styles: node.styles,
-          bounds: {
-            x: node.bounds[0],
-            y: node.bounds[1],
-            width: node.bounds[2],
-            height: node.bounds[3],
-          },
-          visible: true,
-        }),
-      ),
+      layoutTreeNodes: layoutTreeNodes.map((node) => ({
+        nodeIndex: node.nodeIndex,
+        styles: node.styles,
+        bounds: {
+          x: node.bounds[0],
+          y: node.bounds[1],
+          width: node.bounds[2],
+          height: node.bounds[3],
+        },
+        visible: true,
+      })),
       computedStyles: computedStyles.map(
         (style: { properties: Array<{ name: number; value: number }> }) => ({
           properties: style.properties.map((p) => ({
@@ -333,7 +338,7 @@ export class MultiTreeCollector {
           })),
         }),
       ),
-      paintOrder: layoutTreeNodes.map((_n: unknown, i: number) => i),
+      paintOrder: layoutTreeNodes.map((_n, i) => i),
     };
   }
 
@@ -348,7 +353,7 @@ export class MultiTreeCollector {
     const walkDOM = (
       node: DOMTreeNode,
       depth: number,
-      parent?: EnhancedElement,
+      _parent?: EnhancedElement,
     ): EnhancedElement | undefined => {
       if (depth > this.config.maxDepth) return undefined;
       if (elements.length >= this.config.maxNodes) return undefined;
