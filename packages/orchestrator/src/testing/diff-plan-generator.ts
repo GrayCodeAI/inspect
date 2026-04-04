@@ -50,7 +50,7 @@ export class DiffPlanGenerator {
   private gitManager: GitManager;
 
   constructor(cwd?: string) {
-    this.gitManager = new GitManager(cwd ?? process.cwd());
+    this.gitManager = new GitManager(cwd ?? getCwd());
   }
 
   /**

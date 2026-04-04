@@ -1,4 +1,5 @@
 import path from "node:path";
+import { getCwd } from "@inspect/shared";
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
 
@@ -96,7 +97,7 @@ export class AgentMemoryService extends ServiceMap.Service<AgentMemoryService>()
     make: Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
 
-      const storageDir = path.join(process.cwd(), DEFAULT_STORAGE_DIR);
+      const storageDir = path.join(getCwd(), DEFAULT_STORAGE_DIR);
       const memories = new Map<string, MemoryEntry>();
 
       const ensureStorageDir = Effect.fn("AgentMemoryService.ensureStorageDir")(function* () {

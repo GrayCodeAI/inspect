@@ -1,6 +1,7 @@
 // Framework Detection — auto-detect project framework from package.json
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { getCwd } from "@inspect/shared";
 
 export interface DetectedFramework {
   name: string;
@@ -26,7 +27,7 @@ const FRAMEWORKS: Record<string, { name: string; defaultPort: number; deps: stri
 };
 
 export function detectFramework(projectRoot?: string): DetectedFramework | null {
-  const root = projectRoot ?? process.cwd();
+  const root = projectRoot ?? getCwd();
   const pkgPath = join(root, "package.json");
   if (!existsSync(pkgPath)) return null;
 

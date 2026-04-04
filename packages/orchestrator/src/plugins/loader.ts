@@ -9,6 +9,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { getCwd } from "@inspect/shared";
 import { pathToFileURL } from "node:url";
 import { createLogger } from "@inspect/observability";
 
@@ -108,7 +109,7 @@ export class PluginLoader {
   private cwd: string;
 
   constructor(cwd?: string) {
-    this.cwd = cwd ?? process.cwd();
+    this.cwd = cwd ?? getCwd();
   }
 
   /**

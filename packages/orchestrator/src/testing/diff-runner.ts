@@ -92,7 +92,7 @@ export class DiffRunner {
   private coverageMap: CoverageMapEntry[];
 
   constructor(cwd?: string, coverageMap?: CoverageMapEntry[]) {
-    this.gitManager = new GitManager(cwd ?? process.cwd());
+    this.gitManager = new GitManager(cwd ?? getCwd());
     this.coverageMap = coverageMap ?? DEFAULT_COVERAGE_MAP;
   }
 

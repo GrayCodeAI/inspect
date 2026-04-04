@@ -7,7 +7,7 @@
 
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
-import { join } from "path";
+import { getCwd } from "@inspect/shared";
 
 export interface DiffPlannerConfig {
   /** Git scope for diff */
@@ -90,7 +90,7 @@ export class DiffPlanner {
   private config: DiffPlannerConfig;
   private cwd: string;
 
-  constructor(cwd: string = process.cwd(), config: Partial<DiffPlannerConfig> = {}) {
+  constructor(cwd: string = getCwd(), config: Partial<DiffPlannerConfig> = {}) {
     this.cwd = cwd;
     this.config = { ...DEFAULT_DIFF_PLANNER_CONFIG, ...config };
   }

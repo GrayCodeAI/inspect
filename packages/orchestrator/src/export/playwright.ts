@@ -5,7 +5,8 @@
 import type { ExecutionResult } from "../orchestrator/executor.js";
 import type { GeneratedTestSuite, GeneratedStep } from "../testing/generator.js";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { dirname } from "node:path";
+import { getInspectDir } from "@inspect/shared";
 
 /** Options for code generation */
 export interface PlaywrightExportOptions {
@@ -97,7 +98,7 @@ export function exportPlaywrightTest(
 
   const outputPath =
     options.outputPath ??
-    join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(instruction)}.spec.ts`);
+    join(getInspectDir("exports"), `${sanitizeFilename(instruction)}.spec.ts`);
 
   const dir = dirname(outputPath);
   if (!existsSync(dir)) {
@@ -182,7 +183,7 @@ export function exportPlaywrightFromSuite(
 
   const outputPath =
     options.outputPath ??
-    join(process.cwd(), ".inspect", "exports", `${sanitizeFilename(suite.title)}.spec.ts`);
+    join(getInspectDir("exports"), `${sanitizeFilename(suite.title)}.spec.ts`);
 
   const dir = dirname(outputPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
