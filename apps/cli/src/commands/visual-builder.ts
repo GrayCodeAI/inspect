@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { writeFileSync, existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 interface VisualTestStep {
@@ -90,45 +90,17 @@ export function registerVisualBuilderCommand(program: Command): void {
         process.exit(1);
       }
 
-      const test = JSON.parse(readFileSync(filePath, "utf-8"));
+      const content = JSON.parse(readFileSync(filePath, "utf-8"));
 
-      console.log(chalk.blue(`\n📝 Generating ${options.format} code...\n`));
-      console.log(chalk.dim(`Test: ${test.name}`));
-      console.log(chalk.dim(`Steps: ${test.steps.length}`));
+      console.log(chalk.blue(`\nGenerating ${options.format} code...\n`));
+      console.log(chalk.dim(`Test: ${content.name}`));
+      console.log(chalk.dim(`Steps: ${content.steps.length}`));
 
-      // Generate code
-      const lines: string[] = [];
-      lines.push(`import { test, expect } from "@playwright/test";`);
-      lines.push("");
-      lines.push(`test("${test.name}", async ({ page }) => {`);
-
-      for (const step of test.steps) {
-        switch (step.type) {
-          case "navigate":
-            lines.push(`  await page.goto("${step.value}");`);
-            break;
-          case "click":
-            lines.push(`  await page.click("${step.selector}");`);
-            break;
-          case "type":
-            lines.push(`  await page.fill("${step.selector}", "${step.value}");`);
-            break;
-          case "assert":
-            lines.push(`  await expect(page.locator("${step.selector}")).toBeVisible();`);
-            break;
-          case "wait":
-            lines.push(`  await page.waitForTimeout(${step.timeout || 1000});`);
-            break;
-        }
-      }
-
-      lines.push("});");
-
-      const code = lines.join("\n");
+      const code = generatePlaywrightCode(content);
 
       if (options.output) {
         writeFileSync(resolve(options.output), code);
-        console.log(chalk.green(`\n✓ Code saved to: ${options.output}`));
+        console.log(chalk.green(`\nCode saved to: ${options.output}`));
       } else {
         console.log(chalk.dim("\n--- Generated Code ---\n"));
         console.log(code);
@@ -139,12 +111,99 @@ export function registerVisualBuilderCommand(program: Command): void {
     .command("list")
     .description("List visual tests in directory")
     .option("-d, --dir <directory>", "Tests directory", ".")
-    .action(async (_options) => {
-      console.log(chalk.blue("\n📁 Visual Tests:\n"));
+    .action(async (options) => {
+      const dir = resolve(options.dir);
 
-      // TODO: List test files
-      console.log(chalk.dim("Feature implemented in @inspect/visual-builder package"));
+      if (!existsSync(dir)) {
+        console.log(chalk.yellow(`\nDirectory not found: ${dir}`));
+        return;
+      }
+
+      const tests = listVisualTests(dir);
+
+      if (tests.length === 0) {
+        console.log(chalk.yellow("\nNo visual tests found"));
+        console.log(chalk.dim(`Searched in: ${dir}`));
+        return;
+      }
+
+      const stepCount = tests.reduce((sum, t) => sum + t.stepCount, 0);
+      console.log(chalk.blue(`\nVisual Tests (${tests.length} files, ${stepCount} total steps)\n`));
+
+      for (const testFile of tests) {
+        console.log(chalk.bold(testFile.name));
+        console.log(chalk.dim(`  Steps: ${testFile.stepCount} | Created: ${testFile.createdAt}`));
+        console.log(chalk.dim(`  File: ${testFile.path}`));
+      }
     });
 }
 
-// readFileSync is imported from node:fs
+interface VisualTestInfo {
+  name: string;
+  stepCount: number;
+  createdAt: string;
+  path: string;
+}
+
+function listVisualTests(dir: string): VisualTestInfo[] {
+  const files = readdirSync(dir).filter(
+    (f) => f.endsWith(".test.json") || f.endsWith(".test.json"),
+  );
+  const tests: VisualTestInfo[] = [];
+
+  const filesToScan =
+    files.length > 0 ? files : readdirSync(dir).filter((f) => f.endsWith(".json"));
+
+  for (const file of filesToScan) {
+    const fullPath = resolve(dir, file);
+    const stat = statSync(fullPath);
+    try {
+      const content = JSON.parse(readFileSync(fullPath, "utf-8"));
+      if (content.steps && Array.isArray(content.steps)) {
+        const createdDate = content.createdAt
+          ? new Date(content.createdAt).toISOString().split("T")[0]
+          : new Date(stat.mtimeMs).toISOString().split("T")[0];
+        tests.push({
+          name: content.name || file,
+          stepCount: content.steps.length,
+          createdAt: createdDate,
+          path: fullPath,
+        });
+      }
+    } catch {
+      // skip unparsable files
+    }
+  }
+
+  return tests;
+}
+
+function generatePlaywrightCode(test: { name: string; steps: VisualTestStep[] }): string {
+  const lines: string[] = [];
+  lines.push(`import { test, expect } from "@playwright/test";`);
+  lines.push("");
+  lines.push(`test("${test.name}", async ({ page }) => {`);
+
+  for (const step of test.steps) {
+    switch (step.type) {
+      case "navigate":
+        lines.push(`  await page.goto("${step.value}");`);
+        break;
+      case "click":
+        lines.push(`  await page.click("${step.selector}");`);
+        break;
+      case "type":
+        lines.push(`  await page.fill("${step.selector}", "${step.value}");`);
+        break;
+      case "assert":
+        lines.push(`  await expect(page.locator("${step.selector}")).toBeVisible();`);
+        break;
+      case "wait":
+        lines.push(`  await page.waitForTimeout(${step.timeout || 1000});`);
+        break;
+    }
+  }
+
+  lines.push("});");
+  return lines.join("\n");
+}

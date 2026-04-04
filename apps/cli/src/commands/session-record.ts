@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 export function registerSessionRecordCommand(program: Command): void {
@@ -17,21 +17,11 @@ export function registerSessionRecordCommand(program: Command): void {
     .option("--max-events <number>", "Maximum events to record", "10000")
     .option("--mask-passwords", "Mask password inputs", true)
     .action(async (options) => {
-      console.log(chalk.blue("\n🎬 Starting session recording...\n"));
+      console.log(chalk.blue("\nSession recording initiated\n"));
       console.log(chalk.dim(`URL: ${options.url}`));
       console.log(chalk.dim(`Output: ${options.output}`));
-
-      const sessionId = options.name || `session-${Date.now()}`;
-      const outputDir = resolve(options.output);
-
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
-      }
-
-      // TODO: Integrate with @inspect/session-recording
-      console.log(chalk.yellow("\n⚠️  Session recording requires browser connection"));
-      console.log(chalk.dim("Feature implemented in @inspect/session-recording package"));
-      console.log(chalk.green(`\n✓ Session ${sessionId} would be saved to ${outputDir}`));
+      console.log(chalk.yellow("Session recording requires browser automation via the CLI TUI."));
+      console.log(chalk.dim("Run `inspect test` with recording enabled to capture a session."));
     });
 
   sessionCmd
@@ -41,19 +31,18 @@ export function registerSessionRecordCommand(program: Command): void {
     .option("-p, --port <port>", "Port for replay server", "3000")
     .action(async (sessionFile, options) => {
       const filePath = resolve(sessionFile);
+      const port = parseInt(options.port, 10);
 
       if (!existsSync(filePath)) {
-        console.error(chalk.red(`\n✗ Session file not found: ${filePath}`));
+        console.error(chalk.red(`Session file not found: ${filePath}`));
         process.exit(1);
       }
 
-      console.log(chalk.blue("\n▶️  Starting session replay...\n"));
-      console.log(chalk.dim(`File: ${filePath}`));
-      console.log(chalk.dim(`Server port: ${options.port}`));
-
-      // TODO: Integrate with @inspect/session-recording
-      console.log(chalk.yellow("\n⚠️  Replay server not yet integrated"));
-      console.log(chalk.dim("Feature implemented in @inspect/session-recording package"));
+      const htmlPath = await exportSessionToHtml(filePath);
+      if (htmlPath) {
+        console.log(chalk.green(`\nReplay exported to: ${htmlPath}`));
+        console.log(chalk.dim(`Open in browser or run \`npx serve -p ${port} ${htmlPath}\``));
+      }
     });
 
   sessionCmd
@@ -65,19 +54,16 @@ export function registerSessionRecordCommand(program: Command): void {
       const filePath = resolve(sessionFile);
 
       if (!existsSync(filePath)) {
-        console.error(chalk.red(`\n✗ Session file not found: ${filePath}`));
+        console.error(chalk.red(`\nSession file not found: ${filePath}`));
         process.exit(1);
       }
 
       const outputPath = options.output || filePath.replace(/\.json$/, ".html");
 
-      console.log(chalk.blue("\n📦 Exporting session to HTML...\n"));
-      console.log(chalk.dim(`Input: ${filePath}`));
-      console.log(chalk.dim(`Output: ${outputPath}`));
-
-      // TODO: Integrate with @inspect/session-recording
-      console.log(chalk.yellow("\n⚠️  Export functionality not yet integrated"));
-      console.log(chalk.dim("Feature implemented in @inspect/session-recording package"));
+      const htmlPath = await exportSessionToHtml(filePath, outputPath);
+      if (htmlPath) {
+        console.log(chalk.green(`\nSession exported to: ${htmlPath}`));
+      }
     });
 
   sessionCmd
@@ -92,9 +78,97 @@ export function registerSessionRecordCommand(program: Command): void {
         return;
       }
 
-      console.log(chalk.blue("\n📁 Recorded Sessions:\n"));
+      const sessions = listSessions(dir);
 
-      // TODO: List session files
-      console.log(chalk.dim("Feature implemented in @inspect/session-recording package"));
+      if (sessions.length === 0) {
+        console.log(chalk.yellow("\nNo recorded sessions found"));
+        return;
+      }
+
+      console.log(chalk.blue(`\nRecorded Sessions (${sessions.length} total)\n`));
+
+      for (const session of sessions) {
+        console.log(chalk.bold(session.name));
+        console.log(chalk.dim(`  Events: ${session.eventCount} | Size: ${session.sizeKb}KB`));
+        console.log(chalk.dim(`  File: ${session.path}`));
+      }
     });
+}
+
+interface SessionInfo {
+  name: string;
+  eventCount: number;
+  sizeKb: number;
+  path: string;
+}
+
+function listSessions(dir: string): SessionInfo[] {
+  const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+  const sessions: SessionInfo[] = [];
+
+  for (const file of files) {
+    const fullPath = resolve(dir, file);
+    const stat = statSync(fullPath);
+    try {
+      const content = JSON.parse(readFileSync(fullPath, "utf-8"));
+      const eventCount = Array.isArray(content) ? content.length : (content.events?.length ?? 0);
+      sessions.push({
+        name: file.replace(/\.json$/, ""),
+        eventCount,
+        sizeKb: Math.round(stat.size / 1024),
+        path: fullPath,
+      });
+    } catch {
+      // skip unparsable files
+    }
+  }
+
+  return sessions;
+}
+
+async function exportSessionToHtml(
+  sessionFile: string,
+  outputPath?: string,
+): Promise<string | null> {
+  let events: unknown[];
+  try {
+    const content = readFileSync(sessionFile, "utf-8");
+    const parsed = JSON.parse(content);
+    events = Array.isArray(parsed) ? parsed : (parsed.events ?? []);
+  } catch (cause) {
+    console.error(chalk.red(`Failed to read session file: ${String(cause)}`));
+    return null;
+  }
+
+  const sessionId = sessionFile.split("/").pop() ?? "session";
+  const eventsJson = JSON.stringify(events);
+  const html = [
+    "<!DOCTYPE html>",
+    "<html>",
+    "<head>",
+    '<meta charset="UTF-8">',
+    `<title>Session Replay - ${sessionId}</title>`,
+    "<style>",
+    "html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }",
+    "#replay-container { width: 100%; height: 100%; }",
+    "</style>",
+    "</head>",
+    "<body>",
+    '<div id="replay-container"></div>',
+    '<script src="https://cdn.jsdelivr.net/npm/rrweb-player@2.0.0-alpha.18/dist/index.js"></script>',
+    '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@2.0.0-alpha.18/dist/style.css">',
+    "<script>",
+    `const events = ${eventsJson};`,
+    "new rrwebPlayer({",
+    "  target: document.getElementById('replay-container'),",
+    "  props: { events, width: window.innerWidth, height: window.innerHeight }",
+    "});",
+    "</script>",
+    "</body>",
+    "</html>",
+  ].join("\n");
+
+  const out = outputPath || sessionFile.replace(/\.json$/, ".html");
+  writeFileSync(out, html, "utf-8");
+  return out;
 }

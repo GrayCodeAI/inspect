@@ -2,12 +2,20 @@ import { Effect, Layer, ServiceMap, Option } from "effect";
 import * as Error from "./errors.js";
 import * as Types from "./types.js";
 
+export interface SelectorHistoryEntry {
+  readonly selector: string;
+  readonly snapshots: Types.ElementSnapshot[];
+  readonly healings: Types.HealedSelector[];
+  lastUsed: number;
+  successCount: number;
+  failureCount: number;
+}
+
 export class SelfHealingService extends ServiceMap.Service<SelfHealingService>()(
   "@inspect/self-healing/SelfHealingService",
   {
     make: Effect.gen(function* () {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const selectorHistory = new Map<string, any>();
+      const selectorHistory = new Map<string, SelectorHistoryEntry>();
 
       // Calculate similarity between two element snapshots (0-1)
       const calculateSimilarity = (
@@ -158,14 +166,11 @@ export class SelfHealingService extends ServiceMap.Service<SelfHealingService>()
             failureCount: 0,
           };
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (history.snapshots as any[]).push(snapshot);
+          (history.snapshots as unknown[]).push(snapshot);
           if (history.snapshots.length > 10) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (history.snapshots as any[]).shift();
+            history.snapshots.shift();
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (history as any).lastUsed = Date.now();
+          history.lastUsed = Date.now();
 
           selectorHistory.set(selector, history);
 
@@ -204,8 +209,7 @@ export class SelfHealingService extends ServiceMap.Service<SelfHealingService>()
           const matchResult = tryFindElement(lastSnapshot, currentPageElements);
 
           if (Option.isNone(matchResult)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (history as any).failureCount++;
+            history.failureCount++;
             return yield* new Error.HealingFailedError({
               originalSelector: selector,
               attempts: 1,
@@ -216,8 +220,7 @@ export class SelfHealingService extends ServiceMap.Service<SelfHealingService>()
           const match = matchResult.value;
 
           if (match.confidence < opts.minConfidence) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (history as any).failureCount++;
+            history.failureCount++;
             return yield* new Error.HealingFailedError({
               originalSelector: selector,
               attempts: 1,
@@ -235,10 +238,8 @@ export class SelfHealingService extends ServiceMap.Service<SelfHealingService>()
             timestamp: Date.now(),
           };
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (history.healings as any[]).push(healedSelector);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (history as any).successCount++;
+          history.healings.push(healedSelector);
+          history.successCount++;
 
           yield* Effect.logInfo("Selector healed successfully", {
             originalSelector: selector,
@@ -275,18 +276,15 @@ export class SelfHealingService extends ServiceMap.Service<SelfHealingService>()
         Effect.succeed({
           totalSelectors: selectorHistory.size,
           totalHealings: Array.from(selectorHistory.values()).reduce(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (sum: number, h: any) => sum + h.healings.length,
+            (sum: number, h) => sum + h.healings.length,
             0,
           ),
           totalSuccesses: Array.from(selectorHistory.values()).reduce(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (sum: number, h: any) => sum + h.successCount,
+            (sum: number, h) => sum + h.successCount,
             0,
           ),
           totalFailures: Array.from(selectorHistory.values()).reduce(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (sum: number, h: any) => sum + h.failureCount,
+            (sum: number, h) => sum + h.failureCount,
             0,
           ),
         });

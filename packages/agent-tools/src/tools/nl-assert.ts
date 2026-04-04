@@ -1,15 +1,26 @@
-// ============================================================================
-// @inspect/agent - Natural Language Assertion Verifier
-//
-// Uses an LLM to evaluate whether a natural language assertion holds true
-// given the current page state (ARIA snapshot, screenshot, console logs).
-// ============================================================================
+import { Schema, Predicate } from "effect";
 
-// import type { LLMProvider, LLMMessage, LLMContentPart } from "@inspect/llm";
-// TODO: Refactor to use Effect-TS LLMProviderService
+export const AssertionContext = Schema.Struct({
+  pageContent: Schema.String,
+  screenshot: Schema.optional(Schema.String),
+  consoleLogs: Schema.optional(Schema.Array(Schema.String)),
+  url: Schema.optional(Schema.String),
+  title: Schema.optional(Schema.String),
+});
+export type AssertionContext = typeof AssertionContext.Type;
+
+export const AssertionResult = Schema.Struct({
+  passed: Schema.Boolean,
+  confidence: Schema.Number,
+  reasoning: Schema.String,
+  evidence: Schema.Array(Schema.String),
+  tokenUsage: Schema.Number,
+});
+export type AssertionResult = typeof AssertionResult.Type;
+
 interface LLMProvider {
   chat: (
-    messages: unknown[],
+    messages: Array<{ role: string; content: unknown }>,
     options?: {
       systemPrompt?: string;
       temperature?: number;
@@ -18,36 +29,61 @@ interface LLMProvider {
     },
   ) => Promise<{ content: string; usage: { totalTokens: number } }>;
 }
-type LLMMessage = { role: string; content: unknown };
-type LLMContentPart = { type: string; text?: string; media_type?: string; data?: string };
-import { createLogger } from "@inspect/observability";
 
-const logger = createLogger("agent/nl-assert");
-
-export interface AssertionContext {
-  /** ARIA tree or markdown representation of the page */
-  pageContent: string;
-  /** Optional base64-encoded screenshot for vision-based assertions */
-  screenshot?: string;
-  /** Console messages from the page */
-  consoleLogs?: string[];
-  /** Current page URL */
-  url?: string;
-  /** Current page title */
-  title?: string;
+function normalizeConfidence(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }
 
-export interface AssertionResult {
-  /** Whether the assertion passed */
-  passed: boolean;
-  /** Confidence score (0-1) */
-  confidence: number;
-  /** Explanation of the verdict */
-  reasoning: string;
-  /** Specific evidence found (or not found) on the page */
-  evidence: string[];
-  /** Token usage for this assertion check */
-  tokenUsage: number;
+function buildUserContent(prompt: string, context: AssertionContext): string {
+  let textContent = prompt + "\n\n";
+
+  if (context.url) textContent += `**URL:** ${context.url}\n`;
+  if (context.title) textContent += `**Title:** ${context.title}\n`;
+  textContent += `\n**Page content:**\n\`\`\`\n${context.pageContent.slice(0, 15000)}\n\`\`\`\n`;
+
+  if (context.consoleLogs && context.consoleLogs.length > 0) {
+    textContent += `\n**Console logs:**\n${context.consoleLogs.slice(0, 20).join("\n")}\n`;
+  }
+
+  return textContent;
+}
+
+function buildFallbackVerdict(content: string, totalTokens: number): AssertionResult {
+  const text = content.toLowerCase();
+  const passed = text.includes("true") || text.includes("passed");
+
+  return {
+    passed,
+    confidence: 0.3,
+    reasoning: `Could not parse structured response: ${content.slice(0, 200)}`,
+    evidence: [],
+    tokenUsage: totalTokens,
+  };
+}
+
+function parseVerdictJson(content: string, totalTokens: number): AssertionResult {
+  try {
+    const parsed = JSON.parse(content) as {
+      passed?: boolean;
+      confidence?: number;
+      reasoning?: string;
+      evidence?: string[];
+    };
+
+    if (!Predicate.isObject(parsed) || typeof parsed.passed !== "boolean") {
+      return buildFallbackVerdict(content, totalTokens);
+    }
+
+    return {
+      passed: parsed.passed,
+      confidence: normalizeConfidence(parsed.confidence ?? 0.5),
+      reasoning: parsed.reasoning ?? "No reasoning provided",
+      evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
+      tokenUsage: totalTokens,
+    };
+  } catch {
+    return buildFallbackVerdict(content, totalTokens);
+  }
 }
 
 const ASSERTION_SYSTEM_PROMPT = `You are a precise UI testing assertion verifier. Your job is to determine whether a given assertion about a web page is TRUE or FALSE based on the provided page state.
@@ -58,19 +94,8 @@ Rules:
 - If the evidence is ambiguous, set confidence lower and explain why
 - Look at the page content, structure, and any visible text
 - For numeric assertions, verify exact values
-- For visual assertions with a screenshot, describe what you observe
-- "evidence" should list specific text/elements you found (or expected but didn't find)`;
+- For visual assertions with a screenshot, describe what you observe`;
 
-/**
- * NLAssert evaluates natural language assertions against page state.
- *
- * Examples:
- *   - "the cart shows 3 items"
- *   - "the login form has an error message about invalid password"
- *   - "the navigation menu has a 'Settings' link"
- *   - "no console errors are present"
- *   - "the page title contains 'Dashboard'"
- */
 export class NLAssert {
   private provider: LLMProvider;
 
@@ -78,70 +103,31 @@ export class NLAssert {
     this.provider = provider;
   }
 
-  /**
-   * Verify a natural language assertion against the current page state.
-   */
   async verify(assertion: string, context: AssertionContext): Promise<AssertionResult> {
-    const messages = this.buildMessages(assertion, context);
+    const userContent = buildUserContent(`Verify this assertion: "${assertion}"`, context);
 
-    const response = await this.provider.chat(messages, {
+    const response = await this.provider.chat([{ role: "user", content: userContent }], {
       systemPrompt: ASSERTION_SYSTEM_PROMPT,
       temperature: 0,
       maxTokens: 500,
       responseFormat: "json",
     });
 
-    const tokenUsage = response.usage.totalTokens;
-
-    try {
-      const parsed = JSON.parse(response.content) as {
-        passed?: boolean;
-        confidence?: number;
-        reasoning?: string;
-        evidence?: string[];
-      };
-
-      return {
-        passed: parsed.passed === true,
-        confidence: Math.max(0, Math.min(1, parsed.confidence ?? 0.5)),
-        reasoning: parsed.reasoning ?? "No reasoning provided",
-        evidence: Array.isArray(parsed.evidence) ? parsed.evidence : [],
-        tokenUsage,
-      };
-    } catch (error) {
-      logger.warn("Failed to parse assertion result JSON", {
-        err: error instanceof Error ? error.message : String(error),
-      });
-      const text = response.content.toLowerCase();
-      const passed = text.includes("true") || text.includes("passed");
-
-      return {
-        passed,
-        confidence: 0.3,
-        reasoning: `Could not parse structured response: ${response.content.slice(0, 200)}`,
-        evidence: [],
-        tokenUsage,
-      };
-    }
+    return parseVerdictJson(response.content, response.usage.totalTokens);
   }
 
-  /**
-   * Verify multiple assertions in a single LLM call (batch mode).
-   */
   async verifyBatch(assertions: string[], context: AssertionContext): Promise<AssertionResult[]> {
     if (assertions.length === 0) return [];
     if (assertions.length === 1) return [await this.verify(assertions[0], context)];
 
     const numbered = assertions.map((a, i) => `${i + 1}. ${a}`).join("\n");
 
-    const userContent = this.buildUserContent(
+    const userContent = buildUserContent(
       `Verify each of these assertions and respond with a JSON array of results (one per assertion):\n\n${numbered}`,
       context,
     );
 
-    const messages: LLMMessage[] = [{ role: "user", content: userContent }];
-
-    const response = await this.provider.chat(messages, {
+    const response = await this.provider.chat([{ role: "user", content: userContent }], {
       systemPrompt:
         ASSERTION_SYSTEM_PROMPT +
         "\n\nFor batch mode: respond with a JSON array of result objects, one per assertion.",
@@ -162,50 +148,13 @@ export class NLAssert {
 
       return parsed.map((r) => ({
         passed: r.passed === true,
-        confidence: Math.max(0, Math.min(1, r.confidence ?? 0.5)),
+        confidence: normalizeConfidence(r.confidence ?? 0.5),
         reasoning: r.reasoning ?? "",
         evidence: Array.isArray(r.evidence) ? r.evidence : [],
         tokenUsage: perTokenCost,
       }));
-    } catch (error) {
-      logger.warn(
-        "Failed to parse batch assertion results, falling back to individual verification",
-        { err: error instanceof Error ? error.message : String(error) },
-      );
+    } catch {
       return Promise.all(assertions.map((a) => this.verify(a, context)));
     }
-  }
-
-  private buildMessages(assertion: string, context: AssertionContext): LLMMessage[] {
-    const userContent = this.buildUserContent(`Verify this assertion: "${assertion}"`, context);
-
-    return [{ role: "user", content: userContent }];
-  }
-
-  private buildUserContent(prompt: string, context: AssertionContext): string | LLMContentPart[] {
-    let textContent = prompt + "\n\n";
-
-    if (context.url) textContent += `**URL:** ${context.url}\n`;
-    if (context.title) textContent += `**Title:** ${context.title}\n`;
-    textContent += `\n**Page content:**\n\`\`\`\n${context.pageContent.slice(0, 15000)}\n\`\`\`\n`;
-
-    if (context.consoleLogs && context.consoleLogs.length > 0) {
-      textContent += `\n**Console logs:**\n${context.consoleLogs.slice(0, 20).join("\n")}\n`;
-    }
-
-    // If we have a screenshot, send as multimodal
-    if (context.screenshot) {
-      const parts: LLMContentPart[] = [
-        { type: "text", text: textContent },
-        {
-          type: "image_base64",
-          media_type: "image/png",
-          data: context.screenshot,
-        },
-      ];
-      return parts;
-    }
-
-    return textContent;
   }
 }

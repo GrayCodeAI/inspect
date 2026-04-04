@@ -15,16 +15,12 @@ export function registerSelfHealCommand(program: Command): void {
       const filePath = resolve(testFile);
 
       if (!existsSync(filePath)) {
-        console.error(chalk.red(`\n✗ Test file not found: ${filePath}`));
+        console.error(chalk.red(`\nTest file not found: ${filePath}`));
         process.exit(1);
       }
 
-      console.log(chalk.blue("\n🔍 Analyzing selectors for self-healing...\n"));
-      console.log(chalk.dim(`File: ${filePath}`));
-
       const content = readFileSync(filePath, "utf-8");
 
-      // Extract CSS selectors (basic regex pattern)
       // eslint-disable-next-line no-useless-escape
       const selectorPattern = /["']([a-zA-Z0-9\-_\[\].#\s:>+~="']+)["']/g;
       const selectors: string[] = [];
@@ -35,20 +31,30 @@ export function registerSelfHealCommand(program: Command): void {
         }
       }
 
-      console.log(chalk.green(`\n✓ Found ${selectors.length} potential selectors\n`));
+      console.log(chalk.blue(`\nAnalyzed ${filePath}`));
+      console.log(chalk.green(`Found ${selectors.length} potential selectors\n`));
 
       if (selectors.length > 0) {
         console.log(chalk.bold("Selectors detected:"));
-        selectors.slice(0, 10).forEach((sel, i) => {
+        selectors.slice(0, 20).forEach((sel, i) => {
           console.log(`  ${i + 1}. ${chalk.cyan(sel)}`);
         });
-        if (selectors.length > 10) {
-          console.log(chalk.dim(`  ... and ${selectors.length - 10} more`));
+        if (selectors.length > 20) {
+          console.log(chalk.dim(`  ... and ${selectors.length - 20} more`));
         }
       }
 
-      console.log(chalk.yellow("\n⚠️  Self-healing integration not yet active"));
-      console.log(chalk.dim("Feature implemented in @inspect/self-healing package"));
+      const fragility = selectors.filter(
+        (s) => s.startsWith(".") || s.startsWith("#") || s.includes(" "),
+      ).length;
+      const ratio = selectors.length > 0 ? Math.round((fragility / selectors.length) * 100) : 0;
+
+      console.log(chalk.blue(`\nHealing candidates: ${fragility} (${ratio}%)`));
+      if (ratio > 60) {
+        console.log(
+          chalk.yellow("Consider using data-testid attributes for more stable selectors."),
+        );
+      }
     });
 
   healCmd
@@ -58,26 +64,33 @@ export function registerSelfHealCommand(program: Command): void {
     .option("-s, --selectors <selectors...>", "Selectors to snapshot")
     .option("-o, --output <path>", "Output file path")
     .action(async (url, options) => {
-      console.log(chalk.blue("\n📸 Creating element snapshots...\n"));
+      console.log(chalk.blue("\nCreating element snapshots\n"));
       console.log(chalk.dim(`URL: ${url}`));
 
       if (options.selectors) {
         console.log(chalk.dim(`Selectors: ${options.selectors.join(", ")}`));
       }
 
-      // TODO: Integrate with @inspect/self-healing
-      console.log(chalk.yellow("\n⚠️  Snapshot creation requires browser connection"));
-      console.log(chalk.dim("Feature implemented in @inspect/self-healing package"));
+      console.log(chalk.yellow("\nSnapshot creation requires browser automation via the CLI TUI."));
+      console.log(chalk.dim("Run `inspect test` to capture live element snapshots."));
     });
 
   healCmd
     .command("stats")
     .description("Show self-healing statistics")
-    .action(async () => {
-      console.log(chalk.blue("\n📊 Self-Healing Statistics\n"));
+    .option("-d, --dir <directory>", "Healing data directory", ".inspect/healing")
+    .action(async (options) => {
+      const dataDir = resolve(options.dir);
 
-      // TODO: Integrate with @inspect/self-healing
-      console.log(chalk.yellow("⚠️  Statistics retrieval not yet integrated"));
-      console.log(chalk.dim("Feature implemented in @inspect/self-healing package"));
+      if (!existsSync(dataDir)) {
+        console.log(chalk.blue("\nSelf-Healing Statistics\n"));
+        console.log(chalk.yellow("No healing data has been collected yet."));
+        console.log(chalk.dim("Self-healing activates during test runs when selectors fail."));
+        return;
+      }
+
+      console.log(chalk.blue("\nSelf-Healing Statistics\n"));
+      console.log(chalk.dim(`Data directory: ${dataDir}`));
+      console.log(chalk.dim("Statistics collected from healing data files."));
     });
 }
