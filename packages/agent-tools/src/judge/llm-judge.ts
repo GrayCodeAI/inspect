@@ -9,7 +9,7 @@ import { EventEmitter } from "events";
 
 export interface LLMJudgeConfig {
   /** LLM provider */
-  provider: LLMProvider;
+  provider?: LLMProvider;
   /** Evaluation model */
   model: string;
   /** Temperature for evaluation */
@@ -108,7 +108,7 @@ export interface EvaluationTemplate {
 }
 
 export const DEFAULT_LLM_JUDGE_CONFIG: LLMJudgeConfig = {
-  provider: null as unknown as LLMProvider, // Must be provided
+  provider: undefined,
   model: "claude-sonnet-4-6",
   temperature: 0.1,
   maxTokens: 2000,
@@ -295,6 +295,10 @@ export class LLMJudge extends EventEmitter {
 
     // Build evaluation prompt
     const prompt = this.buildEvaluationPrompt(item);
+
+    if (!this.config.provider) {
+      throw new Error("LLMJudge requires a provider to be configured");
+    }
 
     try {
       // Call LLM for evaluation

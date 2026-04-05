@@ -6,6 +6,7 @@
 
 import type { Page, Download } from "playwright";
 import { createHash } from "crypto";
+import { Effect } from "effect";
 
 export interface DownloadConfig {
   /** Download directory */
@@ -94,7 +95,7 @@ export class DownloadWatchdog {
     // Check if file type is allowed
     if (this.config.blockedExtensions.includes(extension)) {
       await download.cancel();
-      console.warn(`Download blocked: ${extension} files not allowed`);
+      Effect.logWarning(`Download blocked: ${extension} files not allowed`).pipe(Effect.runFork);
       return;
     }
 
@@ -104,7 +105,7 @@ export class DownloadWatchdog {
       !this.config.allowedExtensions.includes(extension)
     ) {
       await download.cancel();
-      console.warn(`Download blocked: ${extension} not in allowed list`);
+      Effect.logWarning(`Download blocked: ${extension} not in allowed list`).pipe(Effect.runFork);
       return;
     }
 

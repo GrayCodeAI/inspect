@@ -6,7 +6,8 @@
 // ============================================================================
 
 import type { Middleware } from "../server.js";
-import { RBACManager, Role, type UserIdentity } from "@inspect/enterprise";
+import { RBACManager, Role, type UserIdentity } from "@inspect/enterprise/rbac.js";
+import { Effect } from "effect";
 
 // Route-to-permission mapping: maps route patterns to required resource/action pairs
 const ROUTE_PERMISSIONS: Record<string, { resource: string; action: string }> = {
@@ -79,13 +80,21 @@ export function createRBACMiddleware(config?: RBACMiddlewareConfig): Middleware 
     }
 
     // Require authentication
-    const user = (req as unknown as Record<string, unknown>).user as UserIdentity | undefined;
-    if (!user) {
+    const jwtUser = req.user;
+    if (!jwtUser || typeof jwtUser !== "object") {
       // Let jwtAuth handle missing auth — if we got here without a user,
       // jwtAuth is not configured or failed silently
       await next();
       return;
     }
+
+    const user: UserIdentity = {
+      id: String(jwtUser.id ?? ""),
+      email: String(jwtUser.email ?? ""),
+      name: String(jwtUser.name ?? ""),
+      role: (jwtUser.role ?? "viewer") as Role,
+      tenantId: typeof jwtUser.tenantId === "string" ? jwtUser.tenantId : undefined,
+    };
 
     // Look up required permission for this route
     const required = ROUTE_PERMISSIONS[routeKey];
@@ -103,10 +112,13 @@ export function createRBACMiddleware(config?: RBACMiddlewareConfig): Middleware 
 
     // Deny access
     if (logDenials) {
-      console.warn(
-        `[RBAC] Denied: user=${user.id} role=${user.role} ` +
-          `resource=${required.resource} action=${required.action} route=${routeKey}`,
-      );
+      Effect.logWarning("[RBAC] Denied", {
+        userId: user.id,
+        userRole: user.role,
+        resource: required.resource,
+        action: required.action,
+        route: routeKey,
+      }).pipe(Effect.runFork);
     }
 
     res.status(403).json({

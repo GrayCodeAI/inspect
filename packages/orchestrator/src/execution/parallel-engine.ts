@@ -331,17 +331,30 @@ export class ParallelExecutionEngine extends EventEmitter {
   }
 
   /**
-   * Run actual task (placeholder)
+   * Run actual task — emits to external handler for execution
    */
   private async runTask(task: ParallelTask, worker: WorkerInfo): Promise<unknown> {
-    // Simulate work
-    await new Promise((resolve) => setTimeout(resolve, task.estimatedDuration || 1000));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => {
+          reject(new Error(`Task ${task.id} timed out on worker ${worker.id}`));
+        },
+        task.estimatedDuration * 2 || 30000,
+      );
 
-    // Simulate resource usage
-    worker.resources.memoryMB = 100 + Math.random() * 500;
-    worker.resources.cpuPercent = 10 + Math.random() * 30;
-
-    return { taskId: task.id, completed: true };
+      this.emit("task:run", {
+        task,
+        worker,
+        resolve: (result: unknown) => {
+          clearTimeout(timeout);
+          resolve(result);
+        },
+        reject: (error: Error) => {
+          clearTimeout(timeout);
+          reject(error);
+        },
+      });
+    });
   }
 
   /**

@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 
 /**
  * Workflow block for network fault injection.
@@ -20,7 +21,7 @@ import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
  */
 export async function executeProxyBlock(
   block: WorkflowBlock,
-  _context: Record<string, unknown>,
+  _context: WorkflowContext,
 ): Promise<WorkflowBlockResult> {
   const params = block.parameters;
   const start = Date.now();

@@ -449,7 +449,7 @@ const stepToPlaywrightCode = (
     return `await page.keyboard.press('${step.value}');`;
   }
 
-  return `// TODO: Implement action: ${step.action}`;
+  return `throw new Error('Unsupported action in test generation: "${step.action}". Add a handler in stepToPlaywrightCode.');`;
 };
 
 const workflowToSpec = (workflow: Workflow): TestSpec => {

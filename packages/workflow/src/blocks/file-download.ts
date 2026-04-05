@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -30,14 +31,11 @@ export interface FileDownloadResult {
  * ```
  */
 export class FileDownloadBlock {
-  async execute(
-    block: WorkflowBlock,
-    context: Record<string, unknown>,
-  ): Promise<FileDownloadResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<FileDownloadResult> {
     const params = block.parameters;
-    const render = context.render as ((s: string) => string) | undefined;
-    const url = render ? render(String(params.url ?? "")) : String(params.url ?? "");
-    const savePath = render ? render(String(params.savePath ?? "")) : String(params.savePath ?? "");
+    const render = context.render.bind(context);
+    const url = render(String(params.url ?? ""));
+    const savePath = render(String(params.savePath ?? ""));
 
     try {
       const response = await fetch(url);

@@ -5,6 +5,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Config, ConfigProvider, Effect, Option } from "effect";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("credentials/native");
@@ -40,10 +41,14 @@ export class NativeCredentialStore {
     this.filePath = path.join(basePath, ".inspect", "credentials.enc");
 
     // Derive encryption key
+    const envKey = Option.getOrElse(
+      Effect.runSync(
+        Config.option(Config.string("INSPECT_CREDENTIAL_KEY")).parse(ConfigProvider.fromEnv()),
+      ),
+      () => undefined,
+    );
     const keyMaterial =
-      options?.encryptionKey ??
-      process.env.INSPECT_CREDENTIAL_KEY ??
-      this.loadOrCreateKey(path.join(basePath, ".inspect"));
+      options?.encryptionKey ?? envKey ?? this.loadOrCreateKey(path.join(basePath, ".inspect"));
 
     // Use a deterministic salt for reproducibility
     const salt = crypto.createHash("sha256").update(keyMaterial).digest();

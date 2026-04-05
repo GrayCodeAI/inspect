@@ -1,4 +1,4 @@
-import type { MatcherResult } from "../types/index.js";
+import type { MatcherResult } from "../types/matchers.js";
 
 export function formatValue(value: unknown): string {
   if (value === null) return "null";

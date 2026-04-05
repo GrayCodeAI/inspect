@@ -254,13 +254,17 @@ export class ZAPScanner {
     if (options.scanStrength) {
       await this.zapGet("/JSON/ascan/action/setOptionAttackStrength/", {
         String: options.scanStrength,
-      }).catch(() => {});
+      }).catch((err) =>
+        logger.debug("Failed to set ZAP scan strength, continuing", { error: err }),
+      );
     }
 
     if (options.scanThreshold) {
       await this.zapGet("/JSON/ascan/action/setOptionAlertThreshold/", {
         String: options.scanThreshold,
-      }).catch(() => {});
+      }).catch((err) =>
+        logger.debug("Failed to set ZAP alert threshold, continuing", { error: err }),
+      );
     }
   }
 
@@ -277,7 +281,9 @@ export class ZAPScanner {
     await this.zapGet("/JSON/context/action/includeInContext/", {
       contextName: contextId,
       regex: urlPattern,
-    }).catch(() => {});
+    }).catch((err) =>
+      logger.debug("Failed to include URL in ZAP context, continuing", { error: err }),
+    );
 
     // Set form-based auth
     const loginParams = Object.entries(options.loginData)
@@ -288,7 +294,9 @@ export class ZAPScanner {
       contextId,
       authMethodName: "formBasedAuthentication",
       authMethodConfigParams: `loginUrl=${encodeURIComponent(options.loginUrl)}&loginRequestData=${encodeURIComponent(loginParams)}`,
-    }).catch(() => {});
+    }).catch((err) =>
+      logger.debug("Failed to set ZAP authentication method, continuing", { error: err }),
+    );
   }
 
   /**

@@ -7,9 +7,9 @@
 
 import { Effect, Schema } from "effect";
 import { LLMProviderService, LLMMessage } from "@inspect/llm";
-import type { AgentAction } from "../index.js";
+import type { AgentAction } from "../types.js";
 import type { AgentBrain } from "../brain.js";
-import type { Observation } from "../index.js";
+import type { Observation } from "../types.js";
 
 export class ThinkInput extends Schema.Class<ThinkInput>("ThinkInput")({
   observations: Schema.Array(Schema.Unknown),

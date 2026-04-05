@@ -5,7 +5,7 @@
 // selects and runs only the tests that cover those changes.
 // ============================================================================
 
-import { GitManager } from "@inspect/git";
+import { GitManager } from "@inspect/git/git/git.js";
 
 export interface DiffTestConfig {
   /** Git scope: unstaged, staged, branch, or commit range */

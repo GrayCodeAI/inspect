@@ -181,7 +181,9 @@ export class ProxyManager {
   startHealthChecks(): void {
     if (this.healthCheckTimer) return;
     this.healthCheckTimer = setInterval(() => {
-      this.healthCheckAll().catch(() => {});
+      this.healthCheckAll().catch((err) =>
+        logger.warn("Proxy health check failed", { error: err }),
+      );
     }, this.healthCheckIntervalMs);
   }
 

@@ -9,7 +9,7 @@ import {
   type BrowserSession,
   type AgentSession,
   EXIT_CODES,
-} from "./index.js";
+} from "./cli-context.js";
 
 /**
  * Common options that most Inspect commands share.

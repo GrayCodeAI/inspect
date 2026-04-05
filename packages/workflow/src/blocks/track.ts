@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 
 /**
  * Workflow block for change tracking.
@@ -19,7 +20,7 @@ import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
  */
 export async function executeTrackBlock(
   block: WorkflowBlock,
-  _context: Record<string, unknown>,
+  _context: WorkflowContext,
 ): Promise<WorkflowBlockResult> {
   const params = block.parameters;
   const urls = (params.urls as string[]) ?? [];

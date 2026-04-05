@@ -4,6 +4,7 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { Config, ConfigProvider, Effect, Option } from "effect";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("credentials/onepassword");
@@ -51,11 +52,19 @@ export class OnePasswordIntegration {
 
   constructor(options?: { opPath?: string; serviceAccountToken?: string; account?: string }) {
     this.opPath = options?.opPath ?? "op";
-    this.serviceAccountToken =
-      options?.serviceAccountToken ??
-      process.env.OP_SERVICE_ACCOUNT_TOKEN ??
-      process.env.ONEPASSWORD_TOKEN ??
-      null;
+    const opToken = Option.getOrElse(
+      Effect.runSync(
+        Config.option(Config.string("OP_SERVICE_ACCOUNT_TOKEN")).parse(ConfigProvider.fromEnv()),
+      ),
+      () => undefined,
+    );
+    const onepasswordToken = Option.getOrElse(
+      Effect.runSync(
+        Config.option(Config.string("ONEPASSWORD_TOKEN")).parse(ConfigProvider.fromEnv()),
+      ),
+      () => undefined,
+    );
+    this.serviceAccountToken = options?.serviceAccountToken ?? opToken ?? onepasswordToken ?? null;
     this.account = options?.account ?? null;
   }
 
@@ -252,7 +261,9 @@ export class OnePasswordIntegration {
    * Build environment with service account token.
    */
   private buildEnv(): Record<string, string> {
-    const env: Record<string, string> = { ...(process.env as Record<string, string>) };
+    const env: Record<string, string> = {};
+    if (process.env.PATH) env.PATH = process.env.PATH;
+    if (process.env.HOME) env.HOME = process.env.HOME;
     if (this.serviceAccountToken) {
       env.OP_SERVICE_ACCOUNT_TOKEN = this.serviceAccountToken;
     }

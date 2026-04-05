@@ -11,7 +11,9 @@ import { EventEmitter } from "events";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RRWebEvent = any;
 
-// Playwright Page interface stub to avoid DOM type dependency
+// Playwright Page interface stub to avoid DOM type dependency.
+// This file is compiled without Playwright's DOM types to keep the package lightweight.
+// The actual Playwright Page type is compatible with this shape at runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Page = any;
 

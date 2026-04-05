@@ -3,6 +3,7 @@
 // ============================================================================
 
 import * as https from "node:https";
+import { Config, ConfigProvider, Effect, Option } from "effect";
 
 /** Azure Key Vault secret */
 export interface AzureSecret {
@@ -74,9 +75,30 @@ export class AzureKeyVaultIntegration {
   }) {
     this.vaultUrl = options.vaultUrl.replace(/\/$/, "");
     this.accessToken = options.accessToken ?? null;
-    this.clientId = options.clientId ?? process.env.AZURE_CLIENT_ID;
-    this.clientSecret = options.clientSecret ?? process.env.AZURE_CLIENT_SECRET;
-    this.tenantId = options.tenantId ?? process.env.AZURE_TENANT_ID;
+    this.clientId =
+      options.clientId ??
+      Option.getOrElse(
+        Effect.runSync(
+          Config.option(Config.string("AZURE_CLIENT_ID")).parse(ConfigProvider.fromEnv()),
+        ),
+        () => undefined,
+      );
+    this.clientSecret =
+      options.clientSecret ??
+      Option.getOrElse(
+        Effect.runSync(
+          Config.option(Config.string("AZURE_CLIENT_SECRET")).parse(ConfigProvider.fromEnv()),
+        ),
+        () => undefined,
+      );
+    this.tenantId =
+      options.tenantId ??
+      Option.getOrElse(
+        Effect.runSync(
+          Config.option(Config.string("AZURE_TENANT_ID")).parse(ConfigProvider.fromEnv()),
+        ),
+        () => undefined,
+      );
   }
 
   /**

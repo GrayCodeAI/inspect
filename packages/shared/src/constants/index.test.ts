@@ -18,7 +18,7 @@ import {
   DEFAULT_BROWSER_CONFIG,
   SENSITIVE_DATA_PATTERNS,
   ENV_VARS,
-} from "./index.js";
+} from "./defaults.js";
 
 describe("DEFAULT_VIEWPORT", () => {
   it("has valid width and height", () => {

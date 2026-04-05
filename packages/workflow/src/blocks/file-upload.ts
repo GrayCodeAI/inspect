@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 import { readFile, stat } from "node:fs/promises";
 
 export interface FileUploadResult {
@@ -38,10 +39,10 @@ export class FileUploadBlock {
     this.uploadHandler = handler;
   }
 
-  async execute(block: WorkflowBlock, context: Record<string, unknown>): Promise<FileUploadResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<FileUploadResult> {
     const params = block.parameters;
-    const render = context.render as ((s: string) => string) | undefined;
-    const filePath = render ? render(String(params.filePath ?? "")) : String(params.filePath ?? "");
+    const render = context.render.bind(context);
+    const filePath = render(String(params.filePath ?? ""));
     const target = params.target ? String(params.target) : "input[type=file]";
 
     try {

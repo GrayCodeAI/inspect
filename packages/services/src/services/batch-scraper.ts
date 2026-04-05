@@ -324,7 +324,7 @@ export class BatchScraper {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }).catch(() => {});
+      }).catch((err) => logger.warn("Webhook notification failed", { url, error: err }));
     }
   }
 }

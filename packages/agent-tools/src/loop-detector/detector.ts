@@ -5,6 +5,8 @@
  * at 5, 8, 12 repetitions. Inspired by browser-use.
  */
 
+import { Effect } from "effect";
+
 export interface LoopDetectorConfig {
   /** Window size for action history */
   windowSize: number;
@@ -163,7 +165,9 @@ export class LoopDetector {
 
       // Check if we should give up
       if (existing.repetitions >= this.config.maxRepetitions) {
-        console.error(`Action repeated ${existing.repetitions} times - giving up`);
+        Effect.logError(`Action repeated ${existing.repetitions} times - giving up`).pipe(
+          Effect.runFork,
+        );
       }
 
       return existing;

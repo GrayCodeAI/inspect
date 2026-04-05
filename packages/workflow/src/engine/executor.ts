@@ -982,24 +982,22 @@ export class WorkflowExecutor {
     context: WorkflowContext,
     blockType: "crawl" | "track" | "proxy" | "benchmark",
   ): Promise<unknown> {
-    const contextObj = context.toObject();
-
     switch (blockType) {
       case "crawl": {
         const { executeCrawlBlock } = await import("../blocks/crawl.js");
-        return executeCrawlBlock(block, contextObj);
+        return executeCrawlBlock(block, context);
       }
       case "track": {
         const { executeTrackBlock } = await import("../blocks/track.js");
-        return executeTrackBlock(block, contextObj);
+        return executeTrackBlock(block, context);
       }
       case "proxy": {
         const { executeProxyBlock } = await import("../blocks/proxy.js");
-        return executeProxyBlock(block, contextObj);
+        return executeProxyBlock(block, context);
       }
       case "benchmark": {
         const { executeBenchmarkBlock } = await import("../blocks/benchmark.js");
-        return executeBenchmarkBlock(block, contextObj);
+        return executeBenchmarkBlock(block, context);
       }
     }
   }
@@ -1170,27 +1168,15 @@ export class WorkflowExecutor {
     this.registerBlockHandler("human_interaction", (block, ctx) =>
       humanInteractionBlock.execute(block, ctx, "inline"),
     );
-    this.registerBlockHandler("benchmark", (block, ctx) =>
-      executeBenchmarkBlock(block, ctx as unknown as Record<string, unknown>),
-    );
-    this.registerBlockHandler("crawl", (block, ctx) =>
-      executeCrawlBlock(block, ctx as unknown as Record<string, unknown>),
-    );
-    this.registerBlockHandler("proxy", (block, ctx) =>
-      executeProxyBlock(block, ctx as unknown as Record<string, unknown>),
-    );
-    this.registerBlockHandler("track", (block, ctx) =>
-      executeTrackBlock(block, ctx as unknown as Record<string, unknown>),
-    );
-    this.registerBlockHandler("text_prompt", (block, ctx) =>
-      textPromptBlock.execute(block, ctx as unknown as Record<string, unknown>),
-    );
+    this.registerBlockHandler("benchmark", (block, ctx) => executeBenchmarkBlock(block, ctx));
+    this.registerBlockHandler("crawl", (block, ctx) => executeCrawlBlock(block, ctx));
+    this.registerBlockHandler("proxy", (block, ctx) => executeProxyBlock(block, ctx));
+    this.registerBlockHandler("track", (block, ctx) => executeTrackBlock(block, ctx));
+    this.registerBlockHandler("text_prompt", (block, ctx) => textPromptBlock.execute(block, ctx));
     this.registerBlockHandler("file_download", (block, ctx) =>
-      fileDownloadBlock.execute(block, ctx as unknown as Record<string, unknown>),
+      fileDownloadBlock.execute(block, ctx),
     );
-    this.registerBlockHandler("file_upload", (block, ctx) =>
-      fileUploadBlock.execute(block, ctx as unknown as Record<string, unknown>),
-    );
+    this.registerBlockHandler("file_upload", (block, ctx) => fileUploadBlock.execute(block, ctx));
 
     this.blockClassesRegistered = true;
 

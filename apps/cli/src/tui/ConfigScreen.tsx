@@ -1,69 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useInput } from "ink";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-
-const KEYS_FILE = join(process.cwd(), ".inspect", "keys.json");
-
-function loadKeys(): Record<string, string> {
-  try {
-    if (existsSync(KEYS_FILE)) return JSON.parse(readFileSync(KEYS_FILE, "utf-8"));
-  } catch {
-    /* intentionally empty */
-  }
-  return {};
-}
-
-function saveKeys(data: Record<string, string>): void {
-  const dir = join(process.cwd(), ".inspect");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(KEYS_FILE, JSON.stringify(data, null, 2));
-}
-
-const PROVIDERS = [
-  {
-    key: "ANTHROPIC_API_KEY",
-    name: "Claude (Anthropic)",
-    models: ["sonnet", "opus", "haiku"],
-    defaultModel: "claude-sonnet-4-20250514",
-    url: "console.anthropic.com/settings/keys",
-  },
-  {
-    key: "OPENAI_API_KEY",
-    name: "OpenAI",
-    models: ["gpt-4o", "gpt-4.1", "o3"],
-    defaultModel: "gpt-4o",
-    url: "platform.openai.com/api-keys",
-  },
-  {
-    key: "GOOGLE_AI_KEY",
-    name: "Google Gemini",
-    models: ["pro", "flash"],
-    defaultModel: "gemini-2.5-pro",
-    url: "aistudio.google.com/apikey",
-  },
-  {
-    key: "DEEPSEEK_API_KEY",
-    name: "DeepSeek",
-    models: ["r1", "v3"],
-    defaultModel: "deepseek-r1",
-    url: "platform.deepseek.com/api_keys",
-  },
-  {
-    key: "OPENCODE_API_KEY",
-    name: "OpenCode",
-    models: ["kimi-k2.5", "glm-5", "minimax-m2.7"],
-    defaultModel: "opencode/kimi-k2.5",
-    url: "opencode.ai/go",
-  },
-];
+import { PROVIDERS, saveApiKey, validateApiKey } from "./services/config-service.js";
 
 interface Props {
   onDone: () => void;
 }
 
 export function ConfigScreen({ onDone }: Props): React.ReactElement {
-  // Phase: wait → list → typing → done
   const [phase, _setPhase] = useState<"wait" | "list" | "typing">("wait");
   const phaseRef = useRef<"wait" | "list" | "typing">("wait");
   const setPhase = (p: "wait" | "list" | "typing") => {
@@ -75,7 +18,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
   const [selectedProvider, setSelectedProvider] = useState(0);
   const [msg, setMsg] = useState("");
 
-  // Wait phase: absorb the Enter from /config for 400ms
   useEffect(() => {
     if (phase === "wait") {
       const t = setTimeout(() => setPhase("list"), 400);
@@ -87,7 +29,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
     const p = phaseRef.current;
     if (p === "wait") return;
 
-    // ── List phase ──
     if (p === "list") {
       if (key.upArrow) {
         setIdx((i) => (i - 1 + PROVIDERS.length + 1) % (PROVIDERS.length + 1));
@@ -114,7 +55,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
       return;
     }
 
-    // ── Typing phase (entering API key) ──
     if (p === "typing") {
       if (key.escape) {
         setPhase("list");
@@ -124,36 +64,16 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
         const trimmed = keyText.trim();
         const provider = PROVIDERS[selectedProvider];
 
-        // Validate key format
-        const validators: Record<string, { prefix: string; minLen: number; hint: string }> = {
-          ANTHROPIC_API_KEY: { prefix: "sk-ant-", minLen: 20, hint: "Should start with sk-ant-" },
-          OPENAI_API_KEY: { prefix: "", minLen: 20, hint: "Should be at least 20 characters" },
-          GOOGLE_AI_KEY: { prefix: "AI", minLen: 10, hint: "Should start with AI" },
-          DEEPSEEK_API_KEY: { prefix: "sk-", minLen: 10, hint: "Should start with sk-" },
-          OPENCODE_API_KEY: { prefix: "", minLen: 10, hint: "Get key at opencode.ai/go" },
-        };
-
-        const v = validators[provider.key];
         if (!trimmed) return;
 
-        if (trimmed.length < (v?.minLen ?? 10)) {
-          setMsg(`✗ Key too short. ${v?.hint ?? ""}`);
+        const validationError = validateApiKey(provider.key, trimmed);
+        if (validationError) {
+          setMsg(`✗ ${validationError}`);
           return;
         }
 
-        if (v?.prefix && !trimmed.startsWith(v.prefix)) {
-          setMsg(`✗ Invalid format. ${v.hint}`);
-          return;
-        }
-
-        // Save
-        const cfg = loadKeys();
-        cfg[provider.key] = trimmed;
-        cfg._activeModel = provider.defaultModel;
-        cfg._activeProvider = provider.name;
-        saveKeys(cfg);
-        process.env[provider.key] = trimmed;
-        setMsg(`✓ ${provider.name} saved · model: ${provider.defaultModel}`);
+        const successMsg = saveApiKey(provider.key, trimmed, provider.defaultModel, provider.name);
+        setMsg(successMsg);
         setKeyText("");
         setPhase("list");
         return;
@@ -162,7 +82,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
         setKeyText((k) => k.slice(0, -1));
         return;
       }
-      // Accept any printable character
       if (ch && ch.length >= 1 && !key.ctrl && !key.meta) {
         setKeyText((k) => k + ch);
         return;
@@ -171,7 +90,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
     }
   });
 
-  // ── Wait screen ──
   if (phase === "wait") {
     return (
       <Box paddingX={2} paddingY={1}>
@@ -180,7 +98,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
     );
   }
 
-  // ── Typing screen ──
   if (phase === "typing") {
     const p = PROVIDERS[selectedProvider];
     const hasKey = !!process.env[p.key];
@@ -228,7 +145,6 @@ export function ConfigScreen({ onDone }: Props): React.ReactElement {
     );
   }
 
-  // ── List screen ──
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
       <Box>

@@ -123,7 +123,9 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
                   }
                 })`,
                 )
-                .catch(() => {});
+                .catch((err) =>
+                  console.debug("[SessionRecorder] Failed to stop rrweb recording:", err),
+                );
             },
           };
 

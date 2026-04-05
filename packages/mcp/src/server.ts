@@ -5,7 +5,7 @@
 // or `inspect-mcp` CLI command.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { MCPServer } from "@inspect/browser";
+import { MCPServer } from "@inspect/browser/mcp/server.js";
 
 async function main(): Promise<void> {
   const server = new MCPServer();

@@ -70,7 +70,7 @@ export async function selectOptionWithPrompt(
  * Click an element found by natural language description using ARIA snapshot.
  */
 async function clickByPrompt(page: Page, prompt: string): Promise<void> {
-  const { AriaSnapshotBuilder } = await import("@inspect/browser");
+  const { AriaSnapshotBuilder } = await import("../aria/snapshot.js");
   const snapshotBuilder = new AriaSnapshotBuilder();
   await snapshotBuilder.buildTree(page);
 
@@ -97,7 +97,7 @@ async function clickByPrompt(page: Page, prompt: string): Promise<void> {
  * Fill an element found by natural language description using ARIA snapshot.
  */
 async function fillByPrompt(page: Page, prompt: string, value: string): Promise<void> {
-  const { AriaSnapshotBuilder } = await import("@inspect/browser");
+  const { AriaSnapshotBuilder } = await import("../aria/snapshot.js");
   const snapshotBuilder = new AriaSnapshotBuilder();
   await snapshotBuilder.buildTree(page);
 

@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 
 export interface TextPromptResult {
   type: "text_prompt";
@@ -34,15 +35,11 @@ export class TextPromptBlock {
     this.llmHandler = handler;
   }
 
-  async execute(block: WorkflowBlock, context: Record<string, unknown>): Promise<TextPromptResult> {
+  async execute(block: WorkflowBlock, context: WorkflowContext): Promise<TextPromptResult> {
     const params = block.parameters;
-    const render = context.render as ((s: string) => string) | undefined;
-    const prompt = render ? render(String(params.prompt ?? "")) : String(params.prompt ?? "");
-    const systemPrompt = params.systemPrompt
-      ? render
-        ? render(String(params.systemPrompt))
-        : String(params.systemPrompt)
-      : undefined;
+    const render = context.render.bind(context);
+    const prompt = render(String(params.prompt ?? ""));
+    const systemPrompt = params.systemPrompt ? render(String(params.systemPrompt)) : undefined;
 
     if (this.llmHandler) {
       try {

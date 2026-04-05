@@ -8,4 +8,4 @@ export {
   type ElementDescription,
   type SnapshotElement,
   SelfHealer,
-} from "@inspect/agent-memory";
+} from "@inspect/agent-memory/cache/healing.js";

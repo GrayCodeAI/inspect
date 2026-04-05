@@ -1,5 +1,6 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
+import { Config, ConfigProvider, Effect } from "effect";
 import type { PRInfo } from "./pr.js";
 import { createLogger } from "@inspect/observability";
 import { formatDuration } from "@inspect/shared";
@@ -55,6 +56,12 @@ interface TestReport {
 
 const COMMENT_MARKER = "<!-- inspect-test-results -->";
 
+/** Synchronously resolve an optional Config from environment variables */
+const readEnvOption = <A>(config: Config.Config<A>): A | undefined => {
+  const result = Effect.runSync(Config.option(config).parse(ConfigProvider.fromEnv()));
+  return result._tag === "Some" ? result.value : undefined;
+};
+
 /**
  * PRComments manages posting test results and status checks to GitHub PRs.
  */
@@ -62,7 +69,7 @@ export class PRComments {
   private token?: string;
 
   constructor(token?: string) {
-    this.token = token ?? process.env.GITHUB_TOKEN;
+    this.token = token ?? readEnvOption(Config.string("GITHUB_TOKEN"));
   }
 
   /**

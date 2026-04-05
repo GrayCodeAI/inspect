@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import { StatusBar } from "../components/StatusBar.js";
-import type { TestResults, StepResult } from "./TestingScreen.js";
+import type { TestResults, StepResult } from "../services/test-execution.js";
 import { PALETTE, ICONS } from "../../utils/theme.js";
 
 interface ResultsScreenProps {

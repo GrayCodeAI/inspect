@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 
 /**
  * Workflow block for web crawling.
@@ -19,10 +20,10 @@ import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
  */
 export async function executeCrawlBlock(
   block: WorkflowBlock,
-  context: Record<string, unknown>,
+  context: WorkflowContext,
 ): Promise<WorkflowBlockResult> {
   const params = block.parameters;
-  const url = (params.url as string) ?? (context.url as string);
+  const url = (params.url as string | undefined) ?? context.get<string>("url");
 
   if (!url) {
     return { blockId: block.id, status: "failed", error: "crawl block requires 'url'" };

@@ -5,6 +5,7 @@
  */
 
 import type { Page, ConsoleMessage } from "playwright";
+import { Effect } from "effect";
 
 export interface CrashConfig {
   /** Monitor page errors */
@@ -191,7 +192,7 @@ export class CrashWatchdog {
    */
   private async attemptRecovery(crashType: CrashType): Promise<void> {
     if (this.retryCount >= this.config.maxRetries) {
-      console.error(`Max retries (${this.config.maxRetries}) exceeded`);
+      Effect.logError(`Max retries (${this.config.maxRetries}) exceeded`).pipe(Effect.runFork);
       return;
     }
 
@@ -199,7 +200,7 @@ export class CrashWatchdog {
     const strategy = this.selectRecoveryStrategy(crashType);
     this.config.onRecoveryAttempt?.(this.retryCount, strategy);
 
-    console.log(`Recovery attempt ${this.retryCount}: ${strategy}`);
+    Effect.logInfo(`Recovery attempt ${this.retryCount}: ${strategy}`).pipe(Effect.runFork);
   }
 
   /**

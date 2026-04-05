@@ -32,9 +32,18 @@ export type SnapshotElement = {
   readonly description?: string;
 };
 
-// Place SelfHealer stub that does nothing
+export class SelfHealingNotImplementedError extends Error {
+  readonly _tag = "SelfHealingNotImplementedError";
+  constructor(readonly brokenSelector: string) {
+    super(
+      `Self-healing for selector "${brokenSelector}" is not implemented. ` +
+        `Connect an LLM-based selector recovery service to enable automatic healing.`,
+    );
+  }
+}
+
 export class SelfHealer {
-  heal(_brokenSelector: string, _snapshot: SnapshotElement[]): HealResult {
-    return { success: false, originalSelector: _brokenSelector };
+  heal(brokenSelector: string, _snapshot: SnapshotElement[]): HealResult {
+    throw new SelfHealingNotImplementedError(brokenSelector);
   }
 }

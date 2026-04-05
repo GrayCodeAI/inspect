@@ -4,6 +4,7 @@
 
 import * as http from "node:http";
 import * as crypto from "node:crypto";
+import { Config, Effect } from "effect";
 import { createLogger } from "@inspect/observability";
 
 const log = createLogger("api");
@@ -91,28 +92,42 @@ export class APIServer {
   private config: Required<APIServerConfig>;
 
   constructor(config?: APIServerConfig) {
-    const jwtSecret = config?.jwtSecret ?? process.env.INSPECT_JWT_SECRET ?? "";
-    const isProduction = process.env.NODE_ENV === "production";
+    const nodeEnv = Effect.runSync(Config.withDefault(Config.string("NODE_ENV"), "development"));
+    const isProduction = nodeEnv === "production";
+
+    const jwtSecret =
+      config?.jwtSecret ??
+      Effect.runSync(
+        Config.withDefault(
+          Config.string("INSPECT_JWT_SECRET"),
+          isProduction ? undefined : crypto.randomUUID(),
+        ),
+      );
 
     if (!jwtSecret) {
-      if (isProduction) {
-        throw new Error(
-          "FATAL: jwtSecret is required in production. " +
-            "Set INSPECT_JWT_SECRET or pass jwtSecret to APIServer. " +
-            "Generate one with: openssl rand -base64 32",
-        );
-      }
-      log.warn(
-        "No JWT secret configured. " +
-          "Set INSPECT_JWT_SECRET or pass jwtSecret to enable authentication. " +
-          "All routes will be unauthenticated.",
+      throw new Error(
+        "FATAL: jwtSecret is required in production. " +
+          "Set INSPECT_JWT_SECRET or pass jwtSecret to APIServer. " +
+          "Generate one with: openssl rand -base64 32",
       );
     }
 
-    const corsOrigin = config?.corsOrigin ?? process.env.INSPECT_CORS_ORIGIN ?? "";
-    if (!corsOrigin || corsOrigin === "*") {
+    const corsOrigin =
+      config?.corsOrigin ??
+      Effect.runSync(
+        Config.withDefault(Config.string("INSPECT_CORS_ORIGIN"), isProduction ? undefined : "*"),
+      );
+
+    if (!corsOrigin) {
+      throw new Error(
+        "FATAL: corsOrigin is required in production. " +
+          "Set INSPECT_CORS_ORIGIN or pass corsOrigin to APIServer.",
+      );
+    }
+
+    if (corsOrigin === "*") {
       log.warn(
-        "CORS origin is set to wildcard or empty. " +
+        "CORS origin is set to wildcard. " +
           "Set corsOrigin to specific origins for production use.",
       );
     }

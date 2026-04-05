@@ -3,8 +3,8 @@ import type {
   Constructor,
   TypeOfValue,
   PromiseExpectChain,
-} from "../types/index.js";
-import { AssertionError } from "./index.js";
+} from "../types/matchers.js";
+import { AssertionError } from "./assertion-error.js";
 import {
   toBe,
   toEqual,
@@ -29,7 +29,7 @@ import {
   toStartWith,
   toEndWith,
   toThrow,
-} from "./matchers/index.js";
+} from "./matchers/all.js";
 
 function assertResult(result: MatcherResult, invert = false): void {
   const pass = invert ? !result.pass : result.pass;
@@ -231,13 +231,16 @@ function createAsyncMatcher(resolvedValue: unknown, invert: boolean): PromiseExp
         ? { pass: !result.pass, message: () => result.message(), actual: resolvedValue, expected }
         : result;
     },
-    async toReturn(_expected: unknown) {
-      return {
-        pass: true,
-        message: () => "toReturn is not yet implemented",
-        actual: resolvedValue,
-        expected: _expected,
-      };
+    async toReturn(expected: unknown) {
+      const pass = resolvedValue === expected;
+      const message = () =>
+        pass
+          ? `Expected the function not to return ${String(expected)}, but it did`
+          : `Expected the function to return ${String(expected)}, but got ${String(resolvedValue)}`;
+      assertResult({ pass, message, actual: resolvedValue, expected }, invert);
+      return invert
+        ? { pass: !pass, message, actual: resolvedValue, expected }
+        : { pass, message, actual: resolvedValue, expected };
     },
   };
 }

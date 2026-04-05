@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { expect as inspectExpect, AssertionError } from "../../index.js";
+import { expect as inspectExpect, AssertionError } from "../../expect.js";
 
 describe("expect", () => {
   describe("equality matchers", () => {

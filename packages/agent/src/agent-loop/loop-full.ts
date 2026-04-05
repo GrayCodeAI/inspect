@@ -1,24 +1,22 @@
-/**
- * Agent Loop - Full Implementation Placeholder
- *
- * This file will contain the complete agent loop (Tasks 121-150):
- * - observe: Collect page state, DOM, screenshots, network
- * - think: Call LLM with AgentBrain schema
- * - act: Execute actions from LLM
- * - finalize: Save history, update observations
- *
- * Full implementation in Phase 1: Weeks 2-3
- */
+import { Effect, Schema } from "effect";
 
-// Basic type stubs
+export class AgentLoopNotImplementedError extends Schema.ErrorClass<AgentLoopNotImplementedError>(
+  "AgentLoopNotImplementedError",
+)({
+  _tag: Schema.tag("AgentLoopNotImplementedError"),
+  detail: Schema.String,
+}) {
+  message = `Agent loop is not yet implemented: ${this.detail}`;
+}
+
 export type AgentConfig = { maxSteps?: number };
 export type AgentOutput = unknown;
 export type ActionResult = unknown;
 
-/**
- * Main agent loop (to be implemented)
- */
-export async function runAgentLoop(_config: AgentConfig): Promise<void> {
-  // Placeholder
-  console.log("Agent loop not yet implemented");
+export function runAgentLoop(
+  _config: AgentConfig,
+): Effect.Effect<never, AgentLoopNotImplementedError> {
+  return new AgentLoopNotImplementedError({
+    detail: "The full agent loop (observe/think/act/finalize) has not been implemented yet.",
+  }).asEffect();
 }

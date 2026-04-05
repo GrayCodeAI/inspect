@@ -1,4 +1,4 @@
-import type { MatcherResult } from "../../types/index.js";
+import type { MatcherResult } from "../../types/matchers.js";
 import { createFailResult, createPassResult } from "../utils.js";
 
 export function toBeGreaterThan(actual: unknown, expected: number | bigint): MatcherResult {

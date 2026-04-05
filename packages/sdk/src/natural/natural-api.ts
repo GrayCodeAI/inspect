@@ -6,6 +6,7 @@
  */
 
 import type { Page } from "playwright";
+import { Effect } from "effect";
 
 export interface NaturalTestConfig {
   /** LLM provider */
@@ -86,7 +87,7 @@ export class NaturalTestRunner {
     } = {},
   ): Promise<NaturalTestResult> {
     const startTime = Date.now();
-    console.log(`📝 ${instruction}`);
+    Effect.logInfo(instruction).pipe(Effect.runFork);
 
     // Substitute variables
     const processedInstruction = this.substituteVariables(instruction, options.variables || {});
@@ -205,7 +206,7 @@ Steps:
       }
     } catch {
       // Fallback to simple parsing
-      console.warn("Failed to parse LLM response as JSON");
+      Effect.logWarning("Failed to parse LLM response as JSON").pipe(Effect.runFork);
     }
 
     // Simple fallback parsing
@@ -366,7 +367,7 @@ Steps:
     step: { action: string; params: Record<string, unknown> },
     error?: string,
   ): Promise<boolean> {
-    console.log(`Healing step: ${step.action}`, error);
+    Effect.logWarning(`Healing step: ${step.action}`, { error }).pipe(Effect.runFork);
 
     // Simple healing strategies
     try {

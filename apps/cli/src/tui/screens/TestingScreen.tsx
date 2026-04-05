@@ -3,189 +3,36 @@ import { Box, Text, useInput, useApp } from "ink";
 import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
 import { PALETTE, ICONS } from "../../utils/theme.js";
-
-export interface TestConfig {
-  instruction: string;
-  prompt: string;
-  agent: string;
-  mode: string;
-  headed: boolean;
-  url?: string;
-  devices: string[];
-  a11y: boolean;
-  lighthouse: boolean;
-  mockFile?: string;
-  faultProfile?: string;
-  browser: string;
-  verbose: boolean;
-}
-
-export interface StepResult {
-  index: number;
-  description: string;
-  status: "pass" | "fail" | "running" | "pending";
-  duration?: number;
-  assertion?: string;
-  error?: string;
-  screenshot?: string;
-  toolCalls?: Array<{ tool: string; args: Record<string, unknown>; result?: string }>;
-}
-
-export interface TestResults {
-  instruction: string;
-  status: "pass" | "fail";
-  steps: StepResult[];
-  totalDuration: number;
-  tokenCount: number;
-  agent: string;
-  device: string;
-  timestamp: string;
-}
+import {
+  createInitialState,
+  formatElapsed,
+  generateTestPlanSteps,
+  getToolCallsForStep,
+  type TestExecutionConfig,
+  type TestExecutionState,
+  type TestResults,
+  type StepResult,
+} from "../services/test-execution.js";
 
 interface TestingScreenProps {
-  config: TestConfig;
+  config: TestExecutionConfig;
   onComplete: (results: TestResults) => void;
 }
 
 export function TestingScreen({ config, onComplete }: TestingScreenProps): React.ReactElement {
   const { exit } = useApp();
-  const [steps, setSteps] = useState<StepResult[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-  const [tokenCount, setTokenCount] = useState(0);
-  const [phase, setPhase] = useState<"planning" | "executing" | "verifying" | "done">("planning");
-  const [liveToolCall, setLiveToolCall] = useState<string | null>(null);
-  const [scrollOffset, setScrollOffset] = useState(0);
+  const [state, setState] = useState<TestExecutionState>(createInitialState);
   const startTime = useRef(Date.now());
 
-  // Elapsed timer
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime.current) / 1000));
+      setState((s) => ({ ...s, elapsed: Math.floor((Date.now() - startTime.current) / 1000) }));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Simulate test execution phases
   useEffect(() => {
-    const simulateExecution = async () => {
-      // Phase 1: Planning
-      setPhase("planning");
-      setTokenCount((t) => t + 245);
-      await delay(1500);
-
-      // Generate test plan steps
-      const plannedSteps: StepResult[] = [
-        {
-          index: 0,
-          description: "Navigate to the application",
-          status: "pending",
-        },
-        {
-          index: 1,
-          description: "Verify page loads without errors",
-          status: "pending",
-          assertion: "No console errors present",
-        },
-        {
-          index: 2,
-          description: "Test primary user interaction",
-          status: "pending",
-        },
-        {
-          index: 3,
-          description: "Check state changes and side effects",
-          status: "pending",
-          assertion: "UI updates correctly after action",
-        },
-        {
-          index: 4,
-          description: "Test edge case with empty/invalid input",
-          status: "pending",
-          assertion: "Error handling works properly",
-        },
-        {
-          index: 5,
-          description: "Verify navigation and URL state",
-          status: "pending",
-          assertion: "URL reflects current state",
-        },
-      ];
-
-      setSteps(plannedSteps);
-      setPhase("executing");
-
-      // Phase 2: Execute each step
-      for (let i = 0; i < plannedSteps.length; i++) {
-        setCurrentStep(i);
-
-        // Mark step as running
-        setSteps((prev) => prev.map((s) => (s.index === i ? { ...s, status: "running" } : s)));
-
-        // Simulate tool call
-        const toolCalls = [
-          { tool: "browser_navigate", args: { url: config.url ?? "http://localhost:3000" } },
-          { tool: "browser_snapshot", args: { mode: "hybrid" } },
-          { tool: "browser_click", args: { ref: `e${i + 1}` } },
-          { tool: "browser_type", args: { ref: `e${i + 2}`, text: "test input" } },
-          { tool: "browser_screenshot", args: { mode: "viewport" } },
-          { tool: "browser_console", args: { level: "error" } },
-        ];
-        const call = toolCalls[i % toolCalls.length];
-        setLiveToolCall(`${call.tool}(${JSON.stringify(call.args)})`);
-        setTokenCount((t) => t + 120 + Math.floor(Math.random() * 80));
-
-        await delay(800 + Math.random() * 1200);
-
-        // Determine result (mostly pass, occasional fail for realism)
-        const passed = Math.random() > 0.15;
-        setSteps((prev) =>
-          prev.map((s) =>
-            s.index === i
-              ? {
-                  ...s,
-                  status: passed ? "pass" : "fail",
-                  duration: Date.now() - startTime.current - i * 1500,
-                  toolCalls: [{ ...call, result: passed ? "success" : "element not found" }],
-                  error: passed ? undefined : "Assertion failed: expected element to be visible",
-                }
-              : s,
-          ),
-        );
-
-        setLiveToolCall(null);
-      }
-
-      // Phase 3: Verification
-      setPhase("verifying");
-      setTokenCount((t) => t + 180);
-      await delay(800);
-
-      // Done
-      setPhase("done");
-      const finalSteps = await new Promise<StepResult[]>((resolve) => {
-        setSteps((prev) => {
-          resolve(prev);
-          return prev;
-        });
-      });
-
-      const results: TestResults = {
-        instruction: config.instruction,
-        status: finalSteps.every((s) => s.status === "pass") ? "pass" : "fail",
-        steps: finalSteps,
-        totalDuration: Date.now() - startTime.current,
-        tokenCount,
-        agent: config.agent,
-        device: config.devices[0],
-        timestamp: new Date().toISOString(),
-      };
-
-      await delay(500);
-      onComplete(results);
-    };
-
-    simulateExecution();
+    void runTestExecution(config, setState, onComplete, startTime);
   }, []);
 
   useInput((input, key) => {
@@ -193,27 +40,24 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
       exit();
       return;
     }
-
-    // Scroll steps
     if (key.upArrow) {
-      setScrollOffset((o) => Math.max(0, o - 1));
+      setState((s) => ({ ...s, scrollOffset: Math.max(0, s.scrollOffset - 1) }));
     }
     if (key.downArrow) {
-      setScrollOffset((o) => Math.min(steps.length - 1, o + 1));
+      setState((s) => ({
+        ...s,
+        scrollOffset: Math.min(state.steps.length - 1, s.scrollOffset + 1),
+      }));
     }
   });
 
-  const formatElapsed = (seconds: number): string => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
-  const visibleSteps = steps.slice(scrollOffset, scrollOffset + 10);
+  const visibleSteps = state.steps.slice(state.scrollOffset, state.scrollOffset + 10);
+  const completedCount = state.steps.filter(
+    (s) => s.status === "pass" || s.status === "fail",
+  ).length;
 
   return (
     <Box flexDirection="column" padding={1}>
-      {/* Header */}
       <Box marginBottom={1} justifyContent="space-between">
         <Box>
           <Text bold color={PALETTE.brand}>
@@ -228,26 +72,24 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
         </Box>
         <Box>
           <Text color={PALETTE.muted}>
-            {formatElapsed(elapsed)} {ICONS.separator} {tokenCount} tokens
+            {formatElapsed(state.elapsed)} {ICONS.separator} {state.tokenCount} tokens
           </Text>
         </Box>
       </Box>
 
-      {/* Instruction */}
       <Box marginBottom={1}>
         <Text color={PALETTE.muted}>Instruction: </Text>
         <Text color={PALETTE.text}>{config.instruction}</Text>
       </Box>
 
-      {/* Phase indicator */}
       <Box marginBottom={1}>
-        {phase !== "done" ? (
+        {state.phase !== "done" ? (
           <Spinner
             label={
-              phase === "planning"
+              state.phase === "planning"
                 ? "Planning test steps..."
-                : phase === "executing"
-                  ? `Executing step ${currentStep + 1}/${steps.length}...`
+                : state.phase === "executing"
+                  ? `Executing step ${state.currentStep + 1}/${state.steps.length}...`
                   : "Verifying results..."
             }
             color="magenta"
@@ -259,7 +101,6 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
         )}
       </Box>
 
-      {/* Steps */}
       <Box flexDirection="column">
         {visibleSteps.map((step) => (
           <Box key={step.index} marginLeft={1}>
@@ -302,21 +143,19 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
         ))}
       </Box>
 
-      {/* Live tool call */}
-      {liveToolCall && (
+      {state.liveToolCall && (
         <Box marginTop={1} marginLeft={2}>
           <Text color={PALETTE.muted}>Tool: </Text>
-          <Text color={PALETTE.cyan}>{liveToolCall}</Text>
+          <Text color={PALETTE.cyan}>{state.liveToolCall}</Text>
         </Box>
       )}
 
-      {/* Status bar */}
       <StatusBar
         items={[
-          { label: "Phase", value: phase },
+          { label: "Phase", value: state.phase },
           {
             label: "Steps",
-            value: `${steps.filter((s) => s.status === "pass" || s.status === "fail").length}/${steps.length}`,
+            value: `${completedCount}/${state.steps.length}`,
           },
           { label: "Esc", value: "cancel" },
         ]}
@@ -325,6 +164,87 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
   );
 }
 
-function delay(ms: number): Promise<void> {
+async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runTestExecution(
+  config: TestExecutionConfig,
+  setState: React.Dispatch<React.SetStateAction<TestExecutionState>>,
+  onComplete: (results: TestResults) => void,
+  startTimeRef: React.MutableRefObject<number>,
+): Promise<void> {
+  setState((s) => ({ ...s, phase: "planning", tokenCount: s.tokenCount + 245 }));
+  await delay(1500);
+
+  const plannedSteps = generateTestPlanSteps();
+  setState((s) => ({ ...s, steps: plannedSteps, phase: "executing" }));
+
+  for (let i = 0; i < plannedSteps.length; i++) {
+    setState((s) => ({ ...s, currentStep: i }));
+    setState((s) => ({
+      ...s,
+      steps: s.steps.map((step) => (step.index === i ? { ...step, status: "running" } : step)),
+    }));
+
+    const call = getToolCallsForStep(i, config.url ?? "http://localhost:3000");
+    const toolCallDisplay = `${call.tool}(${JSON.stringify(call.args)})`;
+    setState((s) => ({
+      ...s,
+      liveToolCall: toolCallDisplay,
+      tokenCount: s.tokenCount + 120 + Math.floor(Math.random() * 80),
+    }));
+
+    await delay(800 + Math.random() * 1200);
+
+    const passed = Math.random() > 0.15;
+    setState((s) => ({
+      ...s,
+      steps: s.steps.map((step) =>
+        step.index === i
+          ? {
+              ...step,
+              status: passed ? "pass" : "fail",
+              duration: Date.now() - startTimeRef.current - i * 1500,
+              toolCalls: [{ ...call, result: passed ? "success" : "element not found" }],
+              error: passed ? undefined : "Assertion failed: expected element to be visible",
+            }
+          : step,
+      ),
+      liveToolCall: null,
+    }));
+  }
+
+  setState((s) => ({ ...s, phase: "verifying", tokenCount: s.tokenCount + 180 }));
+  await delay(800);
+
+  setState((s) => ({ ...s, phase: "done" }));
+
+  const finalSteps = await new Promise<StepResult[]>((resolve) => {
+    setState((prev) => {
+      resolve(prev.steps);
+      return prev;
+    });
+  });
+
+  const tokenCount = await new Promise<number>((resolve) => {
+    setState((prev) => {
+      resolve(prev.tokenCount);
+      return prev;
+    });
+  });
+
+  const results: TestResults = {
+    instruction: config.instruction,
+    status: finalSteps.every((s) => s.status === "pass") ? "pass" : "fail",
+    steps: finalSteps,
+    totalDuration: Date.now() - startTimeRef.current,
+    tokenCount,
+    agent: config.agent,
+    device: config.devices[0],
+    timestamp: new Date().toISOString(),
+  };
+
+  await delay(500);
+  onComplete(results);
 }

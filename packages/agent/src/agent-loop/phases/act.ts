@@ -6,7 +6,7 @@
  */
 
 import { Effect, Schema } from "effect";
-import type { AgentAction } from "../index.js";
+import type { AgentAction } from "../types.js";
 import { BrowserManagerService } from "@inspect/browser";
 
 export class ActInput extends Schema.Class<ActInput>("ActInput")({

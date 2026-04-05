@@ -7,7 +7,7 @@
 import { Effect, Layer } from "effect";
 import { describe, it, expect, beforeEach } from "vitest";
 import { runAgentStep, runFullAgentLoop } from "../runner.js";
-import type { AgentConfig } from "../index.js";
+import type { AgentConfig } from "../types.js";
 import { LLMProviderService } from "@inspect/llm";
 import { BrowserManagerService } from "@inspect/browser";
 

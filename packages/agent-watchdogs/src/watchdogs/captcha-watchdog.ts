@@ -6,6 +6,7 @@
  */
 
 import type { Page } from "playwright";
+import { Effect } from "effect";
 
 export interface CaptchaConfig {
   /** Auto-solve CAPTCHAs */
@@ -176,7 +177,7 @@ export class CaptchaWatchdog {
    * Solve detected CAPTCHA
    */
   async solve(page: Page, detection: CaptchaDetection): Promise<boolean> {
-    console.log(`Solving ${detection.type} CAPTCHA...`);
+    Effect.logInfo(`Solving ${detection.type} CAPTCHA...`).pipe(Effect.runFork);
 
     switch (detection.type) {
       case "recaptcha-v2":
@@ -188,7 +189,9 @@ export class CaptchaWatchdog {
       case "image-captcha":
         return this.solveImageCaptcha(page, detection);
       default:
-        console.warn(`CAPTCHA type ${detection.type} not supported for auto-solving`);
+        Effect.logWarning(`CAPTCHA type ${detection.type} not supported for auto-solving`).pipe(
+          Effect.runFork,
+        );
         return false;
     }
   }
@@ -198,12 +201,14 @@ export class CaptchaWatchdog {
    */
   private async solveRecaptchaV2(page: Page, detection: CaptchaDetection): Promise<boolean> {
     if (!detection.siteKey || !this.config.solverApiKey) {
-      console.warn("Cannot solve reCAPTCHA: missing siteKey or API key");
+      Effect.logWarning("Cannot solve reCAPTCHA: missing siteKey or API key").pipe(Effect.runFork);
       return false;
     }
 
     // Would integrate with 2captcha/Anti-Captcha API here
-    console.log("reCAPTCHA solving not yet implemented (requires external service)");
+    Effect.logInfo("reCAPTCHA solving not yet implemented (requires external service)").pipe(
+      Effect.runFork,
+    );
     return false;
   }
 
@@ -211,7 +216,7 @@ export class CaptchaWatchdog {
    * Solve hCaptcha
    */
   private async solveHCaptcha(_page: Page, _detection: CaptchaDetection): Promise<boolean> {
-    console.log("hCaptcha solving not yet implemented");
+    Effect.logInfo("hCaptcha solving not yet implemented").pipe(Effect.runFork);
     return false;
   }
 
@@ -219,7 +224,7 @@ export class CaptchaWatchdog {
    * Solve Cloudflare Turnstile
    */
   private async solveTurnstile(_page: Page, _detection: CaptchaDetection): Promise<boolean> {
-    console.log("Turnstile solving not yet implemented");
+    Effect.logInfo("Turnstile solving not yet implemented").pipe(Effect.runFork);
     return false;
   }
 
@@ -227,7 +232,7 @@ export class CaptchaWatchdog {
    * Solve image CAPTCHA using vision LLM
    */
   private async solveImageCaptcha(_page: Page, _detection: CaptchaDetection): Promise<boolean> {
-    console.log("Image CAPTCHA solving not yet implemented");
+    Effect.logInfo("Image CAPTCHA solving not yet implemented").pipe(Effect.runFork);
     return false;
   }
 

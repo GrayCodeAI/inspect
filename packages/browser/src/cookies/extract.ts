@@ -503,9 +503,16 @@ export class CookieExtractor {
       );
     } finally {
       // Cleanup temp files
-      await unlink(tempPath).catch(() => {});
-      await unlink(`${tempPath}-wal`).catch(() => {});
-      await unlink(`${tempPath}-shm`).catch(() => {});
+      // Cleanup temp files (failure is non-fatal — temp dir will be reclaimed)
+      await unlink(tempPath).catch(() => {
+        /* cleanup failure is non-fatal */
+      });
+      await unlink(`${tempPath}-wal`).catch(() => {
+        /* cleanup failure is non-fatal */
+      });
+      await unlink(`${tempPath}-shm`).catch(() => {
+        /* cleanup failure is non-fatal */
+      });
     }
   }
 

@@ -1,4 +1,4 @@
-import type { MatcherResult } from "../../types/index.js";
+import type { MatcherResult } from "../../types/matchers.js";
 import { createFailResult, createPassResult } from "../utils.js";
 
 const HAS_VALUE_SENTINEL = Symbol("HAS_VALUE_SENTINEL");

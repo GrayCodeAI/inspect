@@ -1,4 +1,4 @@
-import type { DeviceConfig } from "@inspect/devices";
+import type { DeviceConfig } from "@inspect/devices/devices/presets.js";
 import type { ExecutionConfig, ExecutionResult, ExecutorDependencies } from "./executor.js";
 import { TestExecutor } from "./executor.js";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@inspect/skill",
+  "name": "@inspect/expect-skill",
   "version": "0.0.1",
   "private": true,
   "description": "AI agent skill for browser testing with inspect",

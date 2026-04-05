@@ -479,7 +479,7 @@ export class MultiAgentOrchestrator extends EventEmitter {
   }
 
   /**
-   * Execute task on agent (placeholder)
+   * Execute task on agent
    */
   private async executeTask(task: Task, agent: AgentInstance): Promise<void> {
     const startTime = Date.now();
@@ -487,21 +487,15 @@ export class MultiAgentOrchestrator extends EventEmitter {
 
     const execute = async (): Promise<TaskResult> => {
       try {
-        // Placeholder - actual implementation would call agent.execute()
-        await new Promise((r) => setTimeout(r, 1000 + Math.random() * 2000));
-
-        return {
-          taskId: task.id,
-          agentId: agent.id,
-          status: "success",
-          data: { executed: true },
-          duration: Date.now() - startTime,
-          retries,
-          completedAt: Date.now(),
-        };
+        // Emit task execution event for external handlers to implement
+        const result = await new Promise<TaskResult>((resolve, reject) => {
+          this.emit("task:execute", { task, agent, resolve, reject });
+        });
+        return result;
       } catch (error) {
         if (retries < task.maxRetries) {
           retries++;
+          this.emit("task:retry", { task, agent, attempt: retries });
           return execute();
         }
 

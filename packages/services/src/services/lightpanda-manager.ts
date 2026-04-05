@@ -78,15 +78,11 @@ export class LightpandaManager {
       return this.getBinaryPath();
     }
 
-    fs.mkdirSync(this.installDir, { recursive: true });
-
-    // In production, this would download from Lightpanda's releases
-    // For now, create a placeholder binary marker
-    const binaryPath = this.getBinaryPath();
-    fs.writeFileSync(binaryPath, '#!/bin/sh\necho "lightpanda placeholder"\n', { mode: 0o755 });
-    fs.writeFileSync(path.join(this.installDir, "version.txt"), "1.0.0");
-
-    return binaryPath;
+    throw new Error(
+      `Lightpanda binary not found at ${this.getBinaryPath()}. ` +
+        `Install Lightpanda manually from https://github.com/nichochar/lightpanda/releases ` +
+        `or set the installDir config option to the directory containing the binary.`,
+    );
   }
 
   /**

@@ -7,6 +7,7 @@
 
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
+import { Effect } from "effect";
 import { getCwd } from "@inspect/shared";
 
 export interface DiffPlannerConfig {
@@ -136,7 +137,7 @@ export class DiffPlanner {
 
     // Get diff stats
     const stats = this.execGit("diff --stat");
-    console.log("Git diff stats:", stats);
+    Effect.logDebug("Git diff stats", { stats }).pipe(Effect.runFork);
 
     // Get changed files
     let output: string;

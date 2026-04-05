@@ -176,7 +176,8 @@ export const generatePlaywrightSuite = (testSuite: VisualTestSuite): string => {
   testSuite.cases.forEach((caseId, _index) => {
     lines.push(`  test("case-${caseId}", async ({ page }) => {`);
     lines.push(`    await page.goto("/");`);
-    lines.push(`    // TODO: implement test case ${caseId}`);
+    lines.push(`    // Test case "${caseId}" — implement assertions based on visual diff results`);
+    lines.push(`    await expect(page).toHaveScreenshot(\`case-${caseId}.png\`);`);
     lines.push(`  });`);
     lines.push("");
   });

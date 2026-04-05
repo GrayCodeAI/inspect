@@ -1,81 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useInput } from "ink";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-
-const KEYS_FILE = join(process.cwd(), ".inspect", "keys.json");
-
-function loadKeys(): Record<string, string> {
-  try {
-    if (existsSync(KEYS_FILE)) return JSON.parse(readFileSync(KEYS_FILE, "utf-8"));
-  } catch {
-    /* intentionally empty */
-  }
-  return {};
-}
-
-function saveKeys(data: Record<string, string>): void {
-  const dir = join(process.cwd(), ".inspect");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(KEYS_FILE, JSON.stringify(data, null, 2));
-}
-
-interface ModelGroup {
-  provider: string;
-  color: string;
-  models: Array<{ id: string; label: string; isDefault: boolean }>;
-}
-
-const GROUPS: ModelGroup[] = [
-  {
-    provider: "Claude",
-    color: "#22c55e",
-    models: [
-      { id: "claude-sonnet-4-20250514", label: "Sonnet 4", isDefault: true },
-      { id: "claude-opus-4-20250514", label: "Opus 4", isDefault: false },
-      { id: "claude-haiku-3-5-20241022", label: "Haiku 3.5", isDefault: false },
-    ],
-  },
-  {
-    provider: "OpenAI",
-    color: "#3b82f6",
-    models: [
-      { id: "gpt-4o", label: "GPT-4o", isDefault: true },
-      { id: "gpt-4.1", label: "GPT-4.1", isDefault: false },
-      { id: "o3-mini", label: "o3 Mini", isDefault: false },
-    ],
-  },
-  {
-    provider: "Gemini",
-    color: "#eab308",
-    models: [
-      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", isDefault: true },
-      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", isDefault: false },
-    ],
-  },
-  {
-    provider: "DeepSeek",
-    color: "#a855f7",
-    models: [
-      { id: "deepseek-r1", label: "DeepSeek R1", isDefault: true },
-      { id: "deepseek-v3", label: "DeepSeek V3", isDefault: false },
-    ],
-  },
-  {
-    provider: "OpenCode",
-    color: "#22d3ee",
-    models: [
-      { id: "opencode/kimi-k2.5", label: "Kimi K2.5", isDefault: true },
-      { id: "opencode/glm-5", label: "GLM-5", isDefault: false },
-      { id: "opencode/minimax-m2.7", label: "MiniMax M2.7", isDefault: false },
-    ],
-  },
-];
-
-// Flatten all models for index navigation
-const ALL_MODELS = GROUPS.flatMap((g) =>
-  g.models.map((m) => ({ ...m, provider: g.provider, color: g.color })),
-);
+import { ALL_MODELS, loadKeys, setActiveModel } from "./services/config-service.js";
 
 interface Props {
   onDone: () => void;
@@ -88,13 +13,11 @@ export function ModelScreen({ onDone }: Props): React.ReactElement {
 
   const currentModel = loadKeys()._activeModel ?? "";
 
-  // Find current model index
   useEffect(() => {
     const currentIdx = ALL_MODELS.findIndex((m) => m.id === currentModel);
     if (currentIdx >= 0) setIdx(currentIdx);
   }, [currentModel]);
 
-  // Absorb Enter from /model submission
   useEffect(() => {
     const t = setTimeout(() => {
       phaseRef.current = "ready";
@@ -121,10 +44,7 @@ export function ModelScreen({ onDone }: Props): React.ReactElement {
 
     if (key.return) {
       const model = ALL_MODELS[idx];
-      const cfg = loadKeys();
-      cfg._activeModel = model.id;
-      cfg._activeProvider = model.provider;
-      saveKeys(cfg);
+      setActiveModel(model.id, model.provider);
       onDone();
       return;
     }
@@ -138,7 +58,6 @@ export function ModelScreen({ onDone }: Props): React.ReactElement {
     );
   }
 
-  // Track which group each model belongs to for headers
   let lastProvider = "";
 
   return (

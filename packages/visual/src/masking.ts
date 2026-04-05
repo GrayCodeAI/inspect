@@ -106,7 +106,7 @@ export class ElementMasking {
         })()
       `,
         )
-        .catch(() => {});
+        .catch((err) => console.debug("[Masking] Failed to remove injected style:", err));
     }
   }
 

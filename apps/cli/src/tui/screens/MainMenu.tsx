@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { Box, Text, useInput, useApp } from "ink";
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
+import { getAvailableAgents } from "../services/config-service.js";
+import { usePreferencesStore } from "../stores/preferences.js";
 
 type GitScope = "unstaged" | "branch" | "commit";
 type AgentChoice = "claude" | "gpt" | "gemini" | "deepseek" | "ollama";
@@ -52,9 +52,9 @@ const DEVICES = [
 // ── Colors ─────────────────────────────────────────────────────────────
 
 const C = {
-  brand: "#a855f7", // purple
+  brand: "#a855f7",
   brandDim: "#7c3aed",
-  accent: "#6366f1", // indigo
+  accent: "#6366f1",
   green: "#22c55e",
   red: "#ef4444",
   yellow: "#eab308",
@@ -66,30 +66,6 @@ const C = {
   inputBg: "#0f172a",
   border: "#334155",
 };
-
-// ── History ────────────────────────────────────────────────────────────
-
-function loadHistory(): string[] {
-  try {
-    const histPath = join(process.cwd(), ".inspect", "history.json");
-    if (existsSync(histPath)) {
-      return JSON.parse(readFileSync(histPath, "utf-8"));
-    }
-  } catch {
-    /* intentionally empty */
-  }
-  return [];
-}
-
-function saveHistory(history: string[]): void {
-  try {
-    const dir = join(process.cwd(), ".inspect");
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "history.json"), JSON.stringify(history.slice(0, 20)));
-  } catch {
-    /* intentionally empty */
-  }
-}
 
 // ── Sub-components ─────────────────────────────────────────────────────
 
@@ -181,6 +157,8 @@ function Divider(): React.ReactElement {
 
 export function MainMenu(): React.ReactElement {
   const { exit } = useApp();
+  const history = usePreferencesStore((s) => s.instructionHistory);
+  const addToHistory = usePreferencesStore((s) => s.addToHistory);
 
   const [state, setState] = useState<MenuState>({
     instruction: "",
@@ -196,20 +174,9 @@ export function MainMenu(): React.ReactElement {
     isLoading: false,
   });
 
-  const [history] = useState<string[]>(loadHistory);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyDraft, setHistoryDraft] = useState("");
-  const [availableAgents, setAvailableAgents] = useState<string[]>([]);
-
-  useEffect(() => {
-    const agents: string[] = [];
-    if (process.env.ANTHROPIC_API_KEY) agents.push("claude");
-    if (process.env.OPENAI_API_KEY) agents.push("gpt");
-    if (process.env.GOOGLE_AI_KEY) agents.push("gemini");
-    if (process.env.DEEPSEEK_API_KEY) agents.push("deepseek");
-    agents.push("ollama");
-    setAvailableAgents(agents);
-  }, []);
+  const availableAgents = getAvailableAgents();
 
   const currentField = FIELDS[state.focusedField];
   const canStart = state.instruction.trim().length > 0;
@@ -219,26 +186,12 @@ export function MainMenu(): React.ReactElement {
     return options[(idx + direction + options.length) % options.length];
   }, []);
 
-  const commitToHistory = useCallback(
-    (instruction: string) => {
-      const trimmed = instruction.trim();
-      if (!trimmed) return;
-      const deduped = history.filter((h) => h !== trimmed);
-      deduped.unshift(trimmed);
-      const updated = deduped.slice(0, 20);
-      history.length = 0;
-      history.push(...updated);
-      saveHistory(updated);
-    },
-    [history],
-  );
-
   const handleStart = useCallback(() => {
     if (!state.instruction.trim()) return;
-    commitToHistory(state.instruction);
+    addToHistory(state.instruction);
     setState((s) => ({ ...s, isLoading: true }));
     setTimeout(() => exit(), 500);
-  }, [state.instruction, commitToHistory, exit]);
+  }, [state.instruction, addToHistory, exit]);
 
   const getHints = (): Array<{ label: string; value: string }> => {
     if (currentField === "instruction" || currentField === "url") {

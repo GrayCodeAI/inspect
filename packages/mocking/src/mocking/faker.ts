@@ -387,7 +387,7 @@ export const FakeData = {
     return `${protocol}://${subdomain}.${domain}.${tld}`;
   },
 
-  /** Generate a random image URL (placeholder) */
+  /** Generate a random image URL using picsum.photos */
   imageUrl(width: number = 640, height: number = 480): string {
     return `https://picsum.photos/${width}/${height}?random=${Math.floor(Math.random() * 10000)}`;
   },

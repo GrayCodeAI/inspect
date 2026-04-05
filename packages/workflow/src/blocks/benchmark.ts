@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { WorkflowBlock, WorkflowBlockResult } from "@inspect/shared";
+import type { WorkflowContext } from "../engine/context.js";
 
 const SUITES: Record<
   string,
@@ -77,7 +78,7 @@ const SUITES: Record<
  */
 export async function executeBenchmarkBlock(
   block: WorkflowBlock,
-  _context: Record<string, unknown>,
+  _context: WorkflowContext,
 ): Promise<WorkflowBlockResult> {
   const params = block.parameters;
   const suite = (params.suite as string) ?? "miniwob";
@@ -94,13 +95,14 @@ export async function executeBenchmarkBlock(
 
   try {
     // Use real agent executor if provided in context
-    const agentExecutor = _context.agentExecutor as
-      | ((
+    const agentExecutor =
+      _context.get<
+        (
           instruction: string,
           url: string,
           maxSteps: number,
-        ) => Promise<{ success: boolean; durationMs: number }>)
-      | undefined;
+        ) => Promise<{ success: boolean; durationMs: number }>
+      >("agentExecutor");
 
     const results = await Promise.all(
       tasks.map(async (task) => {

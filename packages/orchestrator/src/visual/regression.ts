@@ -6,7 +6,7 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { PRInfo } from "@inspect/git";
+import type { PRInfo } from "@inspect/git/github/pr.js";
 import { createLogger } from "@inspect/observability";
 
 const logger = createLogger("core/visual-regression");

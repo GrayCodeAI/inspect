@@ -36,7 +36,6 @@ COPY packages/observability/package.json packages/observability/
 COPY packages/sdk/package.json packages/sdk/
 COPY packages/reporter/package.json packages/reporter/
 COPY apps/cli/package.json apps/cli/
-COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Stage 3: Build all packages
@@ -117,9 +116,9 @@ COPY --from=build /app/apps ./apps
 # Copy Playwright browsers
 COPY --from=playwright /ms-playwright /ms-playwright
 
-# Copy additional runtime files
-COPY --from=build /app/yaml ./yaml
-COPY --from=build /app/evals ./evals
+# Copy additional runtime files (if they exist)
+COPY --from=build /app/yaml ./yaml || true
+COPY --from=build /app/evals ./evals || true
 
 # Set ownership
 RUN chown -R inspect:inspect /app

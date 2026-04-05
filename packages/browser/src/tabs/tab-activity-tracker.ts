@@ -331,7 +331,9 @@ export class TabActivityTracker {
         // Close the actual page
         for (const [page, id] of this.pageToTabId) {
           if (id === tabId) {
-            page.close().catch(() => {});
+            page
+              .close()
+              .catch((err) => console.debug("[Tabs] Failed to close inactive page:", err));
             break;
           }
         }

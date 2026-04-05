@@ -7,7 +7,7 @@
 
 import { Effect, Schema } from "effect";
 import type { AgentBrain } from "../brain.js";
-import type { Observation } from "../index.js";
+import type { Observation } from "../types.js";
 
 export class PrepareInput extends Schema.Class<PrepareInput>("PrepareInput")({
   goal: Schema.String,

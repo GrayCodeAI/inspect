@@ -1,9 +1,20 @@
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
+import { Config, ConfigProvider, Effect } from "effect";
 import { createLogger } from "@inspect/observability";
 
 const execFile = promisify(execFileCb);
 const logger = createLogger("core/github-pr");
+
+/** Synchronously resolve a Config from environment variables */
+const readEnv = <A>(config: Config.Config<A>): A =>
+  Effect.runSync(config.parse(ConfigProvider.fromEnv()));
+
+/** Synchronously resolve an optional Config from environment variables */
+const readEnvOption = <A>(config: Config.Config<A>): A | undefined => {
+  const result = readEnv(Config.option(config));
+  return result._tag === "Some" ? result.value : undefined;
+};
 
 /**
  * Safely execute a gh CLI command with arguments as an array.
@@ -45,7 +56,7 @@ export class GitHubPR {
   private token?: string;
 
   constructor(token?: string) {
-    this.token = token ?? process.env.GITHUB_TOKEN;
+    this.token = token ?? readEnvOption(Config.string("GITHUB_TOKEN"));
   }
 
   /**

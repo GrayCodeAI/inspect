@@ -1,4 +1,5 @@
 import type { Page } from "playwright";
+import type { CookieData } from "@inspect/shared";
 import chalk from "chalk";
 
 export interface SyncResult {
@@ -66,7 +67,7 @@ export async function syncCookies(
     const playwrightCookies = extractor.toPlaywrightFormat(deduped);
 
     // Filter out cookies with empty values (encrypted Chromium cookies)
-    const usable = playwrightCookies.filter((c) => c.value && c.value.length > 0);
+    const usable = playwrightCookies.filter((c: CookieData) => c.value && c.value.length > 0);
 
     if (usable.length > 0) {
       await page.context().addCookies(usable);
@@ -85,6 +86,51 @@ export async function syncCookies(
       browser: browserName,
       error: err instanceof Error ? err.message : String(err),
     };
+  }
+}
+
+/**
+ * Check if cookie confirmation is needed for a given URL.
+ * Returns true if no cookies are found (user needs to confirm/login),
+ * false if cookies already exist for the target domain.
+ */
+export async function needsCookieConfirmation(
+  url: string,
+  options?: {
+    browser?: string;
+    profile?: string;
+  },
+): Promise<boolean> {
+  try {
+    const { CookieExtractor } = await import("@inspect/browser");
+    const extractor = new CookieExtractor();
+
+    const available = extractor.listAvailableBrowsers();
+    if (available.length === 0) {
+      return true;
+    }
+
+    const targetBrowser = options?.browser
+      ? available.includes(options.browser)
+        ? options.browser
+        : available[0]
+      : available[0];
+
+    const domain = extractDomain(url);
+    const cookies = await extractor.extractCookies(targetBrowser, options?.profile, domain);
+
+    const usable = cookies.filter((c: CookieData) => c.value && c.value.length > 0);
+    return usable.length === 0;
+  } catch {
+    return true;
+  }
+}
+
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
   }
 }
 

@@ -27,8 +27,8 @@ import type {
   StepResult,
 } from "./executor.js";
 import { TestScheduler } from "./scheduler.js";
-import type { DeviceConfig } from "@inspect/devices";
-import { getPreset } from "@inspect/devices";
+import type { DeviceConfig } from "@inspect/devices/devices/presets.js";
+import { getPreset } from "@inspect/devices/devices/presets.js";
 
 // ---------------------------------------------------------------------------
 // Screenshot throttle — max 1 per run per interval

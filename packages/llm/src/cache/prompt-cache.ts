@@ -4,6 +4,7 @@
 
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { getInspectDir } from "@inspect/shared";
 
 /** Cache entry for a prompt-response pair */

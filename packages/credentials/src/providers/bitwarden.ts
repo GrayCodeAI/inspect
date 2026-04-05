@@ -81,11 +81,11 @@ export class BitwardenIntegration {
    * Login using API key (non-interactive).
    */
   async loginApiKey(clientId: string, clientSecret: string): Promise<string> {
-    const env = {
-      ...process.env,
-      BW_CLIENTID: clientId,
-      BW_CLIENTSECRET: clientSecret,
-    };
+    const env: Record<string, string> = {};
+    if (process.env.PATH) env.PATH = process.env.PATH;
+    if (process.env.HOME) env.HOME = process.env.HOME;
+    env.BW_CLIENTID = clientId;
+    env.BW_CLIENTSECRET = clientSecret;
 
     const { stdout } = await execFileAsync(this.bwPath, ["login", "--apikey", "--raw"], { env });
     this.sessionToken = stdout.trim();
@@ -224,7 +224,9 @@ export class BitwardenIntegration {
    * Execute a Bitwarden CLI command.
    */
   private async exec(args: string[]): Promise<string> {
-    const env: Record<string, string> = { ...(process.env as Record<string, string>) };
+    const env: Record<string, string> = {};
+    if (process.env.PATH) env.PATH = process.env.PATH;
+    if (process.env.HOME) env.HOME = process.env.HOME;
     if (this.sessionToken) {
       env.BW_SESSION = this.sessionToken;
     }

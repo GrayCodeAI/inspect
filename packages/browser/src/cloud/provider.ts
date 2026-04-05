@@ -196,7 +196,9 @@ export class CloudSessionPool {
         return session;
       }
       // Session expired, destroy it
-      await this.provider.destroySession(session.id).catch(() => {});
+      await this.provider
+        .destroySession(session.id)
+        .catch((err) => logger.debug("Failed to destroy expired session", { error: err }));
     }
 
     // Create new session if under max
@@ -274,7 +276,9 @@ export class CloudSessionPool {
    */
   startHealthChecks(): void {
     this.healthCheckTimer = setInterval(() => {
-      this.healthCheck().catch(() => {});
+      this.healthCheck().catch((err) =>
+        logger.warn("Session pool health check failed", { error: err }),
+      );
     }, this.config.healthCheckInterval);
   }
 

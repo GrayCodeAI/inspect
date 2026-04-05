@@ -130,13 +130,20 @@ export class StorybookCapture {
     await page.waitForLoadState("networkidle");
 
     if (options.waitForSelector) {
-      await page.waitForSelector(options.waitForSelector, { timeout }).catch(() => {});
+      await page.waitForSelector(options.waitForSelector, { timeout }).catch((err) => {
+        logger.debug("Selector not found, continuing", {
+          selector: options.waitForSelector,
+          error: err,
+        });
+      });
     }
 
     // Wait for the storybook root to be present
     await page
       .waitForSelector("#storybook-root, #root, [id*='story']", { timeout: 5000 })
-      .catch(() => {});
+      .catch((err) => {
+        logger.debug("Storybook root selector not found, continuing", { error: err });
+      });
 
     // Stabilize
     if (stabilizeDelay > 0) {

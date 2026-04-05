@@ -281,24 +281,40 @@ export const MCPToolDefinition = Schema.Struct({
 });
 export type MCPToolDefinition = typeof MCPToolDefinition.Type;
 
-export class WorkingTree extends Schema.TaggedClass<WorkingTree>()("WorkingTree", {}) {}
+export class WorkingTree extends Schema.TaggedClass<WorkingTree>()("WorkingTree", {}) {
+  get displayName(): string {
+    return "working tree";
+  }
+}
 
 export class Branch extends Schema.TaggedClass<Branch>()("Branch", {
   branchName: Schema.String,
   base: Schema.String,
-}) {}
+}) {
+  get displayName(): string {
+    return this.branchName;
+  }
+}
 
 export class Commit extends Schema.TaggedClass<Commit>()("Commit", {
   hash: Schema.String,
   shortHash: Schema.String,
   subject: Schema.String,
-}) {}
+}) {
+  get displayName(): string {
+    return this.shortHash;
+  }
+}
 
 export class PullRequest extends Schema.TaggedClass<PullRequest>()("PullRequest", {
   number: Schema.Number,
   branchName: Schema.String,
   base: Schema.String,
-}) {}
+}) {
+  get displayName(): string {
+    return `#${this.number}`;
+  }
+}
 
 export const GitScope = Schema.Union([WorkingTree, Branch, Commit, PullRequest]);
 export type GitScope = Schema.Schema.Type<typeof GitScope>;

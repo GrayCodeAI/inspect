@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import type { DeviceConfig } from "@inspect/devices";
+import type { DeviceConfig } from "@inspect/devices/devices/presets.js";
 import type { AgentRouter } from "@inspect/agent";
 
 // ============================================================================
@@ -192,7 +192,7 @@ export class LoopDetectedError extends Error {
 // ============================================================================
 
 export interface ExecutionDeps {
-  readonly router: AgentRouter;
+  readonly router?: AgentRouter;
   readonly browserManager: unknown;
   readonly credentialVault?: unknown;
   readonly planGenerator?: (
@@ -640,7 +640,7 @@ export class TestExecutor {
 
   constructor(config: ExecutionConfig, deps?: ExecutionDeps) {
     this.config = config;
-    this.deps = deps ?? { router: null as unknown as AgentRouter, browserManager: null };
+    this.deps = deps ?? { router: undefined, browserManager: null };
     this.abortController = new AbortController();
   }
 

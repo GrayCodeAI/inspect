@@ -1,4 +1,4 @@
-import type { MatcherResult, Constructor, TypeOfValue } from "../../types/index.js";
+import type { MatcherResult, Constructor, TypeOfValue } from "../../types/matchers.js";
 import { createFailResult, createPassResult } from "../utils.js";
 
 export function toBeInstanceOf(actual: unknown, expected: Constructor): MatcherResult {

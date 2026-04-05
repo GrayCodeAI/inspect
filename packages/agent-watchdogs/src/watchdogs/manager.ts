@@ -222,7 +222,7 @@ export class WatchdogManager {
       try {
         const result = callback(event);
         if (result instanceof Promise) {
-          result.catch(() => {}); // Don't let callback errors propagate
+          result.catch((err) => logger.warn("Watchdog callback error", { error: err })); // Don't let callback errors propagate
         }
       } catch (error) {
         logger.warn("Watchdog callback failed", {

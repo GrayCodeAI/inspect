@@ -9,7 +9,7 @@ import { preparePhase, PrepareInput } from "./phases/prepare.js";
 import { thinkPhase, ThinkInput } from "./phases/think.js";
 import { actPhase, ActInput } from "./phases/act.js";
 import { finalizePhase, FinalizeInput } from "./phases/finalize.js";
-import type { AgentConfig } from "./index.js";
+import type { AgentConfig } from "./types.js";
 import type { AgentBrain } from "./brain.js";
 import { BrowserManagerService } from "@inspect/browser";
 

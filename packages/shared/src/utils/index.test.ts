@@ -19,7 +19,7 @@ import {
   escapeRegExp,
   deferred,
   createTimer,
-} from "./index.js";
+} from "./helpers.js";
 
 describe("generateId", () => {
   it("returns a valid UUID v4 string", () => {

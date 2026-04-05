@@ -6,7 +6,8 @@
 // Uses heuristics by default, with optional LLM enhancement.
 // ============================================================================
 
-import { GitManager } from "@inspect/git";
+import { GitManager } from "@inspect/git/git/git.js";
+import { getCwd } from "@inspect/shared";
 import type {
   DiffHunk,
   DiffAnalysisResult,
@@ -27,7 +28,7 @@ export interface DiffPlanGeneratorConfig {
 }
 
 // Mutable categories for internal use
-type MutableCategories = {
+interface MutableCategories {
   pages: string[];
   components: string[];
   apiRoutes: string[];
@@ -35,7 +36,19 @@ type MutableCategories = {
   config: string[];
   tests: string[];
   other: string[];
-};
+}
+
+function toCategories(mutable: MutableCategories): DiffAnalysisResult["categories"] {
+  return {
+    pages: mutable.pages,
+    components: mutable.components,
+    apiRoutes: mutable.apiRoutes,
+    styles: mutable.styles,
+    config: mutable.config,
+    tests: mutable.tests,
+    other: mutable.other,
+  };
+}
 
 /**
  * DiffPlanGenerator analyzes git diffs and produces targeted test plans.
@@ -77,7 +90,7 @@ export class DiffPlanGenerator {
     // Cast mutable categories to the expected type
     return {
       hunks,
-      categories: categories as unknown as DiffAnalysisResult["categories"],
+      categories: toCategories(categories),
       impactedAreas,
       summary,
       confidence,
