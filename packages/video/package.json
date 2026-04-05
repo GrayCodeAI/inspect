@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "remotion studio",
-    "build": "remotion bundle",
+    "build": "remotion bundle src/root.tsx",
     "render": "remotion render Main",
     "upgrade": "remotion upgrade"
   },

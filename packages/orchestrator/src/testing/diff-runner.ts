@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { GitManager } from "@inspect/git/git/git.js";
+import { getCwd } from "@inspect/shared";
 
 export interface DiffTestConfig {
   /** Git scope: unstaged, staged, branch, or commit range */

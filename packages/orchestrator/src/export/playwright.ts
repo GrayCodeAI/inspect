@@ -5,7 +5,7 @@
 import type { ExecutionResult } from "../orchestrator/executor.js";
 import type { GeneratedTestSuite, GeneratedStep } from "../testing/generator.js";
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { getInspectDir } from "@inspect/shared";
 
 /** Options for code generation */

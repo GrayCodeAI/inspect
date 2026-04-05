@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { CookieData } from "@inspect/shared";
+import type { CookieData, CookieParam } from "@inspect/shared";
 import chalk from "chalk";
 
 export interface SyncResult {
@@ -67,7 +67,7 @@ export async function syncCookies(
     const playwrightCookies = extractor.toPlaywrightFormat(deduped);
 
     // Filter out cookies with empty values (encrypted Chromium cookies)
-    const usable = playwrightCookies.filter((c: CookieData) => c.value && c.value.length > 0);
+    const usable = playwrightCookies.filter((c: CookieParam) => c.value && c.value.length > 0);
 
     if (usable.length > 0) {
       await page.context().addCookies(usable);

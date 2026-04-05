@@ -7,6 +7,7 @@
 
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { getCwd } from "@inspect/shared";
 

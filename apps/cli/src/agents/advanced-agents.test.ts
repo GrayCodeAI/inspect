@@ -68,6 +68,9 @@ function mockPage(overrides: Record<string, unknown> = {}): Page {
     keyboard: {
       press: vi.fn().mockResolvedValue(undefined),
       type: vi.fn().mockResolvedValue(undefined),
+      down: vi.fn().mockResolvedValue(undefined),
+      insertText: vi.fn().mockResolvedValue(undefined),
+      up: vi.fn().mockResolvedValue(undefined),
     },
     mouse: {
       click: vi.fn().mockResolvedValue(undefined),
@@ -75,6 +78,7 @@ function mockPage(overrides: Record<string, unknown> = {}): Page {
       down: vi.fn().mockResolvedValue(undefined),
       up: vi.fn().mockResolvedValue(undefined),
       wheel: vi.fn().mockResolvedValue(undefined),
+      dblclick: vi.fn().mockResolvedValue(undefined),
     },
     on: vi.fn(),
     off: vi.fn(),

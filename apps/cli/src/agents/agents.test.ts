@@ -39,7 +39,6 @@ function mockPage(overrides: Record<string, unknown> = {}): Page {
     $: vi.fn().mockResolvedValue(null),
     $$: vi.fn().mockResolvedValue([]),
     evaluate: vi.fn().mockImplementation((script: string) => {
-      // Return canned results based on script content
       if (script.includes("querySelectorAll") && script.includes("img")) return Promise.resolve([]);
       if (script.includes("querySelectorAll") && script.includes("input"))
         return Promise.resolve([]);
@@ -62,7 +61,13 @@ function mockPage(overrides: Record<string, unknown> = {}): Page {
       if (evaluateResults[script]) return Promise.resolve(evaluateResults[script]);
       return Promise.resolve(null);
     }),
+    evaluateHandle: vi.fn().mockResolvedValue(null),
+    addInitScript: vi.fn().mockResolvedValue(undefined),
+    $eval: vi.fn().mockResolvedValue(null),
+    $$eval: vi.fn().mockResolvedValue([]),
     addScriptTag: vi.fn().mockResolvedValue(null),
+    route: vi.fn().mockResolvedValue(undefined),
+    unroute: vi.fn().mockResolvedValue(undefined),
     getByText: vi.fn().mockReturnValue({
       first: () => ({
         click: vi.fn().mockResolvedValue(undefined),
@@ -111,13 +116,30 @@ function mockPage(overrides: Record<string, unknown> = {}): Page {
     uncheck: vi.fn().mockResolvedValue(undefined),
     hover: vi.fn().mockResolvedValue(undefined),
     dblclick: vi.fn().mockResolvedValue(undefined),
-    keyboard: { press: vi.fn().mockResolvedValue(undefined) },
-    mouse: { click: vi.fn().mockResolvedValue(undefined) },
+    keyboard: {
+      press: vi.fn().mockResolvedValue(undefined),
+      down: vi.fn().mockResolvedValue(undefined),
+      insertText: vi.fn().mockResolvedValue(undefined),
+      type: vi.fn().mockResolvedValue(undefined),
+      up: vi.fn().mockResolvedValue(undefined),
+    },
+    mouse: {
+      click: vi.fn().mockResolvedValue(undefined),
+      dblclick: vi.fn().mockResolvedValue(undefined),
+      down: vi.fn().mockResolvedValue(undefined),
+      move: vi.fn().mockResolvedValue(undefined),
+      up: vi.fn().mockResolvedValue(undefined),
+      wheel: vi.fn().mockResolvedValue(undefined),
+    },
     on: vi.fn(),
     removeListener: vi.fn(),
+    once: vi.fn(),
+    addListener: vi.fn(),
+    removeAllListeners: vi.fn(),
+    exposeBinding: vi.fn().mockResolvedValue(undefined),
     context: vi.fn().mockReturnValue({ cookies: vi.fn().mockResolvedValue([]) }),
     ...overrides,
-  };
+  } as unknown as Page;
 }
 
 // ============================================================================
