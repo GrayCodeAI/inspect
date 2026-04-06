@@ -236,14 +236,27 @@ export class BrowserConfig extends Schema.Class<BrowserConfig>("BrowserConfig")(
   defaultTimeout: Schema.optional(Schema.Number),
   backend: Schema.optional(Schema.Literals(["chromium", "lightpanda"] as const)),
   colorScheme: Schema.optional(Schema.Literals(["light", "dark", "no-preference"] as const)),
-  proxy: Schema.optional(Schema.Unknown),
+  proxy: Schema.optional(
+    Schema.Struct({
+      server: Schema.String,
+      bypass: Schema.optional(Schema.String),
+      username: Schema.optional(Schema.String),
+      password: Schema.optional(Schema.String),
+    }),
+  ),
   executablePath: Schema.optional(Schema.String),
   extensions: Schema.optional(Schema.Array(Schema.String)),
   deviceScaleFactor: Schema.optional(Schema.Number),
   hasTouch: Schema.optional(Schema.Boolean),
   isMobile: Schema.optional(Schema.Boolean),
   args: Schema.optional(Schema.Array(Schema.String)),
-  geolocation: Schema.optional(Schema.Unknown),
+  geolocation: Schema.optional(
+    Schema.Struct({
+      latitude: Schema.Number,
+      longitude: Schema.Number,
+      accuracy: Schema.optional(Schema.Number),
+    }),
+  ),
   permissions: Schema.optional(Schema.Array(Schema.String)),
   disableCORS: Schema.optional(Schema.Boolean),
   disableCSP: Schema.optional(Schema.Boolean),
@@ -254,7 +267,7 @@ export class BrowserConfig extends Schema.Class<BrowserConfig>("BrowserConfig")(
   downloadsPath: Schema.optional(Schema.String),
   maxDownloadSize: Schema.optional(Schema.Number),
   chromiumPoliciesPath: Schema.optional(Schema.String),
-  extraHTTPHeaders: Schema.optional(Schema.Unknown),
+  extraHTTPHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
   initScripts: Schema.optional(Schema.Array(Schema.String)),
   recordVideo: Schema.optional(Schema.Boolean),
   recordHar: Schema.optional(Schema.Boolean),
@@ -277,7 +290,7 @@ export class DeviceConfig extends Schema.Class<DeviceConfig>("DeviceConfig")({
 export const MCPToolDefinition = Schema.Struct({
   name: Schema.String,
   description: Schema.String,
-  inputSchema: Schema.Unknown,
+  inputSchema: Schema.Record(Schema.String, Schema.Unknown),
 });
 export type MCPToolDefinition = typeof MCPToolDefinition.Type;
 
@@ -484,8 +497,26 @@ export class DashboardRunState extends Schema.Class<DashboardRunState>("Dashboar
   phase: Schema.Literals(["planning", "executing", "verifying", "done"] as const),
   currentStep: Schema.Number,
   totalSteps: Schema.Number,
-  steps: Schema.optional(Schema.Array(Schema.Unknown)),
-  logs: Schema.optional(Schema.Array(Schema.Unknown)),
+  steps: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        index: Schema.Number,
+        description: Schema.String,
+        status: Schema.String,
+        duration: Schema.optional(Schema.Number),
+        toolCall: Schema.optional(Schema.String),
+      }),
+    ),
+  ),
+  logs: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        timestamp: Schema.Number,
+        level: Schema.String,
+        message: Schema.String,
+      }),
+    ),
+  ),
   tokenCount: Schema.Number,
   elapsed: Schema.Number,
   screenshot: Schema.optional(Schema.String),
