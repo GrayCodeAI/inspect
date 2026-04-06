@@ -1,0 +1,13 @@
+export { VisualDiff } from "./diff.js";
+export type { VisualDiffOptions, RawImage } from "./diff.js";
+export { ElementMasking, DEFAULT_MASK_SELECTORS } from "./masking.js";
+export type { MaskOptions } from "./masking.js";
+export { SliderReport } from "./slider-report.js";
+export type { VisualReportEntry } from "./slider-report.js";
+export { StorybookCapture } from "./storybook.js";
+export type { StorybookCaptureOptions } from "./storybook.js";
+export { ViewportCapture, VIEWPORT_PRESETS, VIEWPORT_COLLECTIONS } from "./viewports.js";
+export type { ViewportConfig } from "@inspect/shared";
+export type { LabeledViewport, ViewportCaptureOptions } from "./viewports.js";
+export { ApprovalWorkflow } from "./approval.js";
+export type { ApprovalStatus, ApprovalEntry } from "./approval.js";

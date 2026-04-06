@@ -287,235 +287,196 @@ export function createResolvesMatcher(promise: Promise<unknown>): PromiseExpectC
 export function createRejectsMatcher(promise: Promise<unknown>): PromiseExpectChain {
   return {
     toBe: async (expected) => {
-      let error: unknown;
       try {
         await promise;
-        throw new AssertionError(
-          "Expected promise to reject, but it resolved",
-          undefined,
-          expected,
-        );
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBe(expected);
       }
-      return createAsyncMatcher(error, false).toBe(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved", undefined, expected);
     },
     toEqual: async (expected) => {
-      let error: unknown;
       try {
         await promise;
-        throw new AssertionError(
-          "Expected promise to reject, but it resolved",
-          undefined,
-          expected,
-        );
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toEqual(expected);
       }
-      return createAsyncMatcher(error, false).toEqual(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved", undefined, expected);
     },
     toStrictEqual: async (expected) => {
-      let error: unknown;
       try {
         await promise;
-        throw new AssertionError(
-          "Expected promise to reject, but it resolved",
-          undefined,
-          expected,
-        );
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toStrictEqual(expected);
       }
-      return createAsyncMatcher(error, false).toStrictEqual(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved", undefined, expected);
     },
     toBeNull: async () => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeNull();
       }
-      return createAsyncMatcher(error, false).toBeNull();
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeUndefined: async () => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeUndefined();
       }
-      return createAsyncMatcher(error, false).toBeUndefined();
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeDefined: async () => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeDefined();
       }
-      return createAsyncMatcher(error, false).toBeDefined();
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeTruthy: async () => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeTruthy();
       }
-      return createAsyncMatcher(error, false).toBeTruthy();
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeFalsy: async () => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeFalsy();
       }
-      return createAsyncMatcher(error, false).toBeFalsy();
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeGreaterThan: async (expected: number | bigint) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeGreaterThan(expected);
       }
-      return createAsyncMatcher(error, false).toBeGreaterThan(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeGreaterThanOrEqual: async (expected: number | bigint) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeGreaterThanOrEqual(expected);
       }
-      return createAsyncMatcher(error, false).toBeGreaterThanOrEqual(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeLessThan: async (expected: number | bigint) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeLessThan(expected);
       }
-      return createAsyncMatcher(error, false).toBeLessThan(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeLessThanOrEqual: async (expected: number | bigint) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeLessThanOrEqual(expected);
       }
-      return createAsyncMatcher(error, false).toBeLessThanOrEqual(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeCloseTo: async (expected: number, precision?: number) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeCloseTo(expected, precision);
       }
-      return createAsyncMatcher(error, false).toBeCloseTo(expected, precision);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toContain: async (expected: unknown) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toContain(expected);
       }
-      return createAsyncMatcher(error, false).toContain(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toContainEqual: async (expected: unknown) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toContainEqual(expected);
       }
-      return createAsyncMatcher(error, false).toContainEqual(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toHaveLength: async (expected: number) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toHaveLength(expected);
       }
-      return createAsyncMatcher(error, false).toHaveLength(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toHaveProperty: async (keyPath: string | string[], value?: unknown) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toHaveProperty(keyPath, value);
       }
-      return createAsyncMatcher(error, false).toHaveProperty(keyPath, value);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeInstanceOf: async (expected: Constructor) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeInstanceOf(expected);
       }
-      return createAsyncMatcher(error, false).toBeInstanceOf(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toBeTypeOf: async (expected: TypeOfValue) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toBeTypeOf(expected);
       }
-      return createAsyncMatcher(error, false).toBeTypeOf(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toMatch: async (expected: string | RegExp) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toMatch(expected);
       }
-      return createAsyncMatcher(error, false).toMatch(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toStartWith: async (expected: string) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toStartWith(expected);
       }
-      return createAsyncMatcher(error, false).toStartWith(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toEndWith: async (expected: string) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toEndWith(expected);
       }
-      return createAsyncMatcher(error, false).toEndWith(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toThrow: async (expected?: string | RegExp | ErrorConstructor) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toThrow(expected);
       }
-      return createAsyncMatcher(error, false).toThrow(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
     toReturn: async (expected: unknown) => {
-      let error: unknown;
       try {
         await promise;
       } catch (e) {
-        error = e;
+        return createAsyncMatcher(e, false).toReturn(expected);
       }
-      return createAsyncMatcher(error, false).toReturn(expected);
+      throw new AssertionError("Expected promise to reject, but it resolved");
     },
   };
 }

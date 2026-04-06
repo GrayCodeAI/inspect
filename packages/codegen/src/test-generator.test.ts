@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { GenerationError, ValidationError } from "./test-generator.js";
 import { CodegenFromRecording } from "./codegen-from-recording.js";
-import { UserSessionRecorder, type RecordingOptions } from "./user-session-recorder.js";
+import { UserSessionRecorder } from "./user-session-recorder.js";
+
+interface Page {
+  url: () => string;
+  on: (event: string, handler: () => void) => () => void;
+}
 
 describe("GenerationError", () => {
   it("should have correct _tag", () => {
@@ -134,13 +139,13 @@ describe("UserSessionRecorder", () => {
   };
 
   it("should start a recording and return an id", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     expect(id).toBeDefined();
     expect(typeof id).toBe("string");
   });
 
   it("should return a recording when stopped", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     const recording = await recorder.stopRecording(id);
     expect(recording.id).toBe(id);
     expect(recording.endTime).toBeDefined();
@@ -151,7 +156,7 @@ describe("UserSessionRecorder", () => {
   });
 
   it("should pause and resume a recording", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     recorder.pauseRecording(id);
     recorder.resumeRecording(id);
     expect(recorder.isRecording(id)).toBe(true);
@@ -159,7 +164,7 @@ describe("UserSessionRecorder", () => {
   });
 
   it("should report isRecording correctly", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     expect(recorder.isRecording(id)).toBe(true);
     await recorder.stopRecording(id);
     expect(recorder.isRecording(id)).toBe(false);
@@ -170,21 +175,21 @@ describe("UserSessionRecorder", () => {
   });
 
   it("should list recordings", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     await recorder.stopRecording(id);
     const recordings = recorder.listRecordings();
     expect(recordings.length).toBeGreaterThan(0);
   });
 
   it("should delete a recording", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     await recorder.stopRecording(id);
     recorder.deleteRecording(id);
     expect(recorder.getRecording(id)).toBeNull();
   });
 
   it("should export recording as JSON", async () => {
-    const id = await recorder.startRecording(mockPage as any);
+    const id = await recorder.startRecording(mockPage as unknown as Page);
     await recorder.stopRecording(id);
     const json = recorder.exportRecording(id, "json");
     const parsed = JSON.parse(json);

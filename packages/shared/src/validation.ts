@@ -1,5 +1,5 @@
 // ============================================================================
-// @inspect/shared - Zod Validation Schemas for API Routes
+// @inspect/shared - Schema Validation for API Routes
 // ============================================================================
 
 import { z } from "zod";
@@ -7,31 +7,10 @@ import { z } from "zod";
 // ── Task Schemas ────────────────────────────────────────────────────────────
 
 export const CreateTaskSchema = z.object({
-  prompt: z.string().trim().min(1, "prompt is required"),
-  url: z
-    .string()
-    .url("url must be a valid URL")
-    .refine(
-      (u) => {
-        try {
-          const p = new URL(u);
-          return p.protocol === "http:" || p.protocol === "https:";
-        } catch {
-          return false;
-        }
-      },
-      { message: "url must use http or https protocol" },
-    ),
-  maxSteps: z
-    .number()
-    .int()
-    .default(25)
-    .transform((v) => Math.min(Math.max(v, 1), 100)),
-  maxIterations: z
-    .number()
-    .int()
-    .default(10)
-    .transform((v) => Math.min(Math.max(v, 1), 50)),
+  prompt: z.string().min(1, "prompt is required"),
+  url: z.string().url("url must be a valid URL"),
+  maxSteps: z.number().int().min(1).max(100).optional().default(25),
+  maxIterations: z.number().int().min(1).max(50).optional().default(10),
   webhookCallbackUrl: z.string().url().optional(),
   errorCodes: z.record(z.string()).optional(),
   extractionSchema: z.record(z.unknown()).optional(),
@@ -46,18 +25,18 @@ export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 const WorkflowStatusSchema = z.enum(["draft", "active", "paused", "archived"]);
 
 export const CreateWorkflowSchema = z.object({
-  name: z.string().trim().min(1, "name is required"),
+  name: z.string().min(1, "name is required"),
   description: z.string().optional(),
-  status: WorkflowStatusSchema.default("draft"),
-  blocks: z.array(z.unknown()).default([]),
+  status: WorkflowStatusSchema.optional().default("draft"),
+  blocks: z.array(z.unknown()).optional().default([]),
   parameters: z.record(z.unknown()).optional(),
   cronSchedule: z.string().optional(),
-  strictMode: z.boolean().default(false),
+  strictMode: z.boolean().optional().default(false),
   tags: z.array(z.string()).optional(),
 });
 
 export const UpdateWorkflowSchema = z.object({
-  name: z.string().trim().min(1).optional(),
+  name: z.string().min(1).optional(),
   description: z.string().optional(),
   status: WorkflowStatusSchema.optional(),
   blocks: z.array(z.unknown()).optional(),
@@ -73,15 +52,15 @@ export type UpdateWorkflowInput = z.infer<typeof UpdateWorkflowSchema>;
 // ── Dashboard Schemas ───────────────────────────────────────────────────────
 
 export const SpawnRunSchema = z.object({
-  instruction: z.string().trim().min(1, "instruction is required"),
+  instruction: z.string().min(1, "instruction is required"),
   url: z.string().url().optional(),
   agent: z.string().optional(),
   mode: z.enum(["dom", "hybrid", "cua"]).optional(),
   browser: z.enum(["chromium", "firefox", "webkit"]).optional(),
   devices: z.array(z.string()).min(1, "devices must be a non-empty array"),
-  headed: z.boolean().default(false),
-  a11y: z.boolean().default(false),
-  lighthouse: z.boolean().default(false),
+  headed: z.boolean().optional().default(false),
+  a11y: z.boolean().optional().default(false),
+  lighthouse: z.boolean().optional().default(false),
 });
 
 export type SpawnRunInput = z.infer<typeof SpawnRunSchema>;
@@ -99,8 +78,8 @@ const CredentialProviderSchema = z.enum([
 
 export const CreateCredentialSchema = z.object({
   type: CredentialTypeSchema,
-  label: z.string().trim().min(1, "label is required"),
-  provider: CredentialProviderSchema.default("native"),
+  label: z.string().min(1, "label is required"),
+  provider: CredentialProviderSchema.optional().default("native"),
   data: z.record(z.unknown()).optional(),
   domain: z.string().optional(),
 });

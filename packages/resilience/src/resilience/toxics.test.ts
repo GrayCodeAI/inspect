@@ -9,7 +9,6 @@ import {
   LimitDataToxic,
   createToxic,
   TOXIC_PRESETS,
-  type Toxic,
 } from "./toxics.js";
 
 describe("LatencyToxic", () => {

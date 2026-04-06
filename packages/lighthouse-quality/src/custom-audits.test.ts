@@ -6,7 +6,6 @@ import {
   memoryLeakDetectionAudit,
   BUILTIN_CUSTOM_AUDITS,
   type CustomAudit,
-  type CustomAuditResult,
   type Page,
 } from "./custom-audits.js";
 

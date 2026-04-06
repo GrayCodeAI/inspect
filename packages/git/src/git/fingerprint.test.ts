@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Fingerprint } from "./fingerprint.js";
+import { randomUUID } from "node:crypto";
 
 describe("Fingerprint", () => {
   let fp: Fingerprint;
 
   beforeEach(() => {
-    // Use a non-existent temp dir so save/load tests don't hit real disk state
-    fp = new Fingerprint("/tmp/inspect-test-fingerprint-" + Date.now());
+    fp = new Fingerprint("/tmp/inspect-test-fingerprint-" + randomUUID());
   });
 
   describe("generate", () => {

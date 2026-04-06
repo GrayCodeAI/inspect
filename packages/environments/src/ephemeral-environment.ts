@@ -1,6 +1,7 @@
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { createServer } from "node:net";
 
 const execAsync = promisify(exec);
 
@@ -71,10 +72,10 @@ const generateEnvironmentId = (): string => {
 
 const findAvailablePort = async (): Promise<number> => {
   return new Promise((resolve) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const server = require("node:net").createServer();
+    const server = createServer();
     server.listen(0, () => {
-      const port = server.address().port;
+      const address = server.address();
+      const port = typeof address === "object" && address !== null ? address.port : 3000;
       server.close(() => resolve(port));
     });
   });
@@ -297,7 +298,13 @@ export class EphemeralEnvironmentManager extends ServiceMap.Service<EphemeralEnv
             });
 
             for (const envId of expiredEnvironments) {
-              yield* Effect.ignore(terminate(envId));
+              yield* terminate(envId).pipe(
+                Effect.catchTags({
+                  EnvironmentTerminationError: (error) =>
+                    Effect.logWarning("Failed to terminate expired environment", { envId, error }),
+                  EnvironmentNotFoundError: () => Effect.void,
+                }),
+              );
             }
           }
         });
@@ -305,7 +312,12 @@ export class EphemeralEnvironmentManager extends ServiceMap.Service<EphemeralEnv
 
       const startAutoCleanup = Effect.sync(() => {
         const interval = setInterval(() => {
-          Effect.runSync(Effect.ignore(autoCleanup()));
+          Effect.runSync(
+            Effect.matchEffect(autoCleanup(), {
+              onSuccess: () => Effect.void,
+              onFailure: (error) => Effect.logWarning("Auto cleanup failed", { error }),
+            }),
+          );
         }, 60000);
 
         return () => clearInterval(interval);

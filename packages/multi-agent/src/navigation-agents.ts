@@ -1,10 +1,6 @@
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import type { Page } from "playwright";
 
-// ──────────────────────────────────────────────────────────────────────────────
-// LLM interface for navigation agents
-// ──────────────────────────────────────────────────────────────────────────────
-
 export interface NavigationLLM {
   chat(systemPrompt: string, userPrompt: string): Effect.Effect<string>;
   chatWithImage(systemPrompt: string, userPrompt: string, imageData: string): Effect.Effect<string>;
@@ -496,7 +492,6 @@ export class WebNavigator extends ServiceMap.Service<WebNavigator>()("@inspect/W
         currentUrl = page.url();
       }
 
-      // Generate summary
       const summary = yield* summarizer.summarize(
         task,
         state.history,

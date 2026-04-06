@@ -141,7 +141,10 @@ const isRuntimeAvailable = (runtime: AdditionalRuntime) =>
       catch: () => undefined,
     }).pipe(
       Effect.map(() => true),
-      Effect.orElseSucceed(() => false),
+      Effect.matchEffect({
+        onSuccess: () => Effect.succeed(true),
+        onFailure: () => Effect.succeed(false),
+      }),
     );
   });
 
@@ -271,10 +274,16 @@ const validateSyntax = (runtime: AdditionalRuntime, code: string) =>
     }
 
     const result = yield* Effect.acquireRelease(Effect.succeed(tempDir), (dir) =>
-      Effect.tryPromise({
-        try: () => rm(dir, { recursive: true, force: true }),
-        catch: () => undefined,
-      }).pipe(Effect.ignore),
+      Effect.matchEffect(
+        Effect.tryPromise({
+          try: () => rm(dir, { recursive: true, force: true }),
+          catch: () => undefined,
+        }),
+        {
+          onSuccess: () => Effect.void,
+          onFailure: () => Effect.void,
+        },
+      ),
     ).pipe(
       Effect.flatMap(() =>
         Effect.tryPromise({

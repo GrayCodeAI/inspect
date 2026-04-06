@@ -1,7 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// @inspect/agent - Tool Input/Output Validator
-// ──────────────────────────────────────────────────────────────────────────────
-
 import type { ToolParameterSchema } from "./registry.js";
 
 /** Validation error */
@@ -31,7 +27,6 @@ export class ToolValidator {
   ): ValidationResult {
     const errors: ValidationError[] = [];
 
-    // Check required fields
     for (const field of schema.required ?? []) {
       if (args[field] === undefined || args[field] === null) {
         errors.push({
@@ -43,12 +38,10 @@ export class ToolValidator {
       }
     }
 
-    // Validate each property
     for (const [field, prop] of Object.entries(schema.properties)) {
       const value = args[field];
       if (value === undefined || value === null) continue;
 
-      // Type check
       const actualType = Array.isArray(value) ? "array" : typeof value;
       if (prop.type !== actualType) {
         errors.push({
@@ -60,7 +53,6 @@ export class ToolValidator {
         continue;
       }
 
-      // Enum check
       if (prop.enum && !prop.enum.includes(String(value))) {
         errors.push({
           field,
@@ -69,8 +61,6 @@ export class ToolValidator {
           received: value,
         });
       }
-
-      // String length
       if (prop.type === "string" && typeof value === "string") {
         const propRecord = prop as Record<string, unknown>;
         if (
@@ -94,8 +84,6 @@ export class ToolValidator {
           });
         }
       }
-
-      // Number range
       if (prop.type === "number" && typeof value === "number") {
         const propRecord = prop as Record<string, unknown>;
         if (typeof propRecord.minimum === "number" && value < (propRecord.minimum as number)) {

@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  BudgetManager,
-  BUDGET_PRESETS,
-  type BudgetThreshold,
-  type BudgetCheckResult,
-} from "./budgets.js";
+import { BudgetManager, BUDGET_PRESETS, type BudgetThreshold } from "./budgets.js";
 
 describe("BUDGET_PRESETS", () => {
   it("should have strict preset", () => {

@@ -1,6 +1,3 @@
-// Schema import reserved for future use
-// import { Schema } from "effect";
-
 export const TESTER_PROMPT = `You are a specialist QA testing agent. Your role is to design and execute comprehensive functional tests.
 
 Focus areas:

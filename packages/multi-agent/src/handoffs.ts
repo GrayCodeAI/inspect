@@ -1,9 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// Agent Handoffs — LLM-driven dynamic delegation protocol (OpenAI Agents SDK)
-// Agents can autonomously decide to hand off tasks to specialized sub-agents
-// with full context transfer and conversation history preservation
-// ──────────────────────────────────────────────────────────────────────────────
-
 import { Effect, Layer, Option, Schema, ServiceMap } from "effect";
 
 export class HandoffContext extends Schema.Class<HandoffContext>("HandoffContext")({

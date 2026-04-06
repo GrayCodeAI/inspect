@@ -56,9 +56,17 @@ export class StreamingLLMWrapper {
     content: string;
     usage?: { input_tokens: number; output_tokens: number };
   }> {
-    // Check if provider has stream method
+    // Check if provider has stream method and it returns an async iterable
     if (this.provider.stream) {
-      return this.collectStreamingResponse(config);
+      const streamResult = this.provider.stream({
+        messages: config.messages,
+        model: config.model,
+        temperature: config.temperature,
+        maxTokens: config.max_tokens,
+      });
+      if (streamResult && typeof streamResult[Symbol.asyncIterator] === "function") {
+        return this.collectStreamingResponse(config);
+      }
     }
 
     // Fall back to regular chat
@@ -82,18 +90,21 @@ export class StreamingLLMWrapper {
       throw new Error("Provider does not support streaming");
     }
 
-    let fullContent = "";
-
-    // Collect chunks from stream
-    for await (const chunk of this.provider.stream({
+    const stream = this.provider.stream({
       messages: config.messages,
       model: config.model,
       temperature: config.temperature,
       maxTokens: config.max_tokens,
-      onChunk: (_text: string) => {
-        // Could update UI in real scenario
-      },
-    })) {
+    });
+
+    if (!stream || typeof stream[Symbol.asyncIterator] !== "function") {
+      throw new Error("Provider stream method did not return an async iterable");
+    }
+
+    let fullContent = "";
+
+    // Collect chunks from stream
+    for await (const chunk of stream) {
       fullContent += chunk;
     }
 

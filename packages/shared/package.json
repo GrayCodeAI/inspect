@@ -16,10 +16,11 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "zod": "^3.24.0",
+    "zod": "^3.25.0",
     "effect": "4.0.0-beta.35",
     "@effect/platform-node": "4.0.0-beta.35"
   },

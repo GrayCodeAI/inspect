@@ -31,18 +31,9 @@ import {
   toThrow,
 } from "./matchers/all.js";
 import { createResolvesMatcher, createRejectsMatcher } from "./async-matchers.js";
+import { AssertionError } from "./assertion-error.js";
 
-export class AssertionError extends Error {
-  actual?: unknown;
-  expected?: unknown;
-
-  constructor(message: string, actual?: unknown, expected?: unknown) {
-    super(message);
-    this.name = "AssertionError";
-    this.actual = actual;
-    this.expected = expected;
-  }
-}
+export { AssertionError };
 
 function assertResult(result: MatcherResult, invert = false): void {
   const pass = invert ? !result.pass : result.pass;

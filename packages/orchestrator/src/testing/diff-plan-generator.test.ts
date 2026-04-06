@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DiffPlanGenerator } from "./diff-plan-generator.js";
 
-// Mock @inspect/git
-vi.mock("@inspect/git", () => ({
+// Mock @inspect/git/git/git.js
+vi.mock("@inspect/git/git/git.js", () => ({
   GitManager: class {
     async getDiff() {
       return `diff --git a/src/pages/Login.tsx b/src/pages/Login.tsx

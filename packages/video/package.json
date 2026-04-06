@@ -9,12 +9,12 @@
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.443",
-    "@remotion/google-fonts": "4.0.443",
-    "@remotion/transitions": "4.0.443",
+    "@remotion/cli": "4.0.446",
+    "@remotion/google-fonts": "4.0.446",
+    "@remotion/transitions": "4.0.446",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.443"
+    "remotion": "4.0.446"
   },
   "devDependencies": {
     "@types/react": "^19",
