@@ -48,6 +48,7 @@ import { registerWatchCommand } from "./commands/watch.js";
 import { registerFlowCommand } from "./commands/flow.js";
 import { registerShowReportCommand } from "./commands/show-report.js";
 import { registerShowTraceCommand } from "./commands/show-trace.js";
+import { registerChatCommand } from "./commands/chat.js";
 import { registerSessionRecordCommand } from "./commands/session-record.js";
 import { registerSelfHealCommand } from "./commands/self-heal.js";
 import { registerVisualBuilderCommand } from "./commands/visual-builder.js";
@@ -176,6 +177,7 @@ registerGenerateCommand(program);
 registerAuditCommand(program);
 registerShowReportCommand(program);
 registerShowTraceCommand(program);
+registerChatCommand(program);
 registerAliasCommand(program);
 
 // Inline utility commands (no external deps needed)
