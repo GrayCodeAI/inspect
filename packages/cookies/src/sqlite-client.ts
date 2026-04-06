@@ -11,7 +11,13 @@ export class SqliteClient extends ServiceMap.Service<SqliteClient>()("@inspect/S
         const tempDir = yield* fs.makeTempDirectory({ prefix });
 
         yield* Effect.addFinalizer(() =>
-          fs.remove(tempDir, { recursive: true }).pipe(Effect.catch(() => Effect.void)),
+          fs
+            .remove(tempDir, { recursive: true })
+            .pipe(
+              Effect.catchTag("PlatformError", (cause) =>
+                Effect.logWarning("Failed to clean up temp directory", { cause }).asEffect(),
+              ),
+            ),
         );
 
         const tempDatabasePath = `${tempDir}/cookies.sqlite`;

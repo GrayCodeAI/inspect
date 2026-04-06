@@ -2,7 +2,7 @@
 // @inspect/visual - Approval Workflow
 // ============================================================================
 
-import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir, copyFile, access } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { createLogger } from "@inspect/observability";
@@ -86,11 +86,17 @@ export class ApprovalWorkflow {
       throw new Error(`No pending approval found for test: ${testId}`);
     }
 
-    // Copy current image to baseline
-    if (existsSync(entry.currentImagePath)) {
-      await mkdir(dirname(entry.baselineImagePath), { recursive: true });
-      await copyFile(entry.currentImagePath, entry.baselineImagePath);
+    // Check if current image exists asynchronously
+    try {
+      await access(entry.currentImagePath);
+    } catch {
+      // Current image doesn't exist, skip copying
+      return;
     }
+
+    // Copy current image to baseline
+    await mkdir(dirname(entry.baselineImagePath), { recursive: true });
+    await copyFile(entry.currentImagePath, entry.baselineImagePath);
 
     // Update entry
     entry.status = "approved";
@@ -110,10 +116,16 @@ export class ApprovalWorkflow {
 
     for (const [_testId, entry] of Object.entries(state.entries)) {
       if (entry.status === "pending") {
-        if (existsSync(entry.currentImagePath)) {
-          await mkdir(dirname(entry.baselineImagePath), { recursive: true });
-          await copyFile(entry.currentImagePath, entry.baselineImagePath);
+        // Check if current image exists asynchronously
+        try {
+          await access(entry.currentImagePath);
+        } catch {
+          // Current image doesn't exist, skip this entry
+          continue;
         }
+
+        await mkdir(dirname(entry.baselineImagePath), { recursive: true });
+        await copyFile(entry.currentImagePath, entry.baselineImagePath);
 
         entry.status = "approved";
         entry.reviewedAt = Date.now();
@@ -257,8 +269,13 @@ export class ApprovalWorkflow {
   /**
    * Check if a baseline exists for a test.
    */
-  baselineExists(baselinePath: string): boolean {
-    return existsSync(baselinePath);
+  async baselineExists(baselinePath: string): Promise<boolean> {
+    try {
+      await access(baselinePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

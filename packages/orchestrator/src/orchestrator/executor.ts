@@ -160,31 +160,29 @@ export class ExecutionProgress extends Schema.Class<ExecutionProgress>("Executio
 // Error Types (Standard Error classes - Effect-TS v4 compatible)
 // ============================================================================
 
-export class ExecutionTimeoutError extends Error {
-  readonly _tag = "ExecutionTimeoutError";
-  constructor(
-    readonly elapsed: number,
-    readonly timeout: number,
-  ) {
-    super(`Execution timed out after ${elapsed}ms (timeout: ${timeout}ms)`);
-  }
+export class ExecutionTimeoutError extends Schema.ErrorClass<ExecutionTimeoutError>(
+  "ExecutionTimeoutError",
+)({
+  _tag: Schema.tag("ExecutionTimeoutError"),
+  elapsed: Schema.Number,
+  timeout: Schema.Number,
+}) {
+  message = `Execution timed out after ${this.elapsed}ms (timeout: ${this.timeout}ms)`;
 }
 
-export class StepTimeoutError extends Error {
-  readonly _tag = "StepTimeoutError";
-  constructor(
-    readonly stepIndex: number,
-    readonly timeout: number,
-  ) {
-    super(`Step ${stepIndex} timed out after ${timeout}ms`);
-  }
+export class StepTimeoutError extends Schema.ErrorClass<StepTimeoutError>("StepTimeoutError")({
+  _tag: Schema.tag("StepTimeoutError"),
+  stepIndex: Schema.Number,
+  timeout: Schema.Number,
+}) {
+  message = `Step ${this.stepIndex} timed out after ${this.timeout}ms`;
 }
 
-export class LoopDetectedError extends Error {
-  readonly _tag = "LoopDetectedError";
-  constructor(readonly msg: string) {
-    super(`Loop detected: ${msg}`);
-  }
+export class LoopDetectedError extends Schema.ErrorClass<LoopDetectedError>("LoopDetectedError")({
+  _tag: Schema.tag("LoopDetectedError"),
+  msg: Schema.String,
+}) {
+  message = `Loop detected: ${this.msg}`;
 }
 
 // ============================================================================
@@ -385,7 +383,10 @@ export function executeStep(step: StepPlan, state: ExecutionState): Effect.Effec
       Effect.timeout(state.config.stepTimeoutMs),
       Effect.matchEffect({
         onSuccess: () => Effect.succeed(void 0),
-        onFailure: () => Effect.fail(new StepTimeoutError(step.index, state.config.stepTimeoutMs)),
+        onFailure: () =>
+          Effect.fail(
+            new StepTimeoutError({ stepIndex: step.index, timeout: state.config.stepTimeoutMs }),
+          ),
       }),
     );
 
@@ -403,10 +404,17 @@ export function executeStep(step: StepPlan, state: ExecutionState): Effect.Effec
   }).pipe(
     Effect.matchEffect({
       onSuccess: (result) => Effect.succeed(result),
-      onFailure: (err) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        return Effect.succeed(
-          new StepResult({
+      onFailure: (err) =>
+        Effect.gen(function* () {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          // Log unexpected errors for debugging
+          if (!(err instanceof StepTimeoutError)) {
+            yield* Effect.logDebug("Unexpected error in executeStep", {
+              error: err,
+              step: step.index,
+            });
+          }
+          return new StepResult({
             index: step.index,
             description: step.description,
             status: "fail",
@@ -414,9 +422,8 @@ export function executeStep(step: StepPlan, state: ExecutionState): Effect.Effec
             error: errorMessage,
             duration: 0,
             toolCalls: [],
-          }),
-        );
-      },
+          });
+        }),
     }),
   );
 }
