@@ -160,7 +160,7 @@ export class Tracer {
       // Auto-export if buffer is full
       const batchSize = this.exporterConfig.batchSize ?? 50;
       if (this.exportBuffer.length >= batchSize) {
-        this.exportSpans().catch((err) => console.error("[Tracing] Failed to export spans:", err));
+        this.exportSpans().catch((err) => logger.error(`Failed to export spans: ${err}`));
       }
     }
   }
@@ -357,7 +357,7 @@ export class Tracer {
     if (this.exportTimer) return;
     const intervalMs = this.exporterConfig?.exportIntervalMs ?? 5_000;
     this.exportTimer = setInterval(() => {
-      this.exportSpans().catch((err) => console.error("[Tracing] Failed to export spans:", err));
+      this.exportSpans().catch((err) => logger.error(`Failed to export spans: ${err}`));
     }, intervalMs);
 
     if (this.exportTimer.unref) {

@@ -195,7 +195,7 @@ export class Analytics {
     // Start auto-flush timer
     if (this.enabled && this.providers.length > 0) {
       this.flushTimer = setInterval(() => {
-        this.flush().catch((err) => console.error("[Analytics] Failed to flush:", err));
+        this.flush().catch((err) => logger.error(`Failed to flush: ${err}`));
       }, this.flushIntervalMs);
 
       // Unref so the timer doesn't prevent process exit
@@ -236,7 +236,7 @@ export class Analytics {
 
     // Auto-flush if queue is full
     if (this.queue.length >= this.maxQueueSize) {
-      this.flush().catch((err) => console.error("[Analytics] Failed to flush:", err));
+      this.flush().catch((err) => logger.error(`Failed to flush: ${err}`));
     }
   }
 
