@@ -192,10 +192,16 @@ const executeInRuntime = (
     });
 
     const result = yield* Effect.acquireRelease(Effect.succeed(tempDir), (dir) =>
-      Effect.tryPromise({
-        try: () => rm(dir, { recursive: true, force: true }),
-        catch: () => undefined,
-      }).pipe(Effect.ignore),
+      Effect.matchEffect(
+        Effect.tryPromise({
+          try: () => rm(dir, { recursive: true, force: true }),
+          catch: () => undefined,
+        }),
+        {
+          onSuccess: () => Effect.void,
+          onFailure: () => Effect.void,
+        },
+      ),
     ).pipe(
       Effect.flatMap(() =>
         Effect.tryPromise({

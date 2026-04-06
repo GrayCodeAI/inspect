@@ -296,7 +296,14 @@ const crawlSinglePageInternal = (
       yield* Effect.tryPromise({
         try: () => page.waitForSelector(config.waitForSelector!, { timeout: 5000 }),
         catch: (cause) => new CrawlError({ url, cause }),
-      }).pipe(Effect.ignore);
+      }).pipe(
+        Effect.catchTag("CrawlError", () =>
+          Effect.logWarning("Wait for selector failed, continuing", {
+            url,
+            selector: config.waitForSelector,
+          }),
+        ),
+      );
     }
 
     const title = yield* Effect.tryPromise({
