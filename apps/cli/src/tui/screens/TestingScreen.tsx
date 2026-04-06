@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
@@ -23,6 +23,14 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
   const { exit } = useApp();
   const [state, setState] = useState<TestExecutionState>(createInitialState);
   const startTime = useRef(Date.now());
+  const abortRef = useRef<(() => void) | null>(null);
+
+  const handleComplete = useCallback(
+    (results: TestResults) => {
+      onComplete(results);
+    },
+    [onComplete],
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -32,11 +40,27 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
   }, []);
 
   useEffect(() => {
-    void runTestExecution(config, setState, onComplete, startTime);
-  }, []);
+    let cleanupRan = false;
+
+    runTestExecution(config, setState, handleComplete, startTime).then(({ abort }) => {
+      if (!cleanupRan) {
+        abortRef.current = abort;
+      }
+    });
+
+    return () => {
+      cleanupRan = true;
+      if (abortRef.current) {
+        abortRef.current();
+      }
+    };
+  }, [config, handleComplete]);
 
   useInput((input, key) => {
     if (key.escape || (key.ctrl && input === "c")) {
+      if (abortRef.current) {
+        abortRef.current();
+      }
       exit();
       return;
     }
@@ -173,7 +197,12 @@ async function runTestExecution(
   setState: React.Dispatch<React.SetStateAction<TestExecutionState>>,
   onComplete: (results: TestResults) => void,
   startTimeRef: React.MutableRefObject<number>,
-): Promise<void> {
+): Promise<{ abort: () => void }> {
+  let aborted = false;
+  const abort = () => {
+    aborted = true;
+  };
+
   setState((s) => ({ ...s, phase: "planning", tokenCount: s.tokenCount + 245 }));
   await delay(1500);
 
@@ -181,6 +210,11 @@ async function runTestExecution(
   setState((s) => ({ ...s, steps: plannedSteps, phase: "executing" }));
 
   for (let i = 0; i < plannedSteps.length; i++) {
+    if (aborted) {
+      setState((s) => ({ ...s, phase: "done" }));
+      return { abort };
+    }
+
     setState((s) => ({ ...s, currentStep: i }));
     setState((s) => ({
       ...s,
@@ -247,4 +281,6 @@ async function runTestExecution(
 
   await delay(500);
   onComplete(results);
+
+  return { abort: () => void 0 };
 }

@@ -11,7 +11,6 @@ import { actPhase, ActInput } from "./phases/act.js";
 import { finalizePhase, FinalizeInput } from "./phases/finalize.js";
 import type { AgentConfig } from "./types.js";
 import type { AgentBrain } from "./brain.js";
-import { BrowserManagerService } from "@inspect/browser";
 
 export class AgentStepResult extends Schema.Class<AgentStepResult>("AgentStepResult")({
   success: Schema.Boolean,
@@ -26,10 +25,6 @@ export class FullLoopResult extends Schema.Class<FullLoopResult>("FullLoopResult
   finalBrain: Schema.optional(Schema.Unknown),
   reason: Schema.String,
 }) {}
-
-function getBrowserService(): typeof BrowserManagerService {
-  return BrowserManagerService;
-}
 
 export const runAgentStep = Effect.fn("AgentLoopRunner.runAgentStep")(function* (config: {
   config: AgentConfig;
@@ -71,12 +66,9 @@ export const runAgentStep = Effect.fn("AgentLoopRunner.runAgentStep")(function* 
 
   const thinkOutput = yield* thinkPhase(thinkInput);
 
-  const browser = yield* getBrowserService();
-  const session = yield* browser.launch({ headless: true });
-
   const browserState = {
-    url: yield* session.url,
-    title: yield* session.title,
+    url: "about:blank",
+    title: "",
     timestamp: Date.now(),
   };
 
@@ -104,9 +96,6 @@ export const runAgentStep = Effect.fn("AgentLoopRunner.runAgentStep")(function* 
   });
 
   yield* finalizePhase(finalizeInput);
-
-  // Clean up browser session
-  yield* session.close;
 
   return new AgentStepResult({
     success: actOutput.overallSuccess,

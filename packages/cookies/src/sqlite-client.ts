@@ -9,10 +9,16 @@ export class SqliteClient extends ServiceMap.Service<SqliteClient>()("@inspect/S
     const copyToTemp = (sourcePath: string, prefix: string, _suffix: string, _engine: string) =>
       Effect.gen(function* () {
         const tempDir = yield* fs.makeTempDirectory({ prefix });
+
+        yield* Effect.addFinalizer(() =>
+          fs.remove(tempDir, { recursive: true }).pipe(Effect.catch(() => Effect.void)),
+        );
+
         const tempDatabasePath = `${tempDir}/cookies.sqlite`;
         yield* fs.copy(sourcePath, tempDatabasePath);
         return { tempDatabasePath };
       }).pipe(
+        Effect.scoped,
         Effect.catchTag("PlatformError", (cause) =>
           new CookieDatabaseCopyError({ cause: cause as unknown }).asEffect(),
         ),

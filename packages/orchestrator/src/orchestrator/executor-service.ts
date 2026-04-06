@@ -16,7 +16,20 @@ export class ExecutionConfig extends Schema.Class<ExecutionConfig>("ExecutionCon
   agent: Schema.String,
   mode: Schema.Literals(["dom", "hybrid", "cua"] as const),
   url: Schema.optional(Schema.String),
-  device: Schema.Unknown,
+  device: Schema.Struct({
+    name: Schema.String,
+    userAgent: Schema.optional(Schema.String),
+    viewport: Schema.Struct({
+      width: Schema.Number,
+      height: Schema.Number,
+    }),
+    deviceScaleFactor: Schema.optional(Schema.Number),
+    isMobile: Schema.optional(Schema.Boolean),
+    hasTouch: Schema.optional(Schema.Boolean),
+    defaultBrowserType: Schema.optional(
+      Schema.Literals(["chromium", "firefox", "webkit"] as const),
+    ),
+  }),
   browser: Schema.Literals(["chromium", "firefox", "webkit"] as const),
   headed: Schema.Boolean,
   a11y: Schema.Boolean,

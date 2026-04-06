@@ -95,6 +95,11 @@ export class SandboxExecutor extends ServiceMap.Service<SandboxExecutor, Sandbox
       ) =>
         Effect.gen(function* () {
           const tempDir = yield* fs.makeTempDirectory({ prefix: `sandbox-${config.runtime}-` });
+
+          yield* Effect.addFinalizer(() =>
+            fs.remove(tempDir, { recursive: true }).pipe(Effect.catch(() => Effect.void)),
+          );
+
           const tempFilePath = join(tempDir, scriptName);
 
           yield* fs.writeFileString(tempFilePath, code);
@@ -149,6 +154,7 @@ export class SandboxExecutor extends ServiceMap.Service<SandboxExecutor, Sandbox
             timedOut: false,
           });
         }).pipe(
+          Effect.scoped,
           Effect.catchTag("SandboxExecutionError", (err) => Effect.fail(err)),
           Effect.catchTag("SandboxTimeoutError", (err) => Effect.fail(err)),
           Effect.catchTag("PlatformError", (err) =>

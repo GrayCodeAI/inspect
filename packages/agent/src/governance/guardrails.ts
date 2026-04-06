@@ -112,9 +112,9 @@ const destructiveActionGuardrail: GuardrailConfig = {
   },
 };
 
-const API_KEY_PATTERN = /[a-zA-Z0-9]{32,}/g;
-const PASSWORD_PATTERN = /password[:\s]*["'][^"']+["']/gi;
-const TOKEN_PATTERN = /token[:\s]*["'][^"']+["']/gi;
+const API_KEY_PATTERN = /[a-zA-Z0-9]{32,}/;
+const PASSWORD_PATTERN = /password[:\s]*["'][^"']+["']/i;
+const TOKEN_PATTERN = /token[:\s]*["'][^"']+["']/i;
 
 const credentialLeakGuardrail: GuardrailConfig = {
   name: "credential-leak-detector",
