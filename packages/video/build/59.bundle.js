@@ -1,5 +1,5 @@
 "use strict";
-(self["webpackChunkvideo"] = self["webpackChunkvideo"] || []).push([[59],{
+(self["webpackChunk_inspect_video"] = self["webpackChunk_inspect_video"] || []).push([[59],{
 
 /***/ 7059
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {

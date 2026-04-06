@@ -2,198 +2,19 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 954
-(module, __webpack_exports__, __webpack_require__) {
-
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var _node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_cssWithMappingToString_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5883);
-/* harmony import */ var _node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_cssWithMappingToString_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_cssWithMappingToString_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(6238);
-/* harmony import */ var _node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
-// Imports
-
-
-var ___CSS_LOADER_EXPORT___ = _node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_pnpm_remotion_bundler_4_0_443_swc_helpers_0_5_15_react_dom_19_2_3_react_19_2_3_react_19_2_3_node_modules_remotion_bundler_css_loader_runtime_cssWithMappingToString_js__WEBPACK_IMPORTED_MODULE_0___default()));
-// Module
-___CSS_LOADER_EXPORT___.push([module.id, "", "",{"version":3,"sources":[],"names":[],"mappings":"","sourceRoot":""}]);
-// Exports
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
-
-
-/***/ },
-
-/***/ 6238
-(module) {
-
-/**
- * Forked from css-loader v5.2.7
- * MIT License http://www.opensource.org/licenses/mit-license.php
- * Author Tobias Koppers @sokra
- */
-
-
-// css base code, injected by the css-loader
-module.exports = function (cssWithMappingToString) {
-	var list = [];
-
-	list.toString = function toString() {
-		return this.map(function (item) {
-			var content = cssWithMappingToString(item);
-
-			if (item[2]) {
-				return "@media ".concat(item[2], " {").concat(content, "}");
-			}
-
-			return content;
-		}).join("");
-	};
-
-	list.i = function (modules, mediaQuery, dedupe) {
-		if (typeof modules === "string") {
-			modules = [[null, modules, ""]];
-		}
-
-		var alreadyImportedModules = {};
-
-		if (dedupe) {
-			for (var i = 0; i < this.length; i++) {
-				var id = this[i][0];
-
-				if (id != null) {
-					alreadyImportedModules[id] = true;
-				}
-			}
-		}
-
-		for (var _i = 0; _i < modules.length; _i++) {
-			var item = [].concat(modules[_i]);
-
-			if (dedupe && alreadyImportedModules[item[0]]) {
-				continue;
-			}
-
-			if (mediaQuery) {
-				if (!item[2]) {
-					item[2] = mediaQuery;
-				} else {
-					item[2] = "".concat(mediaQuery, " and ").concat(item[2]);
-				}
-			}
-
-			list.push(item);
-		}
-	};
-
-	return list;
-};
-
-
-/***/ },
-
-/***/ 5883
-(module) {
-
-/**
- * Forked from css-loader v5.2.7
- * MIT License http://www.opensource.org/licenses/mit-license.php
- */
-
-
-module.exports = function cssWithMappingToString(item) {
-	var content = item[1];
-	var cssMapping = item[3];
-
-	if (!cssMapping) {
-		return content;
-	}
-
-	if (typeof btoa === "function") {
-		var base64 = btoa(
-			unescape(encodeURIComponent(JSON.stringify(cssMapping))),
-		);
-		var data =
-			"sourceMappingURL=data:application/json;charset=utf-8;base64,".concat(
-				base64,
-			);
-		var sourceMapping = "/*# ".concat(data, " */");
-
-		var sourceURLs = cssMapping.sources.map(function (source) {
-			return "/*# sourceURL="
-				.concat(cssMapping.sourceRoot || "")
-				.concat(source, " */");
-		});
-
-		return [content].concat(sourceURLs).concat([sourceMapping]).join("\n");
-	}
-
-	return [content].join("\n");
-};
-
-
-/***/ },
-
-/***/ 7672
+/***/ 5811
 (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 
 
-// EXTERNAL MODULE: ../../node_modules/.pnpm/style-loader@4.0.0_webpack@5.105.0_esbuild@0.25.0_/node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js
-var injectStylesIntoStyleTag = __webpack_require__(8854);
-var injectStylesIntoStyleTag_default = /*#__PURE__*/__webpack_require__.n(injectStylesIntoStyleTag);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/style-loader@4.0.0_webpack@5.105.0_esbuild@0.25.0_/node_modules/style-loader/dist/runtime/styleDomAPI.js
-var styleDomAPI = __webpack_require__(5967);
-var styleDomAPI_default = /*#__PURE__*/__webpack_require__.n(styleDomAPI);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/style-loader@4.0.0_webpack@5.105.0_esbuild@0.25.0_/node_modules/style-loader/dist/runtime/insertBySelector.js
-var insertBySelector = __webpack_require__(8741);
-var insertBySelector_default = /*#__PURE__*/__webpack_require__.n(insertBySelector);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/style-loader@4.0.0_webpack@5.105.0_esbuild@0.25.0_/node_modules/style-loader/dist/runtime/setAttributesWithoutAttributes.js
-var setAttributesWithoutAttributes = __webpack_require__(4870);
-var setAttributesWithoutAttributes_default = /*#__PURE__*/__webpack_require__.n(setAttributesWithoutAttributes);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/style-loader@4.0.0_webpack@5.105.0_esbuild@0.25.0_/node_modules/style-loader/dist/runtime/insertStyleElement.js
-var insertStyleElement = __webpack_require__(4002);
-var insertStyleElement_default = /*#__PURE__*/__webpack_require__.n(insertStyleElement);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/style-loader@4.0.0_webpack@5.105.0_esbuild@0.25.0_/node_modules/style-loader/dist/runtime/styleTagTransform.js
-var styleTagTransform = __webpack_require__(3207);
-var styleTagTransform_default = /*#__PURE__*/__webpack_require__.n(styleTagTransform);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/@remotion+bundler@4.0.443_@swc+helpers@0.5.15_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/bundler/css-loader/index.js!./src/style.css
-var style = __webpack_require__(954);
-;// ./src/style.css
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-var options = {};
-
-options.styleTagTransform = (styleTagTransform_default());
-options.setAttributes = (setAttributesWithoutAttributes_default());
-options.insert = insertBySelector_default().bind(null, "head");
-options.domAPI = (styleDomAPI_default());
-options.insertStyleElement = (insertStyleElement_default());
-
-var update = injectStylesIntoStyleTag_default()(style/* default */.A, options);
-
-
-
-
-       /* harmony default export */ const src_style = (style/* default */.A && style/* default */.A.locals ? style/* default */.A.locals : undefined);
-
-// EXTERNAL MODULE: ../../node_modules/.pnpm/remotion@4.0.443_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/remotion/dist/esm/index.mjs
-var esm = __webpack_require__(6727);
 // EXTERNAL MODULE: ../../node_modules/.pnpm/react@19.2.3/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(8525);
+// EXTERNAL MODULE: ../../node_modules/.pnpm/remotion@4.0.446_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/remotion/dist/esm/index.mjs
+var esm = __webpack_require__(7500);
 // EXTERNAL MODULE: ../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js
 var react = __webpack_require__(9081);
-// EXTERNAL MODULE: ../../node_modules/.pnpm/remotion@4.0.443_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/remotion/dist/esm/no-react.mjs
-var no_react = __webpack_require__(7482);
-;// ../../node_modules/.pnpm/@remotion+transitions@4.0.443_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/transitions/dist/esm/index.mjs
+// EXTERNAL MODULE: ../../node_modules/.pnpm/remotion@4.0.446_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/remotion/dist/esm/no-react.mjs
+var no_react = __webpack_require__(2287);
+;// ../../node_modules/.pnpm/@remotion+transitions@4.0.446_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/transitions/dist/esm/index.mjs
 /* unused harmony import specifier */ var interpolate;
 /* unused harmony import specifier */ var React4;
 // src/presentations/slide.tsx
@@ -672,7 +493,7 @@ var useTransitionProgress = () => {
 };
 
 
-;// ../../node_modules/.pnpm/@remotion+transitions@4.0.443_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/transitions/dist/esm/slide.mjs
+;// ../../node_modules/.pnpm/@remotion+transitions@4.0.446_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/transitions/dist/esm/slide.mjs
 // src/presentations/slide.tsx
 
 
@@ -838,7 +659,7 @@ const SCENE_RESULTS_DURATION_FRAMES = 110;
 const TRANSITION_DURATION_FRAMES = 15;
 const TOTAL_DURATION = SCENE_TYPING_DURATION_FRAMES + SCENE_COVERAGE_BAR_DURATION_FRAMES + 345 - TRANSITION_DURATION_FRAMES * 2;
 
-;// ../../node_modules/.pnpm/@remotion+google-fonts@4.0.443_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/google-fonts/dist/esm/IBMPlexMono.mjs
+;// ../../node_modules/.pnpm/@remotion+google-fonts@4.0.446_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/@remotion/google-fonts/dist/esm/IBMPlexMono.mjs
 // src/base.ts
 
 
@@ -4317,7 +4138,7 @@ const Main = () => {
 
 
 
-const RemotionRoot = () => {
+(0,esm.registerRoot)(() => {
   return /* @__PURE__ */ (0,jsx_runtime.jsx)(
     esm.Composition,
     {
@@ -4329,19 +4150,12 @@ const RemotionRoot = () => {
       height: VIDEO_HEIGHT_PX
     }
   );
-};
-
-;// ./src/index.ts
-
-
-
-
-(0,esm.registerRoot)(RemotionRoot);
+});
 
 
 /***/ },
 
-/***/ 7537
+/***/ 4694
 (__unused_webpack_module, exports) {
 
 var __webpack_unused_export__;
@@ -4490,7 +4304,7 @@ exports.d = injectCSS;
 
 /***/ },
 
-/***/ 6376
+/***/ 8203
 (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 
 var react__WEBPACK_IMPORTED_MODULE_0___namespace_cache;
@@ -21827,263 +21641,14 @@ if (true) {
 
 /***/ },
 
-/***/ 8854
-(module) {
-
-
-
-var stylesInDOM = [];
-function getIndexByIdentifier(identifier) {
-  var result = -1;
-  for (var i = 0; i < stylesInDOM.length; i++) {
-    if (stylesInDOM[i].identifier === identifier) {
-      result = i;
-      break;
-    }
-  }
-  return result;
-}
-function modulesToDom(list, options) {
-  var idCountMap = {};
-  var identifiers = [];
-  for (var i = 0; i < list.length; i++) {
-    var item = list[i];
-    var id = options.base ? item[0] + options.base : item[0];
-    var count = idCountMap[id] || 0;
-    var identifier = "".concat(id, " ").concat(count);
-    idCountMap[id] = count + 1;
-    var indexByIdentifier = getIndexByIdentifier(identifier);
-    var obj = {
-      css: item[1],
-      media: item[2],
-      sourceMap: item[3],
-      supports: item[4],
-      layer: item[5]
-    };
-    if (indexByIdentifier !== -1) {
-      stylesInDOM[indexByIdentifier].references++;
-      stylesInDOM[indexByIdentifier].updater(obj);
-    } else {
-      var updater = addElementStyle(obj, options);
-      options.byIndex = i;
-      stylesInDOM.splice(i, 0, {
-        identifier: identifier,
-        updater: updater,
-        references: 1
-      });
-    }
-    identifiers.push(identifier);
-  }
-  return identifiers;
-}
-function addElementStyle(obj, options) {
-  var api = options.domAPI(options);
-  api.update(obj);
-  var updater = function updater(newObj) {
-    if (newObj) {
-      if (newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap && newObj.supports === obj.supports && newObj.layer === obj.layer) {
-        return;
-      }
-      api.update(obj = newObj);
-    } else {
-      api.remove();
-    }
-  };
-  return updater;
-}
-module.exports = function (list, options) {
-  options = options || {};
-  list = list || [];
-  var lastIdentifiers = modulesToDom(list, options);
-  return function update(newList) {
-    newList = newList || [];
-    for (var i = 0; i < lastIdentifiers.length; i++) {
-      var identifier = lastIdentifiers[i];
-      var index = getIndexByIdentifier(identifier);
-      stylesInDOM[index].references--;
-    }
-    var newLastIdentifiers = modulesToDom(newList, options);
-    for (var _i = 0; _i < lastIdentifiers.length; _i++) {
-      var _identifier = lastIdentifiers[_i];
-      var _index = getIndexByIdentifier(_identifier);
-      if (stylesInDOM[_index].references === 0) {
-        stylesInDOM[_index].updater();
-        stylesInDOM.splice(_index, 1);
-      }
-    }
-    lastIdentifiers = newLastIdentifiers;
-  };
-};
-
-/***/ },
-
-/***/ 8741
-(module) {
-
-
-
-var memo = {};
-
-/* istanbul ignore next  */
-function getTarget(target) {
-  if (typeof memo[target] === "undefined") {
-    var styleTarget = document.querySelector(target);
-
-    // Special case to return head of iframe instead of iframe itself
-    if (window.HTMLIFrameElement && styleTarget instanceof window.HTMLIFrameElement) {
-      try {
-        // This will throw an exception if access to iframe is blocked
-        // due to cross-origin restrictions
-        styleTarget = styleTarget.contentDocument.head;
-      } catch (e) {
-        // istanbul ignore next
-        styleTarget = null;
-      }
-    }
-    memo[target] = styleTarget;
-  }
-  return memo[target];
-}
-
-/* istanbul ignore next  */
-function insertBySelector(insert, style) {
-  var target = getTarget(insert);
-  if (!target) {
-    throw new Error("Couldn't find a style target. This probably means that the value for the 'insert' parameter is invalid.");
-  }
-  target.appendChild(style);
-}
-module.exports = insertBySelector;
-
-/***/ },
-
-/***/ 4002
-(module) {
-
-
-
-/* istanbul ignore next  */
-function insertStyleElement(options) {
-  var element = document.createElement("style");
-  options.setAttributes(element, options.attributes);
-  options.insert(element, options.options);
-  return element;
-}
-module.exports = insertStyleElement;
-
-/***/ },
-
-/***/ 4870
-(module, __unused_webpack_exports, __webpack_require__) {
-
-
-
-/* istanbul ignore next  */
-function setAttributesWithoutAttributes(styleElement) {
-  var nonce =  true ? __webpack_require__.nc : 0;
-  if (nonce) {
-    styleElement.setAttribute("nonce", nonce);
-  }
-}
-module.exports = setAttributesWithoutAttributes;
-
-/***/ },
-
-/***/ 5967
-(module) {
-
-
-
-/* istanbul ignore next  */
-function apply(styleElement, options, obj) {
-  var css = "";
-  if (obj.supports) {
-    css += "@supports (".concat(obj.supports, ") {");
-  }
-  if (obj.media) {
-    css += "@media ".concat(obj.media, " {");
-  }
-  var needLayer = typeof obj.layer !== "undefined";
-  if (needLayer) {
-    css += "@layer".concat(obj.layer.length > 0 ? " ".concat(obj.layer) : "", " {");
-  }
-  css += obj.css;
-  if (needLayer) {
-    css += "}";
-  }
-  if (obj.media) {
-    css += "}";
-  }
-  if (obj.supports) {
-    css += "}";
-  }
-  var sourceMap = obj.sourceMap;
-  if (sourceMap && typeof btoa !== "undefined") {
-    css += "\n/*# sourceMappingURL=data:application/json;base64,".concat(btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))), " */");
-  }
-
-  // For old IE
-  /* istanbul ignore if  */
-  options.styleTagTransform(css, styleElement, options.options);
-}
-function removeStyleElement(styleElement) {
-  // istanbul ignore if
-  if (styleElement.parentNode === null) {
-    return false;
-  }
-  styleElement.parentNode.removeChild(styleElement);
-}
-
-/* istanbul ignore next  */
-function domAPI(options) {
-  if (typeof document === "undefined") {
-    return {
-      update: function update() {},
-      remove: function remove() {}
-    };
-  }
-  var styleElement = options.insertStyleElement(options);
-  return {
-    update: function update(obj) {
-      apply(styleElement, options, obj);
-    },
-    remove: function remove() {
-      removeStyleElement(styleElement);
-    }
-  };
-}
-module.exports = domAPI;
-
-/***/ },
-
-/***/ 3207
-(module) {
-
-
-
-/* istanbul ignore next  */
-function styleTagTransform(css, styleElement) {
-  if (styleElement.styleSheet) {
-    styleElement.styleSheet.cssText = css;
-  } else {
-    while (styleElement.firstChild) {
-      styleElement.removeChild(styleElement.firstChild);
-    }
-    styleElement.appendChild(document.createTextNode(css));
-  }
-}
-module.exports = styleTagTransform;
-
-/***/ },
-
-/***/ 7471
+/***/ 4248
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 /* unused harmony export setBundleModeAndUpdate */
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9081);
 /* harmony import */ var react_dom_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(8181);
-/* harmony import */ var remotion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6727);
-/* harmony import */ var remotion_no_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(7482);
+/* harmony import */ var remotion__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7500);
+/* harmony import */ var remotion_no_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(2287);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8525);
 
 
@@ -22284,7 +21849,7 @@ var renderContent = (Root) => {
     renderToDOM(/* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4__.jsx)("div", {
       children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4__.jsx)(DelayedSpinner, {})
     }));
-    Promise.all(/* import() */[__webpack_require__.e(214), __webpack_require__.e(393)]).then(__webpack_require__.bind(__webpack_require__, 214)).then(({ StudioInternals }) => {
+    Promise.all(/* import() */[__webpack_require__.e(468), __webpack_require__.e(393)]).then(__webpack_require__.bind(__webpack_require__, 5468)).then(({ StudioInternals }) => {
       window.remotion_isStudio = true;
       window.remotion_isReadOnlyStudio = true;
       window.remotion_inputProps = "{}";
@@ -22428,7 +21993,7 @@ if (typeof window !== "undefined") {
 
 /***/ },
 
-/***/ 6727
+/***/ 7500
 (__webpack_module__, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
@@ -22450,6 +22015,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Img: () => (/* binding */ Img),
 /* harmony export */   Internals: () => (/* binding */ Internals),
 /* harmony export */   Loop: () => (/* binding */ Loop),
+/* harmony export */   MediaPlaybackError: () => (/* binding */ MediaPlaybackError),
 /* harmony export */   OffthreadVideo: () => (/* binding */ OffthreadVideo),
 /* harmony export */   Sequence: () => (/* binding */ Sequence),
 /* harmony export */   Series: () => (/* binding */ Series),
@@ -22529,6 +22095,37 @@ var CanUseRemotionHooksProvider = ({ children }) => {
     children
   });
 };
+
+// src/composition-render-error-context.ts
+
+var CompositionRenderErrorContext = (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)({
+  setError: () => {},
+  clearError: () => {}
+});
+
+// src/CompositionErrorBoundary.tsx
+
+
+class CompositionErrorBoundary extends react__WEBPACK_IMPORTED_MODULE_0__.Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error) {
+    this.props.onError(error);
+  }
+  componentDidUpdate(_prevProps) {
+    if (!this.state.hasError) {
+      this.props.onClear();
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
 
 // src/CompositionManagerContext.tsx
 
@@ -23630,16 +23227,27 @@ var InnerComposition = ({
     unregisterComposition
   ]);
   const resolved = useResolvedVideoConfig(id);
+  const { setError, clearError } = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(CompositionRenderErrorContext);
+  const onError = (0,react__WEBPACK_IMPORTED_MODULE_0__.useCallback)((error2) => {
+    setError(error2);
+  }, [setError]);
+  const onClear = (0,react__WEBPACK_IMPORTED_MODULE_0__.useCallback)(() => {
+    clearError();
+  }, [clearError]);
   if (environment.isStudio && video && video.component === lazy && video.id === id) {
     const Comp = lazy;
     if (resolved === null || resolved.type !== "success" && resolved.type !== "success-and-refreshing") {
       return null;
     }
     return (0,react_dom__WEBPACK_IMPORTED_MODULE_1__.createPortal)(/* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(CanUseRemotionHooksProvider, {
-      children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(react__WEBPACK_IMPORTED_MODULE_0__.Suspense, {
-        fallback: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(Loading, {}),
-        children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(Comp, {
-          ...resolved.result.props ?? {}
+      children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(CompositionErrorBoundary, {
+        onError,
+        onClear,
+        children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(react__WEBPACK_IMPORTED_MODULE_0__.Suspense, {
+          fallback: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(Loading, {}),
+          children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(Comp, {
+            ...resolved.result.props ?? {}
+          })
         })
       })
     }), portalNode());
@@ -23678,7 +23286,7 @@ var addSequenceStackTraces = (component) => {
 };
 
 // src/version.ts
-var VERSION = "4.0.443";
+var VERSION = "4.0.446";
 
 // src/multiple-versions-warning.ts
 var checkMultipleRemotionVersions = () => {
@@ -26113,6 +25721,26 @@ var getAssetDisplayName = (filename) => {
   return splitted[splitted.length - 1];
 };
 
+// src/get-timeline-duration.ts
+var getTimelineDuration = ({
+  compositionDurationInFrames,
+  playbackRate,
+  trimBefore,
+  trimAfter,
+  parentSequenceDurationInFrames
+}) => {
+  const mediaDuration = calculateMediaDuration({
+    mediaDurationInFrames: compositionDurationInFrames * playbackRate + (trimBefore ?? 0),
+    playbackRate,
+    trimBefore,
+    trimAfter
+  });
+  if (parentSequenceDurationInFrames !== null) {
+    return Math.floor(Math.min(parentSequenceDurationInFrames * playbackRate, mediaDuration));
+  }
+  return mediaDuration;
+};
+
 // src/volume-prop.ts
 var evaluateVolume = ({
   frame,
@@ -26164,13 +25792,13 @@ var useBasicMediaInTimeline = ({
   const parentSequence = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(SequenceContext);
   const videoConfig = useVideoConfig();
   const [initialVolume] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(() => volume);
-  const mediaDuration = calculateMediaDuration({
-    mediaDurationInFrames: videoConfig.durationInFrames + (trimBefore ?? 0),
+  const duration = getTimelineDuration({
+    compositionDurationInFrames: videoConfig.durationInFrames,
     playbackRate,
     trimBefore,
-    trimAfter
+    trimAfter,
+    parentSequenceDurationInFrames: parentSequence?.durationInFrames ?? null
   });
-  const duration = parentSequence ? Math.min(parentSequence.durationInFrames, mediaDuration) : mediaDuration;
   const volumes = (0,react__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => {
     if (typeof volume === "number") {
       return volume;
@@ -29184,6 +28812,16 @@ var useEmitVideoFrame = ({
   }, [onVideoFrame, ref]);
 };
 
+// src/video/MediaPlaybackError.ts
+class MediaPlaybackError extends Error {
+  src;
+  constructor({ message, src }) {
+    super(message);
+    this.name = "MediaPlaybackError";
+    this.src = src;
+  }
+}
+
 // src/video/VideoForPreview.tsx
 
 var VideoForDevelopmentRefForwardingFunction = (props2, ref) => {
@@ -29328,18 +28966,30 @@ var VideoForDevelopmentRefForwardingFunction = (props2, ref) => {
       if (current.error) {
         console.error("Error occurred in video", current?.error);
         if (onError) {
-          const err = new Error(`Code ${current.error.code}: ${current.error.message}`);
+          const err = new MediaPlaybackError({
+            message: `Code ${current.error.code}: ${current.error.message}`,
+            src
+          });
           onError(err);
           return;
         }
-        throw new Error(`The browser threw an error while playing the video ${src}: Code ${current.error.code} - ${current?.error?.message}. See https://remotion.dev/docs/media-playback-error for help. Pass an onError() prop to handle the error.`);
+        throw new MediaPlaybackError({
+          message: `The browser threw an error while playing the video ${src}: Code ${current.error.code} - ${current?.error?.message}. See https://remotion.dev/docs/media-playback-error for help. Pass an onError() prop to handle the error.`,
+          src
+        });
       } else {
         if (onError) {
-          const err = new Error(`The browser threw an error while playing the video ${src}`);
+          const err = new MediaPlaybackError({
+            message: `The browser threw an error while playing the video ${src}`,
+            src
+          });
           onError(err);
           return;
         }
-        throw new Error("The browser threw an error while playing the video");
+        throw new MediaPlaybackError({
+          message: "The browser threw an error while playing the video",
+          src
+        });
       }
     };
     current.addEventListener("error", errorHandler, { once: true });
@@ -29789,7 +29439,8 @@ var Internals = {
   TimelineContext,
   AbsoluteTimeContext,
   RenderAssetManagerProvider,
-  getEffectiveVisualModeValue
+  getEffectiveVisualModeValue,
+  CompositionRenderErrorContext
 };
 // src/interpolate-colors.ts
 var NUMBER = "[-+]?\\d*\\.?\\d+";
@@ -31038,9 +30689,15 @@ var VideoForRenderingForwardFunction = ({
         if (onError) {
           return;
         }
-        throw new Error(`The browser threw an error while playing the video ${props2.src}: Code ${current.error.code} - ${current?.error?.message}. See https://remotion.dev/docs/media-playback-error for help. Pass an onError() prop to handle the error.`);
+        throw new MediaPlaybackError({
+          message: `The browser threw an error while playing the video ${props2.src}: Code ${current.error.code} - ${current?.error?.message}. See https://remotion.dev/docs/media-playback-error for help. Pass an onError() prop to handle the error.`,
+          src: props2.src
+        });
       } else {
-        throw new Error("The browser threw an error");
+        throw new MediaPlaybackError({
+          message: "The browser threw an error",
+          src: props2.src
+        });
       }
     };
     current.addEventListener("error", errorHandler, { once: true });
@@ -31253,7 +30910,7 @@ addSequenceStackTraces(Composition);
 
 /***/ },
 
-/***/ 7482
+/***/ 2287
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
@@ -32130,7 +31787,7 @@ var NoReactInternals = {
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			id: moduleId,
+/******/ 			// no module.id needed
 /******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
@@ -32242,7 +31899,7 @@ var NoReactInternals = {
 /******/ 	/* webpack/runtime/load script */
 /******/ 	(() => {
 /******/ 		var inProgress = {};
-/******/ 		var dataWebpackPrefix = "video:";
+/******/ 		var dataWebpackPrefix = "@inspect/video:";
 /******/ 		// loadScript function to load a script via script tag
 /******/ 		__webpack_require__.l = (url, done, key, chunkId) => {
 /******/ 			if(inProgress[url]) { inProgress[url].push(done); return; }
@@ -32403,14 +32060,9 @@ var NoReactInternals = {
 /******/ 		
 /******/ 		}
 /******/ 		
-/******/ 		var chunkLoadingGlobal = self["webpackChunkvideo"] = self["webpackChunkvideo"] || [];
+/******/ 		var chunkLoadingGlobal = self["webpackChunk_inspect_video"] = self["webpackChunk_inspect_video"] || [];
 /******/ 		chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
 /******/ 		chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/nonce */
-/******/ 	(() => {
-/******/ 		__webpack_require__.nc = undefined;
 /******/ 	})();
 /******/ 	
 /************************************************************************/
@@ -32418,10 +32070,10 @@ var NoReactInternals = {
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	__webpack_require__(7537);
-/******/ 	__webpack_require__(7672);
-/******/ 	__webpack_require__(6376);
-/******/ 	var __webpack_exports__ = __webpack_require__(7471);
+/******/ 	__webpack_require__(4694);
+/******/ 	__webpack_require__(5811);
+/******/ 	__webpack_require__(8203);
+/******/ 	var __webpack_exports__ = __webpack_require__(4248);
 /******/ 	
 /******/ })()
 ;

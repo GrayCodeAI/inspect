@@ -1,4 +1,4 @@
-(self["webpackChunkvideo"] = self["webpackChunkvideo"] || []).push([[328],{
+(self["webpackChunk_inspect_video"] = self["webpackChunk_inspect_video"] || []).push([[328],{
 
 /***/ 5328
 () {
