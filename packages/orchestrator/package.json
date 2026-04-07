@@ -19,19 +19,20 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.35",
-    "@inspect/shared": "workspace:*",
     "@inspect/agent": "workspace:*",
     "@inspect/browser": "workspace:*",
     "@inspect/credentials": "workspace:*",
-    "@inspect/quality": "workspace:*",
-    "@inspect/observability": "workspace:*",
-    "@inspect/visual": "workspace:*",
     "@inspect/devices": "workspace:*",
-    "@inspect/git": "workspace:*"
+    "@inspect/git": "workspace:*",
+    "@inspect/observability": "workspace:*",
+    "@inspect/quality": "workspace:*",
+    "@inspect/shared": "workspace:*",
+    "@inspect/visual": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1",
+    "effect": "4.0.0-beta.35"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

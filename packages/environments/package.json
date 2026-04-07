@@ -15,8 +15,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.35",
-    "dockerode": "^4.0.0"
+    "@playwright/browser-webkit": "^1.59.1",
+    "dockerode": "^4.0.0",
+    "effect": "4.0.0-beta.35"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.0",

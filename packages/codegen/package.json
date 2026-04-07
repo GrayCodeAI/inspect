@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@inspect/workflow-recording": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1",
     "effect": "4.0.0-beta.35"
   },
   "devDependencies": {

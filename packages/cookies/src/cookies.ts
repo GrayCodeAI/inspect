@@ -132,6 +132,7 @@ export class Cookies extends ServiceMap.Service<Cookies>()("@inspect/Cookies", {
           (cookie) => Boolean(cookie.name) && Boolean(cookie.domain),
         );
       }).pipe(
+        Effect.scoped,
         Effect.catchCause((cause) =>
           new ExtractionError({
             reason: new UnknownError({ cause: cause as unknown }),
@@ -139,11 +140,15 @@ export class Cookies extends ServiceMap.Service<Cookies>()("@inspect/Cookies", {
         ),
       );
 
+    const extractWebKit = (browser: Extract<Browser, { _tag: "WebKitBrowser" }>) =>
+      extractSafari(browser);
+
     const extract = (browser: Browser) =>
       Match.valueTags(browser, {
         ChromiumBrowser: extractChromium,
         FirefoxBrowser: extractFirefox,
         SafariBrowser: extractSafari,
+        WebKitBrowser: extractWebKit,
       });
 
     return { extract } as const;

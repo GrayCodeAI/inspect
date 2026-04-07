@@ -71,22 +71,29 @@ const startNgrok = (config: TunnelConfig) =>
   Effect.gen(function* () {
     yield* Effect.annotateCurrentSpan({ provider: "ngrok" });
 
-    if (config.authToken) {
-      yield* Effect.tryPromise({
-        try: () =>
-          new Promise<void>((resolve, reject) => {
-            const proc = spawn("ngrok", ["config", "add-authtoken", config.authToken!], {
-              stdio: "pipe",
-            });
-            proc.on("close", (code) => (code === 0 ? resolve() : reject(new Error("Auth failed"))));
-            proc.on("error", reject);
-          }),
-        catch: (cause) =>
-          new TunnelError({
-            provider: "ngrok",
-            errorMessage: `Failed to configure auth: ${String(cause)}`,
-          }),
-      });
+    if (config.authToken && config.authToken.length > 0) {
+      const tokenValidation = /^[a-zA-Z0-9_-]+$/;
+      if (!tokenValidation.test(config.authToken)) {
+        yield* Effect.logWarning("Auth token contains invalid characters, skipping ngrok auth");
+      } else {
+        yield* Effect.tryPromise({
+          try: () =>
+            new Promise<void>((resolve, reject) => {
+              const proc = spawn("ngrok", ["config", "add-authtoken", config.authToken!], {
+                stdio: "pipe",
+              });
+              proc.on("close", (code) =>
+                code === 0 ? resolve() : reject(new Error("Auth failed")),
+              );
+              proc.on("error", reject);
+            }),
+          catch: (cause) =>
+            new TunnelError({
+              provider: "ngrok",
+              errorMessage: `Failed to configure auth: ${String(cause)}`,
+            }),
+        });
+      }
     }
 
     const args = ["http", String(config.port)];

@@ -19,14 +19,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.35",
-    "@inspect/shared": "workspace:*",
-    "@inspect/observability": "workspace:*",
     "@inspect/data": "workspace:*",
-    "@inspect/quality": "workspace:*"
+    "@inspect/observability": "workspace:*",
+    "@inspect/quality": "workspace:*",
+    "@inspect/shared": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1",
+    "effect": "4.0.0-beta.35"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

@@ -9,13 +9,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "allowImportingTsExtensions": true
   },
-  "include": ["src", "src/playwright", "src/backends"]
+  "include": ["src/playwright/browser.ts", "src/backends/webkit.ts"]
 }

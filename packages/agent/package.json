@@ -19,25 +19,26 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inspect/llm": "workspace:*",
-    "@inspect/browser": "workspace:*",
+    "@agentclientprotocol/sdk": "^0.16.1",
+    "@ai-sdk/provider": "^3.0.8",
+    "@effect/platform-node": "4.0.0-beta.35",
+    "@github/copilot": "^1.0.12",
+    "@google/gemini-cli": "^0.35.3",
+    "@inspect/agent-governance": "workspace:*",
     "@inspect/agent-memory": "workspace:*",
     "@inspect/agent-tools": "workspace:*",
     "@inspect/agent-watchdogs": "workspace:*",
-    "@inspect/agent-governance": "workspace:*",
+    "@inspect/browser": "workspace:*",
+    "@inspect/llm": "workspace:*",
     "@inspect/observability": "workspace:*",
     "@inspect/shared": "workspace:*",
-    "effect": "4.0.0-beta.35",
-    "@effect/platform-node": "4.0.0-beta.35",
-    "@agentclientprotocol/sdk": "^0.16.1",
-    "@ai-sdk/provider": "^3.0.8",
-    "@github/copilot": "^1.0.12",
-    "@google/gemini-cli": "^0.35.3",
+    "@playwright/browser-webkit": "^1.59.1",
     "@zed-industries/claude-agent-acp": "^0.22.2",
-    "@zed-industries/codex-acp": "^0.10.0"
+    "@zed-industries/codex-acp": "^0.10.0",
+    "effect": "4.0.0-beta.35"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

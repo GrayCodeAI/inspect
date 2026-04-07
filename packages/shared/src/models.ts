@@ -234,7 +234,7 @@ export class BrowserConfig extends Schema.Class<BrowserConfig>("BrowserConfig")(
   navigationTimeout: Schema.optional(Schema.Number),
   actionTimeout: Schema.optional(Schema.Number),
   defaultTimeout: Schema.optional(Schema.Number),
-  backend: Schema.optional(Schema.Literals(["chromium", "lightpanda"] as const)),
+  backend: Schema.optional(Schema.Literals(["chromium", "lightpanda", "webkit"] as const)),
   colorScheme: Schema.optional(Schema.Literals(["light", "dark", "no-preference"] as const)),
   proxy: Schema.optional(
     Schema.Struct({

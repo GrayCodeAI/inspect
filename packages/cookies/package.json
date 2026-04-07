@@ -19,18 +19,19 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inspect/shared": "workspace:*",
-    "@inspect/observability": "workspace:*",
-    "effect": "4.0.0-beta.35",
     "@effect/platform-node": "4.0.0-beta.35",
+    "@inspect/observability": "workspace:*",
+    "@inspect/shared": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1",
     "default-browser": "^5.5.0",
+    "effect": "4.0.0-beta.35",
     "get-port": "^7.1.0",
     "ini": "^6.0.0",
     "libsql": "^0.5.22"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
+    "@types/ini": "^4.1.1",
     "@types/node": "^22.0.0",
-    "@types/ini": "^4.1.1"
+    "typescript": "^5.7.0"
   }
 }

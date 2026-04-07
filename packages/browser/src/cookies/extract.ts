@@ -521,6 +521,9 @@ export class CookieExtractor {
    * Escapes SQL special characters to prevent injection.
    */
   private sanitizeDomainForSQL(domain: string): string {
+    if (!domain || typeof domain !== "string" || domain.length > 500) {
+      return "";
+    }
     return (
       domain
         .replace(/'/g, "''")

@@ -20,14 +20,15 @@
   },
   "dependencies": {
     "@inspect/a11y": "workspace:*",
-    "@inspect/lighthouse-quality": "workspace:*",
     "@inspect/chaos": "workspace:*",
-    "@inspect/security-scanner": "workspace:*",
+    "@inspect/lighthouse-quality": "workspace:*",
     "@inspect/mocking": "workspace:*",
-    "@inspect/resilience": "workspace:*"
+    "@inspect/resilience": "workspace:*",
+    "@inspect/security-scanner": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

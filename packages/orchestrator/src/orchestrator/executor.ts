@@ -479,7 +479,7 @@ export function finalizeRecording(
         onFailure: (err) =>
           Effect.gen(function* () {
             yield* Effect.logWarning(`Failed to stop recording: ${err}`);
-            return [] as unknown[];
+            return [];
           }),
       }),
     );
@@ -564,7 +564,7 @@ export function executeTest(
           totalDuration: elapsed(state),
           tokenCount: state.tokenCount,
           agent: config.agent,
-          device: (config.device as DeviceConfig).name ?? "unknown",
+          device: (config.device as { name?: string })?.name ?? "unknown",
           timestamp: new Date().toISOString(),
           error: "Test timeout exceeded",
         });
@@ -622,7 +622,7 @@ export function executeTest(
       totalDuration: elapsed(state),
       tokenCount: state.tokenCount,
       agent: config.agent,
-      device: (config.device as DeviceConfig).name ?? "unknown",
+      device: (config.device as { name?: string })?.name ?? "unknown",
       timestamp: new Date().toISOString(),
     });
 

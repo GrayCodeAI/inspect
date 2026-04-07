@@ -26,6 +26,7 @@
     "@inspect/enterprise": "workspace:*",
     "@inspect/observability": "workspace:*",
     "@inspect/shared": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1",
     "effect": "^3.21.0"
   },
   "devDependencies": {

@@ -48,10 +48,20 @@ const SAFARI_CONFIGS: Record<SafariBrowserKey, BrowserConfig> = {
   },
 };
 
+const WEBKIT_CONFIGS: Record<"webkit", BrowserConfig> = {
+  webkit: {
+    displayName: "WebKit",
+    dataDir: "",
+    profileDir: "",
+    cookieFile: "Cookies.binarycookies",
+  },
+};
+
 export const BROWSER_CONFIGS: Record<BrowserKey, BrowserConfig> = {
   ...CHROMIUM_CONFIGS,
   ...FIREFOX_CONFIGS,
   ...SAFARI_CONFIGS,
+  ...WEBKIT_CONFIGS,
 } as Record<BrowserKey, BrowserConfig>;
 
 export const configByKey = (key: BrowserKey): BrowserConfig | undefined => BROWSER_CONFIGS[key];

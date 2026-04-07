@@ -44,19 +44,23 @@
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
     "@eslint/js": "^10.0.1",
+    "@parcel/bundler-default": "^2.16.4",
     "@types/node": "^22.0.0",
     "@typescript/native-preview": "7.0.0-dev.20260319.1",
-    "@voidzero-dev/vite-plus-core": "^0.1.12",
     "@vitest/coverage-v8": "^4.1.2",
+    "@voidzero-dev/vite-plus-core": "^0.1.12",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "turbo": "^2.4.0",
-    "typescript": "^5.7.0",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.2",
     "vite-plus": "^0.1.12",
     "vitest": "^4.1.1"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.0-beta.35"
   }
 }

@@ -47,6 +47,15 @@ export class Browsers extends ServiceMap.Service<Browsers>()("@inspect/Browsers"
               ? `${home}/Library/Cookies/${config.cookieFile}`
               : null,
           } as SafariBrowser);
+        } else if (key === "webkit") {
+          // WebKit uses the same cookie format as Safari (binarycookies)
+          browsers.push({
+            _tag: "WebKitBrowser",
+            key: "webkit",
+            cookieFilePath: config.cookieFile
+              ? `${home}/Library/Cookies/${config.cookieFile}`
+              : null,
+          } as WebKitBrowser);
         } else if (key === "firefox" || key === "firefox-developer" || key === "firefox-nightly") {
           const profilePath = getProfilePath(`${configDir}/${config.dataDir}`, config.profileDir);
           browsers.push({

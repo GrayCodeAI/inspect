@@ -191,7 +191,10 @@ const parseLLMResponse = Effect.fn("ThinkPhase.parseLLMResponse")(function* (
     const parsed = JSON.parse(jsonMatch[0]);
 
     const brain: AgentBrain = {
-      evaluation: parsed.evaluation ?? { success: false, assessment: "parsed" },
+      evaluation: (parsed.evaluation as AgentBrain["evaluation"]) ?? {
+        success: false,
+        assessment: "parsed",
+      },
       memory: parsed.memory ?? [],
       nextGoal: parsed.nextGoal ?? "continue",
       confidence: parsed.confidence,
@@ -206,6 +209,9 @@ const parseLLMResponse = Effect.fn("ThinkPhase.parseLLMResponse")(function* (
 
     return { brain, actions };
   } catch (error) {
+    if (error instanceof LLMResponseParseError) {
+      return yield* error.asEffect();
+    }
     return {
       brain: {
         evaluation: {

@@ -20,12 +20,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "zod": "^3.25.0",
+    "@effect/platform-node": "4.0.0-beta.35",
+    "@playwright/browser-webkit": "^1.59.1",
     "effect": "4.0.0-beta.35",
-    "@effect/platform-node": "4.0.0-beta.35"
+    "zod": "^3.25.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

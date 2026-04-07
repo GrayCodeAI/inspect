@@ -9,6 +9,7 @@
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
+    "@playwright/browser-webkit": "^1.59.1",
     "@remotion/cli": "4.0.446",
     "@remotion/google-fonts": "4.0.446",
     "@remotion/transitions": "4.0.446",

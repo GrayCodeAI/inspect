@@ -19,10 +19,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.35",
     "@effect/platform-node": "4.0.0-beta.35",
-    "rrweb": "2.0.0-alpha.20",
-    "@rrweb/types": "2.0.0-alpha.20"
+    "@playwright/browser-webkit": "^1.59.1",
+    "@rrweb/types": "2.0.0-alpha.20",
+    "effect": "4.0.0-beta.35",
+    "rrweb": "2.0.0-alpha.20"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -20,12 +20,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inspect/orchestrator": "workspace:*",
+    "@inspect/devices": "workspace:*",
     "@inspect/git": "workspace:*",
-    "@inspect/devices": "workspace:*"
+    "@inspect/orchestrator": "workspace:*",
+    "@playwright/browser-webkit": "^1.59.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

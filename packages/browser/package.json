@@ -20,18 +20,19 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inspect/shared": "workspace:*",
-    "@inspect/observability": "workspace:*",
-    "playwright": "^1.50.0",
-    "effect": "4.0.0-beta.35",
     "@effect/platform-node": "4.0.0-beta.35",
-    "rrweb": "^2.0.0-alpha.18",
-    "@rrweb/types": "^2.0.0-alpha.18",
+    "@inspect/observability": "workspace:*",
+    "@inspect/shared": "workspace:*",
+    "@medv/finder": "^4.0.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@medv/finder": "^4.0.2"
+    "@playwright/browser-webkit": "^1.59.1",
+    "@rrweb/types": "^2.0.0-alpha.18",
+    "effect": "4.0.0-beta.35",
+    "playwright": "^1.50.0",
+    "rrweb": "^2.0.0-alpha.18"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

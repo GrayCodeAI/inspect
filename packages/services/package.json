@@ -19,8 +19,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@inspect/observability": "workspace:*",
     "@inspect/shared": "workspace:*",
-    "@inspect/observability": "workspace:*"
+    "@playwright/browser-webkit": "^1.59.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

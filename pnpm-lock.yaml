@@ -6,6 +6,10 @@ settings:
 
 importers:
   .:
+    dependencies:
+      "@effect/platform-node":
+        specifier: 4.0.0-beta.35
+        version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
     devDependencies:
       "@changesets/cli":
         specifier: ^2.27.0
@@ -13,6 +17,9 @@ importers:
       "@eslint/js":
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.1.0(jiti@2.6.1))
+      "@parcel/bundler-default":
+        specifier: ^2.16.4
+        version: 2.16.4(@parcel/core@2.16.4)
       "@types/node":
         specifier: ^22.0.0
         version: 22.19.15
@@ -44,7 +51,7 @@ importers:
         specifier: ^2.4.0
         version: 2.8.20
       typescript:
-        specifier: ^5.7.0
+        specifier: ^5.9.3
         version: 5.9.3
       typescript-eslint:
         specifier: ^8.57.2
@@ -100,6 +107,9 @@ importers:
       "@inspect/workflow":
         specifier: workspace:*
         version: link:../../packages/workflow
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       chalk:
         specifier: ^5.4.0
         version: 5.6.2
@@ -140,6 +150,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -189,6 +202,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       "@zed-industries/claude-agent-acp":
         specifier: ^0.22.2
         version: 0.22.2
@@ -214,6 +230,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -233,6 +252,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -255,6 +277,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -274,6 +299,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -299,6 +327,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: ^3.21.0
         version: 3.21.0
@@ -327,6 +358,9 @@ importers:
       "@modelcontextprotocol/sdk":
         specifier: ^1.27.1
         version: 1.29.0(zod@4.3.6)
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       "@rrweb/types":
         specifier: ^2.0.0-alpha.18
         version: 2.0.0-alpha.20
@@ -355,6 +389,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -374,6 +411,9 @@ importers:
       "@inspect/core":
         specifier: workspace:*
         version: link:../core
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
@@ -393,6 +433,9 @@ importers:
       "@inspect/workflow-recording":
         specifier: workspace:*
         version: link:../workflow-recording
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -412,6 +455,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       default-browser:
         specifier: ^5.5.0
         version: 5.5.0
@@ -449,6 +495,9 @@ importers:
       "@inspect/orchestrator":
         specifier: workspace:*
         version: link:../orchestrator
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -462,6 +511,9 @@ importers:
       "@inspect/browser":
         specifier: workspace:*
         version: link:../browser
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -481,6 +533,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -500,6 +555,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -516,6 +574,9 @@ importers:
 
   packages/desktop:
     dependencies:
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -536,6 +597,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -558,6 +622,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -568,6 +635,9 @@ importers:
 
   packages/environments:
     dependencies:
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       dockerode:
         specifier: ^4.0.0
         version: 4.0.10
@@ -585,7 +655,11 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/expect-skill: {}
+  packages/expect-skill:
+    dependencies:
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
 
   packages/git:
     dependencies:
@@ -595,6 +669,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -614,6 +691,9 @@ importers:
       "@effect/platform-node":
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -636,6 +716,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -655,6 +738,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -677,6 +763,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -693,6 +782,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -709,6 +801,9 @@ importers:
       "@inspect/llm":
         specifier: workspace:*
         version: link:../llm
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -728,6 +823,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -741,6 +839,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -781,6 +882,9 @@ importers:
       "@inspect/visual":
         specifier: workspace:*
         version: link:../visual
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -797,6 +901,9 @@ importers:
       "@inspect/observability":
         specifier: workspace:*
         version: link:../observability
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -825,6 +932,9 @@ importers:
       "@inspect/security-scanner":
         specifier: workspace:*
         version: link:../security-scanner
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -841,6 +951,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -857,6 +970,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -867,6 +983,9 @@ importers:
 
   packages/sandbox:
     dependencies:
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -901,6 +1020,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: ^3.21.0
         version: 3.21.0
@@ -923,6 +1045,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -936,6 +1061,9 @@ importers:
       "@effect/platform-node":
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -958,6 +1086,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -980,6 +1111,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       "@rrweb/types":
         specifier: ^2.0.0-alpha.18
         version: 2.0.0-alpha.20
@@ -1005,6 +1139,9 @@ importers:
       "@effect/platform-node":
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       "@rrweb/types":
         specifier: 2.0.0-alpha.20
         version: 2.0.0-alpha.20
@@ -1030,6 +1167,9 @@ importers:
       "@effect/platform-node":
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35(effect@4.0.0-beta.35)(ioredis@5.10.1)
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -1046,6 +1186,9 @@ importers:
 
   packages/video:
     dependencies:
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       "@remotion/cli":
         specifier: 4.0.446
         version: 4.0.446(@swc/helpers@0.5.15)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -1083,6 +1226,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -1099,6 +1245,9 @@ importers:
       "@inspect/llm":
         specifier: workspace:*
         version: link:../llm
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -1139,6 +1288,9 @@ importers:
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -1158,6 +1310,9 @@ importers:
       "@inspect/session-recording":
         specifier: workspace:*
         version: link:../session-recording
+      "@playwright/browser-webkit":
+        specifier: ^1.59.1
+        version: 1.59.1
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
@@ -2277,6 +2432,18 @@ packages:
         integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==,
       }
 
+  "@lezer/common@1.5.1":
+    resolution:
+      {
+        integrity: sha512-6YRVG9vBkaY7p1IVxL4s44n5nUnaNnGM2/AckNgYOnxTG2kWh1vR8BMxPseWPjRNpb5VtXnMpeYAEAADoRV1Iw==,
+      }
+
+  "@lezer/lr@1.4.8":
+    resolution:
+      {
+        integrity: sha512-bPWa0Pgx69ylNlMlPvBPryqeLYQjyJjqPx+Aupm5zydLIF3NE+6MMLT8Yi23Bd9cif9VS00aUebn+6fDIGBcDA==,
+      }
+
   "@libsql/darwin-arm64@0.5.29":
     resolution:
       {
@@ -2345,6 +2512,54 @@ packages:
     resolution:
       {
         integrity: sha512-4/0CvEdhi6+KjMxMaVbFM2n2Z44escBRoEYpR+gZg64DdetzGnYm8mcNLcoySaDJZNaBd6wz5DNdgRmcI4hXcg==,
+      }
+    cpu: [x64]
+    os: [win32]
+
+  "@lmdb/lmdb-darwin-arm64@2.8.5":
+    resolution:
+      {
+        integrity: sha512-KPDeVScZgA1oq0CiPBcOa3kHIqU+pTOwRFDIhxvmf8CTNvqdZQYp5cCKW0bUk69VygB2PuTiINFWbY78aR2pQw==,
+      }
+    cpu: [arm64]
+    os: [darwin]
+
+  "@lmdb/lmdb-darwin-x64@2.8.5":
+    resolution:
+      {
+        integrity: sha512-w/sLhN4T7MW1nB3R/U8WK5BgQLz904wh+/SmA2jD8NnF7BLLoUgflCNxOeSPOWp8geP6nP/+VjWzZVip7rZ1ug==,
+      }
+    cpu: [x64]
+    os: [darwin]
+
+  "@lmdb/lmdb-linux-arm64@2.8.5":
+    resolution:
+      {
+        integrity: sha512-vtbZRHH5UDlL01TT5jB576Zox3+hdyogvpcbvVJlmU5PdL3c5V7cj1EODdh1CHPksRl+cws/58ugEHi8bcj4Ww==,
+      }
+    cpu: [arm64]
+    os: [linux]
+
+  "@lmdb/lmdb-linux-arm@2.8.5":
+    resolution:
+      {
+        integrity: sha512-c0TGMbm2M55pwTDIfkDLB6BpIsgxV4PjYck2HiOX+cy/JWiBXz32lYbarPqejKs9Flm7YVAKSILUducU9g2RVg==,
+      }
+    cpu: [arm]
+    os: [linux]
+
+  "@lmdb/lmdb-linux-x64@2.8.5":
+    resolution:
+      {
+        integrity: sha512-Xkc8IUx9aEhP0zvgeKy7IQ3ReX2N8N1L0WPcQwnZweWmOuKfwpS3GRIYqLtK5za/w3E60zhFfNdS+3pBZPytqQ==,
+      }
+    cpu: [x64]
+    os: [linux]
+
+  "@lmdb/lmdb-win32-x64@2.8.5":
+    resolution:
+      {
+        integrity: sha512-4wvrf5BgnR8RpogHhtpCPJMKBmvyZPhhUtEwMJbXh0ni2BucpfF07jlmyM11zRqQ2XIq6PbC2j7W7UCCcm1rRQ==,
       }
     cpu: [x64]
     os: [win32]
@@ -2450,6 +2665,13 @@ packages:
       {
         integrity: sha512-RraNY9SCcx4KZV0Dh6BEW6XEW2swkqYca74pkFFRw6hHItSHiy+O/xMnpbofjYbzXj0tSpBGthUF1hHTsr3vIQ==,
       }
+
+  "@mischnic/json-sourcemap@0.1.1":
+    resolution:
+      {
+        integrity: sha512-iA7+tyVqfrATAIsIRWQG+a7ZLLD0VaOCKV2Wd/v4mqIU3J9c4jx9p7S0nw1XH3gJCKNBOOwACOPYYSUu9pgT+w==,
+      }
+    engines: { node: ">=12.0.0" }
 
   "@modelcontextprotocol/sdk@1.29.0":
     resolution:
@@ -3333,6 +3555,367 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  "@parcel/bundler-default@2.16.4":
+    resolution:
+      {
+        integrity: sha512-Nb8peNvhfm1+660CLwssWh4weY+Mv6vEGS6GPKqzJmTMw50udi0eS1YuWFzvmhSiu1KsYcUD37mqQ1LuIDtWoA==,
+      }
+    engines: { node: ">= 16.0.0", parcel: ^2.16.4 }
+
+  "@parcel/cache@2.16.4":
+    resolution:
+      {
+        integrity: sha512-+uCyeElSga2MBbmbXpIj/WVKH7TByCrKaxtHbelfKKIJpYMgEHVjO4cuc7GUfTrUAmRUS8ZGvnX7Etgq6/jQhw==,
+      }
+    engines: { node: ">= 16.0.0" }
+    peerDependencies:
+      "@parcel/core": ^2.16.4
+
+  "@parcel/codeframe@2.16.4":
+    resolution:
+      {
+        integrity: sha512-s64aMfOJoPrXhKH+Y98ahX0O8aXWvTR+uNlOaX4yFkpr4FFDnviLcGngDe/Yo4Qq2FJZ0P6dNswbJTUH9EGxkQ==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/core@2.16.4":
+    resolution:
+      {
+        integrity: sha512-a0CgrW5A5kwuSu5J1RFRoMQaMs9yagvfH2jJMYVw56+/7NRI4KOtu612SG9Y1ERWfY55ZwzyFxtLWvD6LO+Anw==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/diagnostic@2.16.4":
+    resolution:
+      {
+        integrity: sha512-YN5CfX7lFd6yRLxyZT4Sj3sR6t7nnve4TdXSIqapXzQwL7Bw+sj79D95wTq2rCm3mzk5SofGxFAXul2/nG6gcQ==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/events@2.16.4":
+    resolution:
+      {
+        integrity: sha512-slWQkBRAA7o0cN0BLEd+yCckPmlVRVhBZn5Pn6ktm4EzEtrqoMzMeJOxxH8TXaRzrQDYnTcnYIHFgXWd4kkUfg==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/feature-flags@2.16.4":
+    resolution:
+      {
+        integrity: sha512-nYdx53siKPLYikHHxfzgjzzgxdrjquK6DMnuSgOTyIdRG4VHdEN0+NqKijRLuVgiUFo/dtxc2h+amwqFENMw8w==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/fs@2.16.4":
+    resolution:
+      {
+        integrity: sha512-maCMOiVn7oJYZlqlfxgLne8n6tSktIT1k0AeyBp4UGWCXyeJUJ+nL7QYShFpKNLtMLeF0cEtgwRAknWzbcDS1g==,
+      }
+    engines: { node: ">= 16.0.0" }
+    peerDependencies:
+      "@parcel/core": ^2.16.4
+
+  "@parcel/graph@3.6.4":
+    resolution:
+      {
+        integrity: sha512-Cj9yV+/k88kFhE+D+gz0YuNRpvNOCVDskO9pFqkcQhGbsGq6kg2XpZ9V7HlYraih31xf8Vb589bZOwjKIiHixQ==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/logger@2.16.4":
+    resolution:
+      {
+        integrity: sha512-QR8QLlKo7xAy9JBpPDAh0RvluaixqPCeyY7Fvo2K7hrU3r85vBNNi06pHiPbWoDmB4x1+QoFwMaGnJOHR+/fMA==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/markdown-ansi@2.16.4":
+    resolution:
+      {
+        integrity: sha512-0+oQApAVF3wMcQ6d1ZfZ0JsRzaMUYj9e4U+naj6YEsFsFGOPp+pQYKXBf1bobQeeB7cPKPT3SUHxFqced722Hw==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/node-resolver-core@3.7.4":
+    resolution:
+      {
+        integrity: sha512-b3VDG+um6IWW5CTod6M9hQsTX5mdIelKmam7mzxzgqg4j5hnycgTWqPMc9UxhYoUY/Q/PHfWepccNcKtvP5JiA==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/package-manager@2.16.4":
+    resolution:
+      {
+        integrity: sha512-obWv9gZgdnkT3Kd+fBkKjhdNEY7zfOP5gVaox5i4nQstVCaVnDlMv5FwLEXwehL+WbwEcGyEGGxOHHkAFKk7Cg==,
+      }
+    engines: { node: ">= 16.0.0" }
+    peerDependencies:
+      "@parcel/core": ^2.16.4
+
+  "@parcel/plugin@2.16.4":
+    resolution:
+      {
+        integrity: sha512-aN2VQoRGC1eB41ZCDbPR/Sp0yKOxe31oemzPx1nJzOuebK2Q6FxSrJ9Bjj9j/YCaLzDtPwelsuLOazzVpXJ6qg==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/profiler@2.16.4":
+    resolution:
+      {
+        integrity: sha512-R3JhfcnoReTv2sVFHPR2xKZvs3d3IRrBl9sWmAftbIJFwT4rU70/W7IdwfaJVkD/6PzHq9mcgOh1WKL4KAxPdA==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/rust-darwin-arm64@2.16.4":
+    resolution:
+      {
+        integrity: sha512-P3Se36H9EO1fOlwXqQNQ+RsVKTGn5ztRSUGbLcT8ba6oOMmU1w7J4R810GgsCbwCuF10TJNUMkuD3Q2Sz15Q3Q==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [arm64]
+    os: [darwin]
+
+  "@parcel/rust-darwin-x64@2.16.4":
+    resolution:
+      {
+        integrity: sha512-8aNKNyPIx3EthYpmVJevIdHmFsOApXAEYGi3HU69jTxLgSIfyEHDdGE9lEsMvhSrd/SSo4/euAtiV+pqK04wnA==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [x64]
+    os: [darwin]
+
+  "@parcel/rust-linux-arm-gnueabihf@2.16.4":
+    resolution:
+      {
+        integrity: sha512-QrvqiSHaWRLc0JBHgUHVvDthfWSkA6AFN+ikV1UGENv4j2r/QgvuwJiG0VHrsL6pH5dRqj0vvngHzEgguke9DA==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [arm]
+    os: [linux]
+
+  "@parcel/rust-linux-arm64-gnu@2.16.4":
+    resolution:
+      {
+        integrity: sha512-f3gBWQHLHRUajNZi3SMmDQiEx54RoRbXtZYQNuBQy7+NolfFcgb1ik3QhkT7xovuTF/LBmaqP3UFy0PxvR/iwQ==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [arm64]
+    os: [linux]
+
+  "@parcel/rust-linux-arm64-musl@2.16.4":
+    resolution:
+      {
+        integrity: sha512-cwml18RNKsBwHyZnrZg4jpecXkWjaY/mCArocWUxkFXjjB97L56QWQM9W86f2/Y3HcFcnIGJwx1SDDKJrV6OIA==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [arm64]
+    os: [linux]
+
+  "@parcel/rust-linux-x64-gnu@2.16.4":
+    resolution:
+      {
+        integrity: sha512-0xIjQaN8hiG0F9R8coPYidHslDIrbfOS/qFy5GJNbGA3S49h61wZRBMQqa7JFW4+2T8R0J9j0SKHhLXpbLXrIg==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [x64]
+    os: [linux]
+
+  "@parcel/rust-linux-x64-musl@2.16.4":
+    resolution:
+      {
+        integrity: sha512-fYn21GIecHK9RoZPKwT9NOwxwl3Gy3RYPR6zvsUi0+hpFo19Ph9EzFXN3lT8Pi5KiwQMCU4rsLb5HoWOBM1FeA==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [x64]
+    os: [linux]
+
+  "@parcel/rust-win32-x64-msvc@2.16.4":
+    resolution:
+      {
+        integrity: sha512-TcpWC3I1mJpfP2++018lgvM7UX0P8IrzNxceBTHUKEIDMwmAYrUKAQFiaU0j1Ldqk6yP8SPZD3cvphumsYpJOQ==,
+      }
+    engines: { node: ">= 10" }
+    cpu: [x64]
+    os: [win32]
+
+  "@parcel/rust@2.16.4":
+    resolution:
+      {
+        integrity: sha512-RBMKt9rCdv6jr4vXG6LmHtxzO5TuhQvXo1kSoSIF7fURRZ81D1jzBtLxwLmfxCPsofJNqWwdhy5vIvisX+TLlQ==,
+      }
+    engines: { node: ">= 16.0.0" }
+    peerDependencies:
+      napi-wasm: ^1.1.2
+    peerDependenciesMeta:
+      napi-wasm:
+        optional: true
+
+  "@parcel/source-map@2.1.1":
+    resolution:
+      {
+        integrity: sha512-Ejx1P/mj+kMjQb8/y5XxDUn4reGdr+WyKYloBljpppUy8gs42T+BNoEOuRYqDVdgPc6NxduzIDoJS9pOFfV5Ew==,
+      }
+    engines: { node: ^12.18.3 || >=14 }
+
+  "@parcel/types-internal@2.16.4":
+    resolution:
+      {
+        integrity: sha512-PE6Qmt5cjzBxX+6MPLiF7r+twoC+V9Skt3zyuBQ+H1c0i9o07Bbz2NKX10nvlPukfmW6Fu/1RvTLkzBZR1bU6A==,
+      }
+
+  "@parcel/types@2.16.4":
+    resolution:
+      {
+        integrity: sha512-ctx4mBskZHXeDVHg4OjMwx18jfYH9BzI/7yqbDQVGvd5lyA+/oVVzYdpele2J2i2sSaJ87cA8nb57GDQ8kHAqA==,
+      }
+
+  "@parcel/utils@2.16.4":
+    resolution:
+      {
+        integrity: sha512-lkmxQHcHyOWZLbV8t+h2CGZIkPiBurLm/TS5wNT7+tq0qt9KbVwL7FP2K93TbXhLMGTmpI79Bf3qKniPM167Mw==,
+      }
+    engines: { node: ">= 16.0.0" }
+
+  "@parcel/watcher-android-arm64@2.5.6":
+    resolution:
+      {
+        integrity: sha512-YQxSS34tPF/6ZG7r/Ih9xy+kP/WwediEUsqmtf0cuCV5TPPKw/PQHRhueUo6JdeFJaqV3pyjm0GdYjZotbRt/A==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm64]
+    os: [android]
+
+  "@parcel/watcher-darwin-arm64@2.5.6":
+    resolution:
+      {
+        integrity: sha512-Z2ZdrnwyXvvvdtRHLmM4knydIdU9adO3D4n/0cVipF3rRiwP+3/sfzpAwA/qKFL6i1ModaabkU7IbpeMBgiVEA==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm64]
+    os: [darwin]
+
+  "@parcel/watcher-darwin-x64@2.5.6":
+    resolution:
+      {
+        integrity: sha512-HgvOf3W9dhithcwOWX9uDZyn1lW9R+7tPZ4sug+NGrGIo4Rk1hAXLEbcH1TQSqxts0NYXXlOWqVpvS1SFS4fRg==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [x64]
+    os: [darwin]
+
+  "@parcel/watcher-freebsd-x64@2.5.6":
+    resolution:
+      {
+        integrity: sha512-vJVi8yd/qzJxEKHkeemh7w3YAn6RJCtYlE4HPMoVnCpIXEzSrxErBW5SJBgKLbXU3WdIpkjBTeUNtyBVn8TRng==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [x64]
+    os: [freebsd]
+
+  "@parcel/watcher-linux-arm-glibc@2.5.6":
+    resolution:
+      {
+        integrity: sha512-9JiYfB6h6BgV50CCfasfLf/uvOcJskMSwcdH1PHH9rvS1IrNy8zad6IUVPVUfmXr+u+Km9IxcfMLzgdOudz9EQ==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm]
+    os: [linux]
+
+  "@parcel/watcher-linux-arm-musl@2.5.6":
+    resolution:
+      {
+        integrity: sha512-Ve3gUCG57nuUUSyjBq/MAM0CzArtuIOxsBdQ+ftz6ho8n7s1i9E1Nmk/xmP323r2YL0SONs1EuwqBp2u1k5fxg==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm]
+    os: [linux]
+
+  "@parcel/watcher-linux-arm64-glibc@2.5.6":
+    resolution:
+      {
+        integrity: sha512-f2g/DT3NhGPdBmMWYoxixqYr3v/UXcmLOYy16Bx0TM20Tchduwr4EaCbmxh1321TABqPGDpS8D/ggOTaljijOA==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm64]
+    os: [linux]
+
+  "@parcel/watcher-linux-arm64-musl@2.5.6":
+    resolution:
+      {
+        integrity: sha512-qb6naMDGlbCwdhLj6hgoVKJl2odL34z2sqkC7Z6kzir8b5W65WYDpLB6R06KabvZdgoHI/zxke4b3zR0wAbDTA==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm64]
+    os: [linux]
+
+  "@parcel/watcher-linux-x64-glibc@2.5.6":
+    resolution:
+      {
+        integrity: sha512-kbT5wvNQlx7NaGjzPFu8nVIW1rWqV780O7ZtkjuWaPUgpv2NMFpjYERVi0UYj1msZNyCzGlaCWEtzc+exjMGbQ==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [x64]
+    os: [linux]
+
+  "@parcel/watcher-linux-x64-musl@2.5.6":
+    resolution:
+      {
+        integrity: sha512-1JRFeC+h7RdXwldHzTsmdtYR/Ku8SylLgTU/reMuqdVD7CtLwf0VR1FqeprZ0eHQkO0vqsbvFLXUmYm/uNKJBg==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [x64]
+    os: [linux]
+
+  "@parcel/watcher-win32-arm64@2.5.6":
+    resolution:
+      {
+        integrity: sha512-3ukyebjc6eGlw9yRt678DxVF7rjXatWiHvTXqphZLvo7aC5NdEgFufVwjFfY51ijYEWpXbqF5jtrK275z52D4Q==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [arm64]
+    os: [win32]
+
+  "@parcel/watcher-win32-ia32@2.5.6":
+    resolution:
+      {
+        integrity: sha512-k35yLp1ZMwwee3Ez/pxBi5cf4AoBKYXj00CZ80jUz5h8prpiaQsiRPKQMxoLstNuqe2vR4RNPEAEcjEFzhEz/g==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [ia32]
+    os: [win32]
+
+  "@parcel/watcher-win32-x64@2.5.6":
+    resolution:
+      {
+        integrity: sha512-hbQlYcCq5dlAX9Qx+kFb0FHue6vbjlf0FrNzSKdYK2APUf7tGfGxQCk2ihEREmbR6ZMc0MVAD5RIX/41gpUzTw==,
+      }
+    engines: { node: ">= 10.0.0" }
+    cpu: [x64]
+    os: [win32]
+
+  "@parcel/watcher@2.5.6":
+    resolution:
+      {
+        integrity: sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ==,
+      }
+    engines: { node: ">= 10.0.0" }
+
+  "@parcel/workers@2.16.4":
+    resolution:
+      {
+        integrity: sha512-dkBEWqnHXDZnRbTZouNt4uEGIslJT+V0c8OH1MPOfjISp1ucD6/u9ET8k9d/PxS9h1hL53og0SpBuuSEPLDl6A==,
+      }
+    engines: { node: ">= 16.0.0" }
+    peerDependencies:
+      "@parcel/core": ^2.16.4
+
+  "@playwright/browser-webkit@1.59.1":
+    resolution:
+      {
+        integrity: sha512-Nl7dU9Me/yjhcpViRK9RD1m4ZbFmwNMq+XQ36Gl5TUmg8mQGvil/6d6YyZJVLFkhf5dmRx8Dr1aeOYys4Ax4xw==,
+      }
+    engines: { node: ">=18" }
+
   "@pnpm/config.env-replace@1.1.0":
     resolution:
       {
@@ -3915,10 +4498,142 @@ packages:
         integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==,
       }
 
+  "@swc/core-darwin-arm64@1.15.24":
+    resolution:
+      {
+        integrity: sha512-uM5ZGfFXjtvtJ+fe448PVBEbn/CSxS3UAyLj3O9xOqKIWy3S6hPTXSPbszxkSsGDYKi+YFhzAsR4r/eXLxEQ0g==,
+      }
+    engines: { node: ">=10" }
+    cpu: [arm64]
+    os: [darwin]
+
+  "@swc/core-darwin-x64@1.15.24":
+    resolution:
+      {
+        integrity: sha512-fMIb/Zfn929pw25VMBhV7Ji2Dl+lCWtUPNdYJQYOke+00E5fcQ9ynxtP8+qhUo/HZc+mYQb1gJxwHM9vty+lXg==,
+      }
+    engines: { node: ">=10" }
+    cpu: [x64]
+    os: [darwin]
+
+  "@swc/core-linux-arm-gnueabihf@1.15.24":
+    resolution:
+      {
+        integrity: sha512-vOkjsyjjxnoYx3hMEWcGxQrMgnNrRm6WAegBXrN8foHtDAR+zpdhpGF5a4lj1bNPgXAvmysjui8cM1ov/Clkaw==,
+      }
+    engines: { node: ">=10" }
+    cpu: [arm]
+    os: [linux]
+
+  "@swc/core-linux-arm64-gnu@1.15.24":
+    resolution:
+      {
+        integrity: sha512-h/oNu+upkXJ6Cicnq7YGVj9PkdfarLCdQa8l/FlHYvfv8CEiMaeeTnpLU7gSBH/rGxosM6Qkfa/J9mThGF9CLA==,
+      }
+    engines: { node: ">=10" }
+    cpu: [arm64]
+    os: [linux]
+
+  "@swc/core-linux-arm64-musl@1.15.24":
+    resolution:
+      {
+        integrity: sha512-ZpF/pRe1guk6sKzQI9D1jAORtjTdNlyeXn9GDz8ophof/w2WhojRblvSDJaGe7rJjcPN8AaOkhwdRUh7q8oYIg==,
+      }
+    engines: { node: ">=10" }
+    cpu: [arm64]
+    os: [linux]
+
+  "@swc/core-linux-ppc64-gnu@1.15.24":
+    resolution:
+      {
+        integrity: sha512-QZEsZfisHTSJlmyChgDFNmKPb3W6Lhbfo/O76HhIngfEdnQNmukS38/VSe1feho+xkV5A5hETyCbx3sALBZKAQ==,
+      }
+    engines: { node: ">=10" }
+    cpu: [ppc64]
+    os: [linux]
+
+  "@swc/core-linux-s390x-gnu@1.15.24":
+    resolution:
+      {
+        integrity: sha512-DLdJKVsJgglqQrJBuoUYNmzm3leI7kUZhLbZGHv42onfKsGf6JDS3+bzCUQfte/XOqDjh/tmmn1DR/CF/tCJFw==,
+      }
+    engines: { node: ">=10" }
+    cpu: [s390x]
+    os: [linux]
+
+  "@swc/core-linux-x64-gnu@1.15.24":
+    resolution:
+      {
+        integrity: sha512-IpLYfposPA/XLxYOKpRfeccl1p5dDa3+okZDHHTchBkXEaVCnq5MADPmIWwIYj1tudt7hORsEHccG5no6IUQRw==,
+      }
+    engines: { node: ">=10" }
+    cpu: [x64]
+    os: [linux]
+
+  "@swc/core-linux-x64-musl@1.15.24":
+    resolution:
+      {
+        integrity: sha512-JHy3fMSc0t/EPWgo74+OK5TGr51aElnzqfUPaiRf2qJ/BfX5CUCfMiWVBuhI7qmVMBnk1jTRnL/xZnOSHDPLYg==,
+      }
+    engines: { node: ">=10" }
+    cpu: [x64]
+    os: [linux]
+
+  "@swc/core-win32-arm64-msvc@1.15.24":
+    resolution:
+      {
+        integrity: sha512-Txj+qUH1z2bUd1P3JvwByfjKFti3cptlAxhWgmunBUUxy/IW3CXLZ6l6Gk4liANadKkU71nIU1X30Z5vpMT3BA==,
+      }
+    engines: { node: ">=10" }
+    cpu: [arm64]
+    os: [win32]
+
+  "@swc/core-win32-ia32-msvc@1.15.24":
+    resolution:
+      {
+        integrity: sha512-15D/nl3XwrhFpMv+MADFOiVwv3FvH9j8c6Rf8EXBT3Q5LoMh8YnDnSgPYqw1JzPnksvsBX6QPXLiPqmcR/Z4qQ==,
+      }
+    engines: { node: ">=10" }
+    cpu: [ia32]
+    os: [win32]
+
+  "@swc/core-win32-x64-msvc@1.15.24":
+    resolution:
+      {
+        integrity: sha512-PR0PlTlPra2JbaDphrOAzm6s0v9rA0F17YzB+XbWD95B4g2cWcZY9LAeTa4xll70VLw9Jr7xBrlohqlQmelMFQ==,
+      }
+    engines: { node: ">=10" }
+    cpu: [x64]
+    os: [win32]
+
+  "@swc/core@1.15.24":
+    resolution:
+      {
+        integrity: sha512-5Hj8aNasue7yusUt8LGCUe/AjM7RMAce8ZoyDyiFwx7Al+GbYKL+yE7g4sJk8vEr1dKIkTRARkNIJENc4CjkBQ==,
+      }
+    engines: { node: ">=10" }
+    peerDependencies:
+      "@swc/helpers": ">=0.5.17"
+    peerDependenciesMeta:
+      "@swc/helpers":
+        optional: true
+
+  "@swc/counter@0.1.3":
+    resolution:
+      {
+        integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==,
+      }
+
   "@swc/helpers@0.5.15":
     resolution:
       {
         integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==,
+      }
+
+  "@swc/types@0.1.26":
+    resolution:
+      {
+        integrity: sha512-lyMwd7WGgG79RS7EERZV3T8wMdmPq3xwyg+1nmAM64kIhx5yl+juO2PYIHb7vTiPgPCj8LYjsNV2T5wiQHUEaw==,
       }
 
   "@tootallnate/once@2.0.0":
@@ -5092,6 +5807,12 @@ packages:
         integrity: sha512-NSTU5WN+fy/L0DDenfE8SXQna4voXuW0FHM7wH8i3/q9khUSchfPbPezO4zSFMnDGIf9YE+mt/RWhZgNRKRIXA==,
       }
 
+  base-x@3.0.11:
+    resolution:
+      {
+        integrity: sha512-xz7wQ8xDhdyP7tQxwdteLYeFfS68tSMNCZ/Y37WJ4bhGfKPpqEIlmIyueQHqOyoPhE6xNUqjzRr8ra0eF9VRvA==,
+      }
+
   base64-arraybuffer@1.0.2:
     resolution:
       {
@@ -5411,6 +6132,13 @@ packages:
         integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==,
       }
     engines: { node: ">=12" }
+
+  clone@2.1.2:
+    resolution:
+      {
+        integrity: sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w==,
+      }
+    engines: { node: ">=0.8" }
 
   cluster-key-slot@1.1.2:
     resolution:
@@ -5835,6 +6563,13 @@ packages:
         integrity: sha512-tE7ztYzXHIeyvc7N+hR3oi7FIbf/NIjVP9hmAt3yMXzrQ072/fpjGLx2GxNxGxUl5V73MEqYzioOMoVhGMJ5cA==,
       }
     engines: { node: ">=10" }
+
+  dotenv-expand@11.0.7:
+    resolution:
+      {
+        integrity: sha512-zIHwmZPRshsCdpMDyVsqGmgyP0yT8GAgXUnkdAoJisxvf33k7yO6OuoKmcTGuXPWSsm8Oh88nZicRLA9Y0rUeA==,
+      }
+    engines: { node: ">=12" }
 
   dotenv-expand@12.0.3:
     resolution:
@@ -7510,6 +8245,7 @@ packages:
       {
         integrity: sha512-8lMP8iMgiBzzoNbAPQ59qdVcj6UaE/Vnm+fiwX4doX4Narook0a4GPKWBEv+CR8a1OwbfkgL18uBfBjWdF0Fzg==,
       }
+    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lightningcss-android-arm64@1.32.0:
@@ -7632,6 +8368,13 @@ packages:
         integrity: sha512-ME4Fb83LgEgwNw96RKNvKV4VTLuXfoKudAmm2lP8Kk87KaMK0/Xrx/aAkMWmT8mDb+3MlFDspfbCs7adjRxA2g==,
       }
     engines: { node: ">=20.0.0" }
+
+  lmdb@2.8.5:
+    resolution:
+      {
+        integrity: sha512-9bMdFfc80S+vSldBmG3HOuLVHnxRdNTlpzR6QDnzqCQtCzGUEAGTzBKYMeIM+I/sU4oZfgbcbS7X7F65/z/oxQ==,
+      }
+    hasBin: true
 
   loader-runner@4.3.1:
     resolution:
@@ -8105,6 +8848,12 @@ packages:
         integrity: sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==,
       }
 
+  node-addon-api@6.1.0:
+    resolution:
+      {
+        integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==,
+      }
+
   node-addon-api@7.1.1:
     resolution:
       {
@@ -8144,6 +8893,13 @@ packages:
         integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==,
       }
     engines: { node: ^12.20.0 || ^14.13.1 || >=16.0.0 }
+
+  node-gyp-build-optional-packages@5.1.1:
+    resolution:
+      {
+        integrity: sha512-+P72GAjVAbTxjjwUmwjVrqrdZROD4nf8KgpBoDxqXXTiYZZt/ud60dE5yvCSr9lRO8e8yv6kgJIC0K0PfZFVQw==,
+      }
+    hasBin: true
 
   node-gyp-build-optional-packages@5.2.2:
     resolution:
@@ -8211,6 +8967,12 @@ packages:
         integrity: sha512-2uUqazuKlTaSI/dC8AzicUck7+IrEaOnN/e0jd3Xtt1KcGpwx30v50mL7oPyr/h9bL3E4aZccVwpwP+5W9Vjkg==,
       }
     deprecated: This package is no longer supported.
+
+  nullthrows@1.1.1:
+    resolution:
+      {
+        integrity: sha512-2vPPEi+Z7WqML2jZYddDIfy5Dqb0r2fze2zTxNNknZaFpVHU3mFB3R+DWeJWGVx0ecvttSGlJTI+WG+8Z4cDWw==,
+      }
 
   number-is-nan@1.0.1:
     resolution:
@@ -8306,6 +9068,12 @@ packages:
         integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==,
       }
     engines: { node: ">= 0.8.0" }
+
+  ordered-binary@1.6.1:
+    resolution:
+      {
+        integrity: sha512-QkCdPooczexPLiXIrbVOPYkR3VO3T6v2OyKRkR1Xbhpy7/LAVXwahnRCgRp78Oe/Ehf0C/HATAxfSr6eA1oX+w==,
+      }
 
   outdent@0.5.0:
     resolution:
@@ -8587,6 +9355,14 @@ packages:
     resolution:
       {
         integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==,
+      }
+    engines: { node: ">=18" }
+    hasBin: true
+
+  playwright-core@1.59.1:
+    resolution:
+      {
+        integrity: sha512-HBV/RJg81z5BiiZ9yPzIiClYV/QMsDCKUyogwH9p3MCP6IYjUFu/MActgYAvK0oWyV9NlwM3GLBjADyWgydVyg==,
       }
     engines: { node: ">=18" }
     hasBin: true
@@ -10120,6 +10896,13 @@ packages:
         integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==,
       }
 
+  utility-types@3.11.0:
+    resolution:
+      {
+        integrity: sha512-6Z7Ma2aVEWisaL6TvBCy7P8rm2LQoPv6dJ7ecIaIixHcwfbJ0x7mWdbcwlIM5IGQxPZSFYeqRCqlOOeKoJYMkw==,
+      }
+    engines: { node: ">= 4" }
+
   uuid@10.0.0:
     resolution:
       {
@@ -10266,6 +11049,12 @@ packages:
         integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==,
       }
     engines: { node: ">=10.13.0" }
+
+  weak-lru-cache@1.2.2:
+    resolution:
+      {
+        integrity: sha512-DEAoo25RfSYMuTGc9vPJzZcZullwIqRDSI9LOy+fkCJPi6hykCnfKaXTuPBDuXAUcqHXyOgFtHNp/kB2FjYHbw==,
+      }
 
   web-streams-polyfill@3.3.3:
     resolution:
@@ -11427,6 +12216,12 @@ snapshots:
 
   "@kwsites/promise-deferred@1.1.1": {}
 
+  "@lezer/common@1.5.1": {}
+
+  "@lezer/lr@1.4.8":
+    dependencies:
+      "@lezer/common": 1.5.1
+
   "@libsql/darwin-arm64@0.5.29":
     optional: true
 
@@ -11452,6 +12247,24 @@ snapshots:
     optional: true
 
   "@libsql/win32-x64-msvc@0.5.29":
+    optional: true
+
+  "@lmdb/lmdb-darwin-arm64@2.8.5":
+    optional: true
+
+  "@lmdb/lmdb-darwin-x64@2.8.5":
+    optional: true
+
+  "@lmdb/lmdb-linux-arm64@2.8.5":
+    optional: true
+
+  "@lmdb/lmdb-linux-arm@2.8.5":
+    optional: true
+
+  "@lmdb/lmdb-linux-x64@2.8.5":
+    optional: true
+
+  "@lmdb/lmdb-win32-x64@2.8.5":
     optional: true
 
   "@lvce-editor/verror@1.7.0": {}
@@ -11513,6 +12326,12 @@ snapshots:
       mediabunny: 1.39.2
 
   "@medv/finder@4.0.2": {}
+
+  "@mischnic/json-sourcemap@0.1.1":
+    dependencies:
+      "@lezer/common": 1.5.1
+      "@lezer/lr": 1.4.8
+      json5: 2.2.3
 
   "@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)":
     dependencies:
@@ -12067,6 +12886,284 @@ snapshots:
   "@oxlint/binding-win32-x64-msvc@1.58.0":
     optional: true
 
+  "@parcel/bundler-default@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/graph": 3.6.4
+      "@parcel/plugin": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/rust": 2.16.4
+      "@parcel/utils": 2.16.4
+      nullthrows: 1.1.1
+    transitivePeerDependencies:
+      - "@parcel/core"
+      - napi-wasm
+
+  "@parcel/cache@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/core": 2.16.4
+      "@parcel/fs": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/logger": 2.16.4
+      "@parcel/utils": 2.16.4
+      lmdb: 2.8.5
+    transitivePeerDependencies:
+      - napi-wasm
+
+  "@parcel/codeframe@2.16.4":
+    dependencies:
+      chalk: 4.1.2
+
+  "@parcel/core@2.16.4":
+    dependencies:
+      "@mischnic/json-sourcemap": 0.1.1
+      "@parcel/cache": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/events": 2.16.4
+      "@parcel/feature-flags": 2.16.4
+      "@parcel/fs": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/graph": 3.6.4
+      "@parcel/logger": 2.16.4
+      "@parcel/package-manager": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/plugin": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/profiler": 2.16.4
+      "@parcel/rust": 2.16.4
+      "@parcel/source-map": 2.1.1
+      "@parcel/types": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/utils": 2.16.4
+      "@parcel/workers": 2.16.4(@parcel/core@2.16.4)
+      base-x: 3.0.11
+      browserslist: 4.28.2
+      clone: 2.1.2
+      dotenv: 16.6.1
+      dotenv-expand: 11.0.7
+      json5: 2.2.3
+      msgpackr: 1.11.9
+      nullthrows: 1.1.1
+      semver: 7.7.4
+    transitivePeerDependencies:
+      - "@swc/helpers"
+      - napi-wasm
+
+  "@parcel/diagnostic@2.16.4":
+    dependencies:
+      "@mischnic/json-sourcemap": 0.1.1
+      nullthrows: 1.1.1
+
+  "@parcel/events@2.16.4": {}
+
+  "@parcel/feature-flags@2.16.4": {}
+
+  "@parcel/fs@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/core": 2.16.4
+      "@parcel/feature-flags": 2.16.4
+      "@parcel/rust": 2.16.4
+      "@parcel/types-internal": 2.16.4
+      "@parcel/utils": 2.16.4
+      "@parcel/watcher": 2.5.6
+      "@parcel/workers": 2.16.4(@parcel/core@2.16.4)
+    transitivePeerDependencies:
+      - napi-wasm
+
+  "@parcel/graph@3.6.4":
+    dependencies:
+      "@parcel/feature-flags": 2.16.4
+      nullthrows: 1.1.1
+
+  "@parcel/logger@2.16.4":
+    dependencies:
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/events": 2.16.4
+
+  "@parcel/markdown-ansi@2.16.4":
+    dependencies:
+      chalk: 4.1.2
+
+  "@parcel/node-resolver-core@3.7.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@mischnic/json-sourcemap": 0.1.1
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/fs": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/rust": 2.16.4
+      "@parcel/utils": 2.16.4
+      nullthrows: 1.1.1
+      semver: 7.7.4
+    transitivePeerDependencies:
+      - "@parcel/core"
+      - napi-wasm
+
+  "@parcel/package-manager@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/core": 2.16.4
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/fs": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/logger": 2.16.4
+      "@parcel/node-resolver-core": 3.7.4(@parcel/core@2.16.4)
+      "@parcel/types": 2.16.4(@parcel/core@2.16.4)
+      "@parcel/utils": 2.16.4
+      "@parcel/workers": 2.16.4(@parcel/core@2.16.4)
+      "@swc/core": 1.15.24
+      semver: 7.7.4
+    transitivePeerDependencies:
+      - "@swc/helpers"
+      - napi-wasm
+
+  "@parcel/plugin@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/types": 2.16.4(@parcel/core@2.16.4)
+    transitivePeerDependencies:
+      - "@parcel/core"
+      - napi-wasm
+
+  "@parcel/profiler@2.16.4":
+    dependencies:
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/events": 2.16.4
+      "@parcel/types-internal": 2.16.4
+      chrome-trace-event: 1.0.4
+
+  "@parcel/rust-darwin-arm64@2.16.4":
+    optional: true
+
+  "@parcel/rust-darwin-x64@2.16.4":
+    optional: true
+
+  "@parcel/rust-linux-arm-gnueabihf@2.16.4":
+    optional: true
+
+  "@parcel/rust-linux-arm64-gnu@2.16.4":
+    optional: true
+
+  "@parcel/rust-linux-arm64-musl@2.16.4":
+    optional: true
+
+  "@parcel/rust-linux-x64-gnu@2.16.4":
+    optional: true
+
+  "@parcel/rust-linux-x64-musl@2.16.4":
+    optional: true
+
+  "@parcel/rust-win32-x64-msvc@2.16.4":
+    optional: true
+
+  "@parcel/rust@2.16.4":
+    optionalDependencies:
+      "@parcel/rust-darwin-arm64": 2.16.4
+      "@parcel/rust-darwin-x64": 2.16.4
+      "@parcel/rust-linux-arm-gnueabihf": 2.16.4
+      "@parcel/rust-linux-arm64-gnu": 2.16.4
+      "@parcel/rust-linux-arm64-musl": 2.16.4
+      "@parcel/rust-linux-x64-gnu": 2.16.4
+      "@parcel/rust-linux-x64-musl": 2.16.4
+      "@parcel/rust-win32-x64-msvc": 2.16.4
+
+  "@parcel/source-map@2.1.1":
+    dependencies:
+      detect-libc: 1.0.3
+
+  "@parcel/types-internal@2.16.4":
+    dependencies:
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/feature-flags": 2.16.4
+      "@parcel/source-map": 2.1.1
+      utility-types: 3.11.0
+
+  "@parcel/types@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/types-internal": 2.16.4
+      "@parcel/workers": 2.16.4(@parcel/core@2.16.4)
+    transitivePeerDependencies:
+      - "@parcel/core"
+      - napi-wasm
+
+  "@parcel/utils@2.16.4":
+    dependencies:
+      "@parcel/codeframe": 2.16.4
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/logger": 2.16.4
+      "@parcel/markdown-ansi": 2.16.4
+      "@parcel/rust": 2.16.4
+      "@parcel/source-map": 2.1.1
+      chalk: 4.1.2
+      nullthrows: 1.1.1
+    transitivePeerDependencies:
+      - napi-wasm
+
+  "@parcel/watcher-android-arm64@2.5.6":
+    optional: true
+
+  "@parcel/watcher-darwin-arm64@2.5.6":
+    optional: true
+
+  "@parcel/watcher-darwin-x64@2.5.6":
+    optional: true
+
+  "@parcel/watcher-freebsd-x64@2.5.6":
+    optional: true
+
+  "@parcel/watcher-linux-arm-glibc@2.5.6":
+    optional: true
+
+  "@parcel/watcher-linux-arm-musl@2.5.6":
+    optional: true
+
+  "@parcel/watcher-linux-arm64-glibc@2.5.6":
+    optional: true
+
+  "@parcel/watcher-linux-arm64-musl@2.5.6":
+    optional: true
+
+  "@parcel/watcher-linux-x64-glibc@2.5.6":
+    optional: true
+
+  "@parcel/watcher-linux-x64-musl@2.5.6":
+    optional: true
+
+  "@parcel/watcher-win32-arm64@2.5.6":
+    optional: true
+
+  "@parcel/watcher-win32-ia32@2.5.6":
+    optional: true
+
+  "@parcel/watcher-win32-x64@2.5.6":
+    optional: true
+
+  "@parcel/watcher@2.5.6":
+    dependencies:
+      detect-libc: 2.1.2
+      is-glob: 4.0.3
+      node-addon-api: 7.1.1
+      picomatch: 4.0.4
+    optionalDependencies:
+      "@parcel/watcher-android-arm64": 2.5.6
+      "@parcel/watcher-darwin-arm64": 2.5.6
+      "@parcel/watcher-darwin-x64": 2.5.6
+      "@parcel/watcher-freebsd-x64": 2.5.6
+      "@parcel/watcher-linux-arm-glibc": 2.5.6
+      "@parcel/watcher-linux-arm-musl": 2.5.6
+      "@parcel/watcher-linux-arm64-glibc": 2.5.6
+      "@parcel/watcher-linux-arm64-musl": 2.5.6
+      "@parcel/watcher-linux-x64-glibc": 2.5.6
+      "@parcel/watcher-linux-x64-musl": 2.5.6
+      "@parcel/watcher-win32-arm64": 2.5.6
+      "@parcel/watcher-win32-ia32": 2.5.6
+      "@parcel/watcher-win32-x64": 2.5.6
+
+  "@parcel/workers@2.16.4(@parcel/core@2.16.4)":
+    dependencies:
+      "@parcel/core": 2.16.4
+      "@parcel/diagnostic": 2.16.4
+      "@parcel/logger": 2.16.4
+      "@parcel/profiler": 2.16.4
+      "@parcel/types-internal": 2.16.4
+      "@parcel/utils": 2.16.4
+      nullthrows: 1.1.1
+    transitivePeerDependencies:
+      - napi-wasm
+
+  "@playwright/browser-webkit@1.59.1":
+    dependencies:
+      playwright-core: 1.59.1
+
   "@pnpm/config.env-replace@1.1.0": {}
 
   "@pnpm/network.ca-file@1.0.2":
@@ -12460,10 +13557,70 @@ snapshots:
 
   "@standard-schema/spec@1.1.0": {}
 
+  "@swc/core-darwin-arm64@1.15.24":
+    optional: true
+
+  "@swc/core-darwin-x64@1.15.24":
+    optional: true
+
+  "@swc/core-linux-arm-gnueabihf@1.15.24":
+    optional: true
+
+  "@swc/core-linux-arm64-gnu@1.15.24":
+    optional: true
+
+  "@swc/core-linux-arm64-musl@1.15.24":
+    optional: true
+
+  "@swc/core-linux-ppc64-gnu@1.15.24":
+    optional: true
+
+  "@swc/core-linux-s390x-gnu@1.15.24":
+    optional: true
+
+  "@swc/core-linux-x64-gnu@1.15.24":
+    optional: true
+
+  "@swc/core-linux-x64-musl@1.15.24":
+    optional: true
+
+  "@swc/core-win32-arm64-msvc@1.15.24":
+    optional: true
+
+  "@swc/core-win32-ia32-msvc@1.15.24":
+    optional: true
+
+  "@swc/core-win32-x64-msvc@1.15.24":
+    optional: true
+
+  "@swc/core@1.15.24":
+    dependencies:
+      "@swc/counter": 0.1.3
+      "@swc/types": 0.1.26
+    optionalDependencies:
+      "@swc/core-darwin-arm64": 1.15.24
+      "@swc/core-darwin-x64": 1.15.24
+      "@swc/core-linux-arm-gnueabihf": 1.15.24
+      "@swc/core-linux-arm64-gnu": 1.15.24
+      "@swc/core-linux-arm64-musl": 1.15.24
+      "@swc/core-linux-ppc64-gnu": 1.15.24
+      "@swc/core-linux-s390x-gnu": 1.15.24
+      "@swc/core-linux-x64-gnu": 1.15.24
+      "@swc/core-linux-x64-musl": 1.15.24
+      "@swc/core-win32-arm64-msvc": 1.15.24
+      "@swc/core-win32-ia32-msvc": 1.15.24
+      "@swc/core-win32-x64-msvc": 1.15.24
+
+  "@swc/counter@0.1.3": {}
+
   "@swc/helpers@0.5.15":
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  "@swc/types@0.1.26":
+    dependencies:
+      "@swc/counter": 0.1.3
 
   "@tootallnate/once@2.0.0": {}
 
@@ -13149,6 +14306,10 @@ snapshots:
     dependencies:
       bare-path: 3.0.0
 
+  base-x@3.0.11:
+    dependencies:
+      safe-buffer: 5.2.1
+
   base64-arraybuffer@1.0.2: {}
 
   base64-js@1.5.1: {}
@@ -13329,6 +14490,8 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
+  clone@2.1.2: {}
+
   cluster-key-slot@1.1.2: {}
 
   code-excerpt@4.0.0:
@@ -13476,8 +14639,7 @@ snapshots:
 
   detect-indent@6.1.0: {}
 
-  detect-libc@1.0.3:
-    optional: true
+  detect-libc@1.0.3: {}
 
   detect-libc@2.0.2: {}
 
@@ -13537,6 +14699,10 @@ snapshots:
   dot-prop@6.0.1:
     dependencies:
       is-obj: 2.0.0
+
+  dotenv-expand@11.0.7:
+    dependencies:
+      dotenv: 16.6.1
 
   dotenv-expand@12.0.3:
     dependencies:
@@ -14725,6 +15891,21 @@ snapshots:
       rfdc: 1.4.1
       wrap-ansi: 9.0.2
 
+  lmdb@2.8.5:
+    dependencies:
+      msgpackr: 1.11.9
+      node-addon-api: 6.1.0
+      node-gyp-build-optional-packages: 5.1.1
+      ordered-binary: 1.6.1
+      weak-lru-cache: 1.2.2
+    optionalDependencies:
+      "@lmdb/lmdb-darwin-arm64": 2.8.5
+      "@lmdb/lmdb-darwin-x64": 2.8.5
+      "@lmdb/lmdb-linux-arm": 2.8.5
+      "@lmdb/lmdb-linux-arm64": 2.8.5
+      "@lmdb/lmdb-linux-x64": 2.8.5
+      "@lmdb/lmdb-win32-x64": 2.8.5
+
   loader-runner@4.3.1: {}
 
   loader-utils@2.0.4:
@@ -14964,8 +16145,9 @@ snapshots:
   node-addon-api@4.3.0:
     optional: true
 
-  node-addon-api@7.1.1:
-    optional: true
+  node-addon-api@6.1.0: {}
+
+  node-addon-api@7.1.1: {}
 
   node-addon-api@8.7.0: {}
 
@@ -14980,6 +16162,10 @@ snapshots:
       data-uri-to-buffer: 4.0.1
       fetch-blob: 3.2.0
       formdata-polyfill: 4.0.10
+
+  node-gyp-build-optional-packages@5.1.1:
+    dependencies:
+      detect-libc: 2.1.2
 
   node-gyp-build-optional-packages@5.2.2:
     dependencies:
@@ -15022,6 +16208,8 @@ snapshots:
       gauge: 2.7.4
       set-blocking: 2.0.0
     optional: true
+
+  nullthrows@1.1.1: {}
 
   number-is-nan@1.0.1:
     optional: true
@@ -15075,6 +16263,8 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
       word-wrap: 1.2.5
+
+  ordered-binary@1.6.1: {}
 
   outdent@0.5.0: {}
 
@@ -15252,6 +16442,8 @@ snapshots:
   pkce-challenge@5.0.1: {}
 
   playwright-core@1.58.2: {}
+
+  playwright-core@1.59.1: {}
 
   playwright@1.58.2:
     dependencies:
@@ -16262,6 +17454,8 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
+  utility-types@3.11.0: {}
+
   uuid@10.0.0: {}
 
   uuid@11.1.0: {}
@@ -16374,6 +17568,8 @@ snapshots:
     dependencies:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
+
+  weak-lru-cache@1.2.2: {}
 
   web-streams-polyfill@3.3.3: {}
 

@@ -26,9 +26,8 @@ export class TestScheduler extends ServiceMap.Service<
           count: effects.length,
           maxConcurrent: config.maxConcurrent,
         });
-        return yield* Effect.all(effects, {
+        return yield* Effect.forEach(effects, (effect) => effect, {
           concurrency: config.maxConcurrent,
-          discard: false,
         });
       });
       return { schedule } as const;

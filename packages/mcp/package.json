@@ -23,11 +23,12 @@
   },
   "dependencies": {
     "@inspect/browser": "workspace:*",
+    "@inspect/observability": "workspace:*",
     "@inspect/shared": "workspace:*",
-    "@inspect/observability": "workspace:*"
+    "@playwright/browser-webkit": "^1.59.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

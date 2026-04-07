@@ -58,6 +58,12 @@ export type SafariBrowser = {
   cookieFilePath: string | null;
 };
 
-export type Browser = ChromiumBrowser | FirefoxBrowser | SafariBrowser;
+export type WebKitBrowser = {
+  _tag: "WebKitBrowser";
+  key: "webkit";
+  cookieFilePath: string | null;
+};
+
+export type Browser = ChromiumBrowser | FirefoxBrowser | SafariBrowser | WebKitBrowser;
 
 export const browserKeyOf = (browser: Browser): BrowserKey => browser.key;
