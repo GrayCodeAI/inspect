@@ -65,6 +65,9 @@ importers:
 
   apps/cli:
     dependencies:
+      "@inspect/a11y":
+        specifier: workspace:*
+        version: link:../../packages/a11y
       "@inspect/agent":
         specifier: workspace:*
         version: link:../../packages/agent
@@ -74,6 +77,9 @@ importers:
       "@inspect/browser":
         specifier: workspace:*
         version: link:../../packages/browser
+      "@inspect/chaos":
+        specifier: workspace:*
+        version: link:../../packages/chaos
       "@inspect/core":
         specifier: workspace:*
         version: link:../../packages/core
@@ -86,6 +92,9 @@ importers:
       "@inspect/enterprise":
         specifier: workspace:*
         version: link:../../packages/enterprise
+      "@inspect/lighthouse-quality":
+        specifier: workspace:*
+        version: link:../../packages/lighthouse-quality
       "@inspect/network":
         specifier: workspace:*
         version: link:../../packages/network
@@ -98,6 +107,12 @@ importers:
       "@inspect/reporter":
         specifier: workspace:*
         version: link:../../packages/reporter
+      "@inspect/resilience":
+        specifier: workspace:*
+        version: link:../../packages/resilience
+      "@inspect/security-scanner":
+        specifier: workspace:*
+        version: link:../../packages/security-scanner
       "@inspect/shared":
         specifier: workspace:*
         version: link:../../packages/shared

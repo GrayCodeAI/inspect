@@ -44,7 +44,7 @@ async function runA11y(url: string | undefined, options: A11yOptions): Promise<v
 
     // Run accessibility audit
     console.log(chalk.dim("Running axe-core audit..."));
-    const { AccessibilityAuditor } = await import("@inspect/quality");
+    const { AccessibilityAuditor } = await import("@inspect/a11y");
     const auditor = new AccessibilityAuditor();
 
     // Map CLI standard names to auditor format

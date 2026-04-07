@@ -48,7 +48,7 @@ async function runLighthouse(
 
     // Run Lighthouse audit
     console.log(chalk.dim("\nRunning Lighthouse..."));
-    const { LighthouseAuditor } = await import("@inspect/quality");
+    const { LighthouseAuditor } = await import("@inspect/lighthouse-quality");
     const auditor = new LighthouseAuditor();
 
     const startTime = Date.now();

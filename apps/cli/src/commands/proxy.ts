@@ -23,7 +23,7 @@ async function runProxyStart(options: ProxyOptions): Promise<void> {
   console.log(chalk.dim(`Control API: http://localhost:${controlPort}`));
 
   try {
-    const { ProxyServer, TOXICITY_PRESETS } = await import("@inspect/quality");
+    const { ProxyServer, TOXICITY_PRESETS } = await import("@inspect/resilience");
 
     const server = new ProxyServer({
       port,

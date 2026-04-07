@@ -39,7 +39,7 @@ async function runSecurity(url: string | undefined, options: SecurityOptions): P
     // Run Nuclei scanner
     if (scanner === "nuclei" || scanner === "both") {
       console.log(chalk.dim("\nRunning Nuclei scanner..."));
-      const { NucleiScanner } = await import("@inspect/quality");
+      const { NucleiScanner } = await import("@inspect/security-scanner");
       const nuclei = new NucleiScanner();
 
       const severityLevels = ["informational", "low", "medium", "high", "critical"];
@@ -70,7 +70,7 @@ async function runSecurity(url: string | undefined, options: SecurityOptions): P
     // Run ZAP scanner
     if (scanner === "zap" || scanner === "both") {
       console.log(chalk.dim("\nRunning ZAP scanner..."));
-      const { ZAPScanner } = await import("@inspect/quality");
+      const { ZAPScanner } = await import("@inspect/security-scanner");
 
       const zapUrl = process.env.ZAP_API_URL ?? "http://localhost:8080";
       const zapKey = process.env.ZAP_API_KEY ?? "";

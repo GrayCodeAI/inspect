@@ -154,7 +154,7 @@ async function runWorkflow(filePath: string): Promise<void> {
             });
 
           try {
-            const { AccessibilityAuditor } = await import("@inspect/quality");
+            const { AccessibilityAuditor } = await import("@inspect/a11y");
             const auditor = new AccessibilityAuditor();
 
             const report = await auditor.audit(
@@ -175,7 +175,7 @@ async function runWorkflow(filePath: string): Promise<void> {
 
         case "lighthouse": {
           try {
-            const { LighthouseAuditor } = await import("@inspect/quality");
+            const { LighthouseAuditor } = await import("@inspect/lighthouse-quality");
             const auditor = new LighthouseAuditor();
             const result = await auditor.run(
               (step.config.url as string) ?? "http://localhost:3000",

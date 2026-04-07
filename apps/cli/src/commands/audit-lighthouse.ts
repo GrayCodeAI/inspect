@@ -27,7 +27,7 @@ async function runAuditLighthouse(
   console.log(chalk.dim(`Custom audits: ${options.custom ? "enabled" : "disabled"}`));
 
   try {
-    const { LighthouseAuditor } = await import("@inspect/quality");
+    const { LighthouseAuditor } = await import("@inspect/lighthouse-quality");
     const auditor = new LighthouseAuditor();
 
     console.log(chalk.dim("\nRunning Lighthouse audit..."));

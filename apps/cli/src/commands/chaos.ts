@@ -47,7 +47,7 @@ async function runChaos(url: string | undefined, options: ChaosOptions): Promise
 
     // Run chaos engine
     console.log(chalk.dim("Starting chaos testing...\n"));
-    const { ChaosEngine } = await import("@inspect/quality");
+    const { ChaosEngine } = await import("@inspect/chaos");
     const engine = new ChaosEngine();
 
     const startTime = Date.now();
