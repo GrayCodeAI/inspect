@@ -85,7 +85,7 @@ export class SandboxExecutor extends ServiceMap.Service<SandboxExecutor, Sandbox
   "@inspect/SandboxExecutor",
   {
     make: Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
+      const fs = yield* FileSystem;
 
       const executeRuntime = (
         code: string,
