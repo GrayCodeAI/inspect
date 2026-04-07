@@ -376,3 +376,43 @@ Resolved duplicate identifier error where `WatchdogEvent` was exported from both
 ### Solution:
 
 Renamed interface export to `WatchdogEventInfo` to avoid conflict while keeping both exports available.
+
+## Additional Package Index Files (Session 6)
+
+### Commit:
+
+- `3e945d4` - Add index.ts for 4 additional packages
+
+### New Package Index Files (4):
+
+25. **self-healing** - Self-healing selector service
+    - SelfHealingService, SelectorHistory
+    - ElementSnapshot, HealedSelector, HealingStrategy
+    - Error classes: SelectorNotFoundError, HealingFailedError, etc.
+
+26. **mcp** - Model Context Protocol server
+    - MCPServer with full configuration
+    - All MCP types: MCPTool, MCPResource, MCPRequest, MCPResponse
+    - MCP_ERROR_CODES
+
+27. **human-in-the-loop** - Human checkpoint service
+    - HumanCheckpointService
+    - Checkpoint types and status
+    - Error classes: CheckpointTimeoutError, CheckpointRejectedError
+
+28. **services** - Core services registry and management
+    - ServiceRegistry, MessageBus, ApiGateway
+    - Multiple services: LightpandaManager, BatchScraper, CaptchaSwarmService
+    - Testing services: StoryTestingService, AxeAuditService
+    - Security services: ZAPDeepService, NucleiMultiService
+
+### Total Package Index Files: 28
+
+All packages with external references now have proper index.ts exports.
+
+### Final Metrics:
+
+- **32 total commits** to main
+- **28 packages** with index.ts exports
+- **0 TypeScript errors** in CLI
+- **109 tests** added
