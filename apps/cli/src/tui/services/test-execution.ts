@@ -1,15 +1,11 @@
-import { TestPlan, TestPlanStep, TestResult, TestPlanStepStatus } from "@inspect/shared";
+import { TestPlanStep, TestPlanStepStatus } from "@inspect/shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PLANNING_DELAY_MS = 1500;
-const VERIFICATION_DELAY_MS = 800;
-const COMPLETION_DELAY_MS = 500;
 const MIN_STEP_DELAY_MS = 800;
 const MAX_STEP_DELAY_MS = 2000;
-const ELAPSED_INTERVAL_MS = 1000;
 const INITIAL_TOKEN_COUNT = 245;
 const TOKEN_INCREMENT_PER_STEP = 120;
 const MAX_RANDOM_TOKEN_BONUS = 80;

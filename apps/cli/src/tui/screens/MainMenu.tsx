@@ -4,7 +4,6 @@ import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
 import { getAvailableAgents } from "../services/config-service.js";
 import { usePreferencesStore } from "../stores/preferences.js";
-import { AgentProvider } from "@inspect/shared";
 
 // UI-local types for selection state (mapped to domain models on submit)
 type GitScopeSelection = "unstaged" | "branch" | "commit";

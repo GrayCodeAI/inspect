@@ -165,6 +165,12 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
         <Text color={results.status === "passed" ? PALETTE.green : PALETTE.red} bold>
           {results.status === "passed" ? ICONS.pass : ICONS.fail} {passed}/{total} passed
         </Text>
+        {failed > 0 && (
+          <>
+            <Text color={PALETTE.subtle}> | </Text>
+            <Text color={PALETTE.red}>{failed} failed</Text>
+          </>
+        )}
         <Text color={PALETTE.subtle}> | </Text>
         <Text color={PALETTE.muted}>{results.tokenCount} tokens</Text>
       </Box>

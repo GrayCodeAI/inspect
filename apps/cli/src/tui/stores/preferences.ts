@@ -1,5 +1,4 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { create } from "zustand";
 import { AgentProvider } from "@inspect/shared";
 import { ProjectPaths, getInspectDir } from "../../utils/project-context.js";
