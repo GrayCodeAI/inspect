@@ -10,7 +10,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "lib": ["ES2022", "DOM"]
   },

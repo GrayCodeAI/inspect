@@ -15,6 +15,6 @@
     "outDir": "dist",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "allowImportingTsExtensions": true
+    "noEmit": true
   }
 }
