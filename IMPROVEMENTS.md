@@ -198,3 +198,84 @@ See list above in "Fixed Package Exports" section
 3. Implement performance monitoring
 4. Add more JSDoc to remaining modules
 5. Consider extracting more business logic from Repl.tsx (2,294 lines)
+
+## Additional Changes (Latest Session)
+
+### Package tsconfig Fixes
+
+- Fixed `packages/video/tsconfig.json` - Now extends root tsconfig
+- Fixed `packages/cli-context/tsconfig.json` - Now extends root tsconfig
+- Both packages now build successfully
+
+### New Package Index Files (3)
+
+Created comprehensive index.ts exports for:
+
+1. **@inspect/cookies** - Cookie extraction and management
+   - Exports: Cookies, Browsers, CdpClient, SqliteClient
+   - Types: Browser configs, cookie types, error classes
+   - Utilities: Binary cookie parsing, browser sources
+
+2. **@inspect/reporter** - Test reporting and visualization
+   - Notifications: SlackNotifier
+   - Visual: VisualDiff, AIAnalysis
+   - GitHub: GitHubStatus, GitHubCommentFormatter
+   - Formats: JSON, GitHub Actions, Markdown, HTML reporters
+   - Aggregation: ReportAggregator
+
+3. **@inspect/session** - Session recording and replay
+   - Recording: SessionRecorder, collectEvents
+   - Video: RrVideo, RrVideoConvertError
+   - Errors: RecorderInjectionError, SessionLoadError
+   - Replay: buildReplayViewerHtml
+
+### Total Index Files Created
+
+**19 packages** now have proper index.ts exports:
+
+1. data
+2. quality
+3. resilience
+4. agent-memory
+5. agent-tools
+6. a11y
+7. lighthouse-quality
+8. chaos
+9. security-scanner
+10. credentials
+11. api
+12. enterprise
+13. network
+14. agent-governance
+15. cli-context
+16. codegen
+17. cookies
+18. reporter
+19. session
+
+### Commit History (Latest)
+
+```
+69822a2 feat: add index.ts exports for cookies, reporter, session packages
+e98f8ac fix: update tsconfig for video and cli-context packages
+```
+
+## Current Status (After All Changes)
+
+### Packages Fixed
+
+- **25+ packages** building successfully
+- **19 packages** with proper index.ts exports
+- **2 packages** with fixed tsconfig (video, cli-context)
+
+### Remaining Packages Without index.ts
+
+The following packages don't have index.ts but may not need them:
+
+- agent-watchdogs, crawler, desktop, environments
+- expect-skill, human-in-the-loop, mcp, mocking
+- multi-agent, plugin-marketplace, python-sdk
+- sandbox, self-healing, services, session-recording
+- video, visual-builder, workflow, workflow-recording, yaml
+
+Many of these are specialized packages that may not need public APIs.
