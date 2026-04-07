@@ -1,4 +1,4 @@
-import type { Chain, ChainInput, ChainOutput } from "./chain-types";
+import type { Chain, ChainInput, ChainOutput } from "./chain-types.js";
 
 interface ValidationResult {
   readonly valid: boolean;

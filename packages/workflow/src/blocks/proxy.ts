@@ -27,7 +27,7 @@ export async function executeProxyBlock(
   const start = Date.now();
 
   try {
-    const { ProxyServer } = await import("@inspect/quality");
+    const { ProxyServer } = await import("@inspect/resilience");
 
     const server = new ProxyServer({
       port: (params.port as number) ?? 8888,

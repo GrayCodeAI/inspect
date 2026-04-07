@@ -7,7 +7,7 @@ import type {
   ChainParallelStep,
   ChainStep,
   ChainSubchainStep,
-} from "./chain-types";
+} from "./chain-types.js";
 
 interface MutableChainExecutionContext {
   variables: Record<string, unknown>;

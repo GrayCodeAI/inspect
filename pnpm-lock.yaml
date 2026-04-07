@@ -1294,6 +1294,9 @@ importers:
       "@inspect/quality":
         specifier: workspace:*
         version: link:../quality
+      "@inspect/resilience":
+        specifier: workspace:*
+        version: link:../resilience
       "@inspect/shared":
         specifier: workspace:*
         version: link:../shared
