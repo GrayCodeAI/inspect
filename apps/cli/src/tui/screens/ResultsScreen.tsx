@@ -1,8 +1,20 @@
 import React, { useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
+import { TestPlanStep } from "@inspect/shared";
 import { StatusBar } from "../components/StatusBar.js";
-import type { TestResults, StepResult } from "../services/test-execution.js";
 import { PALETTE, ICONS } from "../../utils/theme.js";
+import { ProjectPaths } from "../../utils/project-context.js";
+
+interface TestResults {
+  instruction: string;
+  status: "passed" | "failed";
+  steps: TestPlanStep[];
+  totalDuration: number;
+  tokenCount: number;
+  agent: string;
+  device: string;
+  timestamp: string;
+}
 
 interface ResultsScreenProps {
   results: TestResults;
@@ -13,8 +25,8 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
   const [message, setMessage] = useState<string | null>(null);
   const [scrollOffset, setScrollOffset] = useState(0);
 
-  const passed = results.steps.filter((s) => s.status === "pass").length;
-  const failed = results.steps.filter((s) => s.status === "fail").length;
+  const passed = results.steps.filter((s) => s.status === "passed").length;
+  const failed = results.steps.filter((s) => s.status === "failed").length;
   const total = results.steps.length;
 
   const formatDuration = (ms: number): string => {
@@ -29,23 +41,10 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
-      const { exec } = await import("node:child_process");
-      const { promisify } = await import("node:util");
-      const execAsync = promisify(exec);
-
-      // Try xclip, xsel, pbcopy, or wl-copy depending on platform
-      const platform = process.platform;
-      let cmd: string;
-      if (platform === "darwin") {
-        cmd = "pbcopy";
-      } else if (platform === "linux") {
-        cmd = "xclip -selection clipboard";
-      } else {
-        cmd = "clip";
-      }
-
-      const child = execAsync(`echo ${JSON.stringify(text)} | ${cmd}`);
-      await child;
+      const { execSync } = await import("node:child_process");
+      execSync(`printf '%s' '${text.replace(/'/g, "'\"'\"'")}' | pbcopy`, {
+        stdio: "pipe",
+      });
       return true;
     } catch {
       return false;
@@ -54,7 +53,7 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
 
   const formatMarkdownReport = (): string => {
     const lines: string[] = [];
-    const icon = results.status === "pass" ? "PASS" : "FAIL";
+    const icon = results.status === "passed" ? "PASS" : "FAIL";
 
     lines.push(`## Inspect Test Results: ${icon}`);
     lines.push("");
@@ -68,9 +67,9 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
     lines.push("| # | Step | Status |");
     lines.push("|---|------|--------|");
 
-    for (const step of results.steps) {
-      const statusIcon = step.status === "pass" ? "PASS" : "FAIL";
-      lines.push(`| ${step.index + 1} | ${step.description} | ${statusIcon} |`);
+    for (const [index, step] of results.steps.entries()) {
+      const statusIcon = step.status === "passed" ? "PASS" : "FAIL";
+      lines.push(`| ${index + 1} | ${step.instruction} | ${statusIcon} |`);
       if (step.error) {
         lines.push(`| | Error: ${step.error} | |`);
       }
@@ -86,7 +85,7 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
     try {
       const { writeFileSync, existsSync, mkdirSync } = await import("node:fs");
       const { join } = await import("node:path");
-      const flowsDir = join(process.cwd(), ".inspect", "flows");
+      const flowsDir = ProjectPaths.flows();
       if (!existsSync(flowsDir)) {
         mkdirSync(flowsDir, { recursive: true });
       }
@@ -99,9 +98,8 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
         agent: results.agent,
         device: results.device,
         steps: results.steps.map((s) => ({
-          description: s.description,
-          assertion: s.assertion,
-          toolCalls: s.toolCalls,
+          description: s.instruction,
+          assertion: s.summary,
         })),
         createdAt: results.timestamp,
       };
@@ -127,169 +125,108 @@ export function ResultsScreen({ results }: ResultsScreenProps): React.ReactEleme
       setScrollOffset((o) => Math.min(results.steps.length - 1, o + 1));
     }
 
-    // Actions
-    if (input === "y" || input === "Y") {
+    // Copy report
+    if (input === "c") {
       const report = formatMarkdownReport();
       const copied = await copyToClipboard(report);
-      setMessage(
-        copied ? "Report copied to clipboard!" : "Copy failed — report printed to console",
-      );
-      if (!copied) {
-        console.log(report);
-      }
+      setMessage(copied ? "Report copied to clipboard" : "Failed to copy (macOS only)");
+      return;
     }
 
-    if (input === "p" || input === "P") {
-      setMessage("PR comment posting not yet connected — use 'inspect pr' with --comment flag");
-    }
-
-    if (input === "s" || input === "S") {
+    // Save flow
+    if (input === "s") {
       await saveFlow();
-    }
-
-    if (input === "r" || input === "R") {
-      setMessage("Restart not yet implemented — run the command again");
+      return;
     }
   });
 
-  const visibleSteps = results.steps.slice(scrollOffset, scrollOffset + 12);
+  const visibleSteps = results.steps.slice(scrollOffset, scrollOffset + 10);
 
   return (
     <Box flexDirection="column" padding={1}>
       {/* Header */}
       <Box marginBottom={1} justifyContent="space-between">
         <Box>
-          <Text bold color={results.status === "pass" ? PALETTE.green : PALETTE.red}>
-            {results.status === "pass"
-              ? `${ICONS.pass} ALL TESTS PASSED`
-              : `${ICONS.fail} TESTS FAILED`}
+          <Text bold color={PALETTE.brand}>
+            {ICONS.diamond} Inspect
           </Text>
-        </Box>
-        <Box>
-          <Text color={PALETTE.muted}>
-            {formatDuration(results.totalDuration)} {ICONS.separator} {results.tokenCount} tokens
-          </Text>
-        </Box>
-      </Box>
-
-      {/* Summary */}
-      <Box marginBottom={1} flexDirection="column">
-        <Box>
-          <Text color={PALETTE.muted}>Instruction: </Text>
-          <Text color={PALETTE.text}>{results.instruction}</Text>
-        </Box>
-        <Box>
-          <Text color={PALETTE.muted}>Agent: </Text>
+          <Text color={PALETTE.subtle}> | </Text>
           <Text color={PALETTE.orange}>{results.agent}</Text>
-          <Text color={PALETTE.muted}> | Device: </Text>
-          <Text color={PALETTE.cyan}>{results.device}</Text>
+          <Text color={PALETTE.subtle}> | </Text>
+          <Text color={PALETTE.amber}>{results.device}</Text>
         </Box>
         <Box>
-          <Text color={PALETTE.green}>{passed} passed</Text>
-          {failed > 0 && (
-            <>
-              <Text color={PALETTE.subtle}> | </Text>
-              <Text color={PALETTE.red}>{failed} failed</Text>
-            </>
-          )}
-          <Text color={PALETTE.muted}> | {total} total</Text>
+          <Text color={PALETTE.muted}>{formatDuration(results.totalDuration)}</Text>
         </Box>
       </Box>
 
-      {/* Divider */}
-      <Box>
-        <Text color={PALETTE.subtle}>{"─".repeat(60)}</Text>
+      {/* Result summary */}
+      <Box marginBottom={1}>
+        <Text color={results.status === "passed" ? PALETTE.green : PALETTE.red} bold>
+          {results.status === "passed" ? ICONS.pass : ICONS.fail} {passed}/{total} passed
+        </Text>
+        <Text color={PALETTE.subtle}> | </Text>
+        <Text color={PALETTE.muted}>{results.tokenCount} tokens</Text>
       </Box>
 
-      {/* Step Results */}
-      <Box flexDirection="column" marginTop={1}>
-        {visibleSteps.map((step) => (
-          <StepRow key={step.index} step={step} />
+      {/* Instruction */}
+      <Box marginBottom={1}>
+        <Text color={PALETTE.muted}>"</Text>
+        <Text color={PALETTE.text}>{results.instruction}</Text>
+        <Text color={PALETTE.muted}>"</Text>
+      </Box>
+
+      {/* Steps */}
+      <Box flexDirection="column" marginBottom={1}>
+        {visibleSteps.map((step, index) => (
+          <Box key={index} marginLeft={1}>
+            <Box width={3}>
+              {step.status === "passed" && <Text color={PALETTE.green}>{ICONS.pass}</Text>}
+              {step.status === "failed" && <Text color={PALETTE.red}>{ICONS.fail}</Text>}
+              {step.status !== "passed" && step.status !== "failed" && (
+                <Text color={PALETTE.subtle}>{ICONS.pending}</Text>
+              )}
+            </Box>
+            <Box flexDirection="column">
+              <Text
+                color={
+                  step.status === "passed"
+                    ? PALETTE.green
+                    : step.status === "failed"
+                      ? PALETTE.red
+                      : PALETTE.muted
+                }
+              >
+                {step.instruction}
+              </Text>
+              {step.summary && <Text color={PALETTE.dim}> Assert: {step.summary}</Text>}
+              {step.error && (
+                <Text color={PALETTE.red}>
+                  {" "}
+                  {ICONS.fail} Error: {step.error}
+                </Text>
+              )}
+            </Box>
+          </Box>
         ))}
       </Box>
 
-      {results.steps.length > 12 && (
-        <Box marginTop={1}>
-          <Text color={PALETTE.muted}>
-            Showing {scrollOffset + 1}-{Math.min(scrollOffset + 12, results.steps.length)} of{" "}
-            {results.steps.length} steps (up/down to scroll)
-          </Text>
-        </Box>
-      )}
-
       {/* Message */}
       {message && (
-        <Box marginTop={1}>
+        <Box marginTop={1} marginLeft={2}>
           <Text color={PALETTE.cyan}>{message}</Text>
         </Box>
       )}
 
-      {/* Actions */}
+      {/* Status bar */}
       <StatusBar
         items={[
-          { label: "Y", value: "copy report" },
-          { label: "P", value: "post to PR" },
-          { label: "S", value: "save flow" },
-          { label: "R", value: "restart" },
-          { label: "Q/Esc", value: "quit" },
+          { label: "q", value: "quit" },
+          { label: "c", value: "copy report" },
+          { label: "s", value: "save flow" },
+          ...(results.steps.length > 10 ? [{ label: "↑↓", value: "scroll" }] : []),
         ]}
       />
-    </Box>
-  );
-}
-
-function StepRow({ step }: { step: StepResult }): React.ReactElement {
-  const statusIcon =
-    step.status === "pass" ? (
-      <Text color={PALETTE.green}>{ICONS.pass}</Text>
-    ) : step.status === "fail" ? (
-      <Text color={PALETTE.red}>{ICONS.fail}</Text>
-    ) : (
-      <Text color={PALETTE.subtle}>{ICONS.pending}</Text>
-    );
-
-  return (
-    <Box flexDirection="column" marginLeft={1}>
-      <Box>
-        <Box width={3}>{statusIcon}</Box>
-        <Box width={4}>
-          <Text color={PALETTE.muted}>{step.index + 1}.</Text>
-        </Box>
-        <Text
-          color={
-            step.status === "pass"
-              ? PALETTE.green
-              : step.status === "fail"
-                ? PALETTE.red
-                : PALETTE.text
-          }
-        >
-          {step.description}
-        </Text>
-        {step.duration !== undefined && <Text color={PALETTE.muted}> ({step.duration}ms)</Text>}
-      </Box>
-      {step.assertion && (
-        <Box marginLeft={7}>
-          <Text color={PALETTE.dim}>Assert: {step.assertion}</Text>
-        </Box>
-      )}
-      {step.error && (
-        <Box marginLeft={7}>
-          <Text color={PALETTE.red}>
-            {ICONS.fail} Error: {step.error}
-          </Text>
-        </Box>
-      )}
-      {step.toolCalls && step.toolCalls.length > 0 && (
-        <Box marginLeft={7} flexDirection="column">
-          {step.toolCalls.map((call, i) => (
-            <Text key={i} color={PALETTE.dim}>
-              Tool: {call.tool}({JSON.stringify(call.args)})
-              {call.result ? ` ${ICONS.arrow} ${call.result}` : ""}
-            </Text>
-          ))}
-        </Box>
-      )}
     </Box>
   );
 }

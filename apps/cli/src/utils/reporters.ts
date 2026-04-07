@@ -1,5 +1,6 @@
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { ProjectPaths } from "./project-context.js";
 
 export interface TestStepResult {
   action: string;
@@ -70,7 +71,7 @@ export function writeReport(
     github: "txt",
   };
 
-  const dir = outputPath ?? join(process.cwd(), ".inspect", "reports");
+  const dir = outputPath ?? ProjectPaths.reports();
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);

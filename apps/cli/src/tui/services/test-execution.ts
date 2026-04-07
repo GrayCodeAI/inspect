@@ -1,3 +1,25 @@
+import { TestPlan, TestPlanStep, TestResult, TestPlanStepStatus } from "@inspect/shared";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PLANNING_DELAY_MS = 1500;
+const VERIFICATION_DELAY_MS = 800;
+const COMPLETION_DELAY_MS = 500;
+const MIN_STEP_DELAY_MS = 800;
+const MAX_STEP_DELAY_MS = 2000;
+const ELAPSED_INTERVAL_MS = 1000;
+const INITIAL_TOKEN_COUNT = 245;
+const TOKEN_INCREMENT_PER_STEP = 120;
+const MAX_RANDOM_TOKEN_BONUS = 80;
+const SECONDS_PER_MINUTE = 60;
+const ELAPSED_PAD_LENGTH = 2;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types (UI-local, mapped from domain models)
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface TestExecutionConfig {
   instruction: string;
   prompt: string;
@@ -14,32 +36,10 @@ export interface TestExecutionConfig {
   verbose: boolean;
 }
 
-export interface StepResult {
-  index: number;
-  description: string;
-  status: "pass" | "fail" | "running" | "pending";
-  duration?: number;
-  assertion?: string;
-  error?: string;
-  screenshot?: string;
-  toolCalls?: Array<{ tool: string; args: Record<string, unknown>; result?: string }>;
-}
-
-export interface TestResults {
-  instruction: string;
-  status: "pass" | "fail";
-  steps: StepResult[];
-  totalDuration: number;
-  tokenCount: number;
-  agent: string;
-  device: string;
-  timestamp: string;
-}
-
 export type TestPhase = "planning" | "executing" | "verifying" | "done";
 
 export interface TestExecutionState {
-  steps: StepResult[];
+  steps: TestPlanStep[];
   currentStep: number;
   elapsed: number;
   tokenCount: number;
@@ -47,6 +47,15 @@ export interface TestExecutionState {
   liveToolCall: string | null;
   scrollOffset: number;
 }
+
+export interface ToolCallInfo {
+  tool: string;
+  args: Record<string, unknown>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// State Management
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function createInitialState(): TestExecutionState {
   return {
@@ -60,56 +69,108 @@ export function createInitialState(): TestExecutionState {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Formatting Utilities
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
+  const remainingSeconds = seconds % SECONDS_PER_MINUTE;
+  return `${minutes}:${remainingSeconds.toString().padStart(ELAPSED_PAD_LENGTH, "0")}`;
 }
 
-export function generateTestPlanSteps(): StepResult[] {
-  return [
-    { index: 0, description: "Navigate to the application", status: "pending" },
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Step Generation
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function generateTestPlanSteps(): TestPlanStep[] {
+  const steps: Array<{ description: string; assertion?: string }> = [
+    { description: "Navigate to the application" },
     {
-      index: 1,
       description: "Verify page loads without errors",
-      status: "pending",
       assertion: "No console errors present",
     },
-    { index: 2, description: "Test primary user interaction", status: "pending" },
+    { description: "Test primary user interaction" },
     {
-      index: 3,
       description: "Check state changes and side effects",
-      status: "pending",
       assertion: "UI updates correctly after action",
     },
     {
-      index: 4,
       description: "Test edge case with empty/invalid input",
-      status: "pending",
       assertion: "Error handling works properly",
     },
     {
-      index: 5,
       description: "Verify navigation and URL state",
-      status: "pending",
       assertion: "URL reflects current state",
     },
   ];
+
+  return steps.map(
+    (step, index) =>
+      new TestPlanStep({
+        id: `step-${index}`,
+        instruction: step.description,
+        status: "pending" as TestPlanStepStatus,
+        summary: step.assertion,
+      }),
+  );
 }
 
-export interface ToolCallInfo {
-  tool: string;
-  args: Record<string, unknown>;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Tool Call Simulation
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TOOL_CALLS: Array<{ tool: string; args: Record<string, unknown> }> = [
+  { tool: "browser_navigate", args: { url: "" } },
+  { tool: "browser_snapshot", args: { mode: "hybrid" } },
+  { tool: "browser_click", args: { ref: "" } },
+  { tool: "browser_type", args: { ref: "", text: "test input" } },
+  { tool: "browser_screenshot", args: { mode: "viewport" } },
+  { tool: "browser_console", args: { level: "error" } },
+];
 
 export function getToolCallsForStep(stepIndex: number, url: string): ToolCallInfo {
-  const toolCalls = [
-    { tool: "browser_navigate", args: { url } },
-    { tool: "browser_snapshot", args: { mode: "hybrid" } },
-    { tool: "browser_click", args: { ref: `e${stepIndex + 1}` } },
-    { tool: "browser_type", args: { ref: `e${stepIndex + 2}`, text: "test input" } },
-    { tool: "browser_screenshot", args: { mode: "viewport" } },
-    { tool: "browser_console", args: { level: "error" } },
-  ];
-  return toolCalls[stepIndex % toolCalls.length];
+  const toolCall = TOOL_CALLS[stepIndex % TOOL_CALLS.length];
+
+  const args = { ...toolCall.args };
+  if (args.url === "") {
+    args.url = url;
+  }
+  if (args.ref === "") {
+    args.ref = `e${stepIndex + 1}`;
+  }
+
+  return { tool: toolCall.tool, args };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delay Utility
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Random Step Delay
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getRandomStepDelay(): number {
+  return MIN_STEP_DELAY_MS + Math.random() * (MAX_STEP_DELAY_MS - MIN_STEP_DELAY_MS);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Token Count Utilities
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getInitialTokenCount(): number {
+  return INITIAL_TOKEN_COUNT;
+}
+
+export function getStepTokenIncrement(): number {
+  return TOKEN_INCREMENT_PER_STEP + Math.floor(Math.random() * MAX_RANDOM_TOKEN_BONUS);
+}
+
+export function getVerificationTokenCount(): number {
+  return 180;
 }

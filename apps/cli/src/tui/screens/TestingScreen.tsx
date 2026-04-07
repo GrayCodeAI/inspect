@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text, useInput, useApp } from "ink";
+import { TestPlanStep } from "@inspect/shared";
 import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
 import { PALETTE, ICONS } from "../../utils/theme.js";
@@ -8,16 +9,73 @@ import {
   formatElapsed,
   generateTestPlanSteps,
   getToolCallsForStep,
+  delay,
+  getRandomStepDelay,
+  getInitialTokenCount,
+  getStepTokenIncrement,
+  getVerificationTokenCount,
   type TestExecutionConfig,
   type TestExecutionState,
-  type TestResults,
-  type StepResult,
+  type TestPhase,
 } from "../services/test-execution.js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ELAPSED_INTERVAL_MS = 1000;
+const PLANNING_DELAY_MS = 1500;
+const VERIFICATION_DELAY_MS = 800;
+const COMPLETION_DELAY_MS = 500;
+const VISIBLE_STEP_COUNT = 10;
+const SCROLL_OFFSET_STEP = 1;
+const SUCCESS_THRESHOLD = 0.15;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface TestResults {
+  instruction: string;
+  status: "passed" | "failed";
+  steps: TestPlanStep[];
+  totalDuration: number;
+  tokenCount: number;
+  agent: string;
+  device: string;
+  timestamp: string;
+}
 
 interface TestingScreenProps {
   config: TestExecutionConfig;
   onComplete: (results: TestResults) => void;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Status Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isCompletedStatus(status: string): boolean {
+  return status === "passed" || status === "failed" || status === "skipped";
+}
+
+function getStatusIcon(status: string): string {
+  if (status === "passed") return ICONS.pass;
+  if (status === "failed") return ICONS.fail;
+  if (status === "active") return ICONS.running;
+  return ICONS.pending;
+}
+
+function getStatusColor(status: string): string {
+  if (status === "passed") return PALETTE.green;
+  if (status === "failed") return PALETTE.red;
+  if (status === "active") return PALETTE.yellow;
+  return PALETTE.muted;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function TestingScreen({ config, onComplete }: TestingScreenProps): React.ReactElement {
   const { exit } = useApp();
@@ -34,8 +92,11 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setState((s) => ({ ...s, elapsed: Math.floor((Date.now() - startTime.current) / 1000) }));
-    }, 1000);
+      setState((s) => ({
+        ...s,
+        elapsed: Math.floor((Date.now() - startTime.current) / ELAPSED_INTERVAL_MS),
+      }));
+    }, ELAPSED_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -65,20 +126,21 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
       return;
     }
     if (key.upArrow) {
-      setState((s) => ({ ...s, scrollOffset: Math.max(0, s.scrollOffset - 1) }));
+      setState((s) => ({ ...s, scrollOffset: Math.max(0, s.scrollOffset - SCROLL_OFFSET_STEP) }));
     }
     if (key.downArrow) {
       setState((s) => ({
         ...s,
-        scrollOffset: Math.min(state.steps.length - 1, s.scrollOffset + 1),
+        scrollOffset: Math.min(state.steps.length - 1, s.scrollOffset + SCROLL_OFFSET_STEP),
       }));
     }
   });
 
-  const visibleSteps = state.steps.slice(state.scrollOffset, state.scrollOffset + 10);
-  const completedCount = state.steps.filter(
-    (s) => s.status === "pass" || s.status === "fail",
-  ).length;
+  const visibleSteps = state.steps.slice(
+    state.scrollOffset,
+    state.scrollOffset + VISIBLE_STEP_COUNT,
+  );
+  const completedCount = state.steps.filter((s) => isCompletedStatus(s.status)).length;
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -107,18 +169,13 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
       </Box>
 
       <Box marginBottom={1}>
-        {state.phase !== "done" ? (
+        {state.phase !== "done" && (
           <Spinner
-            label={
-              state.phase === "planning"
-                ? "Planning test steps..."
-                : state.phase === "executing"
-                  ? `Executing step ${state.currentStep + 1}/${state.steps.length}...`
-                  : "Verifying results..."
-            }
+            label={getPhaseLabel(state.phase, state.currentStep, state.steps.length)}
             color="magenta"
           />
-        ) : (
+        )}
+        {state.phase === "done" && (
           <Text color={PALETTE.green} bold>
             {ICONS.pass} Test complete
           </Text>
@@ -127,34 +184,14 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
 
       <Box flexDirection="column">
         {visibleSteps.map((step) => (
-          <Box key={step.index} marginLeft={1}>
+          <Box key={step.id} marginLeft={1}>
             <Box width={3}>
-              {step.status === "pass" ? (
-                <Text color={PALETTE.green}>{ICONS.pass}</Text>
-              ) : step.status === "fail" ? (
-                <Text color={PALETTE.red}>{ICONS.fail}</Text>
-              ) : step.status === "running" ? (
-                <Text color={PALETTE.yellow}>{ICONS.running}</Text>
-              ) : (
-                <Text color={PALETTE.subtle}>{ICONS.pending}</Text>
-              )}
+              <Text color={getStatusColor(step.status)}>{getStatusIcon(step.status)}</Text>
             </Box>
             <Box flexDirection="column">
-              <Text
-                color={
-                  step.status === "pass"
-                    ? PALETTE.green
-                    : step.status === "fail"
-                      ? PALETTE.red
-                      : step.status === "running"
-                        ? PALETTE.yellow
-                        : PALETTE.muted
-                }
-              >
-                {step.description}
-              </Text>
-              {step.assertion && step.status !== "pending" && (
-                <Text color={PALETTE.dim}> Assert: {step.assertion}</Text>
+              <Text color={getStatusColor(step.status)}>{step.instruction}</Text>
+              {step.summary && step.status !== "pending" && (
+                <Text color={PALETTE.dim}> Assert: {step.summary}</Text>
               )}
               {step.error && (
                 <Text color={PALETTE.red}>
@@ -188,9 +225,19 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
   );
 }
 
-async function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getPhaseLabel(phase: TestPhase, currentStep: number, totalSteps: number): string {
+  if (phase === "planning") return "Planning test steps...";
+  if (phase === "executing") return `Executing step ${currentStep + 1}/${totalSteps}...`;
+  return "Verifying results...";
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Execution Logic
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function runTestExecution(
   config: TestExecutionConfig,
@@ -203,8 +250,8 @@ async function runTestExecution(
     aborted = true;
   };
 
-  setState((s) => ({ ...s, phase: "planning", tokenCount: s.tokenCount + 245 }));
-  await delay(1500);
+  setState((s) => ({ ...s, phase: "planning", tokenCount: s.tokenCount + getInitialTokenCount() }));
+  await delay(PLANNING_DELAY_MS);
 
   const plannedSteps = generateTestPlanSteps();
   setState((s) => ({ ...s, steps: plannedSteps, phase: "executing" }));
@@ -215,10 +262,14 @@ async function runTestExecution(
       return { abort };
     }
 
+    const currentStepId = plannedSteps[i].id;
+
     setState((s) => ({ ...s, currentStep: i }));
     setState((s) => ({
       ...s,
-      steps: s.steps.map((step) => (step.index === i ? { ...step, status: "running" } : step)),
+      steps: s.steps.map((step) =>
+        step.id === currentStepId ? step.update({ status: "active" }) : step,
+      ),
     }));
 
     const call = getToolCallsForStep(i, config.url ?? "http://localhost:3000");
@@ -226,35 +277,37 @@ async function runTestExecution(
     setState((s) => ({
       ...s,
       liveToolCall: toolCallDisplay,
-      tokenCount: s.tokenCount + 120 + Math.floor(Math.random() * 80),
+      tokenCount: s.tokenCount + getStepTokenIncrement(),
     }));
 
-    await delay(800 + Math.random() * 1200);
+    await delay(getRandomStepDelay());
 
-    const passed = Math.random() > 0.15;
+    const passed = Math.random() > SUCCESS_THRESHOLD;
     setState((s) => ({
       ...s,
       steps: s.steps.map((step) =>
-        step.index === i
-          ? {
-              ...step,
-              status: passed ? "pass" : "fail",
-              duration: Date.now() - startTimeRef.current - i * 1500,
-              toolCalls: [{ ...call, result: passed ? "success" : "element not found" }],
+        step.id === currentStepId
+          ? step.update({
+              status: passed ? "passed" : "failed",
+              duration: Date.now() - startTimeRef.current - i * PLANNING_DELAY_MS,
               error: passed ? undefined : "Assertion failed: expected element to be visible",
-            }
+            })
           : step,
       ),
       liveToolCall: null,
     }));
   }
 
-  setState((s) => ({ ...s, phase: "verifying", tokenCount: s.tokenCount + 180 }));
-  await delay(800);
+  setState((s) => ({
+    ...s,
+    phase: "verifying",
+    tokenCount: s.tokenCount + getVerificationTokenCount(),
+  }));
+  await delay(VERIFICATION_DELAY_MS);
 
   setState((s) => ({ ...s, phase: "done" }));
 
-  const finalSteps = await new Promise<StepResult[]>((resolve) => {
+  const finalSteps = await new Promise<TestPlanStep[]>((resolve) => {
     setState((prev) => {
       resolve(prev.steps);
       return prev;
@@ -270,7 +323,7 @@ async function runTestExecution(
 
   const results: TestResults = {
     instruction: config.instruction,
-    status: finalSteps.every((s) => s.status === "pass") ? "pass" : "fail",
+    status: finalSteps.every((s) => s.status === "passed") ? "passed" : "failed",
     steps: finalSteps,
     totalDuration: Date.now() - startTimeRef.current,
     tokenCount,
@@ -279,7 +332,7 @@ async function runTestExecution(
     timestamp: new Date().toISOString(),
   };
 
-  await delay(500);
+  await delay(COMPLETION_DELAY_MS);
   onComplete(results);
 
   return { abort: () => void 0 };

@@ -62,6 +62,8 @@ export const findCursorInteractiveElements = async (
 
       const results: any[] = [];
       const seen = new Set<Element>();
+      const interactiveRolesSet = new Set(interactiveRoles);
+      const interactiveTagsSet = new Set(interactiveTags);
 
       const checkElement = (el: Element): any | null => {
         if (seen.has(el)) return null;
@@ -71,8 +73,8 @@ export const findCursorInteractiveElements = async (
         const role = el.getAttribute("role");
         const text = (el.textContent ?? "").trim().slice(0, maxLen);
 
-        if (interactiveRoles.has(role)) return null;
-        if (interactiveTags.includes(tag) && role === null) return null;
+        if (role !== null && interactiveRolesSet.has(role)) return null;
+        if (role === null && interactiveTagsSet.has(tag)) return null;
 
         let reason: string | null = null;
         const style = window.getComputedStyle(el);

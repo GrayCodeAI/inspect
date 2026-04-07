@@ -141,7 +141,25 @@ export class Cookies extends ServiceMap.Service<Cookies>()("@inspect/Cookies", {
       );
 
     const extractWebKit = (browser: Extract<Browser, { _tag: "WebKitBrowser" }>) =>
-      extractSafari(browser);
+      Effect.gen(function* () {
+        if (browser.cookieFilePath === null) {
+          return yield* new ExtractionError({
+            reason: new RequiresFullDiskAccess(),
+          }).asEffect();
+        }
+
+        const data = yield* fs.readFile(browser.cookieFilePath);
+        return parseBinaryCookies(Buffer.from(data)).filter(
+          (cookie) => Boolean(cookie.name) && Boolean(cookie.domain),
+        );
+      }).pipe(
+        Effect.scoped,
+        Effect.catchCause((cause) =>
+          new ExtractionError({
+            reason: new UnknownError({ cause: cause as unknown }),
+          }).asEffect(),
+        ),
+      );
 
     const extract = (browser: Browser) =>
       Match.valueTags(browser, {

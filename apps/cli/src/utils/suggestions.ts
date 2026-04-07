@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { ProjectPaths } from "./project-context.js";
 
 export interface Suggestion {
   text: string;
@@ -75,7 +76,7 @@ export function getSuggestions(partial: string, maxResults: number = 5): Suggest
 
 function loadHistory(): string[] {
   try {
-    const histPath = join(process.cwd(), ".inspect", "history.json");
+    const histPath = ProjectPaths.history();
     if (existsSync(histPath)) {
       return JSON.parse(readFileSync(histPath, "utf-8"));
     }
@@ -92,7 +93,7 @@ interface FlowInfo {
 
 function loadFlowNames(): FlowInfo[] {
   try {
-    const flowsDir = join(process.cwd(), ".inspect", "flows");
+    const flowsDir = ProjectPaths.flows();
     if (!existsSync(flowsDir)) return [];
 
     const files = readdirSync(flowsDir).filter((f) => f.endsWith(".json"));

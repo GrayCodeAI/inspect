@@ -6,6 +6,7 @@ import type {
   ChromiumBrowser,
   FirefoxBrowser,
   SafariBrowser,
+  WebKitBrowser,
 } from "./types.js";
 import { BROWSER_CONFIGS } from "./browser-config.js";
 

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { getProjectRoot } from "./project-context.js";
 
 /**
  * Detect if running inside an AI agent (Claude Code, Cursor, Codex, etc.)
@@ -25,10 +26,10 @@ export function isHeadless(): boolean {
  * Detect package manager from lock files
  */
 export function detectPackageManager(): "pnpm" | "yarn" | "npm" | "bun" {
-  const cwd = process.cwd();
-  if (existsSync(join(cwd, "pnpm-lock.yaml"))) return "pnpm";
-  if (existsSync(join(cwd, "yarn.lock"))) return "yarn";
-  if (existsSync(join(cwd, "bun.lockb")) || existsSync(join(cwd, "bun.lock"))) return "bun";
+  const root = getProjectRoot();
+  if (existsSync(join(root, "pnpm-lock.yaml"))) return "pnpm";
+  if (existsSync(join(root, "yarn.lock"))) return "yarn";
+  if (existsSync(join(root, "bun.lockb")) || existsSync(join(root, "bun.lock"))) return "bun";
   return "npm";
 }
 

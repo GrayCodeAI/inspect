@@ -151,7 +151,9 @@ async function detectErrorMessages(page: Page): Promise<string[]> {
               errors.push(text.slice(0, 200));
             }
           }
-        } catch {}
+        } catch {
+          // Element parsing failed, skip to next element
+        }
       }
 
       // Check for validation errors on form fields

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { getProjectRoot } from "./project-context.js";
 
 export interface InspectConfig {
   url?: string;
@@ -48,7 +49,7 @@ const CONFIG_FILES = [
  * For TS/JS configs, use loadConfigAsync().
  */
 export function loadConfig(cwd?: string): InspectConfig | null {
-  const dir = cwd ?? process.cwd();
+  const dir = cwd ?? getProjectRoot();
 
   for (const file of CONFIG_FILES) {
     const filePath = resolve(dir, file);
@@ -76,7 +77,7 @@ export function loadConfig(cwd?: string): InspectConfig | null {
  * being available. For `.js` files, uses native ESM import.
  */
 export async function loadConfigAsync(cwd?: string): Promise<InspectConfig | null> {
-  const dir = cwd ?? process.cwd();
+  const dir = cwd ?? getProjectRoot();
 
   for (const file of CONFIG_FILES) {
     const filePath = resolve(dir, file);
@@ -118,7 +119,7 @@ export async function loadConfigAsync(cwd?: string): Promise<InspectConfig | nul
  * Get the config file path if it exists.
  */
 export function getConfigPath(cwd?: string): string | null {
-  const dir = cwd ?? process.cwd();
+  const dir = cwd ?? getProjectRoot();
   for (const file of CONFIG_FILES) {
     const filePath = resolve(dir, file);
     if (existsSync(filePath)) return filePath;

@@ -1,10 +1,13 @@
 import { Effect, FileSystem, Layer, Option, Path, Schema, ServiceMap } from "effect";
 
-import { BUILTIN_PLUGINS } from "./builtin-plugins";
-import { InvalidPluginManifestError, PluginLoadError } from "./plugin-errors";
-import { PluginRegistry } from "./plugin-registry";
-import type { PluginHookName, PluginInfo } from "./plugin-types";
-import { PluginManifest as PluginManifestSchema } from "./plugin-types";
+import { BUILTIN_PLUGINS } from "./builtin-plugins.js";
+import { InvalidPluginManifestError, PluginLoadError } from "./plugin-errors.js";
+import { PluginRegistry } from "./plugin-registry.js";
+import type { PluginHookName, PluginInfo, PluginManifest } from "./plugin-types.js";
+import {
+  PluginManifest as PluginManifestSchema,
+  PluginInfo as PluginInfoSchema,
+} from "./plugin-types.js";
 
 export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
   "@plugin-marketplace/PluginLoader",
@@ -18,7 +21,7 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
         manifest: unknown,
       ) {
         const result = yield* Schema.decodeUnknownEffect(PluginManifestSchema)(manifest).pipe(
-          Effect.catch((parseError) =>
+          Effect.catchTag("SchemaError", (parseError) =>
             new InvalidPluginManifestError({
               reason: `Schema validation failed: ${String(parseError)}`,
             }).asEffect(),
@@ -40,13 +43,14 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
         const manifestPath = path.join(pluginPath, "plugin.json");
 
         const manifestContent = yield* fileSystem.readFileString(manifestPath).pipe(
-          Effect.catch(() =>
-            new PluginLoadError({
-              name: "unknown",
-              version: "unknown",
-              cause: `Failed to read manifest at ${manifestPath}`,
-            }).asEffect(),
-          ),
+          Effect.catchTags({
+            PlatformError: () =>
+              new PluginLoadError({
+                name: "unknown",
+                version: "unknown",
+                cause: `Failed to read manifest at ${manifestPath}`,
+              }).asEffect(),
+          }),
         );
 
         const parsedManifest = yield* Effect.try({
@@ -58,27 +62,25 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
         const manifest = yield* Schema.decodeUnknownEffect(PluginManifestSchema)(
           parsedManifest,
         ).pipe(
-          Effect.catch((parseError) =>
+          Effect.catchTag("SchemaError", (parseError) =>
             new InvalidPluginManifestError({
               reason: `Schema validation failed: ${String(parseError)}`,
             }).asEffect(),
           ),
         );
 
-        const handlerModulePath = manifest.hooks[0].handler.split(":")[0] ?? "index";
+        const handlerModulePath = manifest.hooks[0]!.handler.split(":")[0] ?? "index";
         const modulePath = path.join(pluginPath, handlerModulePath);
 
-        const module = yield* Effect.promise(async () => {
-          return await import(modulePath);
-        }).pipe(
-          Effect.catch((cause) =>
+        const module = yield* Effect.tryPromise({
+          try: async () => await import(modulePath),
+          catch: (cause) =>
             new PluginLoadError({
               name: manifest.name,
               version: manifest.version,
               cause: String(cause),
-            }).asEffect(),
-          ),
-        );
+            }),
+        });
 
         const hooks: Record<PluginHookName, Array<(...args: unknown[]) => unknown>> = {} as Record<
           PluginHookName,
@@ -87,7 +89,7 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
 
         for (const hook of manifest.hooks) {
           const handlerName = hook.handler.split(":")[1] ?? "default";
-          const handler = module[handlerName];
+          const handler = (module as Record<string, (...args: unknown[]) => unknown>)[handlerName];
 
           if (typeof handler !== "function") {
             return yield* new PluginLoadError({
@@ -125,9 +127,11 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
       const loadFromDirectory = Effect.fn("PluginLoader.loadFromDirectory")(function* (
         dir: string,
       ) {
-        const entries = yield* fileSystem
-          .readDirectory(dir)
-          .pipe(Effect.catch(() => Effect.succeed([] as readonly string[])));
+        const entries = yield* fileSystem.readDirectory(dir).pipe(
+          Effect.catchTags({
+            PlatformError: () => Effect.succeed([] as readonly string[]),
+          }),
+        );
 
         const pluginDirs = entries.filter((entry) => !entry.startsWith("."));
 
@@ -136,8 +140,12 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
           (entry) => {
             const pluginPath = path.join(dir, entry);
             return loadFromPath(pluginPath).pipe(
-              Effect.catchTag("PluginLoadError", () => Effect.succeed(undefined)),
-              Effect.catchTag("InvalidPluginManifestError", () => Effect.succeed(undefined)),
+              Effect.catchTag("PluginLoadError", () =>
+                Effect.succeed<PluginInfo | undefined>(undefined),
+              ),
+              Effect.catchTag("InvalidPluginManifestError", () =>
+                Effect.succeed<PluginInfo | undefined>(undefined),
+              ),
             );
           },
           { concurrency: "unbounded" },

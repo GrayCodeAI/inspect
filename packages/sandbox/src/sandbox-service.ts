@@ -1,17 +1,11 @@
-import { Effect, Layer, ServiceMap } from "effect";
-import * as FileSystem from "effect/FileSystem";
-import { exec } from "node:child_process";
+import { Effect } from "effect";
+import { execSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { SandboxConfig, SandboxResult } from "./sandbox-types";
-import {
-  InvalidConfigError,
-  RuntimeNotFoundError,
-  SandboxExecutionError,
-  SandboxTimeoutError,
-} from "./sandbox-errors";
 
-const execAsync = promisify(exec);
+const execAsync = promisify(execSync);
 
 const MIN_TIMEOUT_MS = 100;
 const MIN_MEMORY_MB = 64;
@@ -19,32 +13,67 @@ const MAX_MEMORY_MB = 8192;
 const MIN_CPU_PERCENT = 1;
 const MAX_CPU_PERCENT = 100;
 
-interface RuntimeInfo {
-  readonly available: boolean;
-  readonly version: string;
+const RuntimeSchema = {
+  node: "node",
+  python: "python",
+  bash: "bash",
+} as const;
+
+export interface SandboxConfig {
+  runtime: "node" | "python" | "bash";
+  timeout: number;
+  maxMemory: number;
+  maxCpu: number;
+  cwd?: string;
 }
 
-interface SandboxExecutorService {
-  readonly execute: (
-    code: string,
-    config: SandboxConfig,
-  ) => Effect.Effect<
-    SandboxResult,
-    SandboxExecutionError | SandboxTimeoutError | RuntimeNotFoundError | InvalidConfigError
-  >;
-  readonly executeFile: (
-    filePath: string,
-    config: SandboxConfig,
-  ) => Effect.Effect<
-    SandboxResult,
-    SandboxExecutionError | SandboxTimeoutError | RuntimeNotFoundError | InvalidConfigError
-  >;
-  readonly validateConfig: (
-    config: SandboxConfig,
-  ) => Effect.Effect<void, InvalidConfigError | RuntimeNotFoundError>;
-  readonly getRuntimeInfo: (
-    runtime: typeof SandboxConfig.fields.runtime.Type,
-  ) => Effect.Effect<RuntimeInfo, RuntimeNotFoundError>;
+export interface SandboxResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  duration: number;
+  memoryUsed: number;
+  timedOut: boolean;
+}
+
+export interface RuntimeInfo {
+  available: boolean;
+  version: string;
+}
+
+class InvalidConfigError extends Error {
+  readonly _tag = "InvalidConfigError";
+  constructor(readonly reason: string) {
+    super(`Invalid config: ${reason}`);
+  }
+}
+
+class RuntimeNotFoundError extends Error {
+  readonly _tag = "RuntimeNotFoundError";
+  constructor(readonly runtime: string) {
+    super(`Runtime not found: ${runtime}`);
+  }
+}
+
+class SandboxExecutionError extends Error {
+  readonly _tag = "SandboxExecutionError";
+  constructor(
+    readonly code: string,
+    readonly exitCode: number,
+    readonly stderr: string,
+  ) {
+    super(`Execution failed: ${stderr}`);
+  }
+}
+
+class SandboxTimeoutError extends Error {
+  readonly _tag = "SandboxTimeoutError";
+  constructor(
+    readonly runtime: string,
+    readonly timeout: number,
+  ) {
+    super(`Execution timed out after ${timeout}ms`);
+  }
 }
 
 const buildNodeCommand = (config: SandboxConfig, tempFilePath: string): string => {
@@ -59,219 +88,142 @@ const buildPythonCommand = (_config: SandboxConfig, tempFilePath: string): strin
   return `python3 "${tempFilePath}"`;
 };
 
-const checkRuntimeAvailability = (runtime: typeof SandboxConfig.fields.runtime.Type) =>
-  Effect.gen(function* () {
-    const command =
-      runtime === "node"
-        ? "node --version"
-        : runtime === "python"
-          ? "python3 --version"
-          : "bash --version";
+const checkRuntimeAvailability = (runtime: string): RuntimeInfo => {
+  const command =
+    runtime === "node"
+      ? "node --version"
+      : runtime === "python"
+        ? "python3 --version"
+        : "bash --version";
 
-    const result = yield* Effect.tryPromise({
-      try: () => execAsync(command, { timeout: 5000 }),
-      catch: () => new RuntimeNotFoundError({ runtime }),
-    });
+  try {
+    const result = execSync(command, { timeout: 5000 });
+    return { available: true, version: result.toString().trim().split("\n")[0] };
+  } catch {
+    return { available: false, version: "unavailable" };
+  }
+};
 
-    const version = result.stdout.trim().split("\n")[0].trim();
-    return { available: true, version } as const;
-  }).pipe(
-    Effect.catchTag("RuntimeNotFoundError", () =>
-      Effect.succeed({ available: false, version: "unavailable" } as const),
-    ),
-  );
+const validateConfig = (config: SandboxConfig): void => {
+  if (config.timeout < MIN_TIMEOUT_MS) {
+    throw new InvalidConfigError(`Timeout must be at least ${MIN_TIMEOUT_MS}ms`);
+  }
+  if (config.maxMemory < MIN_MEMORY_MB || config.maxMemory > MAX_MEMORY_MB) {
+    throw new InvalidConfigError(
+      `Memory must be between ${MIN_MEMORY_MB}MB and ${MAX_MEMORY_MB}MB`,
+    );
+  }
+  if (config.maxCpu < MIN_CPU_PERCENT || config.maxCpu > MAX_CPU_PERCENT) {
+    throw new InvalidConfigError(`CPU must be between ${MIN_CPU_PERCENT}% and ${MAX_CPU_PERCENT}%`);
+  }
 
-export class SandboxExecutor extends ServiceMap.Service<SandboxExecutor, SandboxExecutorService>()(
-  "@inspect/SandboxExecutor",
-  {
-    make: Effect.gen(function* () {
-      const fs = yield* FileSystem;
+  const runtimeInfo = checkRuntimeAvailability(config.runtime);
+  if (!runtimeInfo.available) {
+    throw new RuntimeNotFoundError(config.runtime);
+  }
+};
 
-      const executeRuntime = (
-        code: string,
-        config: SandboxConfig,
-        buildCommand: (config: SandboxConfig, tempFilePath: string) => string,
-        scriptName: string,
-      ) =>
-        Effect.gen(function* () {
-          const tempDir = yield* fs.makeTempDirectory({ prefix: `sandbox-${config.runtime}-` });
-
-          yield* Effect.addFinalizer(() =>
-            fs.remove(tempDir, { recursive: true }).pipe(Effect.catch(() => Effect.void)),
-          );
-
-          const tempFilePath = join(tempDir, scriptName);
-
-          yield* fs.writeFileString(tempFilePath, code);
-
-          const command = buildCommand(config, tempFilePath);
-
-          const startTime = Date.now();
-
-          const result = yield* Effect.tryPromise({
-            try: () =>
-              execAsync(command, {
-                cwd: config.cwd,
-                timeout: config.timeout,
-                killSignal: "SIGKILL",
-              }),
-            catch: (error: unknown) => {
-              const execError = error as NodeJS.ErrnoException & {
-                stdout?: string;
-                stderr?: string;
-                code?: string;
-              };
-
-              if (execError.code === "ETIMEDOUT") {
-                return new SandboxTimeoutError({
-                  runtime: config.runtime,
-                  timeout: config.timeout,
-                });
-              }
-
-              return new SandboxExecutionError({
-                code,
-                exitCode: 1,
-                stderr: execError.stderr ?? String(error),
-              });
-            },
-          });
-
-          const duration = Date.now() - startTime;
-
-          if (result instanceof SandboxTimeoutError) {
-            return yield* Effect.fail(result);
-          }
-
-          const executionResult = result as { stdout: string; stderr: string };
-
-          return new SandboxResult({
-            stdout: executionResult.stdout,
-            stderr: executionResult.stderr,
-            exitCode: 0,
-            duration,
-            memoryUsed: 0,
-            timedOut: false,
-          });
-        }).pipe(
-          Effect.scoped,
-          Effect.catchTag("SandboxExecutionError", (err) => Effect.fail(err)),
-          Effect.catchTag("SandboxTimeoutError", (err) => Effect.fail(err)),
-          Effect.catchTag("PlatformError", (err) =>
-            Effect.fail(
-              new SandboxExecutionError({
-                code,
-                exitCode: -1,
-                stderr: `Platform error: ${String(err)}`,
-              }),
-            ),
-          ),
-        );
-
-      const execute = Effect.fn("SandboxExecutor.execute")(function* (
-        code: string,
-        config: SandboxConfig,
-      ) {
-        yield* Effect.annotateCurrentSpan({ runtime: config.runtime, timeout: config.timeout });
-
-        yield* validateConfig(config);
-
-        const buildCommand =
-          config.runtime === "node"
-            ? buildNodeCommand
-            : config.runtime === "bash"
-              ? buildBashCommand
-              : buildPythonCommand;
-
-        const scriptName =
-          config.runtime === "node"
-            ? "script.js"
-            : config.runtime === "bash"
-              ? "script.sh"
-              : "script.py";
-
-        const result = yield* executeRuntime(code, config, buildCommand, scriptName);
-
-        return result;
-      });
-
-      const executeFile = Effect.fn("SandboxExecutor.executeFile")(function* (
-        filePath: string,
-        config: SandboxConfig,
-      ) {
-        yield* Effect.annotateCurrentSpan({ filePath, runtime: config.runtime });
-
-        yield* validateConfig(config);
-
-        const fileContent = yield* fs.readFileString(filePath).pipe(
-          Effect.catchTag("PlatformError", (cause) =>
-            new SandboxExecutionError({
-              code: filePath,
-              exitCode: -1,
-              stderr: `Failed to read file: ${String(cause)}`,
-            }).asEffect(),
-          ),
-        );
-
-        const buildCommand =
-          config.runtime === "node"
-            ? buildNodeCommand
-            : config.runtime === "bash"
-              ? buildBashCommand
-              : buildPythonCommand;
-
-        const scriptName =
-          config.runtime === "node"
-            ? "script.js"
-            : config.runtime === "bash"
-              ? "script.sh"
-              : "script.py";
-
-        const result = yield* executeRuntime(fileContent, config, buildCommand, scriptName);
-
-        return result;
-      });
-
-      const validateConfig = Effect.fn("SandboxExecutor.validateConfig")(function* (
-        config: SandboxConfig,
-      ) {
-        if (config.timeout < MIN_TIMEOUT_MS) {
-          return yield* new InvalidConfigError({
-            reason: `Timeout must be at least ${MIN_TIMEOUT_MS}ms, got ${config.timeout}ms`,
-          });
-        }
-
-        if (config.maxMemory < MIN_MEMORY_MB || config.maxMemory > MAX_MEMORY_MB) {
-          return yield* new InvalidConfigError({
-            reason: `Memory must be between ${MIN_MEMORY_MB}MB and ${MAX_MEMORY_MB}MB, got ${config.maxMemory}MB`,
-          });
-        }
-
-        if (config.maxCpu < MIN_CPU_PERCENT || config.maxCpu > MAX_CPU_PERCENT) {
-          return yield* new InvalidConfigError({
-            reason: `CPU limit must be between ${MIN_CPU_PERCENT}% and ${MAX_CPU_PERCENT}%, got ${config.maxCpu}%`,
-          });
-        }
-
-        const runtimeInfo = yield* checkRuntimeAvailability(config.runtime);
-
-        if (!runtimeInfo.available) {
-          return yield* new RuntimeNotFoundError({ runtime: config.runtime });
-        }
-
-        return yield* Effect.void;
-      });
-
-      const getRuntimeInfo = Effect.fn("SandboxExecutor.getRuntimeInfo")(function* (
-        runtime: typeof SandboxConfig.fields.runtime.Type,
-      ) {
-        const info = yield* checkRuntimeAvailability(runtime);
-        return info;
-      });
-
-      return { execute, executeFile, validateConfig, getRuntimeInfo } as const;
-    }),
-  },
+export const execute = Effect.fn("SandboxExecutor.execute")(function* (
+  code: string,
+  configInput: Partial<SandboxConfig>,
 ) {
-  static layer = Layer.effect(this, this.make);
-}
+  const config: SandboxConfig = {
+    runtime: configInput.runtime ?? "node",
+    timeout: configInput.timeout ?? 30000,
+    maxMemory: configInput.maxMemory ?? 512,
+    maxCpu: configInput.maxCpu ?? 100,
+    cwd: configInput.cwd,
+  };
+
+  yield* Effect.annotateCurrentSpan({ runtime: config.runtime, timeout: config.timeout });
+
+  try {
+    validateConfig(config);
+  } catch (e) {
+    if (e instanceof InvalidConfigError || e instanceof RuntimeNotFoundError) {
+      return yield* Effect.fail(e);
+    }
+    throw e;
+  }
+
+  const buildCommand =
+    config.runtime === "node"
+      ? buildNodeCommand
+      : config.runtime === "bash"
+        ? buildBashCommand
+        : buildPythonCommand;
+
+  const scriptName =
+    config.runtime === "node" ? "script.js" : config.runtime === "bash" ? "script.sh" : "script.py";
+
+  const tempDir = mkdtempSync(join(tmpdir(), `sandbox-${config.runtime}-`));
+  const tempFilePath = join(tempDir, scriptName);
+
+  try {
+    writeFileSync(tempFilePath, code);
+    const command = buildCommand(config, tempFilePath);
+    const startTime = Date.now();
+
+    try {
+      const result = execSync(command, {
+        cwd: config.cwd,
+        timeout: config.timeout,
+        killSignal: "SIGKILL",
+      });
+
+      const duration = Date.now() - startTime;
+
+      return {
+        stdout: result.toString(),
+        stderr: "",
+        exitCode: 0,
+        duration,
+        memoryUsed: 0,
+        timedOut: false,
+      };
+    } catch (error: unknown) {
+      const execError = error as NodeJS.ErrnoException & {
+        stdout?: Buffer;
+        stderr?: Buffer;
+        code?: string;
+      };
+
+      if (execError.code === "ETIMEDOUT") {
+        return yield* Effect.fail(new SandboxTimeoutError(config.runtime, config.timeout));
+      }
+
+      return yield* Effect.fail(
+        new SandboxExecutionError(code, 1, execError.stderr?.toString() ?? String(error)),
+      );
+    }
+  } finally {
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+});
+
+export const executeFile = Effect.fn("SandboxExecutor.executeFile")(function* (
+  filePath: string,
+  config: Partial<SandboxConfig>,
+) {
+  const fs = yield* Effect.tryPromise({
+    try: () => import("fs/promises"),
+    catch: (e) => new SandboxExecutionError(filePath, -1, String(e)),
+  });
+
+  const fileContent = yield* Effect.tryPromise({
+    try: () => fs.readFile(filePath, "utf-8"),
+    catch: (e) => new SandboxExecutionError(filePath, -1, `Failed to read file: ${String(e)}`),
+  });
+
+  return yield* execute(fileContent, config);
+});
+
+export const getRuntimeInfo = Effect.fn("SandboxExecutor.getRuntimeInfo")(function* (
+  runtime: string,
+) {
+  return checkRuntimeAvailability(runtime);
+});

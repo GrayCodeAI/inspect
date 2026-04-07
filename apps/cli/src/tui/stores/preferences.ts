@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { create } from "zustand";
+import { AgentProvider } from "@inspect/shared";
+import { ProjectPaths, getInspectDir } from "../../utils/project-context.js";
 
 interface ModelPreference {
   model: string;
@@ -8,7 +10,7 @@ interface ModelPreference {
   maxTokens?: number;
 }
 
-type AgentBackend = "claude" | "codex" | "copilot" | "gemini" | "cursor" | "droid" | "opencode";
+type AgentBackend = typeof AgentProvider.Type;
 
 interface Preferences {
   agentBackend: AgentBackend;
@@ -34,23 +36,23 @@ interface PreferencesState extends Preferences {
 
 function loadPersistedPreferences(): Partial<Preferences> {
   try {
-    const prefPath = join(process.cwd(), ".inspect", "preferences.json");
+    const prefPath = ProjectPaths.preferences();
     if (existsSync(prefPath)) {
       return JSON.parse(readFileSync(prefPath, "utf-8")) as Partial<Preferences>;
     }
-  } catch {
-    // Silently ignore parse errors and return defaults
+  } catch (error) {
+    console.warn("Failed to load preferences, using defaults:", error);
   }
   return {};
 }
 
 function persistPreferences(prefs: Partial<Preferences>): void {
   try {
-    const dir = join(process.cwd(), ".inspect");
+    const dir = getInspectDir();
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "preferences.json"), JSON.stringify(prefs, null, 2));
-  } catch {
-    // Silently ignore write errors
+    writeFileSync(ProjectPaths.preferences(), JSON.stringify(prefs, null, 2));
+  } catch (error) {
+    console.error("Failed to save preferences:", error);
   }
 }
 

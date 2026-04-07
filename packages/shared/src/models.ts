@@ -32,6 +32,9 @@ export class TestPlanStep extends Schema.Class<TestPlanStep>("TestPlanStep")({
     const done: TestPlanStepStatus[] = ["passed", "failed", "skipped"];
     return done.includes(this.status);
   }
+  update(fields: Partial<TestPlanStep>): TestPlanStep {
+    return new TestPlanStep({ ...this, ...fields });
+  }
 }
 
 export class TestPlan extends Schema.Class<TestPlan>("TestPlan")({

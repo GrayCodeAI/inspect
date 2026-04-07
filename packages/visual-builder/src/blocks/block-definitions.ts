@@ -1,4 +1,4 @@
-import { TestBlockType, type BlockDefinition } from "./block-types";
+import { TestBlockType, type BlockDefinition } from "./block-types.js";
 
 export const BLOCK_DEFINITIONS: Record<TestBlockType, BlockDefinition> = {
   [TestBlockType.NAVIGATE]: {

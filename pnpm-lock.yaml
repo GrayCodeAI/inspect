@@ -826,10 +826,19 @@ importers:
       "@playwright/browser-webkit":
         specifier: ^1.59.1
         version: 1.59.1
+      effect:
+        specifier: 4.0.0-beta.35
+        version: 4.0.0-beta.35
+      ws:
+        specifier: ^8.18.0
+        version: 8.20.0
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
         version: 22.19.15
+      "@types/ws":
+        specifier: ^8.5.10
+        version: 8.18.1
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -8245,7 +8254,6 @@ packages:
       {
         integrity: sha512-8lMP8iMgiBzzoNbAPQ59qdVcj6UaE/Vnm+fiwX4doX4Narook0a4GPKWBEv+CR8a1OwbfkgL18uBfBjWdF0Fzg==,
       }
-    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lightningcss-android-arm64@1.32.0:
@@ -13232,7 +13240,7 @@ snapshots:
       react-refresh: 0.18.0
       remotion: 4.0.446(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       source-map: 0.7.3
-      style-loader: 4.0.0(webpack@5.105.0)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.25.0))
       webpack: 5.105.0(esbuild@0.25.0)
     transitivePeerDependencies:
       - "@swc/core"
@@ -17181,7 +17189,7 @@ snapshots:
 
   stubs@3.0.0: {}
 
-  style-loader@4.0.0(webpack@5.105.0):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.25.0)):
     dependencies:
       webpack: 5.105.0(esbuild@0.25.0)
 

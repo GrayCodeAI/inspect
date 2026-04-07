@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { ProjectPaths } from "../../utils/project-context.js";
 
 export interface HistoryEntry {
   file: string;
@@ -15,7 +16,7 @@ export interface HistoryEntry {
 }
 
 export function loadHistory(): HistoryEntry[] {
-  const dir = join(process.cwd(), ".inspect", "reports");
+  const dir = ProjectPaths.reports();
   if (!existsSync(dir)) return [];
 
   try {

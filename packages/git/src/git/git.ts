@@ -1,4 +1,4 @@
-import simpleGit, { type SimpleGit, type StatusResult } from "simple-git";
+import { simpleGit, type SimpleGit, type StatusResult } from "simple-git";
 import { getCwd } from "@inspect/shared";
 import { createLogger } from "@inspect/observability";
 

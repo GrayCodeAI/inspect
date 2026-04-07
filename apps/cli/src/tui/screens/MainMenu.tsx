@@ -4,15 +4,17 @@ import { Spinner } from "../components/Spinner.js";
 import { StatusBar } from "../components/StatusBar.js";
 import { getAvailableAgents } from "../services/config-service.js";
 import { usePreferencesStore } from "../stores/preferences.js";
+import { AgentProvider } from "@inspect/shared";
 
-type GitScope = "unstaged" | "branch" | "commit";
-type AgentChoice = "claude" | "gpt" | "gemini" | "deepseek" | "ollama";
+// UI-local types for selection state (mapped to domain models on submit)
+type GitScopeSelection = "unstaged" | "branch" | "commit";
+type AgentSelection = "claude" | "gpt" | "gemini" | "deepseek" | "ollama";
 
 interface MenuState {
   instruction: string;
   url: string;
-  scope: GitScope;
-  agent: AgentChoice;
+  scope: GitScopeSelection;
+  agent: AgentSelection;
   device: string;
   mode: "dom" | "hybrid" | "cua";
   headed: boolean;
@@ -35,8 +37,8 @@ const FIELDS = [
   "start",
 ] as const;
 
-const SCOPES: GitScope[] = ["unstaged", "branch", "commit"];
-const AGENTS: AgentChoice[] = ["claude", "gpt", "gemini", "deepseek", "ollama"];
+const SCOPES: GitScopeSelection[] = ["unstaged", "branch", "commit"];
+const AGENTS: AgentSelection[] = ["claude", "gpt", "gemini", "deepseek", "ollama"];
 const MODES = ["dom", "hybrid", "cua"] as const;
 const DEVICES = [
   "desktop-chrome",
@@ -109,12 +111,13 @@ function Toggle({
   return (
     <Box>
       <Text color={focused ? C.text : C.dim}>{label} </Text>
-      {on ? (
+      {on && (
         <Text backgroundColor={C.green} color="white" bold>
           {" "}
           ON{" "}
         </Text>
-      ) : (
+      )}
+      {!on && (
         <Text backgroundColor={C.surface} color={C.muted}>
           {" "}
           OFF{" "}
@@ -219,132 +222,177 @@ export function MainMenu(): React.ReactElement {
     ];
   };
 
-  // ── Input handler ──────────────────────────────────────────────────
+  // ── Input Handlers (split by concern) ────────────────────────────────
 
-  useInput((input, key) => {
+  const handleGlobalShortcuts = (
+    input: string,
+    key: { escape: boolean; ctrl: boolean },
+  ): boolean => {
     if (key.escape || (key.ctrl && input === "c")) {
       exit();
-      return;
+      return true;
     }
     if (key.ctrl && input === "l") {
       setState((s) => ({ ...s, instruction: "", url: "", focusedField: 0 }));
       setHistoryIndex(-1);
       setHistoryDraft("");
-      return;
+      return true;
     }
     if (key.ctrl && input === "d") {
       setState((s) => ({ ...s, headed: !s.headed }));
-      return;
+      return true;
+    }
+    return false;
+  };
+
+  const handleHistoryNavigation = (key: { upArrow: boolean; downArrow: boolean }): boolean => {
+    if (currentField !== "instruction" || history.length === 0) return false;
+
+    if (key.upArrow) {
+      setHistoryIndex((prev) => {
+        const next = Math.min(prev + 1, history.length - 1);
+        if (prev === -1) setHistoryDraft(state.instruction);
+        setState((s) => ({ ...s, instruction: history[next] }));
+        return next;
+      });
+      return true;
     }
 
-    // History navigation
-    if (currentField === "instruction" && history.length > 0) {
-      if (key.upArrow) {
-        setHistoryIndex((prev) => {
-          const next = Math.min(prev + 1, history.length - 1);
-          if (prev === -1) setHistoryDraft(state.instruction);
-          setState((s) => ({ ...s, instruction: history[next] }));
-          return next;
-        });
-        return;
-      }
-      if (key.downArrow) {
-        setHistoryIndex((prev) => {
-          if (prev <= 0) {
-            setState((s) => ({ ...s, instruction: historyDraft }));
-            return -1;
-          }
-          const next = prev - 1;
-          setState((s) => ({ ...s, instruction: history[next] }));
-          return next;
-        });
-        return;
-      }
+    if (key.downArrow) {
+      setHistoryIndex((prev) => {
+        if (prev <= 0) {
+          setState((s) => ({ ...s, instruction: historyDraft }));
+          return -1;
+        }
+        const next = prev - 1;
+        setState((s) => ({ ...s, instruction: history[next] }));
+        return next;
+      });
+      return true;
     }
 
-    // Field navigation
-    if (currentField !== "instruction" && key.upArrow) {
-      setState((s) => ({ ...s, focusedField: Math.max(0, s.focusedField - 1) }));
-      return;
-    }
+    return false;
+  };
+
+  const handleFieldNavigation = (key: {
+    upArrow: boolean;
+    downArrow: boolean;
+    tab: boolean;
+    shift: boolean;
+  }): boolean => {
     if (key.shift && key.tab) {
       setState((s) => ({ ...s, focusedField: Math.max(0, s.focusedField - 1) }));
-      return;
+      return true;
     }
-    if (currentField !== "instruction" && key.downArrow) {
-      setState((s) => ({ ...s, focusedField: Math.min(FIELDS.length - 1, s.focusedField + 1) }));
-      return;
-    }
+
     if (key.tab) {
       setState((s) => ({ ...s, focusedField: (s.focusedField + 1) % FIELDS.length }));
-      return;
+      return true;
     }
 
-    // Text input
-    if (currentField === "instruction" || currentField === "url") {
-      if (key.return) {
-        if (canStart) {
-          handleStart();
-        } else {
-          setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") }));
-        }
-        return;
-      }
-      if (key.backspace || key.delete) {
-        setState((s) => ({ ...s, [currentField]: s[currentField].slice(0, -1) }));
-        if (currentField === "instruction") setHistoryIndex(-1);
-      } else if (!key.ctrl && !key.meta && input && input.length === 1) {
-        setState((s) => {
-          const updated = s[currentField] + input;
-          const patch: Partial<MenuState> = { [currentField]: updated };
-          if (currentField === "instruction" && !s.url) {
-            const urlMatch = updated.match(/(?:https?:\/\/|localhost[:/])\S+/i);
-            if (urlMatch) patch.url = urlMatch[0];
-          }
-          return { ...s, ...patch };
-        });
-        if (currentField === "instruction") setHistoryIndex(-1);
-      }
-      return;
+    if (currentField !== "instruction" && key.upArrow) {
+      setState((s) => ({ ...s, focusedField: Math.max(0, s.focusedField - 1) }));
+      return true;
     }
 
-    // Pill/toggle cycling
-    if (key.leftArrow || key.rightArrow) {
-      const dir = key.rightArrow ? 1 : -1;
-      switch (currentField) {
-        case "scope":
-          setState((s) => ({ ...s, scope: cycleOption(SCOPES, s.scope, dir as 1 | -1) }));
-          break;
-        case "agent":
-          setState((s) => ({ ...s, agent: cycleOption(AGENTS, s.agent, dir as 1 | -1) }));
-          break;
-        case "device":
-          setState((s) => ({ ...s, device: cycleOption(DEVICES, s.device, dir as 1 | -1) }));
-          break;
-        case "mode":
-          setState((s) => ({ ...s, mode: cycleOption(MODES, s.mode, dir as 1 | -1) }));
-          break;
-        case "headed":
-          setState((s) => ({ ...s, headed: !s.headed }));
-          break;
-        case "a11y":
-          setState((s) => ({ ...s, a11y: !s.a11y }));
-          break;
-        case "lighthouse":
-          setState((s) => ({ ...s, lighthouse: !s.lighthouse }));
-          break;
-      }
-      return;
+    if (currentField !== "instruction" && key.downArrow) {
+      setState((s) => ({ ...s, focusedField: Math.min(FIELDS.length - 1, s.focusedField + 1) }));
+      return true;
     }
 
-    // Enter
+    return false;
+  };
+
+  const handleTextInput = (
+    input: string,
+    key: { return: boolean; backspace: boolean; delete: boolean; ctrl: boolean; meta: boolean },
+  ): boolean => {
+    if (currentField !== "instruction" && currentField !== "url") return false;
+
     if (key.return) {
       if (canStart) {
         handleStart();
       } else {
         setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") }));
       }
+      return true;
     }
+
+    if (key.backspace || key.delete) {
+      setState((s) => ({ ...s, [currentField]: s[currentField].slice(0, -1) }));
+      if (currentField === "instruction") setHistoryIndex(-1);
+      return true;
+    }
+
+    if (!key.ctrl && !key.meta && input && input.length === 1) {
+      setState((s) => {
+        const updated = s[currentField] + input;
+        const patch: Partial<MenuState> = { [currentField]: updated };
+        if (currentField === "instruction" && !s.url) {
+          const urlMatch = updated.match(/(?:https?:\/\/|localhost[:/])\S+/i);
+          if (urlMatch) patch.url = urlMatch[0];
+        }
+        return { ...s, ...patch };
+      });
+      if (currentField === "instruction") setHistoryIndex(-1);
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleOptionCycling = (key: { leftArrow: boolean; rightArrow: boolean }): boolean => {
+    if (!key.leftArrow && !key.rightArrow) return false;
+
+    const dir = key.rightArrow ? 1 : -1;
+
+    switch (currentField) {
+      case "scope":
+        setState((s) => ({ ...s, scope: cycleOption(SCOPES, s.scope, dir as 1 | -1) }));
+        return true;
+      case "agent":
+        setState((s) => ({ ...s, agent: cycleOption(AGENTS, s.agent, dir as 1 | -1) }));
+        return true;
+      case "device":
+        setState((s) => ({ ...s, device: cycleOption(DEVICES, s.device, dir as 1 | -1) }));
+        return true;
+      case "mode":
+        setState((s) => ({ ...s, mode: cycleOption(MODES, s.mode, dir as 1 | -1) }));
+        return true;
+      case "headed":
+        setState((s) => ({ ...s, headed: !s.headed }));
+        return true;
+      case "a11y":
+        setState((s) => ({ ...s, a11y: !s.a11y }));
+        return true;
+      case "lighthouse":
+        setState((s) => ({ ...s, lighthouse: !s.lighthouse }));
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  const handleSubmit = (key: { return: boolean }): boolean => {
+    if (!key.return) return false;
+
+    if (canStart) {
+      handleStart();
+    } else {
+      setState((s) => ({ ...s, focusedField: FIELDS.indexOf("start") }));
+    }
+    return true;
+  };
+
+  // ── Main Input Handler ───────────────────────────────────────────────
+
+  useInput((input, key) => {
+    if (handleGlobalShortcuts(input, key)) return;
+    if (handleHistoryNavigation(key)) return;
+    if (handleFieldNavigation(key)) return;
+    if (handleTextInput(input, key)) return;
+    if (handleOptionCycling(key)) return;
+    handleSubmit(key);
   });
 
   // ── Loading screen ─────────────────────────────────────────────────
@@ -415,9 +463,8 @@ export function MainMenu(): React.ReactElement {
         <Box>
           <Text color={currentField === "instruction" ? C.brand : C.muted}>{"\u276f"} </Text>
           <Box flexGrow={1}>
-            {state.instruction ? (
-              <Text color={C.text}>{state.instruction}</Text>
-            ) : (
+            {state.instruction && <Text color={C.text}>{state.instruction}</Text>}
+            {!state.instruction && (
               <Text color={C.muted}>What to test? (e.g. "test the login flow")</Text>
             )}
             {currentField === "instruction" && (
@@ -446,11 +493,8 @@ export function MainMenu(): React.ReactElement {
       >
         <Box>
           <Text color={currentField === "url" ? C.cyan : C.muted}>{"\u279c"} </Text>
-          {state.url ? (
-            <Text color={C.cyan}>{state.url}</Text>
-          ) : (
-            <Text color={C.muted}>Target URL (optional)</Text>
-          )}
+          {state.url && <Text color={C.cyan}>{state.url}</Text>}
+          {!state.url && <Text color={C.muted}>Target URL (optional)</Text>}
           {currentField === "url" && (
             <Text backgroundColor={C.cyan} color="white">
               {" "}
@@ -544,24 +588,22 @@ export function MainMenu(): React.ReactElement {
 
       {/* ── Start Button ── */}
       <Box marginTop={1} paddingX={1}>
-        {currentField === "start" ? (
-          canStart ? (
-            <Box>
-              <Text backgroundColor={C.brand} color="white" bold>
-                {"  \u25b6 Start Testing  "}
-              </Text>
-              <Text color={C.dim}> press enter</Text>
-            </Box>
-          ) : (
-            <Box>
-              <Text backgroundColor={C.red} color="white" bold>
-                {"  \u26a0 Enter an instruction above  "}
-              </Text>
-            </Box>
-          )
-        ) : (
-          <Text color={C.muted}>{"  \u25b6 Start Testing"}</Text>
+        {currentField === "start" && canStart && (
+          <Box>
+            <Text backgroundColor={C.brand} color="white" bold>
+              {"  \u25b6 Start Testing  "}
+            </Text>
+            <Text color={C.dim}> press enter</Text>
+          </Box>
         )}
+        {currentField === "start" && !canStart && (
+          <Box>
+            <Text backgroundColor={C.red} color="white" bold>
+              {"  \u26a0 Enter an instruction above  "}
+            </Text>
+          </Box>
+        )}
+        {currentField !== "start" && <Text color={C.muted}>{"  \u25b6 Start Testing"}</Text>}
       </Box>
 
       {/* ── Modeline ── */}

@@ -15,6 +15,10 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 
+// ── Initialize Project Context ───────────────────────────────────────────────
+import { initializeProjectContext } from "./utils/project-context.js";
+initializeProjectContext();
+
 import { Command } from "commander";
 import chalk from "chalk";
 import { render } from "ink";

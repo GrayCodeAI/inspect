@@ -4,14 +4,14 @@ interface TestPlan {
   name: string;
   steps: unknown[];
 }
-import { BLOCK_DEFINITIONS } from "./block-definitions";
+import { BLOCK_DEFINITIONS } from "./block-definitions.js";
 import {
   type BlockConnection,
   type BlockPort,
   type TestBlock,
   TestBlockType,
   type TestPlanGraph,
-} from "./block-types";
+} from "./block-types.js";
 
 interface ValidationResult {
   readonly valid: boolean;

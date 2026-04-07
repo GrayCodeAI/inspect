@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
-import type { VisualTestCase, VisualTestStepType } from "./visual-types";
-import { VisualTestStep } from "./visual-types";
+import type { VisualTestCase, VisualTestStepType } from "./visual-types.js";
+import { VisualTestStep } from "./visual-types.js";
 
 const PALETTE = {
   brand: "#a855f7",

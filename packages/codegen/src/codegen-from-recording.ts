@@ -4,7 +4,7 @@ interface TestPlan {
   name: string;
   steps: unknown[];
 }
-import type { UserSessionRecording, RecordedAction } from "./user-session-recorder";
+import type { UserSessionRecording, RecordedAction } from "./user-session-recorder.js";
 
 interface PlaywrightTestOptions {
   readonly testName?: string;

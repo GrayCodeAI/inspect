@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema, ServiceMap } from "effect";
-import { VisualTestCase, VisualTestStep, VisualTestSuite } from "./visual-types";
-import { generatePlaywrightSuite, generatePlaywrightTest } from "./code-generator";
+import { VisualTestCase, VisualTestStep, VisualTestSuite } from "./visual-types.js";
+import { generatePlaywrightSuite, generatePlaywrightTest } from "./code-generator.js";
 
 export class VisualTestCaseNotFoundError extends Schema.ErrorClass<VisualTestCaseNotFoundError>(
   "VisualTestCaseNotFoundError",
@@ -113,7 +113,7 @@ export class VisualTestBuilder extends ServiceMap.Service<VisualTestBuilder>()(
         if (!existingCase) {
           return yield* new VisualTestCaseNotFoundError({ caseId });
         }
-        const stepMap = new Map(existingCase.steps.map((step) => [step.id, step]));
+        const stepMap = new Map(existingCase.steps.map((step: VisualTestStep) => [step.id, step]));
         const reorderedSteps = stepIds
           .map((id) => stepMap.get(id))
           .filter((step): step is VisualTestStep => step !== undefined);

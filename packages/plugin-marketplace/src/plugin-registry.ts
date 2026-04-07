@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, Order, PubSub, ServiceMap } from "effect";
 
-import { PluginNotFoundError } from "./plugin-errors";
-import type { PluginHookName, PluginInfo, PluginManifest, PluginStatus } from "./plugin-types";
+import { PluginNotFoundError } from "./plugin-errors.js";
+import type { PluginHookName, PluginInfo, PluginManifest, PluginStatus } from "./plugin-types.js";
 
 interface HookEntry {
   priority: number;
