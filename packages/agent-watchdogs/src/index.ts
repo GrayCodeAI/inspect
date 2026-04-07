@@ -5,11 +5,11 @@
 // Watchdog Manager
 export {
   type WatchdogType,
-  type WatchdogEvent,
   type WatchdogConfig,
   type Watchdog,
   type WatchdogCallback,
   WatchdogManager,
+  type WatchdogEvent as WatchdogEventInfo,
 } from "./watchdogs/manager.js";
 
 // Individual Watchdogs
