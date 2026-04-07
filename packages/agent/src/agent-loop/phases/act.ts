@@ -158,7 +158,7 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
 const executeSingleAction = Effect.fn("ActPhase.executeSingleAction")(function* (
   action: AgentAction,
   browser: InstanceType<typeof BrowserManagerService>,
-  cachedElementId?: string,
+  _cachedElementId?: string,
 ) {
   const actionType = action.type as string;
   const params = action.params as Record<string, unknown>;

@@ -3,11 +3,9 @@ import { Effect, FileSystem, Layer, Option, Path, Schema, ServiceMap } from "eff
 import { BUILTIN_PLUGINS } from "./builtin-plugins.js";
 import { InvalidPluginManifestError, PluginLoadError } from "./plugin-errors.js";
 import { PluginRegistry } from "./plugin-registry.js";
-import type { PluginHookName, PluginInfo, PluginManifest } from "./plugin-types.js";
-import {
-  PluginManifest as PluginManifestSchema,
-  PluginInfo as PluginInfoSchema,
-} from "./plugin-types.js";
+import { PluginManifest, type PluginHookName, type PluginInfo } from "./plugin-types.js";
+
+const PluginManifestSchema = PluginManifest;
 
 export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
   "@plugin-marketplace/PluginLoader",
@@ -82,12 +80,19 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
             }),
         });
 
-        const hooks: Record<PluginHookName, Array<(...args: unknown[]) => unknown>> = {} as Record<
-          PluginHookName,
-          Array<(...args: unknown[]) => unknown>
-        >;
+        const hooks: Record<PluginHookName, Array<(...args: unknown[]) => unknown>> = {
+          beforeTest: [],
+          afterTest: [],
+          beforeStep: [],
+          afterStep: [],
+          onError: [],
+          onAssertion: [],
+          onNavigation: [],
+          onScreenshot: [],
+        };
 
         for (const hook of manifest.hooks) {
+          const hookName = hook.name as PluginHookName;
           const handlerName = hook.handler.split(":")[1] ?? "default";
           const handler = (module as Record<string, (...args: unknown[]) => unknown>)[handlerName];
 
@@ -99,8 +104,7 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
             });
           }
 
-          const existingHooks = hooks[hook.name] ?? [];
-          hooks[hook.name] = [...existingHooks, handler];
+          hooks[hookName].push(handler);
         }
 
         yield* registry.register(manifest, hooks, pluginPath);
@@ -205,5 +209,5 @@ export class PluginLoader extends ServiceMap.Service<PluginLoader>()(
     }),
   },
 ) {
-  static layer = Layer.effect(this, this.make).pipe(Layer.provide(PluginRegistry.layer));
+  static layer = Layer.effect(this)(this.make).pipe(Layer.provide(PluginRegistry.layer));
 }

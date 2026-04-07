@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { WebSocketServer, WebSocket } from "ws";
+import type { WebSocket } from "ws";
 
 const DEFAULT_PORT = 9876;
 const DEFAULT_HOST = "localhost";

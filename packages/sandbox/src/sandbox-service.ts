@@ -3,9 +3,6 @@ import { execSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
-
-const execAsync = promisify(execSync);
 
 const MIN_TIMEOUT_MS = 100;
 const MIN_MEMORY_MB = 64;
@@ -13,7 +10,7 @@ const MAX_MEMORY_MB = 8192;
 const MIN_CPU_PERCENT = 1;
 const MAX_CPU_PERCENT = 100;
 
-const RuntimeSchema = {
+const _RuntimeSchema = {
   node: "node",
   python: "python",
   bash: "bash",

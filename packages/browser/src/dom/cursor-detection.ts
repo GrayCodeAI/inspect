@@ -60,12 +60,26 @@ export const findCursorInteractiveElements = async (
       const rootEl = document.querySelector(root);
       if (!rootEl) return [];
 
-      const results: any[] = [];
+      const results: Array<{
+        selector: string;
+        tag: string;
+        text: string;
+        reason: string;
+        boundingBox?: { x: number; y: number; width: number; height: number };
+      }> = [];
       const seen = new Set<Element>();
       const interactiveRolesSet = new Set(interactiveRoles);
       const interactiveTagsSet = new Set(interactiveTags);
 
-      const checkElement = (el: Element): any | null => {
+      const checkElement = (
+        el: Element,
+      ): {
+        selector: string;
+        tag: string;
+        text: string;
+        reason: string;
+        boundingBox?: { x: number; y: number; width: number; height: number };
+      } | null => {
         if (seen.has(el)) return null;
         seen.add(el);
 
@@ -135,5 +149,5 @@ export const findCursorInteractiveElements = async (
     Array.from(INTERACTIVE_TAGS),
   );
 
-  return elements;
+  return elements as unknown as CursorInteractiveElement[];
 };

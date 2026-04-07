@@ -62,7 +62,7 @@ export class DOMCache extends ServiceMap.Service<DOMCache>()("@browser/DOMCache"
       html: string,
       hash: string,
     ) {
-      const ttlMs = config.ttlMs ?? DEFAULT_CACHE_TTL_MS;
+      const _ttlMs = config.ttlMs ?? DEFAULT_CACHE_TTL_MS;
       const maxEntries = config.maxEntries ?? 10;
 
       if (cache.size >= maxEntries) {

@@ -1,5 +1,4 @@
 import { Effect, Schema } from "effect";
-import type { DeviceConfig } from "@inspect/devices/devices/presets.js";
 import type { AgentRouter } from "@inspect/agent";
 
 // ============================================================================

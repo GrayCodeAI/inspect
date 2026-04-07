@@ -125,7 +125,16 @@ export class NetworkAnalyzer {
   }
 }
 
-export const analyzeNetworkIssues = (requests: any[], pageUrl: string): NetworkAnalysisResult => {
+export const analyzeNetworkIssues = (
+  requests: Array<{
+    url: string;
+    method: string;
+    status: number;
+    timestamp: number;
+    responseTime?: number;
+  }>,
+  pageUrl: string,
+): NetworkAnalysisResult => {
   const analyzer = new NetworkAnalyzer();
   return analyzer.analyze(requests, pageUrl);
 };
