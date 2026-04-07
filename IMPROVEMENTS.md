@@ -359,3 +359,20 @@ Added two more packages with external references: 23. mocking - HTTP/WebSocket m
 - **0 TypeScript errors** in CLI
 - **109 tests** added
 - **All typecheck tasks passing**
+
+## Build Fix
+
+### Commit:
+
+- `c4d2c04` - Fix duplicate WatchdogEvent export in agent-watchdogs
+
+### Issue Fixed:
+
+Resolved duplicate identifier error where `WatchdogEvent` was exported from both:
+
+- `./watchdogs/manager.js` (as interface)
+- `./watchdogs/all-watchdogs.js` (as class)
+
+### Solution:
+
+Renamed interface export to `WatchdogEventInfo` to avoid conflict while keeping both exports available.
