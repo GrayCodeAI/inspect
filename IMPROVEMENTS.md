@@ -341,3 +341,21 @@ The following packages now have proper index.ts exports:
 - **0 TypeScript errors** in CLI
 - **109 tests** added
 - **All 77 typecheck tasks passing**
+
+## Additional Commits - More Package Index Files
+
+### Commits Added:
+
+- `4a9d61f` - Add index.ts for mocking and agent-watchdogs packages
+
+### Total Package Index Files: 24
+
+Added two more packages with external references: 23. mocking - HTTP/WebSocket mocking utilities 24. agent-watchdogs - Agent monitoring watchdogs (Download, Captcha, Crash, Popup)
+
+### Final Metrics:
+
+- **27 total commits** to main
+- **24 packages** with index.ts exports
+- **0 TypeScript errors** in CLI
+- **109 tests** added
+- **All typecheck tasks passing**
