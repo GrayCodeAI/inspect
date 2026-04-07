@@ -267,3 +267,22 @@ export class PersistentSessionManager implements SessionManager {
     return true;
   }
 }
+
+// ── Helper to create all persistent stores ───────────────────────────────────
+
+export interface PersistentStores {
+  taskStore: PersistentTaskStore;
+  workflowStore: PersistentWorkflowStore;
+  sessionManager: PersistentSessionManager;
+  dataDir: string;
+}
+
+export function createPersistentStores(dataDir?: string): PersistentStores {
+  const dir = dataDir ?? ".inspect/data";
+  return {
+    taskStore: new PersistentTaskStore(dir),
+    workflowStore: new PersistentWorkflowStore(dir),
+    sessionManager: new PersistentSessionManager(dir),
+    dataDir: dir,
+  };
+}
