@@ -5,7 +5,7 @@ import type {
   SafariBrowserKey,
 } from "./types.js";
 
-interface BrowserConfig {
+export interface BrowserConfig {
   readonly displayName: string;
   readonly dataDir: string;
   readonly profileDir: string;
