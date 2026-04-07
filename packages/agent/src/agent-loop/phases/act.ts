@@ -8,12 +8,15 @@
 import { Effect, Schema } from "effect";
 import type { AgentAction } from "../types.js";
 import { BrowserManagerService } from "@inspect/browser";
+import { ActionCache, ActionCacheStep, ActionReplayResult } from "../action-cache.js";
 
 export class ActInput extends Schema.Class<ActInput>("ActInput")({
   actions: Schema.Array(Schema.Unknown),
   browserState: Schema.Unknown,
   timeout: Schema.Number,
   maxRetries: Schema.Number,
+  recordCache: Schema.optional(Schema.Boolean),
+  replayFromCache: Schema.optional(Schema.Unknown),
 }) {}
 
 export class ActionExecutionResult extends Schema.Class<ActionExecutionResult>(
@@ -47,29 +50,84 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
   const results: ActionExecutionResult[] = [];
   let extractedContent: Record<string, unknown> = {};
   let currentBrowserState = input.browserState;
+  const cacheSteps: ActionCacheStep[] = [];
 
-  for (const action of input.actions) {
-    const _actionStartTime = Date.now();
+  const shouldRecord = input.recordCache ?? false;
+  const replayCache = input.replayFromCache as ActionCache | undefined;
 
-    const actionResult = yield* executeSingleAction(action as AgentAction, browser);
+  if (replayCache) {
+    yield* Effect.logInfo("Replaying from action cache", { stepCount: replayCache.steps.length });
+    for (const cachedStep of replayCache.steps) {
+      const actionStartTime = Date.now();
+      const action: AgentAction = {
+        type: cachedStep.actionType,
+        params: cachedStep.params ?? {},
+      };
+      const actionResult = yield* executeSingleAction(action, browser, cachedStep.elementId);
+      results.push(actionResult);
 
-    results.push(actionResult);
-
-    // Update browser state if action succeeded and returned state
-    if (actionResult.success && actionResult.output) {
-      const output = actionResult.output as Record<string, unknown>;
-      if (output.url || output.title) {
-        currentBrowserState = {
-          ...(currentBrowserState as Record<string, unknown>),
-          ...output,
-          timestamp: Date.now(),
-        };
+      if (actionResult.success && actionResult.output) {
+        const output = actionResult.output as Record<string, unknown>;
+        if (output.url || output.title) {
+          currentBrowserState = {
+            ...(currentBrowserState as Record<string, unknown>),
+            ...output,
+            timestamp: Date.now(),
+          };
+        }
+        if (output.extracted) {
+          extractedContent = {
+            ...extractedContent,
+            ...(output.extracted as Record<string, unknown>),
+          };
+        }
       }
-      if (output.extracted) {
-        extractedContent = {
-          ...extractedContent,
-          ...(output.extracted as Record<string, unknown>),
-        };
+
+      yield* Effect.logDebug("Replayed cache step", {
+        step: cachedStep.stepIndex,
+        success: actionResult.success,
+      });
+    }
+  } else {
+    for (const action of input.actions) {
+      const _actionStartTime = Date.now();
+
+      const actionResult = yield* executeSingleAction(action as AgentAction, browser);
+
+      results.push(actionResult);
+
+      if (shouldRecord && actionResult.success) {
+        const actionRecord = action as AgentAction;
+        cacheSteps.push(
+          new ActionCacheStep({
+            stepIndex: cacheSteps.length,
+            instruction: actionRecord.type,
+            elementId: actionRecord.params?.elementId as string | undefined,
+            method: actionRecord.type,
+            selector: actionRecord.params?.selector as string | undefined,
+            params: actionRecord.params as Record<string, unknown> | undefined,
+            actionType: actionRecord.type,
+            timestamp: Date.now(),
+          }),
+        );
+      }
+
+      // Update browser state if action succeeded and returned state
+      if (actionResult.success && actionResult.output) {
+        const output = actionResult.output as Record<string, unknown>;
+        if (output.url || output.title) {
+          currentBrowserState = {
+            ...(currentBrowserState as Record<string, unknown>),
+            ...output,
+            timestamp: Date.now(),
+          };
+        }
+        if (output.extracted) {
+          extractedContent = {
+            ...extractedContent,
+            ...(output.extracted as Record<string, unknown>),
+          };
+        }
       }
     }
   }
@@ -83,12 +141,25 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
     finalBrowserState: currentBrowserState,
     totalDuration,
     extractedContent: Object.keys(extractedContent).length > 0 ? extractedContent : undefined,
+    // Include action cache in output if recording
+    ...(shouldRecord && cacheSteps.length > 0
+      ? {
+          _actionCache: new ActionCache({
+            taskId: `task-${Date.now()}`,
+            createdAt: Date.now(),
+            status: "completed",
+            steps: cacheSteps,
+            goal: "recorded",
+          }),
+        }
+      : {}),
   });
 });
 
 const executeSingleAction = Effect.fn("ActPhase.executeSingleAction")(function* (
   action: AgentAction,
   browser: InstanceType<typeof BrowserManagerService>,
+  cachedElementId?: string,
 ) {
   const actionType = action.type as string;
   const params = action.params as Record<string, unknown>;
