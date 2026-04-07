@@ -4,6 +4,8 @@
     "rootDir": "src",
     "outDir": "dist",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "include": ["src", "src/backends"]
-  }
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
 }

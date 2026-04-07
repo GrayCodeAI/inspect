@@ -2,20 +2,19 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
-    "moduleResolution": "nodeNext",
+    "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
-  },
-  "include": ["src", "src/playwright", "src/backends"]
+    "emitDecoratorMetadata": true,
+    "allowImportingTsExtensions": true
+  }
 }

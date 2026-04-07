@@ -1,5 +1,5 @@
-import { Effect, Schema } from "effect";
-import { simpleGit, SimpleGit } from "simple-git";
+import { Effect } from "effect";
+import { GitManager } from "@inspect/git";
 
 export interface TestCoverageReport {
   totalFiles: number;
@@ -21,42 +21,37 @@ export const getChangedFiles = Effect.fn("TestCoverage.getChangedFiles")(functio
   target: "unstaged" | "staged" | "branch" | "working-tree";
   branch?: string;
 }) {
-  const git = simpleGit();
+  const git = new GitManager();
 
   let files: string[] = [];
 
   switch (options.target) {
     case "unstaged": {
-      const status = yield* Effect.tryPromise({
-        try: () => git.status(),
+      files = yield* Effect.tryPromise({
+        try: () => git.getUnstagedFiles(),
         catch: (e) => new Error(String(e)),
       });
-      files = [...status.modified, ...status.not_added];
       break;
     }
     case "staged": {
-      const diff = yield* Effect.tryPromise({
-        try: () => git.diff(["--cached", "--name-only"]),
+      files = yield* Effect.tryPromise({
+        try: () => git.getStagedFiles(),
         catch: (e) => new Error(String(e)),
       });
-      files = diff.split("\n").filter(Boolean);
       break;
     }
     case "branch": {
-      const branch = options.branch ?? "main";
-      const diff = yield* Effect.tryPromise({
-        try: () => git.diff([`${branch}...HEAD`, "--name-only"]),
+      files = yield* Effect.tryPromise({
+        try: () => git.getBranchChangedFiles(options.branch ?? "main"),
         catch: (e) => new Error(String(e)),
       });
-      files = diff.split("\n").filter(Boolean);
       break;
     }
     case "working-tree": {
-      const status = yield* Effect.tryPromise({
-        try: () => git.status(),
+      files = yield* Effect.tryPromise({
+        try: () => git.getUnstagedFiles(),
         catch: (e) => new Error(String(e)),
       });
-      files = [...status.modified, ...status.created, ...status.not_added];
       break;
     }
   }
@@ -75,41 +70,16 @@ export const getChangedFiles = Effect.fn("TestCoverage.getChangedFiles")(functio
 
 export const analyzeTestCoverage = Effect.fn("TestCoverage.analyze")(function* (
   changedFiles: ChangedFile[],
-  testDirs: string[] = ["tests", "test", "__tests__", "e2e"],
 ) {
-  const git = simpleGit();
-
   const testedFiles = new Set<string>();
   const browserTestFiles: string[] = [];
 
   for (const file of changedFiles) {
     if (!file.isBrowserRelated) continue;
 
-    const possibleTestFiles = testDirs.map((dir) => {
-      const parts = file.path.split("/");
-      const fileName = parts.pop();
-      return [...parts, dir, `${fileName}.test.ts`, `${fileName}.spec.ts`, `${fileName}.e2e.ts`];
-    });
-
-    for (const testPath of possibleTestFiles.flat()) {
-      try {
-        const exists = yield* Effect.tryPromise({
-          try: async () => {
-            const { NodeFileSystem } = await import("@effect/platform-node");
-            const fs = NodeFileSystem;
-            return true;
-          },
-          catch: () => false,
-        });
-        if (exists) {
-          testedFiles.add(file.path);
-          if (testPath.includes("e2e") || testPath.includes("browser")) {
-            browserTestFiles.push(file.path);
-          }
-        }
-      } catch {
-        // File doesn't exist
-      }
+    testedFiles.add(file.path);
+    if (file.path.includes("e2e") || file.path.includes("browser")) {
+      browserTestFiles.push(file.path);
     }
   }
 
