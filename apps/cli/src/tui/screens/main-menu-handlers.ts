@@ -48,26 +48,66 @@ export interface HandlerContext {
 
 // ── Utility Functions ───────────────────────────────────────────────────────
 
+/**
+ * Cycles through an array of options in the given direction.
+ * Wraps around to the beginning/end when reaching the bounds.
+ *
+ * @param options - Array of options to cycle through
+ * @param current - Current selected value
+ * @param direction - 1 for forward, -1 for backward
+ * @returns The next option in the cycle
+ *
+ * @example
+ * cycleOption(["a", "b", "c"], "a", 1) // returns "b"
+ * cycleOption(["a", "b", "c"], "c", 1) // returns "a" (wraps)
+ */
 export function cycleOption<T>(options: readonly T[], current: T, direction: 1 | -1): T {
   const idx = options.indexOf(current);
   return options[(idx + direction + options.length) % options.length];
 }
 
+/**
+ * Determines if the user can start a test based on the current state.
+ * Requires at least one non-whitespace character in the instruction field.
+ *
+ * @param state - Current menu state
+ * @returns true if the user has entered an instruction
+ */
 export function getCanStart(state: MenuState): boolean {
   return state.instruction.trim().length > 0;
 }
 
+/**
+ * Gets the currently focused field based on the state's focusedField index.
+ *
+ * @param state - Current menu state
+ * @returns The field type currently in focus
+ */
 export function getCurrentField(state: MenuState): FieldType {
   return FIELDS[state.focusedField];
 }
 
 // ── Hint Generation ─────────────────────────────────────────────────────────
 
+/**
+ * Represents a keyboard hint displayed in the status bar.
+ */
 export interface Hint {
+  /** Display label for the key (e.g., "↑↓", "tab", "esc") */
   label: string;
+  /** Description of what the key does */
   value: string;
 }
 
+/**
+ * Generates keyboard hints based on the current field and state.
+ * Provides context-sensitive help for the user.
+ *
+ * @param currentField - The field currently in focus
+ * @param canStart - Whether the user can start a test
+ * @param historyLength - Number of items in instruction history
+ * @returns Array of hints to display
+ */
 export function getHints(
   currentField: FieldType,
   canStart: boolean,
@@ -100,11 +140,31 @@ export function getHints(
 
 // ── Global Shortcuts Handler ────────────────────────────────────────────────
 
+/**
+ * Key state for global shortcuts.
+ */
 export interface KeyGlobal {
+  /** Whether escape key is pressed */
   escape: boolean;
+  /** Whether ctrl key is pressed */
   ctrl: boolean;
 }
 
+/**
+ * Handles global keyboard shortcuts that work from any field.
+ *
+ * Shortcuts:
+ * - Escape or Ctrl+C: Exit the application
+ * - Ctrl+L: Clear/reset the form
+ * - Ctrl+D: Toggle headed mode
+ *
+ * @param input - Character input
+ * @param key - Key state object
+ * @param exit - Function to exit the application
+ * @param reset - Function to reset the form
+ * @param toggleHeaded - Function to toggle headed mode
+ * @returns true if the shortcut was handled
+ */
 export function handleGlobalShortcuts(
   input: string,
   key: KeyGlobal,
@@ -129,17 +189,40 @@ export function handleGlobalShortcuts(
 
 // ── History Navigation Handler ──────────────────────────────────────────────
 
+/**
+ * Key state for history navigation.
+ */
 export interface KeyHistory {
+  /** Whether up arrow is pressed */
   upArrow: boolean;
+  /** Whether down arrow is pressed */
   downArrow: boolean;
 }
 
+/**
+ * Result of history navigation handling.
+ */
 export interface HistoryNavigationResult {
+  /** Whether the navigation was handled */
   handled: boolean;
+  /** New index in the history array */
   newIndex: number;
+  /** New instruction value to display (if changed) */
   newInstruction?: string;
 }
 
+/**
+ * Handles navigation through instruction history using arrow keys.
+ * Only active when the instruction field is focused.
+ *
+ * @param key - Key state object
+ * @param currentField - Currently focused field
+ * @param history - Array of previous instructions
+ * @param historyIndex - Current index in history (-1 = not in history)
+ * @param currentInstruction - Current instruction input value
+ * @param historyDraft - Draft instruction when navigating away from history
+ * @returns Navigation result with new index and optional instruction
+ */
 export function handleHistoryNavigation(
   key: KeyHistory,
   currentField: FieldType,
