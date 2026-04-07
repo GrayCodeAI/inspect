@@ -27,6 +27,28 @@ interface CachedActionEntry {
   description: string;
 }
 
+// DOM Element types for DOMDiff
+interface DOMDiffElement {
+  role?: string;
+  tagName?: string;
+  text?: string;
+}
+
+// Annotated element from AnnotatedScreenshot
+interface AnnotatedElement {
+  id: string | number;
+  tagName: string;
+  role?: string;
+  text?: string;
+}
+
+// ARIA snapshot element type
+interface AriaSnapshotElement {
+  ref: number;
+  role: string;
+  name?: string;
+}
+
 class SimpleActionCache {
   private cache = new Map<string, CachedActionEntry>();
 
@@ -430,13 +452,13 @@ export async function runAgentLoop(opts: {
         if (diff.added.length > 0) {
           const optionsList = diff.added
             .filter(
-              (el) =>
+              (el: DOMDiffElement) =>
                 el.role === "option" ||
                 el.tagName === "option" ||
                 el.tagName === "li" ||
                 el.tagName === "a",
             )
-            .map((el) => el.text)
+            .map((el: DOMDiffElement) => el.text)
             .filter(Boolean)
             .join(", ");
           if (optionsList) {
@@ -482,7 +504,7 @@ export async function runAgentLoop(opts: {
         // Inject vision context into next prompt via history
         const elSummary = annotated.elements
           .map(
-            (el) =>
+            (el: AnnotatedElement) =>
               `[${el.id}] ${el.tagName}${el.role ? `(${el.role})` : ""} "${el.text?.slice(0, 40) ?? ""}"`,
           )
           .join("\n  ");
