@@ -6,10 +6,10 @@ import { getAvailableAgents } from "../services/config-service.js";
 import { usePreferencesStore } from "../stores/preferences.js";
 
 // UI-local types for selection state (mapped to domain models on submit)
-type GitScopeSelection = "unstaged" | "branch" | "commit";
-type AgentSelection = "claude" | "gpt" | "gemini" | "deepseek" | "ollama";
+export type GitScopeSelection = "unstaged" | "branch" | "commit";
+export type AgentSelection = "claude" | "gpt" | "gemini" | "deepseek" | "ollama";
 
-interface MenuState {
+export interface MenuState {
   instruction: string;
   url: string;
   scope: GitScopeSelection;
