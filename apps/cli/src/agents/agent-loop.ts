@@ -42,13 +42,6 @@ interface AnnotatedElement {
   text?: string;
 }
 
-// ARIA snapshot element type
-interface AriaSnapshotElement {
-  ref: number;
-  role: string;
-  name?: string;
-}
-
 class SimpleActionCache {
   private cache = new Map<string, CachedActionEntry>();
 

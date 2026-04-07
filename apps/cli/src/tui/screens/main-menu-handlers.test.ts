@@ -10,7 +10,6 @@ import {
   handleTextInput,
   handleOptionCycling,
   handleSubmit,
-  FIELDS,
   SCOPES,
   AGENTS,
   DEVICES,
