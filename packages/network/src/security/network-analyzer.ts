@@ -1,5 +1,3 @@
-import { Schema } from "effect";
-
 export interface NetworkIssue {
   type: "failed" | "duplicate" | "mixed-content" | "slow";
   url: string;

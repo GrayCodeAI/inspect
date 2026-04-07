@@ -149,9 +149,8 @@ describe("usePreferencesStore", () => {
       const prefsPath = join(testDir, ".inspect", "preferences.json");
       expect(existsSync(prefsPath)).toBe(true);
 
-      // Read and verify content
-      const content = JSON.parse(usePreferencesStore.getState().saveToDisk() || "{}");
-      // Note: saveToDisk doesn't return content, we just verify no error is thrown
+      // Verify saveToDisk doesn't throw
+      expect(() => usePreferencesStore.getState().saveToDisk()).not.toThrow();
     });
 
     it("loads preferences from disk", () => {

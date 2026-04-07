@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
 export const FINGERPRINT_FILE_DEFAULT = ".inspect/tested-fingerprint";
 

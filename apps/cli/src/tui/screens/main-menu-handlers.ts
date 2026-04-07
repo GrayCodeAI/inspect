@@ -237,7 +237,6 @@ export function handleHistoryNavigation(
 
   if (key.upArrow) {
     const nextIndex = Math.min(historyIndex + 1, history.length - 1);
-    const newDraft = historyIndex === -1 ? currentInstruction : historyDraft;
     return {
       handled: true,
       newIndex: nextIndex,

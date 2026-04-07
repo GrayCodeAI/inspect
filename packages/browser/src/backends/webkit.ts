@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap, Schema } from "effect";
+import { Effect, Layer, ServiceMap } from "effect";
 import { BrowserError } from "@inspect/shared";
 
 export class WebKitBackend extends ServiceMap.Service<WebKitBackend>()("@inspect/WebKitBackend", {

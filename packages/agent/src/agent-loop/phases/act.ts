@@ -8,7 +8,7 @@
 import { Effect, Schema } from "effect";
 import type { AgentAction } from "../types.js";
 import { BrowserManagerService } from "@inspect/browser";
-import { ActionCache, ActionCacheStep, ActionReplayResult } from "../action-cache.js";
+import { ActionCache, ActionCacheStep } from "../action-cache.js";
 
 export class ActInput extends Schema.Class<ActInput>("ActInput")({
   actions: Schema.Array(Schema.Unknown),
@@ -58,7 +58,6 @@ export const actPhase = Effect.fn("ActPhase.execute")(function* (input: ActInput
   if (replayCache) {
     yield* Effect.logInfo("Replaying from action cache", { stepCount: replayCache.steps.length });
     for (const cachedStep of replayCache.steps) {
-      const actionStartTime = Date.now();
       const action: AgentAction = {
         type: cachedStep.actionType,
         params: cachedStep.params ?? {},
