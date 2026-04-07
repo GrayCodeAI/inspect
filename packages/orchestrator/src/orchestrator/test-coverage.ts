@@ -23,38 +23,20 @@ export const getChangedFiles = Effect.fn("TestCoverage.getChangedFiles")(functio
 }) {
   const git = new GitManager();
 
-  let files: string[] = [];
+  // Map target to the scope parameter for getChangedFiles
+  const scopeMap: Record<string, string> = {
+    unstaged: "unstaged",
+    staged: "changes", // staged + unstaged
+    branch: "branch",
+    "working-tree": "changes",
+  };
 
-  switch (options.target) {
-    case "unstaged": {
-      files = yield* Effect.tryPromise({
-        try: () => git.getUnstagedFiles(),
-        catch: (e) => new Error(String(e)),
-      });
-      break;
-    }
-    case "staged": {
-      files = yield* Effect.tryPromise({
-        try: () => git.getStagedFiles(),
-        catch: (e) => new Error(String(e)),
-      });
-      break;
-    }
-    case "branch": {
-      files = yield* Effect.tryPromise({
-        try: () => git.getBranchChangedFiles(options.branch ?? "main"),
-        catch: (e) => new Error(String(e)),
-      });
-      break;
-    }
-    case "working-tree": {
-      files = yield* Effect.tryPromise({
-        try: () => git.getUnstagedFiles(),
-        catch: (e) => new Error(String(e)),
-      });
-      break;
-    }
-  }
+  const scope = scopeMap[options.target] ?? "unstaged";
+
+  const files = yield* Effect.tryPromise({
+    try: () => git.getChangedFiles(scope),
+    catch: (e) => new Error(String(e)),
+  });
 
   const changedFiles: ChangedFile[] = files.map((path) => {
     const isTest = /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(path);
