@@ -195,6 +195,9 @@ export type {
 export type { FormInfo as StaticFormInfo } from "./analysis/static-analyzer.js";
 export type { AnalyzedElement, FormInfo } from "./testing/generator.js";
 
+// Session Recording (rrweb integration)
+export { SessionRecorder, createSessionRecorder } from "./recording/session-recorder.js";
+
 // Test plan forking
 export {
   TestPlanForkManager,
