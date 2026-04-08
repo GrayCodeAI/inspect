@@ -1092,6 +1092,9 @@ importers:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35
     devDependencies:
+      "@effect/vitest":
+        specifier: ^4.0.0-beta.35
+        version: 4.0.0-beta.43(effect@4.0.0-beta.35)(vitest@4.1.1(@opentelemetry/api@1.9.1)(@types/node@22.19.15)(msw@2.12.14(@types/node@22.19.15)(typescript@5.9.3))(vite@8.0.2(@types/node@22.19.15)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3)))
       "@types/node":
         specifier: ^22.0.0
         version: 22.19.15
@@ -1626,6 +1629,15 @@ packages:
     peerDependencies:
       effect: ^4.0.0-beta.35
       ioredis: ^5.7.0
+
+  "@effect/vitest@4.0.0-beta.43":
+    resolution:
+      {
+        integrity: sha512-XN2LAwiUWPqbV2jrsYYRjrVydQ8MIgwr83MVImtUaOQco4vk43+8OHlXQMRN/u2HnGK29KT+O2yTMMBdk2Q6Sw==,
+      }
+    peerDependencies:
+      effect: ^4.0.0-beta.43
+      vitest: ^3.0.0 || ^4.0.0
 
   "@emnapi/core@1.9.1":
     resolution:
@@ -11624,6 +11636,11 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  "@effect/vitest@4.0.0-beta.43(effect@4.0.0-beta.35)(vitest@4.1.1(@opentelemetry/api@1.9.1)(@types/node@22.19.15)(msw@2.12.14(@types/node@22.19.15)(typescript@5.9.3))(vite@8.0.2(@types/node@22.19.15)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3)))":
+    dependencies:
+      effect: 4.0.0-beta.35
+      vitest: 4.1.1(@opentelemetry/api@1.9.1)(@types/node@22.19.15)(msw@2.12.14(@types/node@22.19.15)(typescript@5.9.3))(vite@8.0.2(@types/node@22.19.15)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3))
 
   "@emnapi/core@1.9.1":
     dependencies:

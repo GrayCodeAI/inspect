@@ -52,13 +52,14 @@ export const findCursorInteractiveElements = async (
   const maxResults = options.maxResults ?? 50;
 
   const elements = await page.evaluate(
-    (
-      root: string,
-      maxLen: number,
-      maxRes: number,
-      interactiveRoles: string[],
-      interactiveTags: string[],
-    ) => {
+    (args: {
+      root: string;
+      maxLen: number;
+      maxRes: number;
+      interactiveRoles: string[];
+      interactiveTags: string[];
+    }) => {
+      const { root, maxLen, maxRes, interactiveRoles, interactiveTags } = args;
       const rootEl = document.querySelector(root);
       if (!rootEl) return [];
 
@@ -144,11 +145,13 @@ export const findCursorInteractiveElements = async (
 
       return results;
     },
-    rootSelector,
-    maxTextLength,
-    maxResults,
-    Array.from(INTERACTIVE_ROLES),
-    Array.from(INTERACTIVE_TAGS),
+    {
+      root: rootSelector,
+      maxLen: maxTextLength,
+      maxRes: maxResults,
+      interactiveRoles: Array.from(INTERACTIVE_ROLES),
+      interactiveTags: Array.from(INTERACTIVE_TAGS),
+    },
   );
 
   return elements as unknown as CursorInteractiveElement[];
