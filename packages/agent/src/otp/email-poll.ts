@@ -232,7 +232,7 @@ export class EmailPoller {
     const code = this.extractCode(body);
 
     return {
-      found: !!code,
+      found: Boolean(code),
       code: code ?? undefined,
       subject,
       from,
@@ -301,7 +301,7 @@ export class EmailPoller {
     const code = this.extractCode(body);
 
     return {
-      found: !!code,
+      found: Boolean(code),
       code: code ?? undefined,
       subject: filtered[0].subject,
       from: filtered[0].from,

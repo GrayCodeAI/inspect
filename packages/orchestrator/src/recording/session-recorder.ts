@@ -390,7 +390,7 @@ export class SessionRecorder extends EventEmitter {
   private async injectRRWeb(page: Page): Promise<void> {
     // Check if already injected
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hasRRWeb = await page.evaluate(() => !!(globalThis as any)["rrweb"]);
+    const hasRRWeb = await page.evaluate(() => (globalThis as any)["rrweb"] !== undefined);
     if (hasRRWeb) return;
 
     // Inject rrweb from CDN or bundle
@@ -399,9 +399,12 @@ export class SessionRecorder extends EventEmitter {
     });
 
     // Wait for load
-    await page.waitForFunction(() => !!(globalThis as { [key: string]: unknown })["rrweb"], {
-      timeout: 5000,
-    });
+    await page.waitForFunction(
+      () => (globalThis as { [key: string]: unknown })["rrweb"] !== undefined,
+      {
+        timeout: 5000,
+      },
+    );
   }
 
   /**

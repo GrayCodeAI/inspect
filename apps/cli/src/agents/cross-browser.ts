@@ -137,7 +137,7 @@ export async function runCrossBrowser(
             title: document.title || "",
             elementCount: document.querySelectorAll("*").length,
             headings: headings.slice(0, 20),
-            hasViewportMeta: !!viewportMeta,
+            hasViewportMeta: viewportMeta !== null,
             bodyText: (document.body.textContent || "").trim().slice(0, 200),
           };
         })()

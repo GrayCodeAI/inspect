@@ -346,7 +346,7 @@ async function checkColorContrast(page: Page, url: string): Promise<A11yIssue[]>
 async function checkLangAttribute(page: Page, url: string): Promise<A11yIssue[]> {
   const hasLang = await safeEvaluate<boolean>(
     page,
-    `!!document.documentElement.getAttribute("lang")`,
+    `document.documentElement.getAttribute("lang") !== null`,
     false,
   );
   if (!hasLang) {

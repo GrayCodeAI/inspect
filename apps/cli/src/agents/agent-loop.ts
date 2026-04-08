@@ -530,7 +530,7 @@ export async function runAgentLoop(opts: {
               role: line.match(/role="([^"]+)"/)?.[1] ?? "",
               name: line.match(/name="([^"]+)"/)?.[1],
             }))
-            .filter((el) => !!el.role);
+            .filter((el) => el.role != null);
           const healed = opts.selfHealer.heal(step.target, elements);
           if (healed.success) {
             onProgress(

@@ -112,7 +112,7 @@ export class AgentLoop extends ServiceMap.Service<AgentLoop>()("@agent/AgentLoop
       yield* Effect.logInfo("Agent loop started", {
         goal: config.goal,
         maxSteps: config.maxSteps,
-        hasSession: !!session,
+        hasSession: Boolean(session),
       });
 
       const initialState = new AgentState({
@@ -669,7 +669,7 @@ function actPhase(action: AgentAction, session?: BrowserSession) {
       success,
       duration,
       retries: retryCount,
-      hasError: !!error,
+      hasError: Boolean(error),
     });
 
     return new ActionResult({

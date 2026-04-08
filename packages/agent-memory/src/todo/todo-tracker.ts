@@ -382,7 +382,7 @@ export class TodoTracker extends EventEmitter {
    */
   getSessionTodos(sessionId: string): TodoItem[] {
     const ids = this.sessionTodos.get(sessionId) || [];
-    return ids.map((id) => this.todos.get(id)).filter((t): t is TodoItem => !!t);
+    return ids.map((id) => this.todos.get(id)).filter((t): t is TodoItem => t != null);
   }
 
   /**

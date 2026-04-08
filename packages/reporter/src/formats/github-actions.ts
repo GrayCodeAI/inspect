@@ -60,7 +60,7 @@ export class GitHubActionsReporter {
 
   constructor(options: GitHubActionsReporterOptions = {}) {
     this.options = {
-      stepSummary: options.stepSummary ?? !!process.env.GITHUB_STEP_SUMMARY,
+      stepSummary: options.stepSummary ?? process.env.GITHUB_STEP_SUMMARY != null,
       annotations: options.annotations ?? true,
       groupOutput: options.groupOutput ?? true,
       title: options.title ?? "Inspect Test Results",

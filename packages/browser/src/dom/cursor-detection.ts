@@ -1,3 +1,5 @@
+import type { Page } from "playwright";
+
 export interface CursorInteractiveElement {
   selector: string;
   tag: string;
@@ -38,7 +40,7 @@ const INTERACTIVE_TAGS = new Set([
 ]);
 
 export const findCursorInteractiveElements = async (
-  page: any,
+  page: Page,
   options: {
     rootSelector?: string;
     maxTextLength?: number;

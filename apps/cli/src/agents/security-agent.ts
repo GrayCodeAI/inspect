@@ -109,7 +109,7 @@ export async function checkSecurityHeaders(page: Page, url: string): Promise<Sec
   }
 
   const headers: SecurityHeaders = {
-    hsts: !!responseHeaders["strict-transport-security"],
+    hsts: responseHeaders["strict-transport-security"] != null,
     csp: responseHeaders["content-security-policy"] ?? null,
     xFrameOptions: responseHeaders["x-frame-options"] ?? null,
     xContentTypeOptions: responseHeaders["x-content-type-options"]?.toLowerCase() === "nosniff",

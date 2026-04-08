@@ -168,7 +168,7 @@ export class AgentRouter {
     return providers.map((name) => ({
       name,
       model: this.config.defaultModels?.[name] ?? DEFAULT_MODELS[name],
-      available: name === "ollama" || !!this.config.keys[name],
+      available: name === "ollama" || this.config.keys[name] != null,
     }));
   }
 

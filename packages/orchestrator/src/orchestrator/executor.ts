@@ -641,7 +641,7 @@ export interface ExecutorDependencies extends ExecutionDeps {}
 export class TestExecutor {
   private config: ExecutionConfig;
   private deps: ExecutionDeps;
-  private onProgress: ((p: ExecutionProgress) => void) | null = null;
+  private onProgress: ((p: ExecutionProgress) => void) | undefined;
   private abortController: AbortController;
 
   constructor(config: ExecutionConfig, deps?: ExecutionDeps) {

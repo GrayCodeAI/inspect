@@ -606,9 +606,11 @@ async function verifyAssertion(
       page,
       `
       (() => ({
-        viewport: !!document.querySelector('meta[name="viewport"]'),
-        description: !!document.querySelector('meta[name="description"]'),
-        charset: !!document.querySelector('meta[charset]') || !!document.querySelector('meta[http-equiv="Content-Type"]'),
+        viewport: document.querySelector('meta[name="viewport"]') !== null,
+        description: document.querySelector('meta[name="description"]') !== null,
+        charset:
+  document.querySelector('meta[charset]') !== null ||
+  document.querySelector('meta[http-equiv="Content-Type"]') !== null,
       }))()
     `,
       { viewport: false, description: false, charset: false },

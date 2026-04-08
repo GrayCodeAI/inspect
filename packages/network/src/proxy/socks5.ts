@@ -66,7 +66,7 @@ export class Socks5Client {
     const proxyPort = parseInt(proxyUrl.port || "1080", 10);
     const username = proxy.username || proxyUrl.username || undefined;
     const password = proxy.password || proxyUrl.password || undefined;
-    const needsAuth = !!(username && password);
+    const needsAuth = username && password;
 
     // Step 1: TCP connect to the SOCKS5 proxy
     const socket = await this.tcpConnect(proxyHost, proxyPort);

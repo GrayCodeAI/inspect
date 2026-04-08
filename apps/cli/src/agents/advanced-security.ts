@@ -71,7 +71,7 @@ export async function testCSRF(page: Page, url: string): Promise<SecurityTestRes
       return {
         formsCount: forms.length,
         formsWithToken,
-        hasMetaToken: !!metaCsrf,
+        hasMetaToken: metaCsrf != null,
       };
     })()`,
     { formsCount: 0, formsWithToken: 0, hasMetaToken: false },

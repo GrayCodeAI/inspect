@@ -555,7 +555,7 @@ export async function scanGraphQLSecurity(
           body: ${JSON.stringify(INTROSPECTION_QUERY)},
         });
         const body = await res.json();
-        const hasData = !!(body.data && body.data.__schema);
+        const hasData = body.data?.__schema != null;
         return { hasData, status: res.status };
       } catch {
         return null;

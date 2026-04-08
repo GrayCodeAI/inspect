@@ -373,14 +373,14 @@ export async function waitForHydration(page: Page, timeout: number = 10_000): Pr
   const hasReact = await safeEvaluate<boolean>(
     page,
     `(() => {
-      return !!(
-        document.querySelector("[data-reactroot]") ||
-        document.querySelector("#__next") ||
-        document.querySelector("#root[data-reactroot]") ||
-        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
-        window.__NEXT_DATA__
-      );
-    })()`,
+        return Boolean(
+          window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
+          document.querySelector("[data-reactroot]") ||
+          document.querySelector("#__next") ||
+          document.querySelector("#root[data-reactroot]") ||
+          document.querySelector(".react-root")
+        );
+      })()`,
     false,
     3_000,
   );
@@ -456,13 +456,13 @@ export async function waitForHydration(page: Page, timeout: number = 10_000): Pr
   const hasVue = await safeEvaluate<boolean>(
     page,
     `(() => {
-      return !!(
-        document.querySelector("[data-v-app]") ||
-        document.querySelector("#__nuxt") ||
-        window.__VUE__ ||
-        window.__NUXT__
-      );
-    })()`,
+        return Boolean(
+          document.querySelector("[data-v-app]") ||
+          document.querySelector("#__nuxt") ||
+          window.__VUE__ ||
+          window.__NUXT__
+        );
+      })()`,
     false,
     3_000,
   );
@@ -495,12 +495,12 @@ export async function waitForHydration(page: Page, timeout: number = 10_000): Pr
   const hasAngular = await safeEvaluate<boolean>(
     page,
     `(() => {
-      return !!(
-        document.querySelector("[ng-version]") ||
-        document.querySelector("app-root") ||
-        window.getAllAngularRootElements
-      );
-    })()`,
+        return Boolean(
+          document.querySelector("[ng-version]") ||
+          document.querySelector("app-root") ||
+          window.getAllAngularRootElements
+        );
+      })()`,
     false,
     3_000,
   );
@@ -774,24 +774,24 @@ export async function detectFramework(page: Page): Promise<string | null> {
     page,
     `(() => {
       // --- React / Next.js / Gatsby / Remix ---
-      const hasReact = !!(
-        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
-        document.querySelector("[data-reactroot]") ||
-        document.querySelector("#__next") ||
-        (() => {
-          try {
-            const root = document.querySelector("#root") || document.querySelector("#app");
-            if (!root) return false;
-            for (const child of root.children) {
-              const keys = Object.keys(child);
-              if (keys.some(k => k.startsWith("__reactFiber") || k.startsWith("__reactInternalInstance"))) {
-                return true;
+const hasReact = Boolean(
+          window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
+          document.querySelector("[data-reactroot]") ||
+          document.querySelector("#__next") ||
+          (() => {
+            try {
+              const root = document.querySelector("#root") || document.querySelector("#app");
+              if (!root) return false;
+              for (const child of root.children) {
+                const keys = Object.keys(child);
+                if (keys.some(k => k.startsWith("__reactFiber") || k.startsWith("__reactInternalInstance"))) {
+                  return true;
+                }
               }
-            }
-            return false;
-          } catch { return false; }
-        })()
-      );
+              return false;
+            } catch { return false; }
+          })()
+        );
 
       // Next.js
       if (window.__NEXT_DATA__ || document.querySelector("#__next")) {
@@ -815,25 +815,25 @@ export async function detectFramework(page: Page): Promise<string | null> {
         return "Nuxt";
       }
 
-      const hasVue = !!(
-        window.__VUE__ ||
-        (() => {
-          try {
-            const root = document.querySelector("#app") || document.querySelector("[data-v-app]");
-            if (!root) return false;
-            return !!(root.__vue_app__ || root.__vue__);
-          } catch { return false; }
-        })()
-      );
+const hasVue = Boolean(
+          window.__VUE__ ||
+          (() => {
+            try {
+              const root = document.querySelector("#app") || document.querySelector("[data-v-app]");
+              if (!root) return false;
+              return root.__vue_app__ != null || root.__vue__ != null;
+            } catch { return false; }
+          })()
+        );
 
       if (hasVue) return "Vue";
 
       // --- Angular ---
-      const hasAngular = !!(
-        document.querySelector("[ng-version]") ||
-        window.getAllAngularRootElements ||
-        window.ng
-      );
+const hasAngular = Boolean(
+          document.querySelector("[ng-version]") ||
+          window.getAllAngularRootElements ||
+          window.ng
+        );
       if (hasAngular) return "Angular";
 
       // --- Svelte / SvelteKit ---
@@ -842,18 +842,18 @@ export async function detectFramework(page: Page): Promise<string | null> {
         return "SvelteKit";
       }
 
-      const hasSvelte = !!(
-        (() => {
-          try {
-            const allEls = document.querySelectorAll("*");
-            for (const el of allEls) {
-              const keys = Object.keys(el);
-              if (keys.some(k => k.startsWith("__svelte"))) return true;
-            }
-            return false;
-          } catch { return false; }
-        })()
-      );
+const hasSvelte = Boolean(
+          (() => {
+            try {
+              const allEls = document.querySelectorAll("*");
+              for (const el of allEls) {
+                const keys = Object.keys(el);
+                if (keys.some(k => k.startsWith("__svelte"))) return true;
+              }
+              return false;
+            } catch { return false; }
+          })()
+        );
       if (hasSvelte) return "Svelte";
 
       // --- Solid ---
@@ -972,8 +972,8 @@ export async function waitForSPANavigation(
     const domChanged = await safeEvaluate<boolean>(
       page,
       `(() => {
-        return !!window.__inspectSPANavDone;
-      })()`,
+          return Boolean(window.__inspectSPANavDone);
+        })()`,
       false,
       2_000,
     );

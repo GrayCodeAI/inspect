@@ -370,7 +370,7 @@ Examples:
 program.action(async () => {
   // Detect if running in a non-interactive / CI / agent environment
   const isTTY = process.stdin.isTTY;
-  const isCI = !!(
+  const isCI = Boolean(
     process.env.CI ||
     process.env.CLAUDECODE ||
     process.env.CURSOR_AGENT ||
@@ -380,7 +380,7 @@ program.action(async () => {
     process.env.JENKINS_URL ||
     process.env.BUILDKITE ||
     process.env.CIRCLECI ||
-    process.env.TF_BUILD
+    process.env.TF_BUILD,
   );
 
   if (!isTTY || isCI) {
