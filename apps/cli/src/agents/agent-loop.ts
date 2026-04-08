@@ -10,7 +10,7 @@
 
 import type {} from "./playwright-types.js";
 import type { Page } from "@inspect/browser";
-import { AnnotatedScreenshot, DOMDiff } from "@inspect/browser";
+import { AnnotatedScreenshot, DOMDiff, AriaSnapshotBuilder, createNLAct } from "@inspect/browser";
 import type { TestStep, TestPlan, LLMCall, ProgressCallback } from "./types.js";
 import { detectPageType } from "./planner.js";
 import { ActionLoopDetector } from "@inspect/agent";
@@ -541,6 +541,36 @@ export async function runAgentLoop(opts: {
           }
         } catch {
           /* self-healing is best-effort */
+        }
+      }
+
+      // NL Fallback: try natural language when both action and self-healing fail
+      if (result.status === "fail" && step.description) {
+        try {
+          onProgress("info", `NL fallback: attempting "${step.description}"`);
+          const nl = createNLAct(page, {
+            llm,
+            snapshot: async () => {
+              const builder = new AriaSnapshotBuilder();
+              await builder.buildTree(page);
+              return {
+                text: builder.getFormattedTree(),
+                url: page.url(),
+                title: await page.title(),
+              };
+            },
+          });
+
+          const nlResult = await nl.act(step.description);
+          if (nlResult.success) {
+            onProgress("info", `NL fallback succeeded for "${step.description}"`);
+            result.status = "pass";
+            result.error = undefined;
+          } else {
+            onProgress("warn", `NL fallback failed: ${nlResult.error}`);
+          }
+        } catch (nlError) {
+          onProgress("warn", `NL fallback error: ${nlError}`);
         }
       }
     }
