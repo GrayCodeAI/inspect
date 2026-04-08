@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { chromium, type Page, type Browser } from "playwright";
 import { createNLAct } from "./nl-act.js";
-import { AriaSnapshotBuilder } from "../aria/aria-snapshot.js";
+import { AriaSnapshotBuilder } from "../index.js";
 
 describe("createNLAct", () => {
   let browser: Browser;

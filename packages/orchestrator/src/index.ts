@@ -198,6 +198,20 @@ export type { AnalyzedElement, FormInfo } from "./testing/generator.js";
 // Session Recording (rrweb integration)
 export { SessionRecorder, createSessionRecorder } from "./recording/session-recorder.js";
 
+// Multi-Agent Orchestration
+export {
+  MultiAgentOrchestrator,
+  createMultiAgentOrchestrator,
+  type MultiAgentConfig,
+  type AgentInstance,
+  type AgentStatus,
+  type AgentCapability,
+  type Task,
+  type TaskResult,
+  type TaskBatch,
+  type OrchestrationStats,
+} from "./multi-agent/orchestrator.js";
+
 // Test plan forking
 export {
   TestPlanForkManager,

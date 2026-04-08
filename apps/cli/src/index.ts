@@ -59,6 +59,7 @@ import { registerVisualBuilderCommand } from "./commands/visual-builder.js";
 import { registerInstallCommand } from "./commands/install.js";
 import { registerAliasCommand, expandAliases } from "./commands/alias.js";
 import { registerNLCommand } from "./commands/nl.js";
+import { registerMultiAgentCommand } from "./commands/multi-agent.js";
 import { registerEngineCommand } from "./commands/engine.js";
 import { registerDashboardCommand } from "./commands/dashboard.js";
 import { registerCostCommand } from "./commands/cost.js";
@@ -184,6 +185,7 @@ registerShowReportCommand(program);
 registerShowTraceCommand(program);
 registerChatCommand(program);
 registerNLCommand(program);
+registerMultiAgentCommand(program);
 registerAliasCommand(program);
 
 // Inline utility commands (no external deps needed)

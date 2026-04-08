@@ -101,6 +101,9 @@ importers:
       "@inspect/observability":
         specifier: workspace:*
         version: link:../../packages/observability
+      "@inspect/orchestrator":
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
       "@inspect/quality":
         specifier: workspace:*
         version: link:../../packages/quality

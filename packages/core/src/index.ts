@@ -125,6 +125,20 @@ export {
   SyncSpeculativePlanner,
 } from "@inspect/orchestrator";
 
+// Multi-agent re-exports
+export {
+  MultiAgentOrchestrator,
+  createMultiAgentOrchestrator,
+  type MultiAgentConfig,
+  type AgentInstance,
+  type AgentStatus,
+  type AgentCapability,
+  type Task,
+  type TaskResult,
+  type TaskBatch,
+  type OrchestrationStats,
+} from "@inspect/orchestrator/multi-agent/orchestrator.js";
+
 export {
   GitManager,
   Fingerprint,

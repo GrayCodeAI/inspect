@@ -58,6 +58,7 @@
     "@inspect/lighthouse-quality": "workspace:*",
     "@inspect/network": "workspace:*",
     "@inspect/observability": "workspace:*",
+    "@inspect/orchestrator": "workspace:*",
     "@inspect/quality": "workspace:*",
     "@inspect/reporter": "workspace:*",
     "@inspect/resilience": "workspace:*",

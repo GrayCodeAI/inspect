@@ -33,8 +33,8 @@ describe("SelfHealer", () => {
 
       // When using heal() with a description-based selector
       const elements = [
-        { ref: "1", role: "button", name: "Submit", tagName: "button" },
-        { ref: "2", role: "link", name: "Cancel", tagName: "a" },
+        { ref: 1, role: "button", name: "Submit", tagName: "button" },
+        { ref: 2, role: "link", name: "Cancel", tagName: "a" },
       ];
 
       // Using a selector that will be parsed to extract "submit" as the name
@@ -51,8 +51,8 @@ describe("SelfHealer", () => {
       const healer = new SelfHealer(cache);
 
       const elements = [
-        { ref: "1", role: "button", name: "Submit Order", tagName: "button" },
-        { ref: "2", role: "button", name: "Cancel", tagName: "button" },
+        { ref: 1, role: "button", name: "Submit Order", tagName: "button" },
+        { ref: 2, role: "button", name: "Cancel", tagName: "button" },
       ];
 
       const result = await healer.heal("Submit", elements);
@@ -67,7 +67,7 @@ describe("SelfHealer", () => {
       const cache = createMockCache();
       const healer = new SelfHealer(cache);
 
-      const elements = [{ ref: "1", role: "button", name: "Submit", tagName: "button" }];
+      const elements = [{ ref: 1, role: "button", name: "Submit", tagName: "button" }];
 
       const result = await healer.heal("NonExistent", elements);
 
@@ -181,7 +181,7 @@ describe("SelfHealer", () => {
       const cache = createMockCache();
       const healer = new SelfHealer(cache);
 
-      const elements = [{ ref: "1", role: "button", name: "submit button" }];
+      const elements = [{ ref: 1, role: "button", name: "submit button" }];
       const result = await healer.heal("#submit-button", elements);
 
       expect(result.originalSelector).toBe("#submit-button");
@@ -192,7 +192,7 @@ describe("SelfHealer", () => {
       const cache = createMockCache();
       const healer = new SelfHealer(cache);
 
-      const elements = [{ ref: "1", role: "button", name: "primary" }];
+      const elements = [{ ref: 1, role: "button", name: "primary" }];
       const result = await healer.heal(".primary", elements);
 
       expect(result.originalSelector).toBe(".primary");
@@ -203,7 +203,7 @@ describe("SelfHealer", () => {
       const cache = createMockCache();
       const healer = new SelfHealer(cache);
 
-      const elements = [{ ref: "5", role: "button", name: "Click Me" }];
+      const elements = [{ ref: 5, role: "button", name: "Click Me" }];
       const result = await healer.heal('[ref="5"]', elements);
 
       expect(result.originalSelector).toBe('[ref="5"]');
