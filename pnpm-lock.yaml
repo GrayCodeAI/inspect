@@ -882,6 +882,9 @@ importers:
       "@inspect/agent":
         specifier: workspace:*
         version: link:../agent
+      "@inspect/agent-memory":
+        specifier: workspace:*
+        version: link:../agent-memory
       "@inspect/browser":
         specifier: workspace:*
         version: link:../browser

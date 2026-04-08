@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@inspect/agent": "workspace:*",
+    "@inspect/agent-memory": "workspace:*",
     "@inspect/browser": "workspace:*",
     "@inspect/credentials": "workspace:*",
     "@inspect/devices": "workspace:*",

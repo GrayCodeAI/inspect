@@ -77,6 +77,86 @@ export class SelfHealer {
   }
 
   /**
+   * Simple heal method for backward compatibility with agent-loop.
+   * Takes a broken selector and list of available elements, returns best match.
+   */
+  async heal(
+    brokenSelector: string,
+    elements: Array<{ ref: number; role: string; name?: string }>,
+  ): Promise<{
+    success: boolean;
+    originalSelector: string;
+    healedSelector?: string;
+    score?: number;
+  }> {
+    // Convert elements to snapshot format
+    const snapshot: SnapshotElement[] = elements.map((el) => ({
+      ref: String(el.ref),
+      role: el.role,
+      name: el.name ?? "",
+      tagName: undefined,
+      textContent: el.name,
+      attributes: {},
+      interactive: true,
+    }));
+
+    // Parse the broken selector to extract role and name
+    const description = this.parseSelector(brokenSelector);
+
+    const result = await this.healSelector(brokenSelector, description, snapshot);
+
+    return {
+      success: result.success,
+      originalSelector: brokenSelector,
+      healedSelector: result.candidate?.ref,
+      score: result.candidate?.confidence,
+    };
+  }
+
+  /**
+   * Parse a CSS selector to extract element description.
+   * Handles common patterns like [ref="n"], #id, .class, etc.
+   */
+  private parseSelector(selector: string): ElementDescription {
+    // Try to extract ref from [ref="n"] pattern
+    const refMatch = selector.match(/\[ref="?(\d+)"?\]/);
+    if (refMatch) {
+      return {
+        role: "",
+        name: "",
+        attributes: { ref: refMatch[1] },
+      };
+    }
+
+    // Try to extract from #id pattern
+    const idMatch = selector.match(/#([a-zA-Z0-9_-]+)/);
+    if (idMatch) {
+      return {
+        role: "",
+        name: idMatch[1].replace(/[-_]/g, " "),
+        attributes: { id: idMatch[1] },
+      };
+    }
+
+    // Try to extract from .class pattern
+    const classMatch = selector.match(/\.([a-zA-Z0-9_-]+)/);
+    if (classMatch) {
+      return {
+        role: "",
+        name: classMatch[1].replace(/[-_]/g, " "),
+        attributes: { class: classMatch[1] },
+      };
+    }
+
+    // Default: use selector as name
+    return {
+      role: "",
+      name: selector,
+      attributes: {},
+    };
+  }
+
+  /**
    * Attempt to find the element described by `description` in the current
    * page snapshot. Uses progressively less strict matching strategies.
    */
