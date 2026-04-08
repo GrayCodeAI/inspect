@@ -1,12 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { Effect } from "effect";
-import {
-  DiffPlanner,
-  DiffPlannerConfig,
-  DiffTestPlan,
-  ImpactedArea,
-  TestStep,
-} from "./diff-planner.js";
+import * as child_process from "child_process";
+import * as InspectAgent from "@inspect/agent";
+import { DiffPlanner, DiffPlannerConfig, ImpactedArea } from "./diff-planner.js";
 
 describe("DiffPlanner", () => {
   let planner: DiffPlanner;
@@ -99,8 +95,8 @@ index 0987654..a1b2c3d 100644
  }`;
 
       // Mock git commands to return this diff
-      const originalExecSync = require("child_process").execSync;
-      (require("child_process") as any).execSync = (command: string) => {
+      const originalExecSync = child_process.execSync;
+      child_process.execSync = (command: string) => {
         if (command.includes("git diff")) {
           return mockDiff;
         }
@@ -117,7 +113,7 @@ index 0987654..a1b2c3d 100644
       );
 
       // Restore original
-      (require("child_process") as any).execSync = originalExecSync;
+      child_process.execSync = originalExecSync;
 
       expect(plan.impactedAreas).toHaveLength(3);
       expect(plan.impactedAreas[0].type).toEqual("component");
@@ -149,8 +145,8 @@ index 0987654..a1b2c3d 100644
 
     it("should handle empty git diffs gracefully", async () => {
       // Mock empty diff
-      const originalExecSync = require("child_process").execSync;
-      (require("child_process") as any).execSync = () => "";
+      const originalExecSync = child_process.execSync;
+      child_process.execSync = () => "";
       const planner = new DiffPlanner();
       const plan = await Effect.runPromise(
         planner.generatePlan({
@@ -161,7 +157,7 @@ index 0987654..a1b2c3d 100644
         }),
       );
       // Restore
-      (require("child_process") as any).execSync = originalExecSync;
+      child_process.execSync = originalExecSync;
 
       expect(plan).toBeInstanceOf(Object);
       expect(plan.impactedAreas).toHaveLength(0);
@@ -176,8 +172,8 @@ index 0987654..a1b2c3d 100644
         mockDiff += `diff --git a/file${i}.ts b/file${i}.ts\n`;
       }
 
-      const originalExecSync = require("child_process").execSync;
-      (require("child_process") as any).execSync = () => mockDiff;
+      const originalExecSync = child_process.execSync;
+      child_process.execSync = () => mockDiff;
 
       const planner = new DiffPlanner({ config: { maxFiles: 5 } });
       const plan = await Effect.runPromise(
@@ -185,7 +181,7 @@ index 0987654..a1b2c3d 100644
       );
 
       // Restore
-      (require("child_process") as any).execSync = originalExecSync;
+      child_process.execSync = originalExecSync;
 
       expect(plan.impactedAreas).toHaveLength(5); // Should be limited to 5
     });
@@ -198,11 +194,11 @@ index 0987654..a1b2c3d 100644
       });
 
       // Mock LLM provider
-      const originalLlmProvider = require("@inspect/agent").LLMProvider;
-      (require("@inspect/agent") as any).LLMProvider = class {
+      const originalLlmProvider = InspectAgent.LLMProvider;
+      InspectAgent.LLMProvider = class {
         async complete(
-          prompt: string,
-          options: { model: string; temperature: number },
+          _prompt: string,
+          _options: { model: string; temperature: number },
         ): Promise<string> {
           return mockLlmResponse;
         }
@@ -214,7 +210,7 @@ index 0987654..a1b2c3d 100644
       );
 
       // Restore
-      (require("@inspect/agent") as any).LLMProvider = originalLlmProvider;
+      InspectAgent.LLMProvider = originalLlmProvider;
 
       expect(plan.impactedAreas).toHaveLength(1);
       expect(plan.impactedAreas[0].type).toEqual("component");
@@ -344,11 +340,11 @@ index 0000000..1234567`;
 
     it("should include LLM-generated steps when enabled", async () => {
       // Mock LLM response
-      const originalLlmProvider = require("@inspect/agent").LLMProvider;
-      (require("@inspect/agent") as any).LLMProvider = class {
+      const originalLlmProvider = InspectAgent.LLMProvider;
+      InspectAgent.LLMProvider = class {
         async complete(
-          prompt: string,
-          options: { model: string; temperature: number },
+          _prompt: string,
+          _options: { model: string; temperature: number },
         ): Promise<string> {
           return JSON.stringify({
             steps: [
@@ -366,7 +362,7 @@ index 0000000..1234567`;
       const steps = await Effect.runPromise(planner.generateTestSteps(areas, { useLLM: true }));
 
       // Restore
-      (require("@inspect/agent") as any).LLMProvider = originalLlmProvider;
+      InspectAgent.LLMProvider = originalLlmProvider;
 
       expect(steps).toHaveLength(2);
       expect(steps[0].description).toEqual("Custom step 1");
@@ -395,7 +391,7 @@ index 0000000..1234567`;
 
     it("should return 0 if no areas or steps", async () => {
       const confidence1 = await Effect.runPromise(DiffPlanner.calculateConfidence([], []));
-      expect(confidence).toEqual(0);
+      expect(confidence1).toEqual(0);
 
       const confidence2 = await Effect.runPromise(
         DiffPlanner.calculateConfidence(

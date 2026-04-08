@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { Effect } from "effect";
 import { ParallelEngine, ParallelEngineConfig } from "./parallel-engine.js";
 
 describe("ParallelEngine", () => {

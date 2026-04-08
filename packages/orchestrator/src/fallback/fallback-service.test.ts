@@ -23,7 +23,6 @@ describe("FallbackService", () => {
     });
 
     it("should respect maxRetries and fail after exhaustion", async () => {
-      let attempt = 0;
       const result = await Effect.runPromise(
         fallbackService.handleFallback(
           new Error("Persistent failure"),

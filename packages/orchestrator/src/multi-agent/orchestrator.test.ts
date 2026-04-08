@@ -97,9 +97,13 @@ describe("MultiAgentOrchestrator", () => {
 
   describe("monitorAgents", () => {
     it("should monitor agent health and restart if needed", async () => {
-      const events: Array<{ type: string; data: any }> = [];
-      orchestrator.on("agent:health", (data) => events.push({ type: "agent:health", data }));
-      orchestrator.on("agent:restarted", (data) => events.push({ type: "agent:restarted", data }));
+      const events: Array<{ type: string; data: unknown }> = [];
+      orchestrator.on("agent:health", (_data: unknown) =>
+        events.push({ type: "agent:health", data: _data }),
+      );
+      orchestrator.on("agent:restarted", (_data: unknown) =>
+        events.push({ type: "agent:restarted", data: _data }),
+      );
 
       await Effect.runPromise(orchestrator.monitorAgents());
 
