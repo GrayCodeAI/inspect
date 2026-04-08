@@ -1,7 +1,20 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
+import { chromium, type Page } from "playwright";
+import { SessionRecorder } from "@inspect/browser";
+import { createInterface } from "node:readline";
+
+const waitForEnter = (prompt: string): Promise<void> => {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(prompt, () => {
+      rl.close();
+      resolve();
+    });
+  });
+};
 
 export function registerSessionRecordCommand(program: Command): void {
   const sessionCmd = program
@@ -11,17 +24,71 @@ export function registerSessionRecordCommand(program: Command): void {
   sessionCmd
     .command("record")
     .description("Start a new session recording")
-    .option("-u, --url <url>", "URL to start recording from", "about:blank")
-    .option("-o, --output <path>", "Output directory for recording", "./sessions")
+    .option("-u, --url <url>", "URL to record", "https://example.com")
+    .option("-o, --output <path>", "Output file path", "./sessions/recording.json")
     .option("-n, --name <name>", "Session name")
     .option("--max-events <number>", "Maximum events to record", "10000")
     .option("--mask-passwords", "Mask password inputs", true)
+    .option("--manual", "Interactive mode (press Enter to stop)", false)
+    .option("--headed", "Show browser window", true)
     .action(async (options) => {
-      console.log(chalk.blue("\nSession recording initiated\n"));
+      console.log(chalk.blue("\n🎬 Starting Session Recording\n"));
       console.log(chalk.dim(`URL: ${options.url}`));
       console.log(chalk.dim(`Output: ${options.output}`));
-      console.log(chalk.yellow("Session recording requires browser automation via the CLI TUI."));
-      console.log(chalk.dim("Run `inspect test` with recording enabled to capture a session."));
+      console.log(chalk.dim(`Mode: ${options.manual ? "manual (interactive)" : "timed (30s)"}\n`));
+
+      const browser = await chromium.launch({ headless: !options.headed });
+      const context = await browser.newContext({
+        viewport: { width: 1280, height: 720 },
+      });
+      const page = await context.newPage();
+
+      const recorder = new SessionRecorder();
+
+      try {
+        // Start recording
+        await recorder.startRecording(page);
+        console.log(chalk.green("✓ Recording started"));
+
+        // Navigate to URL
+        await page.goto(options.url, { waitUntil: "domcontentloaded" });
+        console.log(chalk.green(`✓ Navigated to ${options.url}`));
+
+        if (options.manual) {
+          console.log(chalk.yellow("\n🎥 Recording in progress..."));
+          console.log(
+            chalk.dim("Interact with the browser, then press Enter to stop recording.\n"),
+          );
+          await waitForEnter("");
+        } else {
+          console.log(chalk.yellow("\n🎥 Recording for 30 seconds..."));
+          await new Promise((resolve) => setTimeout(resolve, 30_000));
+        }
+
+        // Stop recording
+        const events = await recorder.stopRecording(page);
+        console.log(chalk.green(`\n✓ Recording stopped (${events.length} events captured)`));
+
+        // Save recording
+        mkdirSync(dirname(options.output), { recursive: true });
+        const recordingPath = recorder.saveReplay(
+          options.name || "session",
+          events,
+          dirname(options.output),
+        );
+        console.log(chalk.green(`✓ Recording saved: ${recordingPath}`));
+
+        // Generate HTML replay
+        const htmlPath = recordingPath.replace(/\.json$/, ".html");
+        recorder.generateHTMLViewer(events, htmlPath);
+        console.log(chalk.green(`✓ Replay viewer: ${htmlPath}`));
+        console.log(chalk.dim(`\nOpen ${htmlPath} in a browser to replay the session.`));
+      } catch (error) {
+        console.error(chalk.red(`\n✗ Recording failed: ${error}`));
+        process.exit(1);
+      } finally {
+        await browser.close();
+      }
     });
 
   sessionCmd
@@ -40,8 +107,8 @@ export function registerSessionRecordCommand(program: Command): void {
 
       const htmlPath = await exportSessionToHtml(filePath);
       if (htmlPath) {
-        console.log(chalk.green(`\nReplay exported to: ${htmlPath}`));
-        console.log(chalk.dim(`Open in browser or run \`npx serve -p ${port} ${htmlPath}\``));
+        console.log(chalk.green(`\n✓ Replay exported to: ${htmlPath}`));
+        console.log(chalk.dim(`Open in browser or run: npx serve -p ${port} ${dirname(htmlPath)}`));
       }
     });
 
@@ -54,7 +121,7 @@ export function registerSessionRecordCommand(program: Command): void {
       const filePath = resolve(sessionFile);
 
       if (!existsSync(filePath)) {
-        console.error(chalk.red(`\nSession file not found: ${filePath}`));
+        console.error(chalk.red(`Session file not found: ${filePath}`));
         process.exit(1);
       }
 
@@ -62,7 +129,7 @@ export function registerSessionRecordCommand(program: Command): void {
 
       const htmlPath = await exportSessionToHtml(filePath, outputPath);
       if (htmlPath) {
-        console.log(chalk.green(`\nSession exported to: ${htmlPath}`));
+        console.log(chalk.green(`\n✓ Session exported to: ${htmlPath}`));
       }
     });
 
@@ -85,7 +152,7 @@ export function registerSessionRecordCommand(program: Command): void {
         return;
       }
 
-      console.log(chalk.blue(`\nRecorded Sessions (${sessions.length} total)\n`));
+      console.log(chalk.blue(`\n📹 Recorded Sessions (${sessions.length} total)\n`));
 
       for (const session of sessions) {
         console.log(chalk.bold(session.name));
