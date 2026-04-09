@@ -40,13 +40,43 @@ export type GraphEventType =
   | "node:started"
   | "node:completed"
   | "node:failed"
-  | "node:skipped";
+  | "node:skipped"
+  | "approval:requested"
+  | "approval:granted"
+  | "approval:denied";
 
 export interface GraphEvent {
   type: GraphEventType;
   nodeId?: string;
   data?: unknown;
   timestamp: number;
+}
+
+/** Configuration for conditional routing node */
+export interface ConditionalNodeConfig {
+  id: string;
+  name: string;
+  /** Evaluate condition and return route name */
+  condition: (input: unknown, state: GraphState) => string;
+  /** Map of route names to node IDs */
+  routes: Record<string, string>;
+  /** Default route if condition returns unmapped value */
+  defaultRoute?: string;
+  timeout?: number;
+}
+
+/** Configuration for human approval node */
+export interface HumanApprovalNodeConfig {
+  id: string;
+  name: string;
+  /** Approval request message */
+  message: (input: unknown) => string;
+  /** Timeout for approval in ms (default: 300000 = 5min) */
+  timeout?: number;
+  /** Callback when approval is granted */
+  onApproved?: (input: unknown, state: GraphState) => Promise<unknown>;
+  /** Callback when approval is denied */
+  onDenied?: (input: unknown, state: GraphState) => Promise<unknown>;
 }
 
 export interface GraphResult {
@@ -105,6 +135,24 @@ export class AgentGraph {
       throw new Error(`Target node "${edge.to}" does not exist`);
     }
     this.edges.push(edge);
+    return this;
+  }
+
+  /**
+   * Add a conditional routing node that evaluates condition and routes to different paths
+   */
+  addConditionalNode(config: ConditionalNodeConfig): this {
+    const node = createConditionalNode(config);
+    this.addNode(node);
+    return this;
+  }
+
+  /**
+   * Add a human approval node that requires user approval to proceed
+   */
+  addApprovalNode(config: HumanApprovalNodeConfig): this {
+    const node = createHumanApprovalNode(config);
+    this.addNode(node);
     return this;
   }
 
@@ -419,4 +467,112 @@ export class AgentGraph {
       }
     }
   }
+}
+
+// ─── Node Factories ───────────────────────────────────────────────────────
+
+/**
+ * Create a conditional routing node that evaluates a condition
+ * and returns the next node ID to execute
+ */
+export function createConditionalNode(config: ConditionalNodeConfig): AgentNode {
+  return {
+    id: config.id,
+    name: config.name,
+    timeout: config.timeout ?? 30_000,
+    retries: 1,
+    execute: async (input: unknown, state: GraphState) => {
+      const route = config.condition(input, state);
+      const targetId = config.routes[route];
+
+      if (!targetId && !config.defaultRoute) {
+        throw new Error(`No route found for condition result: ${route}`);
+      }
+
+      return {
+        route,
+        nextNode: targetId || config.defaultRoute,
+        input,
+      };
+    },
+  };
+}
+
+/** Global approval response store (key: nodeId, value: true=approved, false=denied) */
+const approvalResponses = new Map<string, boolean>();
+
+/**
+ * Create a human approval node that requests user approval
+ * and waits for grant/deny via global event response mechanism
+ */
+export function createHumanApprovalNode(config: HumanApprovalNodeConfig): AgentNode {
+  return {
+    id: config.id,
+    name: config.name,
+    timeout: config.timeout ?? 300_000, // 5 minutes default
+    retries: 1,
+    execute: async (input: unknown, state: GraphState) => {
+      const message = config.message(input);
+
+      // Request approval - in production, this would emit to Updates PubSub
+      // For now, return a marker that the test runner can intercept
+      const approvalMarker = {
+        __approval_required__: true,
+        nodeId: config.id,
+        message,
+        input,
+        timestamp: Date.now(),
+      };
+
+      // Wait for approval response to be set externally
+      const timeoutDuration = config.timeout ?? 300_000;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < timeoutDuration) {
+        const response = approvalResponses.get(config.id);
+
+        if (response === true) {
+          // Approval granted
+          approvalResponses.delete(config.id);
+          if (config.onApproved) {
+            return await config.onApproved(input, state);
+          }
+          return { approved: true, message };
+        } else if (response === false) {
+          // Approval denied
+          approvalResponses.delete(config.id);
+          if (config.onDenied) {
+            return await config.onDenied(input, state);
+          }
+          throw new Error(`Approval denied for: ${config.id}`);
+        }
+
+        // Check every 100ms
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      throw new Error(`Approval request timed out: ${config.id}`);
+    },
+  };
+}
+
+/**
+ * Set approval response for a node (used by test harness/TUI)
+ */
+export function setApprovalResponse(nodeId: string, approved: boolean): void {
+  approvalResponses.set(nodeId, approved);
+}
+
+/**
+ * Get approval response for a node
+ */
+export function getApprovalResponse(nodeId: string): boolean | undefined {
+  return approvalResponses.get(nodeId);
+}
+
+/**
+ * Clear all approval responses
+ */
+export function clearApprovalResponses(): void {
+  approvalResponses.clear();
 }

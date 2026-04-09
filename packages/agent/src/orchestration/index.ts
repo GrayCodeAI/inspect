@@ -8,6 +8,13 @@ export {
   type GraphEventType,
   type SerializedGraph,
   type GraphValidationResult,
+  type ConditionalNodeConfig,
+  type HumanApprovalNodeConfig,
+  createConditionalNode,
+  createHumanApprovalNode,
+  setApprovalResponse,
+  getApprovalResponse,
+  clearApprovalResponses,
 } from "./graph.js";
 export { AgentMessageBusAdapter } from "./bus-adapter.js";
 export type { AgentMessage, AgentMessageHandler } from "./bus-adapter.js";

@@ -75,6 +75,13 @@ export {
   type GraphEventType,
   type SerializedGraph,
   type GraphValidationResult,
+  type ConditionalNodeConfig,
+  type HumanApprovalNodeConfig,
+  createConditionalNode,
+  createHumanApprovalNode,
+  setApprovalResponse,
+  getApprovalResponse,
+  clearApprovalResponses,
 } from "./orchestration/index.js";
 
 // Real Agent Loop (observe → think → act → finalize)
