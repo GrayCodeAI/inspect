@@ -2,7 +2,7 @@
 // @inspect/expect-vitest - Custom Matchers
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { Page, Locator } from "playwright";
+import type { Page, Locator } from "@inspect/browser";
 import type { InspectMatchers, AssertionResult } from "./types.js";
 import { expect } from "vitest";
 

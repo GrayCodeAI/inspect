@@ -4,6 +4,7 @@
 
 import type { Plugin } from "vitest/config";
 import type { InspectConfig, InspectTestContext } from "./types.js";
+import type { NLSchema } from "@inspect/browser";
 
 const DEFAULT_CONFIG: InspectConfig = {
   browser: "chromium",
@@ -53,18 +54,10 @@ export function inspectPlugin(userConfig: InspectConfig = {}): Plugin {
     config() {
       return {
         test: {
-          // Set longer timeout for browser tests
           testTimeout: globalConfig.timeout ?? 30000,
-          // Setup files
           setupFiles: ["@inspect/expect-vitest/setup"],
-          // Global test environment
           globalSetup: "@inspect/expect-vitest/global-setup",
-          // Environment
           environment: "node",
-          // Browser config
-          browser: {
-            enabled: false, // We manage browser ourselves
-          },
         },
       };
     },
@@ -171,7 +164,7 @@ export async function createTestContext(config: InspectConfig = {}): Promise<Ins
       }
     },
 
-    async extract<T>(instruction: string, schema?: Record<string, unknown>): Promise<T> {
+    async extract<T>(instruction: string, schema?: NLSchema): Promise<T> {
       const result = await nlAct.extract(instruction, schema);
       if (!result.success) {
         throw new Error(`Extraction failed: ${result.error}`);

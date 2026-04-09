@@ -14,7 +14,7 @@ export {
   type BrowserEngine,
   type CrossBrowserResult,
 } from "./playwright/cross-browser.js";
-export type { Page } from "playwright";
+export type { Page, Browser, BrowserContext, Locator } from "playwright";
 
 // ARIA accessibility snapshots
 export { AriaSnapshotBuilder } from "./aria/snapshot.js";

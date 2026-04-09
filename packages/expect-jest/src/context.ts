@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { InspectConfig, InspectTestContext } from "./types.js";
+import type { NLSchema } from "@inspect/browser";
 
 const DEFAULT_CONFIG: InspectConfig = {
   browser: "chromium",
@@ -113,7 +114,7 @@ export async function createTestContext(config?: InspectConfig): Promise<Inspect
       }
     },
 
-    async extract<T>(instruction: string, schema?: Record<string, unknown>): Promise<T> {
+    async extract<T>(instruction: string, schema?: NLSchema): Promise<T> {
       const result = await nlAct.extract(instruction, schema);
       if (!result.success) {
         throw new Error(`Extraction failed: ${result.error}`);
@@ -124,7 +125,7 @@ export async function createTestContext(config?: InspectConfig): Promise<Inspect
     async goto(url: string): Promise<void> {
       const baseUrl = mergedConfig.baseURL;
       const fullUrl = baseUrl && !url.startsWith("http") ? `${baseUrl}${url}` : url;
-      await this.page.goto(fullUrl, { waitUntil: "domcontentloaded" });
+      await page.goto(fullUrl, { waitUntil: "domcontentloaded" });
     },
 
     async wait(instruction: string, timeout?: number): Promise<void> {

@@ -709,9 +709,6 @@ importers:
       "@inspect/core":
         specifier: workspace:*
         version: link:../core
-      playwright:
-        specifier: ^1.59.0
-        version: 1.59.1
     devDependencies:
       "@types/jest":
         specifier: ^29.5.0
@@ -722,6 +719,9 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.19.15)
+      playwright:
+        specifier: ^1.50.0
+        version: 1.58.2
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -743,9 +743,6 @@ importers:
       "@inspect/core":
         specifier: workspace:*
         version: link:../core
-      playwright:
-        specifier: ^1.59.0
-        version: 1.59.1
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@22.19.15)(lightningcss@1.32.0)(msw@2.12.14(@types/node@22.19.15)(typescript@5.9.3))(terser@5.46.1)
@@ -753,6 +750,9 @@ importers:
       "@types/node":
         specifier: ^22.0.0
         version: 22.19.15
+      playwright:
+        specifier: ^1.50.0
+        version: 1.58.2
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -11042,14 +11042,6 @@ packages:
     engines: { node: ">=18" }
     hasBin: true
 
-  playwright@1.59.1:
-    resolution:
-      {
-        integrity: sha512-C8oWjPR3F81yljW9o5OxcWzfh6avkVwDD2VYdwIGqTkl+OGFISgypqzfu7dOe4QNLL2aqcWBmI3PMtLIK233lw==,
-      }
-    engines: { node: ">=18" }
-    hasBin: true
-
   pngjs@7.0.0:
     resolution:
       {
@@ -19541,12 +19533,6 @@ snapshots:
   playwright@1.58.2:
     dependencies:
       playwright-core: 1.58.2
-    optionalDependencies:
-      fsevents: 2.3.2
-
-  playwright@1.59.1:
-    dependencies:
-      playwright-core: 1.59.1
     optionalDependencies:
       fsevents: 2.3.2
 

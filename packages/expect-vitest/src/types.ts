@@ -2,7 +2,8 @@
 // @inspect/expect-vitest - Type Definitions
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { Page, Browser, BrowserContext } from "playwright";
+import type { Page, Browser, BrowserContext } from "@inspect/browser";
+import type { NLSchema } from "@inspect/browser";
 
 /** Inspect test context provided to each test */
 export interface InspectTestContext {
@@ -17,7 +18,7 @@ export interface InspectTestContext {
   /** Natural language assertion helper */
   assert: (instruction: string) => Promise<void>;
   /** Extract data using natural language */
-  extract: <T>(instruction: string, schema?: Record<string, unknown>) => Promise<T>;
+  extract: <T>(instruction: string, schema?: NLSchema) => Promise<T>;
   /** Navigate to URL */
   goto: (url: string) => Promise<void>;
   /** Wait for condition */

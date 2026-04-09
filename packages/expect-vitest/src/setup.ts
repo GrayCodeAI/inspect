@@ -12,7 +12,6 @@ extendExpect(expect);
 
 // Global test context storage
 declare global {
-   
   var __inspectContext: InspectTestContext | undefined;
 }
 
@@ -37,7 +36,9 @@ beforeAll(async () => {
 
 /** Create context before each test */
 beforeEach(async (context) => {
-  const testConfig = context.task?.meta?.inspect as Record<string, unknown> | undefined;
+  const testConfig = (context.task?.meta as Record<string, unknown> | undefined)?.inspect as
+    | Record<string, unknown>
+    | undefined;
 
   // Create test context
   const ctx = await createTestContext(testConfig);

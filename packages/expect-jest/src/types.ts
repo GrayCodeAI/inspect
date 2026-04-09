@@ -2,7 +2,7 @@
 // @inspect/expect-jest - Type Definitions
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { Page, Browser, BrowserContext } from "playwright";
+import type { Page, Browser, BrowserContext, NLSchema } from "@inspect/browser";
 
 /** Inspect test context */
 export interface InspectTestContext {
@@ -11,7 +11,7 @@ export interface InspectTestContext {
   context: BrowserContext;
   act: (instruction: string) => Promise<void>;
   assert: (instruction: string) => Promise<void>;
-  extract: <T>(instruction: string, schema?: Record<string, unknown>) => Promise<T>;
+  extract: <T>(instruction: string, schema?: NLSchema) => Promise<T>;
   goto: (url: string) => Promise<void>;
   wait: (instruction: string, timeout?: number) => Promise<void>;
   screenshot: (name?: string) => Promise<string>;
