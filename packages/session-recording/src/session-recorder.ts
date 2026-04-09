@@ -55,11 +55,56 @@ interface PageLike {
   evaluate<R, Arg>(pageFunction: string | ((arg: Arg) => R | Promise<R>), arg: Arg): Promise<R>;
 }
 
+interface RecordingState {
+  session: RecordingSession;
+  page: PageLike;
+  pollingInterval: ReturnType<typeof setInterval> | undefined;
+}
+
 export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
   "@inspect/session-recording/SessionRecorder",
   {
     make: Effect.gen(function* () {
-      const recordings = new Map<string, RecordingSession>();
+      const recordings = new Map<string, RecordingState>();
+
+      const startEventPolling = (page: PageLike, sessionId: string, intervalMs: number = 500) =>
+        Effect.gen(function* () {
+          const state = recordings.get(sessionId);
+          if (!state) {
+            return; // Session already stopped
+          }
+
+          const pollEvents = async () => {
+            try {
+              const newEvents = await page.evaluate<RRWebEvent[]>(
+                `(function() {
+                  var w = window;
+                  return w.__inspect_rrweb_events ? w.__inspect_rrweb_events.splice(0) : [];
+                })`,
+              );
+
+              if (Array.isArray(newEvents) && newEvents.length > 0) {
+                state.session.events.push(...newEvents);
+              }
+            } catch (err) {
+              console.debug("[SessionRecorder] Failed to poll events:", err);
+            }
+          };
+
+          // Start polling
+          const interval = setInterval(pollEvents, intervalMs);
+          state.pollingInterval = interval;
+
+          yield* Effect.logDebug("Event polling started", { sessionId, intervalMs });
+        }).pipe(Effect.withSpan("SessionRecorder.startEventPolling"));
+
+      const stopEventPolling = (sessionId: string) => {
+        const state = recordings.get(sessionId);
+        if (state && state.pollingInterval) {
+          clearInterval(state.pollingInterval);
+          state.pollingInterval = undefined;
+        }
+      };
 
       const start = (page: PageLike, sessionId: string, config: Partial<RecordingConfig> = {}) =>
         Effect.gen(function* () {
@@ -113,6 +158,7 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
             startTime: Date.now(),
             events,
             stop: () => {
+              stopEventPolling(sessionId);
               void page
                 .evaluate(
                   `(function() {
@@ -129,7 +175,11 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
             },
           };
 
-          recordings.set(sessionId, session);
+          const state: RecordingState = { session, page, pollingInterval: undefined };
+          recordings.set(sessionId, state);
+
+          // Start polling events
+          yield* startEventPolling(page, sessionId, 500);
 
           yield* Effect.logInfo("Session recording started", {
             sessionId,
@@ -143,30 +193,30 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
         Effect.gen(function* () {
           yield* Effect.annotateCurrentSpan({ sessionId });
 
-          const session = recordings.get(sessionId);
-          if (!session) {
+          const state = recordings.get(sessionId);
+          if (!state) {
             return yield* new RecError.RecordingNotFoundError({ sessionId });
           }
 
-          session.stop();
+          state.session.stop();
           recordings.delete(sessionId);
 
           yield* Effect.logInfo("Session recording stopped", {
             sessionId,
-            eventCount: session.events.length,
-            duration: Date.now() - session.startTime,
+            eventCount: state.session.events.length,
+            duration: Date.now() - state.session.startTime,
           });
 
-          return session;
+          return state.session;
         }).pipe(Effect.withSpan("SessionRecorder.stop"));
 
       const getEvents = (sessionId: string) =>
         Effect.gen(function* () {
-          const session = recordings.get(sessionId);
-          if (!session) {
+          const state = recordings.get(sessionId);
+          if (!state) {
             return yield* new RecError.RecordingNotFoundError({ sessionId });
           }
-          return session.events;
+          return state.session.events;
         }).pipe(Effect.withSpan("SessionRecorder.getEvents"));
 
       const isActive = (sessionId: string) => recordings.has(sessionId);
@@ -175,9 +225,9 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
 
       const clear = (sessionId: string) =>
         Effect.gen(function* () {
-          const session = recordings.get(sessionId);
-          if (session) {
-            session.stop();
+          const state = recordings.get(sessionId);
+          if (state) {
+            state.session.stop();
             recordings.delete(sessionId);
           }
           yield* Effect.logInfo("Session recording cleared", { sessionId });
@@ -185,12 +235,12 @@ export class SessionRecorder extends ServiceMap.Service<SessionRecorder>()(
 
       const exportToHtml = (sessionId: string, outputPath: string) =>
         Effect.gen(function* () {
-          const session = recordings.get(sessionId);
-          if (!session) {
+          const state = recordings.get(sessionId);
+          if (!state) {
             return yield* new RecError.RecordingNotFoundError({ sessionId });
           }
 
-          const eventsJson = JSON.stringify(session.events);
+          const eventsJson = JSON.stringify(state.session.events);
           /* eslint-disable no-useless-escape */
           const html = `<!DOCTYPE html>
 <html>

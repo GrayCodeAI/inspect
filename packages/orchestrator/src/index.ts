@@ -1,6 +1,12 @@
 // @inspect/orchestrator — Test execution, scheduling, recovery, and testing utilities
 // Split from @inspect/core to follow Single Responsibility Principle
 
+// Supervisor services (per .specs/supervisor-refactor.md)
+export { Updates, SCREENSHOT_TOOL_NAMES } from "./orchestrator/updates.js";
+export { Planner, PlanningError } from "./orchestrator/planner.js";
+export { SupervisorExecutor, ExecutionError } from "./orchestrator/supervisor-executor.js";
+export { Reporter, ReporterError } from "./orchestrator/reporter.js";
+
 // Orchestrator
 export { TestExecutor } from "./orchestrator/executor.js";
 export type {

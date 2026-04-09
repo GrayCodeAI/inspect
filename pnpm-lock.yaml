@@ -656,6 +656,9 @@ importers:
       "@inspect/agent":
         specifier: workspace:*
         version: link:../agent
+      "@inspect/agent-governance":
+        specifier: workspace:*
+        version: link:../agent-governance
       "@inspect/llm":
         specifier: workspace:*
         version: link:../llm
@@ -668,6 +671,9 @@ importers:
       "@playwright/browser-webkit":
         specifier: ^1.59.1
         version: 1.59.1
+      effect:
+        specifier: ^3.0.0
+        version: 3.21.0
     devDependencies:
       "@types/node":
         specifier: ^22.0.0
@@ -1287,6 +1293,34 @@ importers:
       zod:
         specifier: ^3.25.0
         version: 3.25.76
+    devDependencies:
+      "@types/node":
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/supervisor:
+    dependencies:
+      "@inspect/agent":
+        specifier: workspace:*
+        version: link:../agent
+      "@inspect/browser":
+        specifier: workspace:*
+        version: link:../browser
+      "@inspect/git":
+        specifier: workspace:*
+        version: link:../git
+      "@inspect/orchestrator":
+        specifier: workspace:*
+        version: link:../orchestrator
+      "@inspect/shared":
+        specifier: workspace:*
+        version: link:../shared
+      effect:
+        specifier: 4.0.0-beta.35
+        version: 4.0.0-beta.35
     devDependencies:
       "@types/node":
         specifier: ^22.0.0

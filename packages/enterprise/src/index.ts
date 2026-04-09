@@ -6,3 +6,12 @@ export { RBACManager, Role, type Permission, type RBACPolicy, type UserIdentity 
 export { TenantManager, type TenantPlan } from "./tenant.js";
 export { SSOManager, type SSOProvider } from "./sso.js";
 export { HybridRouter } from "./hybrid-router.js";
+export {
+  RBACUserPersistence,
+  buildAgentPermissions,
+  mapSSORolesToRoles,
+  applyTenantIsolation,
+  extractJWTFromWebSocketRequest,
+  validateWebSocketAuth,
+  type WebSocketUpgradeRequest,
+} from "./rbac-bridge.js";

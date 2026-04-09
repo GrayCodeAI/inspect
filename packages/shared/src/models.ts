@@ -1,6 +1,16 @@
 import { Schema } from "effect";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Branded IDs
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const StepId = Schema.String.pipe(Schema.brand("StepId"));
+export type StepId = typeof StepId.Type;
+
+export const PlanId = Schema.String.pipe(Schema.brand("PlanId"));
+export type PlanId = typeof PlanId.Type;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Task 1-20: Core Schema Definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -137,6 +147,133 @@ export const ExecutionEvent = Schema.Union([
   ToolCall,
   ToolResult,
 ]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UpdateContent variants for supervisor Updates service
+// ─────────────────────────────────────────────────────────────────────────────
+
+export class RunStarted extends Schema.TaggedClass<RunStarted>()("RunStarted", {
+  planId: PlanId,
+}) {}
+
+export class AgentThinking extends Schema.TaggedClass<AgentThinking>()("AgentThinking", {
+  text: Schema.String,
+}) {}
+
+export class RunCompleted extends Schema.TaggedClass<RunCompleted>()("RunCompleted", {
+  status: Schema.Literals(["passed", "failed"] as const),
+  summary: Schema.String,
+  screenshotPaths: Schema.Array(Schema.String),
+}) {}
+
+export type UpdateContent =
+  | RunStarted
+  | StepStarted
+  | StepCompleted
+  | StepFailed
+  | ToolCall
+  | ToolResult
+  | AgentThinking
+  | RunCompleted;
+export const UpdateContent = Schema.Union([
+  RunStarted,
+  StepStarted,
+  StepCompleted,
+  StepFailed,
+  ToolCall,
+  ToolResult,
+  AgentThinking,
+  RunCompleted,
+]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ExecutedTestPlan with addEvent() method
+// ─────────────────────────────────────────────────────────────────────────────
+
+export class ExecutedTestPlan extends TestPlan.extend<ExecutedTestPlan>("ExecutedTestPlan")({
+  events: Schema.Array(UpdateContent),
+}) {
+  addEvent(event: UpdateContent): ExecutedTestPlan {
+    return new ExecutedTestPlan({ ...this, events: [...this.events, event] });
+  }
+  get testReport(): TestReport {
+    const stepStatuses = new Map<string, { status: TestPlanStepStatus; summary: string }>();
+    for (const event of this.events) {
+      if (event._tag === "StepStarted") {
+        stepStatuses.set(event.stepId, { status: "active", summary: "" });
+      } else if (event._tag === "StepCompleted") {
+        stepStatuses.set(event.stepId, { status: "passed", summary: event.summary });
+      } else if (event._tag === "StepFailed") {
+        stepStatuses.set(event.stepId, { status: "failed", summary: event.message });
+      }
+    }
+    const reportSteps = this.steps.map((step) => {
+      const stepStatus = stepStatuses.get(step.id);
+      let reportStatus: TestReportStepStatus = "not-run";
+      if (stepStatus) {
+        if (stepStatus.status === "passed" || stepStatus.status === "failed") {
+          reportStatus = stepStatus.status;
+        }
+      }
+      return new TestReportStep({
+        stepId: StepId.makeUnsafe(step.id),
+        title: step.instruction,
+        status: reportStatus,
+        summary: stepStatus?.summary ?? "",
+      });
+    });
+    const allPassed = reportSteps.every((s) => s.status !== "failed");
+    const runCompleted = this.events.find((e) => e._tag === "RunCompleted");
+    return new TestReport({
+      plan: this,
+      summary: runCompleted?._tag === "RunCompleted" ? runCompleted.summary : "Test run completed",
+      steps: reportSteps,
+      screenshotPaths: runCompleted?._tag === "RunCompleted" ? runCompleted.screenshotPaths : [],
+      status: allPassed ? "passed" : "failed",
+    });
+  }
+  get activeStepId(): StepId | undefined {
+    let activeId: string | undefined;
+    for (const event of this.events) {
+      if (event._tag === "StepStarted") activeId = event.stepId;
+      if (
+        (event._tag === "StepCompleted" || event._tag === "StepFailed") &&
+        activeId === event.stepId
+      ) {
+        return undefined;
+      }
+    }
+    return activeId as StepId | undefined;
+  }
+  get completedCount(): number {
+    return this.steps.filter((s) => {
+      const status = this.events.find((e) => e._tag === "StepCompleted" && e.stepId === s.id);
+      return status !== undefined;
+    }).length;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TestReport and TestReportStep
+// ─────────────────────────────────────────────────────────────────────────────
+
+export class TestReportStep extends Schema.Class<TestReportStep>("TestReportStep")({
+  stepId: StepId,
+  title: Schema.String,
+  status: Schema.Literals(["passed", "failed", "not-run"] as const),
+  summary: Schema.String,
+}) {}
+
+const TestReportStepStatus = Schema.Literals(["passed", "failed", "not-run"] as const);
+type TestReportStepStatus = typeof TestReportStepStatus.Type;
+
+export class TestReport extends Schema.Class<TestReport>("TestReport")({
+  plan: ExecutedTestPlan,
+  summary: Schema.String,
+  steps: Schema.Array(TestReportStep),
+  screenshotPaths: Schema.Array(Schema.String),
+  status: Schema.Literals(["passed", "failed"] as const),
+}) {}
 
 export const AgentBrain = Schema.Struct({
   evaluation: Schema.String,
