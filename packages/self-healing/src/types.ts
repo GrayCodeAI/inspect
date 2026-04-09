@@ -154,3 +154,34 @@ export interface HealingStats {
   avgHealingTime: number;
   byStrategy: Record<string, { attempts: number; successes: number }>;
 }
+
+/** Healing event for monitoring */
+export interface HealingEvent {
+  /** Event type */
+  type: "healing_started" | "healing_succeeded" | "healing_failed";
+  /** Original selector */
+  originalSelector: string;
+  /** Healed selector (if succeeded) */
+  healedSelector?: string;
+  /** Strategy used */
+  strategy?: string;
+  /** Confidence score */
+  confidence?: number;
+  /** Time taken (ms) */
+  elapsed: number;
+  /** Timestamp */
+  timestamp: number;
+  /** Error message (if failed) */
+  error?: string;
+}
+
+/** Default healing configuration */
+export const DEFAULT_HEALING_CONFIG: HealingConfig = {
+  minConfidence: 0.6,
+  maxTimeMs: 5000,
+  enableVision: true,
+  enableAnchors: true,
+  maxCandidates: 5,
+  autoAcceptThreshold: 0.85,
+  useLLM: true,
+};

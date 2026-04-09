@@ -124,7 +124,7 @@ export async function executeRecovery(
     page: {
       reload: () => Promise<void>;
       waitForTimeout: (ms: number) => Promise<void>;
-      evaluate: (fn: () => void) => Promise<void>;
+      evaluate: (fn: (() => void) | string) => Promise<void>;
       locator: (selector: string) => {
         isVisible: () => Promise<boolean>;
         click: () => Promise<void>;
@@ -153,10 +153,8 @@ export async function executeRecovery(
     }
 
     case "scroll-into-view": {
-      await context.page.evaluate(() => {
-        // Scroll to center of page
-        window.scrollTo(0, document.body.scrollHeight / 2);
-      });
+      // Scroll to center of page using string evaluation
+      await context.page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)");
       await context.page.waitForTimeout(500);
       return { success: true, actionTaken: "Scrolled into view" };
     }
