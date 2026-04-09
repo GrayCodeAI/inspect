@@ -221,7 +221,7 @@ export class RateLimitWatchdog {
     });
 
     // Try to extract from page content
-    const pageText = await this.page.textContent();
+    const pageText = await this.page.evaluate(() => document.body.innerText);
 
     // Look for "try again in X seconds/minutes"
     const timeMatch = pageText?.match(/try again in (\d+)\s*(second|minute|hour)s?/i);
