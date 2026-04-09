@@ -50,7 +50,7 @@ describe("NLParser Integration Tests", () => {
       const result = parser.parse("Wait for 3 seconds");
       expect(result.success).toBe(true);
       expect(result.bestMatch?.type).toBe("wait");
-      expect(result.bestMatch?.params.duration).toBeDefined();
+      expect(result.bestMatch?.params.numericValue).toBeDefined();
     });
 
     it("should extract hover target", () => {
@@ -133,12 +133,12 @@ describe("NLParser Integration Tests", () => {
 
     it("should rank matches by confidence", () => {
       const result = parser.parse("Click the submit button");
-      expect(result.matches).toHaveLength(result.matches.length);
-      // Matches should be sorted by confidence (descending)
-      if (result.matches.length > 1) {
-        for (let i = 0; i < result.matches.length - 1; i++) {
-          expect(result.matches[i].confidence).toBeGreaterThanOrEqual(
-            result.matches[i + 1].confidence,
+      expect(result.alternatives).toHaveLength(result.alternatives.length);
+      // Alternatives should be sorted by confidence (descending)
+      if (result.alternatives.length > 1) {
+        for (let i = 0; i < result.alternatives.length - 1; i++) {
+          expect(result.alternatives[i].confidence).toBeGreaterThanOrEqual(
+            result.alternatives[i + 1].confidence,
           );
         }
       }
@@ -155,7 +155,7 @@ describe("NLParser Integration Tests", () => {
       const result = parser.parse("Do something unusual with the widget");
       // Should either return a match or indicate no match
       expect(result).toHaveProperty("success");
-      expect(result).toHaveProperty("matches");
+      expect(result).toHaveProperty("alternatives");
     });
 
     it("should attempt to match partial patterns", () => {

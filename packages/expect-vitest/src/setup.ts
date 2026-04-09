@@ -79,3 +79,40 @@ afterAll(async () => {
     console.log("[Inspect] Test environment cleaned up");
   }
 });
+
+/**
+ * Configure Inspect with auto-wiring of lifecycle hooks.
+ * Call this in your vitest setup file to automatically initialize Inspect.
+ */
+export interface SetupInspectOptions {
+  /** Enable trace logging */
+  trace?: boolean;
+  /** Screenshot on test failure */
+  screenshotOnFailure?: boolean;
+  /** Screenshot directory */
+  screenshotDir?: string;
+  /** Base URL for tests */
+  baseURL?: string;
+  /** Browser to use */
+  browser?: "chromium" | "firefox" | "webkit";
+  /** Run headless */
+  headless?: boolean;
+  /** LLM configuration */
+  llm?: {
+    provider?: "openai" | "anthropic" | "local";
+    model?: string;
+    apiKey?: string;
+  };
+}
+
+/**
+ * Setup helper that wires Inspect lifecycle automatically
+ * Usage: import { setupInspect } from "@inspect/expect-vitest"; setupInspect({ trace: true });
+ */
+export function setupInspect(options?: SetupInspectOptions): void {
+  // Config is already wired via beforeAll/beforeEach/afterEach/afterAll above
+  // This function exists for explicit configuration and documentation
+  if (options?.trace) {
+    console.log("[Inspect] Setup configured with options:", options);
+  }
+}

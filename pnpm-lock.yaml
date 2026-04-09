@@ -706,6 +706,9 @@ importers:
 
   packages/expect-jest:
     dependencies:
+      "@inspect/a11y":
+        specifier: workspace:*
+        version: link:../a11y
       "@inspect/agent":
         specifier: workspace:*
         version: link:../agent
@@ -715,6 +718,9 @@ importers:
       "@inspect/core":
         specifier: workspace:*
         version: link:../core
+      "@inspect/llm":
+        specifier: workspace:*
+        version: link:../llm
     devDependencies:
       "@types/jest":
         specifier: ^29.5.0
@@ -740,6 +746,9 @@ importers:
 
   packages/expect-vitest:
     dependencies:
+      "@inspect/a11y":
+        specifier: workspace:*
+        version: link:../a11y
       "@inspect/agent":
         specifier: workspace:*
         version: link:../agent
@@ -749,6 +758,9 @@ importers:
       "@inspect/core":
         specifier: workspace:*
         version: link:../core
+      "@inspect/llm":
+        specifier: workspace:*
+        version: link:../llm
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@22.19.15)(lightningcss@1.32.0)(msw@2.12.14(@types/node@22.19.15)(typescript@5.9.3))(terser@5.46.1)

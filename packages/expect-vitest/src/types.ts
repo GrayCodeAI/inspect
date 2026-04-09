@@ -141,6 +141,14 @@ export interface InspectMatchers<R = unknown> {
   toBeFocused(): Promise<R>;
   /** Custom assertion with natural language */
   toSatisfy(instruction: string): Promise<R>;
+  /** Assert element has CSS property */
+  toHaveCSS(property: string, value: string): Promise<R>;
+  /** Assert element has inline style */
+  toHaveStyle(property: string, value: string): Promise<R>;
+  /** Assert element is in viewport */
+  toBeInViewport(): Promise<R>;
+  /** Assert network response was received */
+  toHaveNetworkResponse(urlPattern: string | RegExp, statusCode?: number): Promise<R>;
 }
 
 /** Step result */

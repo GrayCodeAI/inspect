@@ -216,6 +216,105 @@ export const matchers = {
       message: () => `expected page to satisfy: "${instruction}"`,
     };
   },
+
+  async toHaveCSS(received: Locator | Page, property: string, expected: string, selector?: string) {
+    const element = selector ? (received as Page).locator(selector) : (received as Locator);
+    const value = await element
+      .evaluate(
+        (el: Element, prop: string) => window.getComputedStyle(el).getPropertyValue(prop),
+        property,
+      )
+      .catch(() => "");
+
+    const pass = value.trim() === expected.trim();
+
+    return {
+      pass,
+      message: () => `expected CSS property "${property}" to be "${expected}", got "${value}"`,
+    };
+  },
+
+  async toHaveStyle(
+    received: Locator | Page,
+    property: string,
+    expected: string,
+    selector?: string,
+  ) {
+    const element = selector ? (received as Page).locator(selector) : (received as Locator);
+    const value = await element
+      .evaluate((el: HTMLElement, prop: string) => el.style.getPropertyValue(prop), property)
+      .catch(() => "");
+
+    const pass = value.trim() === expected.trim();
+
+    return {
+      pass,
+      message: () => `expected style "${property}" to be "${expected}", got "${value}"`,
+    };
+  },
+
+  async toBeInViewport(received: Locator | Page, selector?: string) {
+    const element = selector ? (received as Page).locator(selector) : (received as Locator);
+    const inViewport = await element
+      .evaluate((el: Element) => {
+        const rect = el.getBoundingClientRect();
+        return (
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+          rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+      })
+      .catch(() => false);
+
+    return {
+      pass: inViewport,
+      message: () => `expected element to be in viewport`,
+    };
+  },
+
+  // TODO: Screenshot comparison requires @inspect/visual PixelDiff
+  // async toHaveScreenshot(received: Page, name: string, options?: { maxDiffPixels?: number }) { }
+
+  // TODO: Accessibility audit requires @inspect/a11y integration with proper type alignment
+  // async toSatisfyA11y(received: Page, standard?: "wcag2a" | "wcag2aa" | "wcag2aaa" | "wcag21aa" | "wcag22aa") { }
+
+  async toHaveNetworkResponse(
+    received: Page,
+    urlPattern: string | RegExp,
+    expectedStatus?: number,
+  ) {
+    const pattern = typeof urlPattern === "string" ? new RegExp(urlPattern) : urlPattern;
+    let response: unknown = null;
+    let statusCode = 0;
+
+    const handler = async (resp: unknown) => {
+      const respTyped = resp as { url: () => string; status: () => number };
+      if (pattern.test(respTyped.url())) {
+        response = resp;
+        statusCode = respTyped.status();
+      }
+    };
+
+    received.on("response", handler as never);
+
+    // Wait a bit for pending responses
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    received.off("response", handler as never);
+
+    const pass =
+      response !== null && (expectedStatus === undefined || statusCode === expectedStatus);
+
+    return {
+      pass,
+      message: () =>
+        response === null
+          ? `expected network response matching "${urlPattern}"`
+          : expectedStatus !== undefined
+            ? `expected status ${expectedStatus}, got ${statusCode}`
+            : `network response found`,
+    };
+  },
 };
 
 export default matchers;

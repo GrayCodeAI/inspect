@@ -15,6 +15,9 @@ export {
 // Matchers
 export { extendExpect } from "./matchers.js";
 
+// Setup
+export { setupInspect, type SetupInspectOptions } from "./setup.js";
+
 // Types
 export type {
   InspectTestContext,
@@ -40,6 +43,7 @@ import { createTestContext } from "./plugin.js";
 import { cleanupTestContext } from "./plugin.js";
 import { inspectTest } from "./plugin.js";
 import { extendExpect } from "./matchers.js";
+import { setupInspect } from "./setup.js";
 import { createNLAct } from "@inspect/browser";
 
 // Default export
@@ -51,6 +55,7 @@ export default {
   createTestContext,
   cleanupTestContext,
   inspectTest,
+  setupInspect,
   createNLAct,
   version,
 };

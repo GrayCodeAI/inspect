@@ -68,6 +68,10 @@ export interface InspectMatchers<R> {
   toBeChecked(): Promise<R>;
   toBeFocused(): Promise<R>;
   toSatisfy(instruction: string): Promise<R>;
+  toHaveCSS(property: string, value: string): Promise<R>;
+  toHaveStyle(property: string, value: string): Promise<R>;
+  toBeInViewport(): Promise<R>;
+  toHaveNetworkResponse(urlPattern: string | RegExp, statusCode?: number): Promise<R>;
 }
 
 declare global {
