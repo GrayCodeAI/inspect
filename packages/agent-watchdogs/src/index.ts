@@ -92,3 +92,11 @@ export {
   RateLimitWatchdog,
   createRateLimitWatchdog,
 } from "./watchdogs/rate-limit-watchdog.js";
+
+// Confidence Scoring and Metrics
+export {
+  ConfidenceScorer,
+  MetricsTracker,
+  type WatchdogDetectionResult,
+  type WatchdogMetrics,
+} from "./watchdogs/confidence-scoring.js";
