@@ -55,11 +55,14 @@ function getStatusColor(status: string): string {
 export function TestingScreen({ config, onComplete }: TestingScreenProps): React.ReactElement {
   const { exit } = useApp();
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const pauseTokenRef = useRef<{ paused: boolean }>({ paused: false });
 
   const { executedPlan, phase, elapsed, run, abort } = useSupervisorExecution({
     instruction: config.instruction,
     baseUrl: config.url,
     isHeadless: !config.headed,
+    pauseToken: pauseTokenRef,
     onComplete: (report) => {
       const results: TestResults = {
         instruction: config.instruction,
@@ -85,6 +88,18 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
       exit();
       return;
     }
+    // P: Pause/Resume
+    if (input === "p" || input === "P") {
+      setPaused((p) => !p);
+      pauseTokenRef.current.paused = !paused;
+      return;
+    }
+    // R: Resume (explicit)
+    if (input === "r" || input === "R") {
+      setPaused(false);
+      pauseTokenRef.current.paused = false;
+      return;
+    }
     if (key.upArrow) {
       setScrollOffset((s) => Math.max(0, s - SCROLL_OFFSET_STEP));
     }
@@ -99,6 +114,7 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
   const steps = executedPlan?.steps ?? [];
   const visibleSteps = steps.slice(scrollOffset, scrollOffset + VISIBLE_STEP_COUNT);
   const completedCount = steps.filter((s) => s.status === "passed" || s.status === "failed").length;
+  const currentStep = steps.find((s) => s.status === "active");
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -127,19 +143,49 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
       </Box>
 
       <Box marginBottom={1}>
-        {phase !== "done" && (
+        {paused && (
+          <Text color={PALETTE.yellow} bold>
+            {ICONS.running} PAUSED (P to resume)
+          </Text>
+        )}
+        {!paused && phase !== "done" && (
           <Spinner label={getPhaseLabel(phase, completedCount, steps.length)} color="magenta" />
         )}
-        {phase === "done" && (
+        {!paused && phase === "done" && (
           <Text color={PALETTE.green} bold>
             {ICONS.pass} Test complete
           </Text>
         )}
       </Box>
 
+      {paused && currentStep && (
+        <Box
+          flexDirection="column"
+          marginBottom={1}
+          borderStyle="round"
+          borderColor="yellow"
+          paddingX={1}
+          paddingY={0}
+        >
+          <Text color={PALETTE.yellow} bold>
+            Inspector (Paused)
+          </Text>
+          <Text color={PALETTE.cyan}>Step: {currentStep.instruction}</Text>
+          {currentStep.summary && <Text color={PALETTE.dim}>Result: {currentStep.summary}</Text>}
+          <Text color={PALETTE.muted}>Press P to resume, R to resume</Text>
+        </Box>
+      )}
+
       <Box flexDirection="column">
         {visibleSteps.map((step) => (
-          <Box key={step.id} marginLeft={1}>
+          <Box
+            key={step.id}
+            marginLeft={1}
+            borderStyle={step.status === "active" && paused ? "round" : undefined}
+            borderColor={step.status === "active" && paused ? "yellow" : undefined}
+            paddingX={1}
+            paddingY={0}
+          >
             <Box width={3}>
               <Text color={getStatusColor(step.status)}>{getStatusIcon(step.status)}</Text>
             </Box>
@@ -155,9 +201,10 @@ export function TestingScreen({ config, onComplete }: TestingScreenProps): React
 
       <StatusBar
         items={[
-          { label: "Phase", value: phase },
+          { label: "Phase", value: paused ? "PAUSED" : phase },
           { label: "Steps", value: `${completedCount}/${steps.length}` },
           { label: "Esc", value: "cancel" },
+          { label: "P", value: paused ? "resume" : "pause" },
         ]}
       />
     </Box>

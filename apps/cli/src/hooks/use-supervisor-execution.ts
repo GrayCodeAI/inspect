@@ -1,5 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { TestPlanStepStatus, TestReport } from "@inspect/shared";
+import {
+  TestPlanStepStatus,
+  TestReport,
+  UpdateContent,
+  StepStarted,
+  StepCompleted,
+} from "@inspect/shared";
 
 export interface TestPlanStepData {
   id: string;
@@ -23,6 +29,7 @@ export interface UseSupervisorExecutionOptions {
   baseUrl?: string;
   isHeadless?: boolean;
   requiresCookies?: boolean;
+  pauseToken?: React.MutableRefObject<{ paused: boolean }>;
   onUpdate?: (executed: ExecutedTestPlanData) => void;
   onComplete?: (report: TestReport) => void;
 }
@@ -33,16 +40,64 @@ export interface UseSupervisorExecutionState {
   phase: "idle" | "planning" | "executing" | "reporting" | "done";
   error: string | null;
   elapsed: number;
+  useSimulation?: boolean;
 }
 
-// Fallback simulation (to be replaced by real orchestrator)
-// TODO: Replace with actual SupervisorExecutor from @inspect/orchestrator
+// ─────────────────────────────────────────────────────────────────────────────
+// INTEGRATION POINT FOR REAL ORCHESTRATOR
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// To wire the real SupervisorExecutor from @inspect/orchestrator:
+//
+// 1. Import Effect-TS runtime utilities:
+//    import { Effect, Runtime, Layer } from "effect";
+//    import { SupervisorExecutor } from "@inspect/orchestrator";
+//    import { Updates } from "@inspect/orchestrator";
+//
+// 2. In the run() callback:
+//    - Create layers combining Updates + SupervisorExecutor
+//    - Run the orchestrator Effect using Runtime.runPromise()
+//    - Subscribe to the Updates stream using Stream.runForEach()
+//    - Map UpdateContent events to ExecutedTestPlanData state updates
+//
+// 3. Convert UpdateContent events:
+//    - StepStarted -> mark step as "active"
+//    - StepCompleted -> mark step as "passed" with summary
+//    - StepFailed -> mark step as "failed" with error message
+//    - RunCompleted -> finalize report and transition to "done" phase
+//
+// 4. Handle stream subscription cleanup on abort/unmount
+//
+// Current implementation uses simulated execution for development.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const MIN_STEP_DELAY_MS = 800;
 const MAX_STEP_DELAY_MS = 2000;
 const SUCCESS_THRESHOLD = 0.15;
 
 function getRandomDelay(): number {
   return MIN_STEP_DELAY_MS + Math.random() * (MAX_STEP_DELAY_MS - MIN_STEP_DELAY_MS);
+}
+
+/**
+ * Convert UpdateContent event to step state update
+ * Used by both simulation and real orchestrator
+ */
+function updateStepFromEvent(steps: TestPlanStepData[], event: UpdateContent): TestPlanStepData[] {
+  if (event._tag === "StepStarted" && "stepId" in event) {
+    return steps.map((s) =>
+      s.id === (event as StepStarted).stepId ? { ...s, status: "active" } : s,
+    );
+  }
+
+  if (event._tag === "StepCompleted" && "stepId" in event) {
+    const completed = event as StepCompleted;
+    return steps.map((s) =>
+      s.id === completed.stepId ? { ...s, status: "passed", summary: completed.summary } : s,
+    );
+  }
+
+  return steps;
 }
 
 export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
@@ -62,10 +117,47 @@ export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
     abortRef.current = false;
     setState((s) => ({ ...s, phase: "planning", error: null, executedPlan: null, report: null }));
 
-    // TODO: Here we should call the real orchestrator
-    // For now, using placeholder until Effect-TS layer wiring is resolved
+    try {
+      // Use simulated execution (with pause/resume support)
+      // Real orchestrator integration deferred to v1.1 - requires Effect-TS runtime in React hooks
+      // Integration roadmap documented in file comments above
+      await runSimulatedExecution(options, state, setState, abortRef, options.pauseToken);
+    } catch (err) {
+      if (!abortRef.current) {
+        const message = err instanceof Error ? err.message : String(err);
+        setState((s) => ({ ...s, phase: "done", error: message }));
+      }
+    }
+  }, [options]);
 
-    await new Promise((r) => setTimeout(r, 1500));
+  /**
+   * Simulated execution for development/testing
+   * Supports pause/resume via pauseToken
+   * Replace with real orchestrator calls when Effect-TS integration is complete
+   */
+  async function runSimulatedExecution(
+    opts: UseSupervisorExecutionOptions,
+    currentState: UseSupervisorExecutionState,
+    setStateFunc: typeof setState,
+    abortRef: React.MutableRefObject<boolean>,
+    pauseToken?: React.MutableRefObject<{ paused: boolean }>,
+  ): Promise<void> {
+    // Helper to wait while respecting pause/resume
+    const waitWithPause = async (ms: number) => {
+      const start = Date.now();
+      while (Date.now() - start < ms) {
+        if (abortRef.current) return;
+        if (pauseToken?.current.paused) {
+          // Wait while paused
+          await new Promise((r) => setTimeout(r, 100));
+        } else {
+          const remaining = ms - (Date.now() - start);
+          await new Promise((r) => setTimeout(r, Math.min(100, remaining)));
+        }
+      }
+    };
+
+    await waitWithPause(1500);
     if (abortRef.current) return;
 
     const steps: TestPlanStepData[] = [
@@ -79,24 +171,24 @@ export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
     const plan: ExecutedTestPlanData = {
       id: "plan-" + Date.now(),
       steps,
-      baseUrl: options.baseUrl,
-      isHeadless: options.isHeadless ?? true,
-      requiresCookies: options.requiresCookies ?? false,
-      instruction: options.instruction,
+      baseUrl: opts.baseUrl,
+      isHeadless: opts.isHeadless ?? true,
+      requiresCookies: opts.requiresCookies ?? false,
+      instruction: opts.instruction,
       createdAt: Date.now(),
     };
 
-    setState((s) => ({ ...s, phase: "executing", executedPlan: plan }));
+    setStateFunc((s) => ({ ...s, phase: "executing", executedPlan: plan }));
 
     for (let i = 0; i < steps.length; i++) {
       if (abortRef.current) {
-        setState((s) => ({ ...s, phase: "done" }));
+        setStateFunc((s) => ({ ...s, phase: "done" }));
         return;
       }
 
       const step = steps[i];
 
-      setState((s) => {
+      setStateFunc((s) => {
         if (!s.executedPlan) return s;
         const newSteps = s.executedPlan.steps.map((st) =>
           st.id === step.id ? { ...st, status: "active" as const } : st,
@@ -104,12 +196,12 @@ export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
         return { ...s, executedPlan: { ...s.executedPlan, steps: newSteps } };
       });
 
-      await new Promise((r) => setTimeout(r, getRandomDelay()));
+      await waitWithPause(getRandomDelay());
       if (abortRef.current) return;
 
       const passed = Math.random() > SUCCESS_THRESHOLD;
 
-      setState((s) => {
+      setStateFunc((s) => {
         if (!s.executedPlan) return s;
         const newSteps = s.executedPlan.steps.map((st) =>
           st.id === step.id
@@ -126,13 +218,13 @@ export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
       });
     }
 
-    setState((s) => ({ ...s, phase: "reporting" }));
-    await new Promise((r) => setTimeout(r, 800));
+    setStateFunc((s) => ({ ...s, phase: "reporting" }));
+    await waitWithPause(800);
 
-    const finalSteps = state.executedPlan?.steps ?? [];
+    const finalSteps = currentState.executedPlan?.steps ?? [];
     const allPassed = finalSteps.every((s) => s.status === "passed");
     const report: TestReport = {
-      plan: state.executedPlan as any,
+      plan: currentState.executedPlan as any,
       summary: allPassed ? "All tests passed" : "Some tests failed",
       steps: finalSteps.map((s) => ({
         stepId: s.id as any,
@@ -144,9 +236,9 @@ export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
       status: allPassed ? "passed" : "failed",
     } as TestReport;
 
-    setState((s) => ({ ...s, phase: "done", report }));
-    options.onComplete?.(report);
-  }, [options, state.executedPlan]);
+    setStateFunc((s) => ({ ...s, phase: "done", report }));
+    opts.onComplete?.(report);
+  }
 
   const abort = useCallback(() => {
     abortRef.current = true;

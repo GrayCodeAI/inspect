@@ -63,6 +63,8 @@ export interface TestOptions {
   ci?: boolean;
   /** Override timeout in milliseconds (default: 30 min in CI mode) */
   timeout?: number;
+  /** Use a session profile for cookies/headers/environment */
+  profile?: string;
 }
 
 const EXIT_CODES = {
@@ -233,6 +235,42 @@ export async function runTest(options: TestOptions): Promise<void> {
     console.log(
       chalk.yellow("GitHub Actions detected. Use --ci to enforce headless mode and timeouts."),
     );
+  }
+
+  // Load profile if specified
+  if (options.profile) {
+    try {
+      const { ProfileManager } = await import("@inspect/credentials");
+      const profileMgr = new ProfileManager();
+      const profile = profileMgr.getByName(options.profile);
+      if (!profile) {
+        console.error(chalk.red(`Profile not found: ${options.profile}`));
+        const available = profileMgr.list().map((p) => p.name);
+        if (available.length > 0) {
+          console.error(chalk.dim(`Available: ${available.join(", ")}`));
+        }
+        process.exit(EXIT_CODES.CONFIG_ERROR);
+      }
+
+      // Validate session (check cookie expiry)
+      const validation = profileMgr.validateSession(profile.id);
+      if (!validation.valid) {
+        console.warn(chalk.yellow(`Profile validation warning: ${validation.reason}`));
+      }
+
+      // Apply profile cookies/headers/env
+      // These will be passed to the test runner
+      (options as Record<string, unknown>)._profileCookies = profile.cookies;
+      (options as Record<string, unknown>)._profileHeaders = profile.headers;
+      (options as Record<string, unknown>)._profileEnv = profile.env;
+
+      console.log(chalk.dim(`Using profile: ${profile.name} (${profile.cookies.length} cookies)`));
+    } catch (err) {
+      console.error(
+        chalk.red(`Failed to load profile: ${err instanceof Error ? err.message : err}`),
+      );
+      process.exit(EXIT_CODES.CONFIG_ERROR);
+    }
   }
 
   if (options.project) {
@@ -1119,6 +1157,7 @@ export function registerTestCommand(program: Command): void {
     .option("--ui", "Interactive debug mode — pause between steps with headed browser")
     .option("--jq <query>", "Filter JSON output with jq-like query (requires --json)")
     .option("--cookies [domain]", "Sync cookies from local browser (optionally filter by domain)")
+    .option("--profile <name>", "Use a session profile for cookies/headers/environment")
     .option("--local", "Force local execution (skip Docker engine)")
     .option("--record", "Enable rrweb session recording for replay and debugging")
     .option("--adversarial", "Enable adversarial testing mode (tries to break features)")
