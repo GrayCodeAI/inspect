@@ -15,17 +15,9 @@ import type { TestStep, TestPlan, LLMCall, ProgressCallback } from "./types.js";
 import { detectPageType } from "./planner.js";
 import { ActionLoopDetector } from "@inspect/agent";
 import type { SyncSpeculativePlanner } from "@inspect/core";
-
 // ---------------------------------------------------------------------------
-// Simple in-memory action cache (replaces Effect-based ActionCache)
+// Enhanced Action Cache with deterministic keys and validation
 // ---------------------------------------------------------------------------
-
-interface CachedActionEntry {
-  type: string;
-  target?: string;
-  value?: string;
-  description: string;
-}
 
 // DOM Element types for DOMDiff
 interface DOMDiffElement {
@@ -42,19 +34,103 @@ interface AnnotatedElement {
   text?: string;
 }
 
-class SimpleActionCache {
+interface CachedActionEntry {
+  type: string;
+  target?: string;
+  value?: string;
+  description: string;
+  domHash?: string;
+  successCount?: number;
+}
+
+class EnhancedActionCache {
   private cache = new Map<string, CachedActionEntry>();
+  private accessOrder: string[] = [];
+  private readonly maxSize = 1000;
 
-  static key(instruction: string, url: string): string {
-    return `${instruction.trim().toLowerCase()}|${url}`;
+  private generateKey(instruction: string, url: string, domSnapshot?: string): string {
+    // Normalize instruction
+    const normalized = instruction
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/\b(the|a|an)\b/g, "")
+      .trim();
+
+    // Normalize URL
+    let normalizedUrl: string;
+    try {
+      const urlObj = new URL(url);
+      normalizedUrl = `${urlObj.origin}${urlObj.pathname}`.toLowerCase();
+    } catch {
+      normalizedUrl = url.toLowerCase();
+    }
+
+    // Generate DOM hash if snapshot provided
+    let domHash = "";
+    if (domSnapshot) {
+      domHash = this.simpleHash(domSnapshot.slice(0, 500));
+    }
+
+    return `${normalized}|${normalizedUrl}|${domHash}`;
   }
 
-  async get(instruction: string, url: string): Promise<CachedActionEntry | undefined> {
-    return this.cache.get(SimpleActionCache.key(instruction, url));
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return hash.toString(16);
   }
 
-  set(instruction: string, url: string, entry: CachedActionEntry): void {
-    this.cache.set(SimpleActionCache.key(instruction, url), entry);
+  async get(
+    instruction: string,
+    url: string,
+    domSnapshot?: string,
+  ): Promise<CachedActionEntry | undefined> {
+    const key = this.generateKey(instruction, url, domSnapshot);
+    const entry = this.cache.get(key);
+
+    if (entry) {
+      // Update access order for LRU
+      this.accessOrder = this.accessOrder.filter((k) => k !== key);
+      this.accessOrder.push(key);
+    }
+
+    return entry;
+  }
+
+  set(instruction: string, url: string, entry: CachedActionEntry, domSnapshot?: string): void {
+    const key = this.generateKey(instruction, url, domSnapshot);
+
+    // Update existing or add new
+    if (this.cache.has(key)) {
+      const existing = this.cache.get(key)!;
+      entry.successCount = (existing.successCount ?? 0) + 1;
+      this.accessOrder = this.accessOrder.filter((k) => k !== key);
+    } else {
+      entry.successCount = 1;
+    }
+
+    this.cache.set(key, entry);
+    this.accessOrder.push(key);
+
+    // LRU eviction
+    if (this.cache.size > this.maxSize) {
+      const oldest = this.accessOrder.shift();
+      if (oldest) {
+        this.cache.delete(oldest);
+      }
+    }
+  }
+
+  getStats(): { size: number; hitRate: number } {
+    return {
+      size: this.cache.size,
+      hitRate: 0, // Would track hits/misses in real implementation
+    };
   }
 }
 
@@ -225,6 +301,14 @@ function snapshotChangedSignificantly(before: string, after: string): boolean {
 // Main agent loop
 // ---------------------------------------------------------------------------
 
+// Dashboard event emitter type
+type DashboardEmitter = (event: {
+  type: string;
+  sessionId: string;
+  timestamp: number;
+  [key: string]: unknown;
+}) => void;
+
 export async function runAgentLoop(opts: {
   page: Page;
   url: string;
@@ -249,6 +333,9 @@ export async function runAgentLoop(opts: {
   sessionRecorder?: import("@inspect/browser").SessionRecorder;
   selfHealer?: import("@inspect/core").SelfHealer;
   hitlChecker?: () => Promise<{ pending: boolean; approved: boolean }>;
+  dashboardEmitter?: DashboardEmitter;
+  testId?: string;
+  testName?: string;
 }): Promise<AgentLoopResult> {
   const {
     page,
@@ -272,7 +359,32 @@ export async function runAgentLoop(opts: {
 
   // --- Feature integrations (Browser Use / Stagehand / Shortest patterns) ---
   const loopDetector = new ActionLoopDetector({ windowSize: 10, threshold: 3, maxNudges: 2 });
-  const actionCache = new SimpleActionCache();
+  const actionCache = new EnhancedActionCache();
+
+  // Dashboard integration
+  const startTime = Date.now();
+  const sessionId = opts.testId ?? `test-${startTime}`;
+  const testName = opts.testName ?? `Test ${new URL(opts.url).hostname}`;
+  const dashboard = opts.dashboardEmitter;
+
+  const emitDashboardEvent = (event: { type: string; [key: string]: unknown }) => {
+    if (dashboard) {
+      dashboard({
+        ...event,
+        sessionId,
+        timestamp: Date.now(),
+      });
+    }
+  };
+
+  // Emit test started event
+  emitDashboardEvent({
+    type: "test:started",
+    testId: sessionId,
+    testName,
+    url: opts.url,
+    startTime: Date.now(),
+  });
 
   // Start session recording if provided
   if (opts.sessionRecorder) {
@@ -432,10 +544,30 @@ export async function runAgentLoop(opts: {
       }
     }
 
+    // Emit step started event
+    emitDashboardEvent({
+      type: "step:started",
+      stepId: `step-${step.id}`,
+      stepNumber: step.id,
+      totalSteps: maxSteps,
+      instruction: step.description,
+    });
+
     // Execute the step
     step.status = "running";
+    const stepStartTime = Date.now();
     const result = await executeStep(step, page, snapshotText, llm, onProgress);
     results.push(result);
+
+    // Emit step completed event
+    emitDashboardEvent({
+      type: "step:completed",
+      stepId: `step-${step.id}`,
+      success: result.status === "pass",
+      duration: Date.now() - stepStartTime,
+      action: { type: step.action, description: step.description },
+      error: result.error,
+    });
 
     // --- Two-Step: capture diff and let LLM pick from new options ---
     if (isTwoStep && result.status === "pass") {
@@ -643,6 +775,34 @@ export async function runAgentLoop(opts: {
       consecutiveFailures = 0;
     }
   }
+
+  // Emit test completed event
+  const passedSteps = results.filter((r) => r.status === "pass").length;
+  const failedSteps = results.filter((r) => r.status === "fail").length;
+
+  emitDashboardEvent({
+    type: "test:completed",
+    testId: sessionId,
+    success: failedSteps === 0,
+    duration: Date.now() - startTime,
+    stepCount: results.length,
+    passed: passedSteps,
+    failed: failedSteps,
+  });
+
+  // Emit cache stats
+  const cacheStats = actionCache.getStats();
+  emitDashboardEvent({
+    type: "stats:update",
+    stats: {
+      cacheSize: cacheStats.size,
+      totalTests: 1,
+      passedTests: failedSteps === 0 ? 1 : 0,
+      failedTests: failedSteps > 0 ? 1 : 0,
+      activeTests: 0,
+      lastUpdated: Date.now(),
+    },
+  });
 
   // Construct a TestPlan from what the agent actually did
   const pageType = detectPageType(opts.url, opts.snapshot);

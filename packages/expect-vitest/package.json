@@ -1,0 +1,44 @@
+{
+  "name": "@inspect/expect-vitest",
+  "version": "0.2.0",
+  "description": "Vitest E2E plugin for Inspect - Browser automation testing with natural language",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "vitest",
+    "e2e",
+    "testing",
+    "browser",
+    "automation",
+    "inspect"
+  ],
+  "author": "Inspect Team",
+  "license": "MIT",
+  "dependencies": {
+    "@inspect/browser": "workspace:*",
+    "@inspect/agent": "workspace:*",
+    "@inspect/core": "workspace:*",
+    "vitest": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "vitest": "^1.0.0 || ^2.0.0"
+  }
+}

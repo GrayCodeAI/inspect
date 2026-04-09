@@ -70,3 +70,25 @@ export {
   CrashWatchdog as CrashWatchdogImpl,
 } from "./watchdogs/crashes.js";
 export { CaptchaWatchdog as CaptchaWatchdogImpl } from "./watchdogs/captcha.js";
+
+// New Watchdogs
+export {
+  type ConsentBannerConfig,
+  type ConsentBannerDetection,
+  ConsentWatchdog,
+  createConsentWatchdog,
+} from "./watchdogs/consent-watchdog.js";
+
+export {
+  type LoginRedirectConfig,
+  type LoginRedirectInfo,
+  LoginRedirectWatchdog,
+  createLoginRedirectWatchdog,
+} from "./watchdogs/login-redirect-watchdog.js";
+
+export {
+  type RateLimitConfig,
+  type RateLimitInfo,
+  RateLimitWatchdog,
+  createRateLimitWatchdog,
+} from "./watchdogs/rate-limit-watchdog.js";

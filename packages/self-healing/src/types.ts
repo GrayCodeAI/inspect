@@ -60,3 +60,97 @@ export interface SelectorHistory {
   readonly successCount: number;
   readonly failureCount: number;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Extended Types for Advanced Self-Healing
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Heal candidate from matching strategies */
+export interface HealCandidate {
+  ref: string;
+  role: string;
+  name: string;
+  tagName?: string;
+  confidence: number;
+  strategy: HealingStrategy;
+  distance?: number;
+  attributes?: Record<string, string>;
+  textContent?: string;
+}
+
+/** Element description for matching */
+export interface ElementDescription {
+  role: string;
+  name: string;
+  tagName?: string;
+  nearbyText?: string;
+  attributes?: Record<string, string>;
+  xpath?: string;
+  cssPath?: string;
+}
+
+/** Page snapshot for healing */
+export interface PageSnapshot {
+  url: string;
+  title: string;
+  elements: Array<{
+    ref: string;
+    role: string;
+    name: string;
+    tagName?: string;
+    textContent?: string;
+    interactive?: boolean;
+    attributes?: Record<string, string>;
+    parentRef?: string;
+    xpath?: string;
+  }>;
+  timestamp: number;
+}
+
+/** Healing configuration */
+export interface HealingConfig {
+  minConfidence: number;
+  maxTimeMs: number;
+  enableVision: boolean;
+  enableAnchors: boolean;
+  maxCandidates: number;
+  autoAcceptThreshold: number;
+  useLLM: boolean;
+}
+
+/** Healing result */
+export interface HealingResult {
+  success: boolean;
+  candidate?: HealCandidate;
+  allCandidates: HealCandidate[];
+  elapsed: number;
+  method?: string;
+}
+
+/** Recovery playbook entry */
+export interface RecoveryPlaybookEntry {
+  errorPattern: RegExp;
+  strategy: RecoveryAction;
+  priority: number;
+  description: string;
+}
+
+export type RecoveryAction =
+  | "retry"
+  | "refresh"
+  | "wait-and-retry"
+  | "alternative-selector"
+  | "scroll-into-view"
+  | "dismiss-overlay"
+  | "accept-consent"
+  | "login-redirect";
+
+/** Healing statistics */
+export interface HealingStats {
+  totalAttempts: number;
+  successfulHeals: number;
+  failedHeals: number;
+  successRate: number;
+  avgHealingTime: number;
+  byStrategy: Record<string, { attempts: number; successes: number }>;
+}

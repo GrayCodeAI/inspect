@@ -6,6 +6,61 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Action Caching Enhancement** - Production-ready with deterministic keys
+  - SHA256/MurmurHash key generation for cache consistency
+  - DOM state hashing with full and structural variants
+  - Validation on replay (URL, element presence, text, screenshot)
+  - Smart invalidation on DOM changes
+  - LRU eviction and success rate tracking
+  - Location: `packages/agent/src/cache/action-cache.ts` (832 lines)
+
+- **Web Dashboard MVP** - Real-time test monitoring
+  - WebSocket server with Effect-TS for bidirectional communication
+  - Dark-themed HTML/CSS/JS dashboard UI
+  - Live test execution updates (test:started, step:completed, etc.)
+  - Auto-reconnecting client with backoff
+  - Test history and statistics
+  - Location: `packages/dashboard/` (1,000+ lines)
+
+- **Natural Language Parser Expansion** - 50+ grammar patterns
+  - 50+ action patterns (click, type, navigate, scroll, wait, assert)
+  - Entity extraction (URLs, emails, numbers, quoted text)
+  - Confidence scoring and fuzzy matching
+  - Custom pattern support for domain-specific actions
+  - Element descriptor parsing (role, index, text)
+  - Location: `packages/agent-tools/src/nl-parser/` (1,200+ lines)
+
+- **Vitest E2E Plugin** - First-class Vitest integration
+  - `inspectPlugin()` for Vitest configuration
+  - Natural language actions (`act()`, `assert()`, `extract()`)
+  - 15+ custom matchers (`toBeVisible`, `toHaveText`, etc.)
+  - Automatic screenshots on failure
+  - Video recording and trace collection
+  - Location: `packages/expect-vitest/` (800+ lines)
+
+- **Jest Adapter** - Jest test environment
+  - Jest test environment with Playwright integration
+  - Same API as Vitest plugin
+  - 15+ custom matchers
+  - Auto-cleanup after tests
+  - Location: `packages/expect-jest/` (600+ lines)
+
+- **Self-Healing Expansion** - 9 recovery strategies
+  - Exact match, semantic match, fuzzy text match
+  - CSS similarity, neighbor anchor, vision fallback
+  - XPath fallback, text search, AI semantic
+  - Recovery playbook with 10+ error patterns
+  - Confidence scoring and statistics tracking
+  - DOM state validation and timing strategies
+  - Location: `packages/self-healing/` (1,500+ lines)
+
+- **Watchdog Expansion** - Common interruption handlers
+  - Consent banner detection and auto-accept (30+ selectors)
+  - Login redirect detection with auto-login
+  - Rate limit detection with exponential backoff
+  - Request tracking and prevention
+  - Location: `packages/agent-watchdogs/` (1,200+ lines)
+
 - CI/CD pipeline with GitHub Actions (build, test, lint, security scan)
 - Release workflow with auto-generated changelog and GitHub releases
 - Husky pre-commit hooks with lint-staged for automatic formatting

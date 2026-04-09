@@ -1,15 +1,22 @@
 {
-  "name": "@inspect/browser",
+  "name": "@inspect/dashboard",
   "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    "./*": "./src/*",
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
     }
   },
   "scripts": {
@@ -20,19 +27,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.35",
-    "@inspect/observability": "workspace:*",
+    "@inspect/orchestrator": "workspace:*",
     "@inspect/shared": "workspace:*",
-    "@medv/finder": "^4.0.2",
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "@playwright/browser-webkit": "^1.59.1",
-    "@rrweb/types": "^2.0.0-alpha.18",
     "effect": "4.0.0-beta.35",
-    "playwright": "^1.50.0",
-    "rrweb": "^2.0.0-alpha.18"
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.7.0"
   }
 }

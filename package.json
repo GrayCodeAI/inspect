@@ -1,8 +1,8 @@
 {
   "name": "inspect",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "AI-Powered Browser Testing Platform",
+  "description": "AI-Powered Browser Testing Platform - Phase 1 & 2 Complete",
   "author": "Lakshman Patel",
   "license": "MIT",
   "type": "module",
