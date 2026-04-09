@@ -22,5 +22,12 @@ export {
   ReplayExportError,
 } from "./errors.js";
 
+// Replay Validator
+export {
+  ReplayValidator,
+  type ReplayValidationResult,
+  type ReplayValidationStep,
+} from "./replay-validator.js";
+
 // Test Service
 export { TestService } from "./test-service.js";
