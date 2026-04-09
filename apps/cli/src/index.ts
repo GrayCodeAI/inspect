@@ -54,6 +54,7 @@ import { registerShowReportCommand } from "./commands/show-report.js";
 import { registerShowTraceCommand } from "./commands/show-trace.js";
 import { registerChatCommand } from "./commands/chat.js";
 import { registerSessionRecordCommand } from "./commands/session-record.js";
+import { registerRecordNLCommand } from "./commands/record-nl.js";
 import { registerSelfHealCommand } from "./commands/self-heal.js";
 import { registerVisualBuilderCommand } from "./commands/visual-builder.js";
 import { registerInstallCommand } from "./commands/install.js";
@@ -125,6 +126,7 @@ registerCompareCommand(program);
 registerWatchCommand(program);
 registerFlowCommand(program);
 registerSessionRecordCommand(program);
+registerRecordNLCommand(program);
 registerSelfHealCommand(program);
 registerVisualBuilderCommand(program);
 
