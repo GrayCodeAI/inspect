@@ -2,7 +2,7 @@
 // @inspect/expect-vitest - Vitest E2E Plugin for Inspect
 // ──────────────────────────────────────────────────────────────────────────────
 
-// Plugin
+// Plugin exports
 export {
   inspectPlugin,
   defineInspectConfig,
@@ -30,7 +30,17 @@ export type {
 export { createNLAct } from "@inspect/browser";
 
 // Version
-export const version = "0.1.0";
+export const version = "0.2.0";
+
+// Import for default export
+import { inspectPlugin } from "./plugin.js";
+import { defineInspectConfig } from "./plugin.js";
+import { getInspectConfig } from "./plugin.js";
+import { createTestContext } from "./plugin.js";
+import { cleanupTestContext } from "./plugin.js";
+import { inspectTest } from "./plugin.js";
+import { extendExpect } from "./matchers.js";
+import { createNLAct } from "@inspect/browser";
 
 // Default export
 export default {

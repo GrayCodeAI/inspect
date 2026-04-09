@@ -35,7 +35,8 @@
   "dependencies": {
     "@inspect/browser": "workspace:*",
     "@inspect/agent": "workspace:*",
-    "@inspect/core": "workspace:*"
+    "@inspect/core": "workspace:*",
+    "playwright": "^1.59.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",

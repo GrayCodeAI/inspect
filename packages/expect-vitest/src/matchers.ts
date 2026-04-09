@@ -4,9 +4,10 @@
 
 import type { Page, Locator } from "playwright";
 import type { InspectMatchers, AssertionResult } from "./types.js";
+import { expect } from "vitest";
 
 /** Extend Vitest's expect with Inspect matchers */
-export function extendExpect(expect: typeof globalThis.expect) {
+export function extendExpect(vitestExpect: typeof expect) {
   expect.extend({
     // Element visibility
     async toBeVisible(received: Locator | Page, selector?: string) {
@@ -177,9 +178,7 @@ export function extendExpect(expect: typeof globalThis.expect) {
     // CSS classes
     async toHaveClass(received: Locator | Page, expected: string | string[], selector?: string) {
       const element = selector ? (received as Page).locator(selector) : (received as Locator);
-      const classValue = await element
-        .evaluate((el) => (el as HTMLElement).className)
-        .catch(() => "");
+      const classValue = await element.evaluate((el: HTMLElement) => el.className).catch(() => "");
 
       const classes = classValue.split(" ").filter(Boolean);
       const expectedClasses = Array.isArray(expected) ? expected : [expected];
@@ -211,7 +210,7 @@ export function extendExpect(expect: typeof globalThis.expect) {
     async toBeFocused(received: Locator | Page, selector?: string) {
       const element = selector ? (received as Page).locator(selector) : (received as Locator);
       const focused = await element
-        .evaluate((el) => el === document.activeElement)
+        .evaluate((el: Element) => el === document.activeElement)
         .catch(() => false);
 
       return {
