@@ -485,7 +485,13 @@ async function executeAction(
         snapshotText,
         llm,
       );
-      await dragHandler.dragElement(page, sourceSelector!, destSelector!);
+      if (!sourceSelector) {
+        throw new Error(`Could not find drag source: ${sourceDesc}`);
+      }
+      if (!destSelector) {
+        throw new Error(`Could not find drag destination: ${destDesc}`);
+      }
+      await dragHandler.dragElement(page, sourceSelector, destSelector);
       onProgress("pass", `  ✓ Dragged ${sourceDesc} to ${destDesc}`);
       break;
     }

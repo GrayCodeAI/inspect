@@ -8,7 +8,7 @@
  */
 
 import type { AgentRouter } from "@inspect/agent";
-import type { BrowserManager } from "@inspect/browser";
+import type { BrowserManager, Page } from "@inspect/browser";
 import type { ExecutorDependencies, ExecutionConfig, StepPlan, StepResult } from "@inspect/core";
 
 type ToolCall = StepResult["toolCalls"][number];
@@ -17,7 +17,7 @@ type ToolCall = StepResult["toolCalls"][number];
  * Shared state between the step executor, recovery executors, and governance.
  */
 interface SharedPageState {
-  page: unknown | null;
+  page: Page | null;
   auditTrail?: unknown;
   session?: { id: string; tenantId?: string };
 }
@@ -133,17 +133,14 @@ export function createStepExecutor(
     if (!sharedState.page) {
       await browserManager.launchBrowser({
         name: "chromium",
-        browser: config.browser,
         headless: !config.headed,
         viewport: deviceConfig.viewport,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-      sharedState.page = browserManager.newPage();
+      });
+      sharedState.page = await browserManager.newPage();
 
       if (config.url) {
         const navStart = Date.now();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sharedState.page as any).goto(config.url, {
+        await sharedState.page!.goto(config.url, {
           waitUntil: "domcontentloaded",
           timeout: 30000,
         });
@@ -156,8 +153,7 @@ export function createStepExecutor(
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const page = sharedState.page as any;
+    const page = sharedState.page as NonNullable<typeof sharedState.page>;
     const llmCall = createLLMCall(router, config.agent);
     const noopProgress = () => {};
 
@@ -184,8 +180,7 @@ export function createStepExecutor(
     };
 
     const { executeStep } = await import("./tester.js");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await executeStep(testStep as any, page, snapshotText, llmCall, noopProgress);
+    const result = await executeStep(testStep, page, snapshotText, llmCall, noopProgress);
 
     // Record tool calls from the step execution
     toolCalls.push({
@@ -284,8 +279,7 @@ function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
         if (!sharedState.page) return false;
         const { AriaSnapshotBuilder } = await import("@inspect/browser");
         const builder = new AriaSnapshotBuilder();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await builder.buildTree(sharedState.page as any);
+        await builder.buildTree(sharedState.page!);
         return true;
       } catch {
         return false;
@@ -295,8 +289,7 @@ function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
     waitForLoad: async () => {
       try {
         if (!sharedState.page) return false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sharedState.page as any).waitForLoadState?.("domcontentloaded", {
+        await sharedState.page.waitForLoadState?.("domcontentloaded", {
           timeout: 5000,
         });
         await new Promise((r) => setTimeout(r, 1000));
@@ -310,8 +303,7 @@ function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
     scrollIntoView: async (selector?: string) => {
       try {
         if (!sharedState.page || !selector) return false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sharedState.page as any).locator(selector).scrollIntoViewIfNeeded({ timeout: 3000 });
+        await sharedState.page.locator(selector).scrollIntoViewIfNeeded({ timeout: 3000 });
         return true;
       } catch {
         return false;
@@ -321,8 +313,7 @@ function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
     dismissOverlay: async () => {
       try {
         if (!sharedState.page) return false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ctx = sharedState.page as any;
+        const ctx = sharedState.page;
         const dismissSelectors = [
           'button:has-text("Accept")',
           'button:has-text("Got it")',
@@ -353,8 +344,7 @@ function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
     refreshPage: async () => {
       try {
         if (!sharedState.page) return false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sharedState.page as any).reload?.({
+        await sharedState.page.reload?.({
           waitUntil: "domcontentloaded",
           timeout: 10000,
         });
@@ -367,8 +357,7 @@ function createRecoveryExecutorsFromState(sharedState: SharedPageState): {
     clearState: async () => {
       try {
         if (!sharedState.page) return false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sharedState.page as any).evaluate(() => {
+        await sharedState.page.evaluate(() => {
           localStorage.clear();
           sessionStorage.clear();
         });

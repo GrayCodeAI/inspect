@@ -8,6 +8,7 @@ import type {
   ChainStep,
   ChainSubchainStep,
 } from "./chain-types.js";
+import { evaluateSafely } from "./safe-evaluator.js";
 
 interface MutableChainExecutionContext {
   variables: Record<string, unknown>;
@@ -181,8 +182,8 @@ export class ChainExecutor {
     const resolvedCondition = this.resolveVariables(condition, context);
 
     try {
-      const result = Function(`"use strict"; return (${resolvedCondition})`)();
-      return Boolean(result);
+      // Use safe evaluator instead of unsafe Function constructor
+      return evaluateSafely(resolvedCondition, context.variables);
     } catch {
       return false;
     }

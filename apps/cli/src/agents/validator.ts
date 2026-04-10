@@ -24,6 +24,7 @@ export function createNetworkMonitor(page: Page): NetworkMonitor {
   const failures: NetworkFailure[] = [];
   const slowResponses: Array<{ url: string; duration: number }> = [];
   const requestTimings = new Map<string, number>();
+  let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   const onRequest = (request: Request) => {
     requestTimings.set(request.url(), Date.now());
@@ -44,16 +45,35 @@ export function createNetworkMonitor(page: Page): NetworkMonitor {
     requestTimings.delete(url);
   };
 
+  // Clean up stale entries to prevent memory leaks
+  const cleanupStaleEntries = () => {
+    const now = Date.now();
+    const staleThreshold = 30000; // 30 seconds
+    for (const [url, startTime] of requestTimings.entries()) {
+      if (now - startTime > staleThreshold) {
+        requestTimings.delete(url);
+      }
+    }
+  };
+
   return {
     failures,
     slowResponses,
     start() {
       page.on("request", onRequest);
       page.on("response", onResponse);
+      // Periodically clean up stale entries
+      cleanupInterval = setInterval(cleanupStaleEntries, 10000);
     },
     stop() {
       page.removeListener("request", onRequest);
       page.removeListener("response", onResponse);
+      if (cleanupInterval) {
+        clearInterval(cleanupInterval);
+        cleanupInterval = null;
+      }
+      // Clear any remaining stale entries
+      requestTimings.clear();
       return [...failures];
     },
   };
@@ -98,7 +118,10 @@ export function createConsoleMonitor(page: Page): {
 // URL change tracking
 // ---------------------------------------------------------------------------
 
-export function trackUrlChanges(page: Page): { getHistory: () => string[] } {
+export function trackUrlChanges(page: Page): {
+  getHistory: () => string[];
+  dispose: () => void;
+} {
   const history: string[] = [page.url()];
 
   const onNavigation = () => {
@@ -118,6 +141,9 @@ export function trackUrlChanges(page: Page): { getHistory: () => string[] } {
         history.push(current);
       }
       return [...history];
+    },
+    dispose() {
+      page.off("framenavigated", onNavigation);
     },
   };
 }

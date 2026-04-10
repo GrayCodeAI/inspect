@@ -10,129 +10,19 @@
 
 import type {} from "./playwright-types.js";
 import type { Page } from "@inspect/browser";
-import { AnnotatedScreenshot, DOMDiff, AriaSnapshotBuilder, createNLAct } from "@inspect/browser";
+import {
+  AnnotatedScreenshot,
+  DOMDiff,
+  AriaSnapshotBuilder,
+  createNLAct,
+  DiffElement as DOMDiffElement,
+  AnnotatedElement,
+} from "@inspect/browser";
 import type { TestStep, TestPlan, LLMCall, ProgressCallback } from "./types.js";
 import { detectPageType } from "./planner.js";
 import { ActionLoopDetector } from "@inspect/agent";
 import type { SyncSpeculativePlanner } from "@inspect/core";
-// ---------------------------------------------------------------------------
-// Enhanced Action Cache with deterministic keys and validation
-// ---------------------------------------------------------------------------
-
-// DOM Element types for DOMDiff
-interface DOMDiffElement {
-  role?: string;
-  tagName?: string;
-  text?: string;
-}
-
-// Annotated element from AnnotatedScreenshot
-interface AnnotatedElement {
-  id: string | number;
-  tagName: string;
-  role?: string;
-  text?: string;
-}
-
-interface CachedActionEntry {
-  type: string;
-  target?: string;
-  value?: string;
-  description: string;
-  domHash?: string;
-  successCount?: number;
-}
-
-class EnhancedActionCache {
-  private cache = new Map<string, CachedActionEntry>();
-  private accessOrder: string[] = [];
-  private readonly maxSize = 1000;
-
-  private generateKey(instruction: string, url: string, domSnapshot?: string): string {
-    // Normalize instruction
-    const normalized = instruction
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, " ")
-      .replace(/\b(the|a|an)\b/g, "")
-      .trim();
-
-    // Normalize URL
-    let normalizedUrl: string;
-    try {
-      const urlObj = new URL(url);
-      normalizedUrl = `${urlObj.origin}${urlObj.pathname}`.toLowerCase();
-    } catch {
-      normalizedUrl = url.toLowerCase();
-    }
-
-    // Generate DOM hash if snapshot provided
-    let domHash = "";
-    if (domSnapshot) {
-      domHash = this.simpleHash(domSnapshot.slice(0, 500));
-    }
-
-    return `${normalized}|${normalizedUrl}|${domHash}`;
-  }
-
-  private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return hash.toString(16);
-  }
-
-  async get(
-    instruction: string,
-    url: string,
-    domSnapshot?: string,
-  ): Promise<CachedActionEntry | undefined> {
-    const key = this.generateKey(instruction, url, domSnapshot);
-    const entry = this.cache.get(key);
-
-    if (entry) {
-      // Update access order for LRU
-      this.accessOrder = this.accessOrder.filter((k) => k !== key);
-      this.accessOrder.push(key);
-    }
-
-    return entry;
-  }
-
-  set(instruction: string, url: string, entry: CachedActionEntry, domSnapshot?: string): void {
-    const key = this.generateKey(instruction, url, domSnapshot);
-
-    // Update existing or add new
-    if (this.cache.has(key)) {
-      const existing = this.cache.get(key)!;
-      entry.successCount = (existing.successCount ?? 0) + 1;
-      this.accessOrder = this.accessOrder.filter((k) => k !== key);
-    } else {
-      entry.successCount = 1;
-    }
-
-    this.cache.set(key, entry);
-    this.accessOrder.push(key);
-
-    // LRU eviction
-    if (this.cache.size > this.maxSize) {
-      const oldest = this.accessOrder.shift();
-      if (oldest) {
-        this.cache.delete(oldest);
-      }
-    }
-  }
-
-  getStats(): { size: number; hitRate: number } {
-    return {
-      size: this.cache.size,
-      hitRate: 0, // Would track hits/misses in real implementation
-    };
-  }
-}
+import { ActionCache, type CacheEntry } from "./action-cache.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -359,7 +249,7 @@ export async function runAgentLoop(opts: {
 
   // --- Feature integrations (Browser Use / Stagehand / Shortest patterns) ---
   const loopDetector = new ActionLoopDetector({ windowSize: 10, threshold: 3, maxNudges: 2 });
-  const actionCache = new EnhancedActionCache();
+  const actionCache = new ActionCache();
 
   // Dashboard integration
   const startTime = Date.now();
@@ -390,8 +280,12 @@ export async function runAgentLoop(opts: {
   if (opts.sessionRecorder) {
     try {
       await opts.sessionRecorder.startRecording(page);
-    } catch {
-      // Recording is best-effort
+    } catch (err) {
+      // Recording is best-effort, log for debugging
+      onProgress(
+        "warn",
+        `Session recording failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -410,15 +304,21 @@ export async function runAgentLoop(opts: {
     const ssPath = join(screenshotDir, `step-0-${Date.now()}.png`);
     await page.screenshot({ path: ssPath });
     initialResult.screenshot = ssPath;
-  } catch {
-    /* intentionally empty */
+  } catch (err) {
+    onProgress(
+      "warn",
+      `Initial screenshot failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   let consecutiveFailures = 0;
 
   while (results.length < maxSteps) {
-    const currentUrl = page.url();
-    const currentTitle = await page.title().catch(() => opts.title);
+    // Get page state atomically to avoid race conditions
+    const [currentUrl, currentTitle] = await Promise.all([
+      Promise.resolve(page.url()),
+      page.title().catch(() => opts.title),
+    ]);
 
     // --- Loop detection: check before next action ---
     const loopCheck = loopDetector.check();
@@ -441,7 +341,7 @@ export async function runAgentLoop(opts: {
 
     // --- Cache lookup: skip LLM if we have a cached action for this state ---
     const cacheInstruction = `${currentUrl}|${snapshotText.slice(0, 200)}`;
-    const cached = await actionCache.get(cacheInstruction, currentUrl);
+    const cached = actionCache.get(cacheInstruction, currentUrl);
     let action: AgentAction | null;
 
     if (cached) {
@@ -481,8 +381,7 @@ export async function runAgentLoop(opts: {
             onProgress("warn", "Agent response still unparseable — stopping");
             break;
           }
-          Object.assign(action ?? {}, retryAction);
-          if (!action) break;
+          action = retryAction;
         } catch {
           break;
         }
@@ -539,8 +438,11 @@ export async function runAgentLoop(opts: {
     if (isTwoStep) {
       try {
         await domDiff.captureBefore(page);
-      } catch {
-        /* non-critical */
+      } catch (err) {
+        onProgress(
+          "info",
+          `DOM capture before failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
@@ -761,7 +663,7 @@ export async function runAgentLoop(opts: {
         target: step.target,
         value: step.value,
         description: step.description,
-      });
+      } as CacheEntry);
     }
 
     // Track consecutive failures

@@ -257,8 +257,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     try {
       const { handleAlertDialogs } = await import("./navigator.js");
       await handleAlertDialogs(page);
-    } catch {
-      /* navigator not available */
+    } catch (err) {
+      onProgress(
+        "info",
+        `Alert dialog handler failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -272,8 +275,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       if (handled.length > 0) onProgress("info", `Dismissed ${handled.length} popup(s)`);
       const consent = await dismissCookieConsent(page);
       if (consent) onProgress("info", "Dismissed cookie consent");
-    } catch {
-      /* navigator not available */
+    } catch (err) {
+      onProgress(
+        "info",
+        `Popup/cookie handling failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     // Initial screenshot
@@ -353,8 +359,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           try {
             const rebuildSnap = new AriaSnapshotBuilder();
             snapshotText = await captureSnapshot(page, rebuildSnap);
-          } catch {
-            /* intentionally empty */
+          } catch (err) {
+            onProgress(
+              "info",
+              `Re-snapshot after SPA discovery failed: ${err instanceof Error ? err.message : String(err)}`,
+            );
           }
         }
       } catch (err: unknown) {
@@ -375,7 +384,7 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     const consoleMonitor = createConsoleMonitor(page);
     networkMonitor.start();
     consoleMonitor.start();
-    const _urlTracker = trackUrlChanges(page);
+    const urlTracker = trackUrlChanges(page);
 
     const agentResult = await runAgentLoop({
       page,
@@ -402,8 +411,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     try {
       const finalBuilder = new AriaSnapshotBuilder();
       snapshotText = await captureSnapshot(page, finalBuilder);
-    } catch {
-      /* intentionally empty */
+    } catch (err) {
+      onProgress(
+        "info",
+        `Final snapshot failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     // Collect screenshots from results
@@ -411,9 +423,10 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       if (r.screenshot) screenshots.push(r.screenshot);
     }
 
-    // Stop monitoring
+    // Stop monitoring and clean up resources
     networkMonitor.stop();
     consoleMonitor.stop();
+    urlTracker.dispose();
 
     // Form testing
     if (tiers.execution && !fast) {
@@ -462,69 +475,54 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
       );
     };
 
-    // Run accessibility + security + SEO in parallel (they read-only the current page)
-    const parallelQuality: Array<Promise<void>> = [];
-
+    // Run accessibility + security + SEO sequentially to avoid race conditions
+    // Playwright page operations are not thread-safe
     if (tiers.accessibility) {
-      parallelQuality.push(
-        (async () => {
-          try {
-            const a11yReport = await checkAccessibility(page, page.url(), () => {});
-            a11yReports.push(a11yReport);
-            auditProgress();
-          } catch (err: unknown) {
-            onProgress(
-              "warn",
-              `Accessibility audit skipped: ${err instanceof Error ? err.message : String(err)}`,
-            );
-            auditProgress();
-          }
-        })(),
-      );
+      try {
+        const a11yReport = await checkAccessibility(page, page.url(), () => {});
+        a11yReports.push(a11yReport);
+        auditProgress();
+      } catch (err: unknown) {
+        onProgress(
+          "warn",
+          `Accessibility audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        auditProgress();
+      }
     }
 
     if (tiers.security) {
-      parallelQuality.push(
-        (async () => {
-          try {
-            const { runSecurityAudit } = await import("./security-agent.js");
-            securityReport = await runSecurityAudit(page, url, () => {});
-            onProgress(
-              "pass",
-              `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`,
-            );
-            auditProgress();
-          } catch (err: unknown) {
-            onProgress(
-              "warn",
-              `Security audit skipped: ${err instanceof Error ? err.message : String(err)}`,
-            );
-            auditProgress();
-          }
-        })(),
-      );
+      try {
+        const { runSecurityAudit } = await import("./security-agent.js");
+        securityReport = await runSecurityAudit(page, url, () => {});
+        onProgress(
+          "pass",
+          `Security: ${securityReport.score}/100 (${securityReport.issues.length} issues)`,
+        );
+        auditProgress();
+      } catch (err: unknown) {
+        onProgress(
+          "warn",
+          `Security audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        auditProgress();
+      }
     }
 
     if (tiers.seo) {
-      parallelQuality.push(
-        (async () => {
-          try {
-            const { runSEOAudit } = await import("./seo.js");
-            seoReport = await runSEOAudit(page, url, () => {});
-            onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
-            auditProgress();
-          } catch (err: unknown) {
-            onProgress(
-              "warn",
-              `SEO audit skipped: ${err instanceof Error ? err.message : String(err)}`,
-            );
-            auditProgress();
-          }
-        })(),
-      );
+      try {
+        const { runSEOAudit } = await import("./seo.js");
+        seoReport = await runSEOAudit(page, url, () => {});
+        onProgress("pass", `SEO: ${seoReport.score}/100 (${seoReport.issues.length} issues)`);
+        auditProgress();
+      } catch (err: unknown) {
+        onProgress(
+          "warn",
+          `SEO audit skipped: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        auditProgress();
+      }
     }
-
-    await Promise.all(parallelQuality);
 
     // Performance needs a fresh navigation for accurate timing — run after parallel checks
     if (tiers.performance) {
@@ -665,8 +663,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           }
           onProgress("done", failLines.join("\n"));
         }
-      } catch {
-        // Failure analysis is non-critical
+      } catch (err) {
+        onProgress(
+          "info",
+          `Failure analysis failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
@@ -674,8 +675,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
     try {
       const { recordResults } = await import("./flake-detection.js");
       recordResults(report);
-    } catch {
-      // Non-critical
+    } catch (err) {
+      onProgress(
+        "info",
+        `Flake detection recording failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     // --- Run Cache: save passing run for future replay (Shortest pattern) ---
@@ -695,8 +699,11 @@ export async function runFullTest(options: OrchestratorOptions): Promise<TestRep
           Date.now() - startTime,
           tokenUsage,
         );
-      } catch {
-        /* non-critical */
+      } catch (err) {
+        onProgress(
+          "info",
+          `Run cache save failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 

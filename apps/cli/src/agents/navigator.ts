@@ -423,9 +423,16 @@ export async function dismissCookieConsent(page: Page): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 const dialogMessages: string[] = [];
+const dialogHandlers = new WeakMap<Page, (dialog: Dialog) => Promise<void>>();
 
 export async function handleAlertDialogs(page: Page): Promise<void> {
-  page.on("dialog", async (dialog: Dialog) => {
+  // Remove existing handler if any to prevent duplicates
+  const existingHandler = dialogHandlers.get(page);
+  if (existingHandler) {
+    page.off("dialog", existingHandler);
+  }
+
+  const handler = async (dialog: Dialog) => {
     const message = dialog.message();
     dialogMessages.push(message);
 
@@ -445,7 +452,21 @@ export async function handleAlertDialogs(page: Page): Promise<void> {
     } catch {
       // Dialog already handled or page navigated away
     }
-  });
+  };
+
+  dialogHandlers.set(page, handler);
+  page.on("dialog", handler);
+}
+
+/**
+ * Remove the dialog handler for a page to prevent memory leaks.
+ */
+export function removeAlertDialogHandler(page: Page): void {
+  const handler = dialogHandlers.get(page);
+  if (handler) {
+    page.off("dialog", handler);
+    dialogHandlers.delete(page);
+  }
 }
 
 // ---------------------------------------------------------------------------
