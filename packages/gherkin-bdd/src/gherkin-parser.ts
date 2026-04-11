@@ -85,6 +85,7 @@ export function parseFeature(content: string, _file: string): Feature {
   let currentScenarioSteps: Step[] = [];
   let currentScenarioName = "";
   let currentScenarioIndex = -1;
+  let currentLine = 0;
   let inExamples = false;
   let currentExampleName = "";
   let currentExampleHeaders: string[] = [];
