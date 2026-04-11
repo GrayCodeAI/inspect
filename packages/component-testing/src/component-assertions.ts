@@ -100,10 +100,11 @@ export class ComponentAssertions extends ServiceMap.Service<
           const errors = yield* Effect.tryPromise({
             try: () =>
               page.evaluate(() => {
-                const win = window as Record<string, unknown>;
+                const win = window as unknown as Record<string, unknown>;
                 const captured: string[] = [];
-                if (win.__inspectCapturedErrors) {
-                  captured.push(...win.__inspectCapturedErrors);
+                const stored = win.__inspectCapturedErrors;
+                if (Array.isArray(stored)) {
+                  captured.push(...(stored as string[]));
                 }
                 return captured;
               }),

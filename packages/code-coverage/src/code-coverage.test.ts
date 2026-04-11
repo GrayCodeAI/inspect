@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { it as effectIt } from "@effect/vitest";
 import { Effect } from "effect";
-import { CoverageProcessor } from "./coverage-processor.js";
+import { CoverageProcessor, type RawCoverageData } from "./coverage-processor.js";
 import { CoverageThreshold } from "./coverage-threshold.js";
 import { CoverageCollectionError, CoverageProcessingError, CoverageThresholdError } from "./errors.js";
 
@@ -11,7 +11,7 @@ describe("CoverageProcessor", () => {
       Effect.gen(function* () {
         const processor = yield* CoverageProcessor;
 
-        const coverageData = [
+        const coverageData: RawCoverageData = [
           {
             url: "file:///test.js",
             scriptId: "1",
@@ -38,24 +38,22 @@ describe("CoverageProcessor", () => {
       Effect.gen(function* () {
         const processor = yield* CoverageProcessor;
 
-        const coverageData = {
-          result: [
-            {
-              url: "file:///test.js",
-              scriptId: "1",
-              functions: [
-                {
-                  functionName: "foo",
-                  isBlockCoverage: true,
-                  ranges: [
-                    { startOffset: 0, endOffset: 10, count: 1 },
-                    { startOffset: 10, endOffset: 20, count: 0 },
-                  ],
-                },
-              ],
-            },
-          ],
-        };
+        const coverageData: RawCoverageData = [
+          {
+            url: "file:///test.js",
+            scriptId: "1",
+            functions: [
+              {
+                functionName: "foo",
+                isBlockCoverage: true,
+                ranges: [
+                  { startOffset: 0, endOffset: 10, count: 1 },
+                  { startOffset: 10, endOffset: 20, count: 0 },
+                ],
+              },
+            ],
+          },
+        ];
 
         const metrics = yield* processor.calculateMetrics(coverageData);
         expect(metrics).toBeDefined();

@@ -7,6 +7,8 @@ import type {
   CoverageRange,
 } from "./coverage-collector.js";
 
+export type { RawCoverageData };
+
 export interface CoverageSummary {
   readonly lines: CoverageMetrics;
   readonly functions: CoverageMetrics;

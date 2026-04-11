@@ -13,6 +13,7 @@ export type {
 
 export { CoverageProcessor } from "./coverage-processor.js";
 export type {
+  RawCoverageData as CoverageRawData,
   CoverageSummary,
   CoverageMetrics,
   FileCoverage,
