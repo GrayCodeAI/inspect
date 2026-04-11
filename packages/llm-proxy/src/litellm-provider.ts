@@ -99,7 +99,7 @@ export class LiteLLMProvider extends ServiceMap.Service<
             },
             catch: (cause) =>
               new LLMProxyError({
-                message: `LiteLLM request failed: ${String(cause)}`,
+                reason: `LiteLLM request failed: ${String(cause)}`,
                 provider: "litellm",
                 cause,
               }),
@@ -132,6 +132,7 @@ export class LiteLLMProvider extends ServiceMap.Service<
           new LLMRequest({
             model: model ?? config.model,
             messages: [{ role: "user", content: prompt }],
+            temperature: 0.7,
           }),
         ).pipe(
           Effect.map((response) => response.content),

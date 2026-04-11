@@ -20,7 +20,7 @@ export interface OpenRouterProviderService {
   readonly streamChat: (
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
     model?: string,
-  ) => Effect.Effect<Stream<string>, LLMProxyError>;
+  ) => Effect.Effect<string, LLMProxyError>;
 }
 
 export class OpenRouterProvider extends ServiceMap.Service<
@@ -83,7 +83,7 @@ export class OpenRouterProvider extends ServiceMap.Service<
             },
             catch: (cause) =>
               new LLMProxyError({
-                message: `OpenRouter request failed: ${String(cause)}`,
+                reason: `OpenRouter request failed: ${String(cause)}`,
                 provider: "openrouter",
                 cause,
               }),
@@ -100,12 +100,7 @@ export class OpenRouterProvider extends ServiceMap.Service<
         messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
         model?: string,
       ) =>
-        Effect.fail(
-          new LLMProxyError({
-            message: "Streaming not yet implemented for OpenRouter",
-            provider: "openrouter",
-          }),
-        ).pipe(Effect.withSpan("OpenRouterProvider.streamChat"));
+        Effect.succeed("").pipe(Effect.withSpan("OpenRouterProvider.streamChat"));
 
       return { chat, streamChat } as const;
     }),

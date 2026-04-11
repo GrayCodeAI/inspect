@@ -4,13 +4,8 @@
 
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import { PWAAuditError } from "./errors.js";
-import {
-  checkManifest,
-  checkServiceWorker,
-  checkOfflineCapability,
-  checkHttps,
-  CheckResult,
-} from "./pwa-checks.js";
+import { checkManifest, checkServiceWorker, checkOfflineCapability, checkHttps, CheckResult } from "./pwa-checks.js";
+export { CheckResult };
 
 export class AuditConfig extends Schema.Class<AuditConfig>("AuditConfig")({
   url: Schema.String,
@@ -99,14 +94,6 @@ export class PWAAuditor extends ServiceMap.Service<
 
           return report;
         }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new PWAAuditError({
-                message: `PWA audit failed: ${String(cause)}`,
-                cause,
-              }),
-            ),
-          ),
           Effect.withSpan("PWAAuditor.audit"),
         );
 

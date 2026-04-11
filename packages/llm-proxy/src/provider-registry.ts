@@ -58,7 +58,7 @@ export class ProviderRegistry extends ServiceMap.Service<
           const provider = providers.get(name);
           if (!provider) {
             return yield* new LLMProxyError({
-              message: `Provider not found: ${name}`,
+              reason: `Provider not found: ${name}`,
               provider: name,
             });
           }

@@ -26,7 +26,7 @@ export interface CrawlSpiderService {
   readonly crawl: (
     startUrl: string,
     config?: Partial<CrawlConfig>,
-  ) => Effect.Effect<CrawlResult[], SpiderError>;
+  ) => Effect.Effect<CrawlResult[], SpiderError | RobotsTxtError | null>;
   readonly checkRobotsTxt: (
     url: string,
   ) => Effect.Effect<boolean, RobotsTxtError>;
