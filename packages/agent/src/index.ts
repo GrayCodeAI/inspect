@@ -150,3 +150,14 @@ export {
   type GuardrailContext,
   BUILTIN_GUARDRAILS,
 } from "./governance/guardrails.js";
+
+// Preview Mode (Stagehand-style approval before action execution)
+export {
+  PreviewModeService,
+  PreviewAction,
+  PreviewApproval,
+  PreviewModeError,
+  PreviewModeTimeoutError,
+  type PreviewRequest,
+  type PreviewModeState,
+} from "./preview/preview-mode.js";

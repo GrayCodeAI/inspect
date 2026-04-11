@@ -1,0 +1,23 @@
+{
+  "name": "@inspect/code-coverage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.35"
+  },
+  "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.35",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.1"
+  }
+}

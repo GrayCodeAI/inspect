@@ -3,47 +3,38 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "inspect-python"
+name = "inspect-sdk"
 version = "0.1.0"
-description = "Python SDK for Inspect - AI-powered browser automation and testing"
+description = "Python SDK for Inspect - automated browser testing for coding agents"
 readme = "README.md"
-requires-python = ">=3.10"
 license = {text = "MIT"}
+requires-python = ">=3.10"
 authors = [
-    {name = "GrayCode", email = "dev@graycode.ai"}
+    {name = "Inspect Team"},
 ]
-keywords = ["browser", "automation", "ai", "testing", "playwright", "inspect"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
-
 dependencies = [
-    "httpx>=0.27.0",
-    "aiohttp>=3.9.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
-    "ruff>=0.4.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/graycodeai/inspect"
-Documentation = "https://docs.inspect.dev"
-Repository = "https://github.com/graycodeai/inspect"
+[tool.hatch.build.targets.wheel]
+packages = ["src/inspect"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 100
 target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]

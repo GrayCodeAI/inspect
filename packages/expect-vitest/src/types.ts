@@ -149,6 +149,12 @@ export interface InspectMatchers<R = unknown> {
   toBeInViewport(): Promise<R>;
   /** Assert network response was received */
   toHaveNetworkResponse(urlPattern: string | RegExp, statusCode?: number): Promise<R>;
+  /** Assert serialized value matches snapshot */
+  toMatchSnapshot(name?: string): Promise<R>;
+  /** Assert page screenshot matches baseline */
+  toMatchPageSnapshot(name: string, options?: { maxDiffPixels?: number }): Promise<R>;
+  /** Assert accessibility tree matches baseline */
+  toMatchAccessibilitySnapshot(name: string): Promise<R>;
 }
 
 /** Step result */

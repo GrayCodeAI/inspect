@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inspect Recorder</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 360px;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    .header {
+      padding: 16px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: background 0.2s;
+    }
+    .status-dot.recording {
+      background: #ef4444;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .controls {
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid #334155;
+    }
+    button {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    #btnRecord {
+      background: #22c55e;
+      color: #0f172a;
+    }
+    #btnRecord.recording {
+      background: #ef4444;
+      color: white;
+    }
+    #btnClear {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    #btnExport {
+      background: #3b82f6;
+      color: white;
+    }
+    #btnCopy {
+      background: #8b5cf6;
+      color: white;
+    }
+    .event-list {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .event-item {
+      padding: 8px 12px;
+      background: #1e293b;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .event-type {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .event-type.navigation { background: #0ea5e9; color: #0f172a; }
+    .event-type.click { background: #22c55e; color: #0f172a; }
+    .event-type.type { background: #f59e0b; color: #0f172a; }
+    .event-type.select { background: #a855f7; color: white; }
+    .event-type.submit { background: #ef4444; color: white; }
+    .event-type.scroll { background: #64748b; color: white; }
+    .event-desc {
+      flex: 1;
+      margin-left: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .empty-state {
+      padding: 24px 16px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+    }
+    .stats {
+      padding: 8px 16px;
+      border-top: 1px solid #334155;
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="status-dot" id="statusDot"></div>
+    <h1>Inspect Recorder</h1>
+  </div>
+
+  <div class="controls">
+    <button id="btnRecord" type="button">Start Recording</button>
+    <button id="btnClear" type="button" disabled>Clear</button>
+  </div>
+  <div class="controls">
+    <button id="btnExport" type="button" disabled>Export Test</button>
+    <button id="btnCopy" type="button" disabled>Copy to Clipboard</button>
+  </div>
+
+  <div class="event-list" id="eventList">
+    <div class="empty-state" id="emptyState">Click "Start Recording" to begin capturing interactions</div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

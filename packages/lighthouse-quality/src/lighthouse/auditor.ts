@@ -91,6 +91,7 @@ export class LighthouseAuditor {
       "accessibility",
       "best-practices",
       "seo",
+      "pwa",
     ];
 
     let chrome: ChromeHandle | undefined;

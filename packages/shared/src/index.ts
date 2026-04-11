@@ -36,6 +36,16 @@ export {
 } from "./utils/circuit-breaker.js";
 
 export {
+  createGenericFactory,
+  createTestPlanStepFactory,
+  createTestPlanFactory,
+  createTestResultFactory,
+  createCookieDataFactory,
+  resetSequence,
+  type Factory,
+} from "./utils/fixture-factories.js";
+
+export {
   expect,
   AssertionError,
   toBe,

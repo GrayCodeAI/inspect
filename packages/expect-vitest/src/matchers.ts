@@ -3,8 +3,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { Page, Locator } from "@inspect/browser";
-import type { InspectMatchers, AssertionResult } from "./types.js";
 import { expect } from "vitest";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { createHash } from "node:crypto";
 
 /** Extend Vitest's expect with Inspect matchers */
 export function extendExpect(vitestExpect: typeof expect) {
@@ -381,5 +383,150 @@ export function extendExpect(vitestExpect: typeof expect) {
         expected: expectedStatus,
       };
     },
+
+    // Snapshot testing — serialize and compare against saved snapshots
+    async toMatchSnapshot(received: unknown, name?: string) {
+      const snapshotDir = join(process.cwd(), "__snapshots__");
+      const testName = this.currentTestName ?? "unknown-test";
+      const snapshotName = name
+        ? `${name}.snap.json`
+        : `${testName.replace(/[^a-zA-Z0-9]/g, "-")}.snap.json`;
+      const snapshotPath = join(snapshotDir, snapshotName);
+
+      const serialized = JSON.stringify(received, null, 2);
+      const updateSnapshot = process.env.UPDATE_SNAPSHOTS === "1";
+
+      if (!existsSync(snapshotDir)) {
+        mkdirSync(snapshotDir, { recursive: true });
+      }
+
+      if (updateSnapshot || !existsSync(snapshotPath)) {
+        writeFileSync(snapshotPath, serialized, "utf-8");
+        return {
+          pass: true,
+          message: () => updateSnapshot
+            ? `snapshot updated: ${snapshotName}`
+            : `snapshot created: ${snapshotName}`,
+          actual: null,
+          expected: null,
+        };
+      }
+
+      const existing = readFileSync(snapshotPath, "utf-8");
+      const pass = existing.trim() === serialized.trim();
+
+      return {
+        pass,
+        message: () =>
+          pass
+            ? "snapshot matches"
+            : `snapshot does not match. Update with UPDATE_SNAPSHOTS=1`,
+        actual: received,
+        expected: JSON.parse(existing),
+      };
+    },
+
+    // Page screenshot snapshot comparison
+    async toMatchPageSnapshot(received: Page, name: string, options?: { maxDiffPixels?: number }) {
+      const snapshotDir = join(process.cwd(), "__screenshots__");
+      const snapshotPath = join(snapshotDir, `${name}.png`);
+      const maxDiffPixels = options?.maxDiffPixels ?? 0;
+
+      const screenshot = await received.screenshot({ fullPage: true });
+      const updateSnapshot = process.env.UPDATE_SNAPSHOTS === "1";
+
+      if (!existsSync(snapshotDir)) {
+        mkdirSync(snapshotDir, { recursive: true });
+      }
+
+      if (updateSnapshot || !existsSync(snapshotPath)) {
+        writeFileSync(snapshotPath, screenshot);
+        return {
+          pass: true,
+          message: () => updateSnapshot
+            ? `screenshot snapshot updated: ${name}.png`
+            : `screenshot snapshot created: ${name}.png`,
+          actual: null,
+          expected: null,
+        };
+      }
+
+      const baseline = readFileSync(snapshotPath);
+      const diffPixels = compareScreenshotBuffers(screenshot, baseline);
+      const pass = diffPixels <= maxDiffPixels;
+
+      if (!pass) {
+        const diffPath = join(snapshotDir, `${name}.diff.png`);
+        writeFileSync(diffPath, screenshot);
+      }
+
+      return {
+        pass,
+        message: () =>
+          pass
+            ? `screenshot matches: ${name}.png (${diffPixels} diff pixels)`
+            : `screenshot does not match: ${name}.png (${diffPixels} diff pixels, max: ${maxDiffPixels})`,
+        actual: diffPixels,
+        expected: maxDiffPixels,
+      };
+    },
+
+    // Accessibility tree snapshot comparison
+    async toMatchAccessibilitySnapshot(received: Page, name: string) {
+      const snapshotDir = join(process.cwd(), "__snapshots__", "a11y");
+      const snapshotPath = join(snapshotDir, `${name}.a11y.json`);
+
+      const { AriaSnapshotBuilder } = await import("@inspect/browser");
+      const builder = new AriaSnapshotBuilder();
+      await builder.buildTree(received);
+      const tree = builder.getFormattedTree();
+
+      const updateSnapshot = process.env.UPDATE_SNAPSHOTS === "1";
+
+      if (!existsSync(snapshotDir)) {
+        mkdirSync(snapshotDir, { recursive: true });
+      }
+
+      if (updateSnapshot || !existsSync(snapshotPath)) {
+        writeFileSync(snapshotPath, JSON.stringify({ tree, url: received.url(), title: await received.title() }, null, 2), "utf-8");
+        return {
+          pass: true,
+          message: () => updateSnapshot
+            ? `accessibility snapshot updated: ${name}.a11y.json`
+            : `accessibility snapshot created: ${name}.a11y.json`,
+          actual: null,
+          expected: null,
+        };
+      }
+
+      const existing = readFileSync(snapshotPath, "utf-8");
+      const pass = existing.trim() === JSON.stringify({ tree, url: received.url(), title: await received.title() }, null, 2).trim();
+
+      return {
+        pass,
+        message: () =>
+          pass
+            ? `accessibility tree matches: ${name}.a11y.json`
+            : `accessibility tree does not match: ${name}.a11y.json`,
+        actual: tree,
+        expected: JSON.parse(existing),
+      };
+    },
   });
+}
+
+function compareScreenshotBuffers(current: Buffer, baseline: Buffer): number {
+  if (current.length !== baseline.length) {
+    const currentHash = createHash("md5").update(current).digest("hex");
+    const baselineHash = createHash("md5").update(baseline).digest("hex");
+    return currentHash === baselineHash ? 0 : Math.abs(current.length - baseline.length);
+  }
+
+  let diffCount = 0;
+  for (let i = 0; i < current.length; i++) {
+    if (current[i] !== baseline[i]) {
+      diffCount++;
+    }
+  }
+  return diffCount;
 }

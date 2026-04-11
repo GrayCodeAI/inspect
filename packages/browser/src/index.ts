@@ -297,3 +297,11 @@ export type {
 // Browser tunneling — expose local browser to remote agents (Skyvern-style)
 export { TunnelManager } from "./tunnel/manager.js";
 export type { TunnelConfig, TunnelResult } from "./tunnel/manager.js";
+
+// Clock/time mocking — Playwright-style time manipulation
+export {
+  ClockService,
+  ClockError,
+  ClockNotInstalledError,
+  type ClockState,
+} from "./clock/clock-service.js";
