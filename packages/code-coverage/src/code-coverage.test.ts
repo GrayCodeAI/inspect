@@ -1,9 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { it as effectIt } from "@effect/vitest";
 import { Effect } from "effect";
-import { CoverageProcessor, type RawCoverageData } from "./coverage-processor.js";
+import { CoverageProcessor, type RawCoverageData, type CoverageSummary } from "./coverage-processor.js";
 import { CoverageThreshold } from "./coverage-threshold.js";
 import { CoverageCollectionError, CoverageProcessingError, CoverageThresholdError } from "./errors.js";
+
+function makeMetrics(overrides: Partial<CoverageSummary> = {}): CoverageSummary {
+  return {
+    lines: { total: 10, covered: 8, skipped: 0, pct: 80 },
+    functions: { total: 5, covered: 4, skipped: 0, pct: 80 },
+    branches: { total: 20, covered: 12, skipped: 0, pct: 60 },
+    files: [],
+    ...overrides,
+  };
+}
 
 describe("CoverageProcessor", () => {
   describe("mergeCoverage", () => {
@@ -11,7 +21,7 @@ describe("CoverageProcessor", () => {
       Effect.gen(function* () {
         const processor = yield* CoverageProcessor;
 
-        const coverageData: RawCoverageData = [
+        const coverageData = [
           {
             url: "file:///test.js",
             scriptId: "1",
@@ -25,9 +35,9 @@ describe("CoverageProcessor", () => {
               },
             ],
           },
-        ];
+        ] as const satisfies RawCoverageData;
 
-        const result = yield* processor.mergeCoverage(coverageData);
+        const result = yield* processor.mergeCoverage([coverageData]);
         expect(result).toBeDefined();
       }).pipe(Effect.provide(CoverageProcessor.layer)),
     );
@@ -38,7 +48,7 @@ describe("CoverageProcessor", () => {
       Effect.gen(function* () {
         const processor = yield* CoverageProcessor;
 
-        const coverageData: RawCoverageData = [
+        const coverageData = [
           {
             url: "file:///test.js",
             scriptId: "1",
@@ -53,7 +63,7 @@ describe("CoverageProcessor", () => {
               },
             ],
           },
-        ];
+        ] as const satisfies RawCoverageData;
 
         const metrics = yield* processor.calculateMetrics(coverageData);
         expect(metrics).toBeDefined();
@@ -68,19 +78,8 @@ describe("CoverageThreshold", () => {
       Effect.gen(function* () {
         const threshold = yield* CoverageThreshold;
 
-        const thresholds = {
-          lines: 50,
-          functions: 50,
-          branches: 50,
-          statements: 50,
-        };
-
-        const metrics = {
-          lines: { total: 10, covered: 8, pct: 80 },
-          functions: { total: 5, covered: 4, pct: 80 },
-          branches: { total: 20, covered: 12, pct: 60 },
-          statements: { total: 10, covered: 8, pct: 80 },
-        };
+        const thresholds = { lines: 50, functions: 50, branches: 50 };
+        const metrics = makeMetrics();
 
         const result = yield* threshold.checkThresholds(metrics, thresholds);
         expect(result.passed).toBe(true);
@@ -91,23 +90,16 @@ describe("CoverageThreshold", () => {
       Effect.gen(function* () {
         const threshold = yield* CoverageThreshold;
 
-        const thresholds = {
-          lines: 90,
-          functions: 90,
-          branches: 90,
-          statements: 90,
-        };
-
-        const metrics = {
-          lines: { total: 10, covered: 5, pct: 50 },
-          functions: { total: 5, covered: 2, pct: 40 },
-          branches: { total: 20, covered: 8, pct: 40 },
-          statements: { total: 10, covered: 5, pct: 50 },
-        };
+        const thresholds = { lines: 90, functions: 90, branches: 90 };
+        const metrics = makeMetrics({
+          lines: { total: 10, covered: 5, skipped: 0, pct: 50 },
+          functions: { total: 5, covered: 2, skipped: 0, pct: 40 },
+          branches: { total: 20, covered: 8, skipped: 0, pct: 40 },
+        });
 
         const result = yield* threshold.checkThresholds(metrics, thresholds);
         expect(result.passed).toBe(false);
-        expect(result.failures.length).toBeGreaterThan(0);
+        expect(result.violations.length).toBeGreaterThan(0);
       }).pipe(Effect.provide(CoverageThreshold.layer)),
     );
   });
@@ -117,13 +109,8 @@ describe("CoverageThreshold", () => {
       Effect.gen(function* () {
         const threshold = yield* CoverageThreshold;
 
-        const thresholds = { lines: 50, functions: 50, branches: 50, statements: 50 };
-        const metrics = {
-          lines: { total: 10, covered: 8, pct: 80 },
-          functions: { total: 5, covered: 4, pct: 80 },
-          branches: { total: 20, covered: 12, pct: 60 },
-          statements: { total: 10, covered: 8, pct: 80 },
-        };
+        const thresholds = { lines: 50, functions: 50, branches: 50 };
+        const metrics = makeMetrics();
 
         yield* threshold.enforceThresholds(metrics, thresholds);
       }).pipe(Effect.provide(CoverageThreshold.layer)),
@@ -133,13 +120,12 @@ describe("CoverageThreshold", () => {
       Effect.gen(function* () {
         const threshold = yield* CoverageThreshold;
 
-        const thresholds = { lines: 90, functions: 90, branches: 90, statements: 90 };
-        const metrics = {
-          lines: { total: 10, covered: 5, pct: 50 },
-          functions: { total: 5, covered: 2, pct: 40 },
-          branches: { total: 20, covered: 8, pct: 40 },
-          statements: { total: 10, covered: 5, pct: 50 },
-        };
+        const thresholds = { lines: 90, functions: 90, branches: 90 };
+        const metrics = makeMetrics({
+          lines: { total: 10, covered: 5, skipped: 0, pct: 50 },
+          functions: { total: 5, covered: 2, skipped: 0, pct: 40 },
+          branches: { total: 20, covered: 8, skipped: 0, pct: 40 },
+        });
 
         const error = yield* threshold.enforceThresholds(metrics, thresholds).pipe(Effect.flip);
         expect(error instanceof CoverageThresholdError).toBe(true);

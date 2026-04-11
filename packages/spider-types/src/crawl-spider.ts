@@ -29,7 +29,7 @@ export interface CrawlSpiderService {
   ) => Effect.Effect<CrawlResult[], SpiderError | RobotsTxtError | null>;
   readonly checkRobotsTxt: (
     url: string,
-  ) => Effect.Effect<boolean, RobotsTxtError>;
+  ) => Effect.Effect<boolean, RobotsTxtError | null>;
 }
 
 export class CrawlSpider extends ServiceMap.Service<

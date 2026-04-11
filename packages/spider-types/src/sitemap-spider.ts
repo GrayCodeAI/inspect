@@ -18,7 +18,7 @@ export interface SitemapSpiderService {
   ) => Effect.Effect<SitemapUrl[], SpiderError>;
   readonly findSitemaps: (
     baseUrl: string,
-  ) => Effect.Effect<string[]>;
+  ) => Effect.Effect<string[], { ok: boolean }>;
 }
 
 export class SitemapSpider extends ServiceMap.Service<

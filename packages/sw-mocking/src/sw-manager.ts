@@ -77,7 +77,6 @@ export class SwManager extends ServiceMap.Service<
             });
           }
 
-          registration.state = "unregistered" as SwRegistration["state"];
           registrations.delete(id);
 
           yield* Effect.logInfo("Service worker unregistered", { id });

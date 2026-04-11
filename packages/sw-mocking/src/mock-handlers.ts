@@ -113,13 +113,14 @@ export class MockHandlers extends ServiceMap.Service<
           Effect.withSpan("MockHandlers.match"),
         );
 
-      const clear = Effect.sync(() => {
-        routes.length = 0;
-        customHandlers.length = 0;
-      }).pipe(
-        Effect.tap(() => Effect.logInfo("All mock handlers cleared")),
-        Effect.withSpan("MockHandlers.clear"),
-      );
+      const clear = () =>
+        Effect.sync(() => {
+          routes.length = 0;
+          customHandlers.length = 0;
+        }).pipe(
+          Effect.tap(() => Effect.logInfo("All mock handlers cleared")),
+          Effect.withSpan("MockHandlers.clear"),
+        );
 
       const getRoutes = Effect.sync(() => [...routes]).pipe(
         Effect.withSpan("MockHandlers.getRoutes"),

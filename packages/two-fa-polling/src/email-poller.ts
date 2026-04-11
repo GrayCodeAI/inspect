@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Match, Ref, Schedule, ServiceMap } from "effect";
-import { HttpClient, HttpClientRequest } from "@effect/platform";
+
 import {
   CodeExtractionError,
   PollingTimeoutError,
@@ -35,7 +35,7 @@ export class EmailPoller extends ServiceMap.Service<
   }
 >()("@inspect/two-fa-polling/EmailPoller") {
   static make = Effect.gen(function* () {
-    const httpClient = yield* HttpClient.HttpClient;
+    
     const configRef = yield* Ref.make<EmailPollerConfig | null>(null);
 
     const configure = (config: EmailPollerConfig) =>
@@ -157,7 +157,7 @@ export class EmailPoller extends ServiceMap.Service<
     } as const;
   });
 
-  static layer = Layer.effect(this, this.make).pipe(Layer.provide(HttpClient.layer));
+  static layer = Layer.effect(this, this.make).pipe();
 }
 
 export interface PollOptions {

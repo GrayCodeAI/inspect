@@ -1,5 +1,5 @@
 import { Effect, Layer, Ref, ServiceMap } from "effect";
-import { HttpClient, HttpClientRequest } from "@effect/platform";
+
 import {
   CodeExtractionError,
   PollingTimeoutError,
@@ -37,7 +37,7 @@ export class SMSPoller extends ServiceMap.Service<
   }
 >()("@inspect/two-fa-polling/SMSPoller") {
   static make = Effect.gen(function* () {
-    const httpClient = yield* HttpClient.HttpClient;
+    
     const configRef = yield* Ref.make<SMSGatewayConfig | null>(null);
 
     const configure = (config: SMSGatewayConfig) =>
@@ -160,7 +160,7 @@ export class SMSPoller extends ServiceMap.Service<
     } as const;
   });
 
-  static layer = Layer.effect(this, this.make).pipe(Layer.provide(HttpClient.layer));
+  static layer = Layer.effect(this, this.make).pipe();
 }
 
 export interface SMSPollOptions {

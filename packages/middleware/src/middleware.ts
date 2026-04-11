@@ -11,9 +11,9 @@ export class MiddlewareContext extends Schema.Class<MiddlewareContext>("Middlewa
   metadata: Schema.Record(Schema.String, Schema.String),
 }) {}
 
-export class MiddlewareResult<T> extends Schema.Class<MiddlewareResult<T>>("MiddlewareResult")({
+export class MiddlewareResult extends Schema.Class<MiddlewareResult>("MiddlewareResult")({
   success: Schema.Boolean,
-  data: Schema.Unknown as Schema.Schema<T, unknown, never>,
+  data: Schema.Unknown,
   duration: Schema.Number,
   error: Schema.optional(Schema.String),
 }) {}

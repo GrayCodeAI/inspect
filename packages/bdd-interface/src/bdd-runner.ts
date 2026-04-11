@@ -182,48 +182,49 @@ export class BddRunner extends ServiceMap.Service<
           afterHooks.push(fn);
         }).pipe(Effect.withSpan("BddRunner.after"));
 
-      const run = Effect.gen(function* () {
-        yield* Effect.logInfo("Running all test suites");
+      const run = () =>
+        Effect.gen(function* () {
+          yield* Effect.logInfo("Running all test suites");
 
-        const startTime = Date.now();
-        let totalPassed = 0;
-        let totalFailed = 0;
-        let totalSkipped = 0;
-        const failures: Array<{ test: string; error: string }> = [];
+          const startTime = Date.now();
+          let totalPassed = 0;
+          let totalFailed = 0;
+          let totalSkipped = 0;
+          const failures: Array<{ test: string; error: string }> = [];
 
-        for (const suite of suites) {
-          for (const test of suite.tests) {
-            if (test.status === "passed") {
-              totalPassed++;
-            } else if (test.status === "failed") {
-              totalFailed++;
-              if (test.error) {
-                failures.push({ test: test.name, error: test.error });
+          for (const suite of suites) {
+            for (const test of suite.tests) {
+              if (test.status === "passed") {
+                totalPassed++;
+              } else if (test.status === "failed") {
+                totalFailed++;
+                if (test.error) {
+                  failures.push({ test: test.name, error: test.error });
+                }
+              } else {
+                totalSkipped++;
               }
-            } else {
-              totalSkipped++;
             }
           }
-        }
 
-        const result = new BddTestResult({
-          suiteName: "all",
-          totalTests: suites.reduce((sum, s) => sum + s.tests.length, 0),
-          passed: totalPassed,
-          failed: totalFailed,
-          skipped: totalSkipped,
-          duration: Date.now() - startTime,
-          failures,
-        });
+          const result = new BddTestResult({
+            suiteName: "all",
+            totalTests: suites.reduce((sum, s) => sum + s.tests.length, 0),
+            passed: totalPassed,
+            failed: totalFailed,
+            skipped: totalSkipped,
+            duration: Date.now() - startTime,
+            failures,
+          });
 
-        yield* Effect.logInfo("Test run completed", {
-          totalTests: result.totalTests,
-          passed: result.passed,
-          failed: result.failed,
-        });
+          yield* Effect.logInfo("Test run completed", {
+            totalTests: result.totalTests,
+            passed: result.passed,
+            failed: result.failed,
+          });
 
-        return result;
-      }).pipe(Effect.withSpan("BddRunner.run"));
+          return result;
+        }).pipe(Effect.withSpan("BddRunner.run"));
 
       return { describe, it, before, after, run } as const;
     }),

@@ -51,40 +51,41 @@ export class TestSuiteBuilder extends ServiceMap.Service<
           Effect.withSpan("TestSuiteBuilder.addScenario"),
         );
 
-      const build = Effect.gen(function* () {
-        yield* Effect.logInfo("Building test suite from scenarios");
+      const build = () =>
+        Effect.gen(function* () {
+          yield* Effect.logInfo("Building test suite from scenarios");
 
-        for (const scenario of scenarios) {
-          yield* bdd.describe(scenario.name, () =>
-            bdd.it(`should ${scenario.then}`, () =>
-              Effect.gen(function* () {
-                for (const step of scenario.steps) {
-                  yield* Effect.logDebug("Executing step", {
-                    action: step.action,
-                    expected: step.expected,
+          for (const scenario of scenarios) {
+            yield* bdd.describe(scenario.name, () =>
+              bdd.it(`should ${scenario.then}`, () =>
+                Effect.gen(function* () {
+                  for (const step of scenario.steps) {
+                    yield* Effect.logDebug("Executing step", {
+                      action: step.action,
+                      expected: step.expected,
+                    });
+                  }
+
+                  yield* Effect.logInfo("Scenario completed", {
+                    scenario: scenario.name,
                   });
-                }
-
-                yield* Effect.logInfo("Scenario completed", {
-                  scenario: scenario.name,
-                });
-              }).pipe(
-                Effect.timeout(30000),
-                Effect.catchTag("TimeoutException", () =>
-                  Effect.fail(
-                    new BddExecutionError({
-                      message: `Scenario timed out: ${scenario.name}`,
-                      suite: scenario.name,
-                    }),
+                }).pipe(
+                  Effect.timeout(30000),
+                  Effect.catchTag("TimeoutError", () =>
+                    Effect.fail(
+                      new BddExecutionError({
+                        message: `Scenario timed out: ${scenario.name}`,
+                        suite: scenario.name,
+                      }),
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }
+            );
+          }
 
-        yield* bdd.run();
-      }).pipe(Effect.withSpan("TestSuiteBuilder.build"));
+          yield* bdd.run();
+        }).pipe(Effect.withSpan("TestSuiteBuilder.build"));
 
       return { addScenario, build } as const;
     }),

@@ -24,7 +24,7 @@ export class SwConfig extends Schema.Class<SwConfig>("SwConfig")({
 export interface SwGeneratorService {
   readonly generate: (config: SwConfig) => Effect.Effect<string, SWMockingError>;
   readonly generateScript: (
-    routes: MockRoute[],
+    routes: readonly MockRoute[],
     scope?: string,
   ) => Effect.Effect<string, SWMockingError>;
 }
@@ -39,7 +39,7 @@ export class SwGenerator extends ServiceMap.Service<
       const escapeString = (str: string): string =>
         str.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 
-      const generateScript = (routes: MockRoute[], scope = "/") =>
+      const generateScript = (routes: readonly MockRoute[], scope = "/") =>
         Effect.sync(() => {
           const routesArray = routes
             .map(
