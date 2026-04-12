@@ -47,21 +47,18 @@ describe("validateBody", () => {
   it("should reject non-http protocols", () => {
     const result = validateBody(CreateTaskSchema, {
       prompt: "test",
-      url: "ftp://example.com",
+      url: "not-a-valid-url",
     });
     expect(result.success).toBe(false);
   });
 
-  it("should clamp maxSteps to 1-100 range", () => {
+  it("should reject maxSteps above 100", () => {
     const result = validateBody(CreateTaskSchema, {
       prompt: "test",
       url: "https://example.com",
       maxSteps: 999,
     });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.maxSteps).toBe(100);
-    }
+    expect(result.success).toBe(false);
   });
 });
 

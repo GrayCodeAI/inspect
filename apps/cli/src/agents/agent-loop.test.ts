@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { ActionLoopDetector, ActionCache } from "@inspect/agent";
-import { SpeculativePlanner, RunCache } from "@inspect/core";
+import { SyncSpeculativePlanner as SpeculativePlanner, RunCache } from "@inspect/core";
 
 // ---------------------------------------------------------------------------
 // ActionCache integration
@@ -199,15 +199,19 @@ describe("Agent loop prompt integration", () => {
 // ---------------------------------------------------------------------------
 
 describe("Cache + LoopDetector coexistence", () => {
-  it("cached actions still get recorded in loop detector", () => {
+  it("cached actions still get recorded in loop detector", async () => {
     const cache = new ActionCache({ enabled: true });
+    await cache.ready;
     const detector = new ActionLoopDetector({ threshold: 3 });
 
     // Simulate: cache hit for same action 3 times
-    cache.set("click Play|https://ex.com", "https://ex.com", { type: "click", target: "Play" });
+    await cache.set("click Play|https://ex.com", "https://ex.com", {
+      type: "click",
+      target: "Play",
+    });
 
     for (let i = 0; i < 3; i++) {
-      const hit = cache.get("click Play|https://ex.com", "https://ex.com");
+      const hit = await cache.get("click Play|https://ex.com", "https://ex.com");
       expect(hit).not.toBeNull();
       // In the real loop, we'd record after each action:
       detector.record("click", "Play", "https://ex.com");
