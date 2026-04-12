@@ -10,41 +10,17 @@ export class ValidationSchema extends Schema.Class<ValidationSchema>("Validation
   schemaDef: Schema.Unknown,
 }) {}
 
-export const validateSchema = (
-  schemaName: string,
-  schemaDef: Schema.Schema<unknown, unknown, never>,
-) => {
+export const validateSchema = (schemaName: string, schemaDef: Schema.Top) => {
   return (input: unknown) =>
     Effect.gen(function* () {
-      const decoded = yield* Schema.decode(schemaDef)(input).pipe(
-        Effect.catchTag("SchemaError", (err) =>
-          Effect.fail(
-            new ValidationError({
-              message: `Schema validation failed: ${err.message}`,
-              schema: schemaName,
-              value: input,
-            }),
-          ),
-        ),
-      );
+      const decoded = yield* Schema.decodeUnknownEffect(schemaDef)(input);
 
       yield* Effect.logDebug("Schema validation passed", {
         schema: schemaName,
       });
 
       return decoded;
-    }).pipe(
-      Effect.catchTag("ValidationError", (err) =>
-        Effect.fail(
-          new PipelineError({
-            message: `Validation stage failed: ${err.message}`,
-            stage: "validate",
-            cause: err,
-          }),
-        ),
-      ),
-      Effect.withSpan("stages.validateSchema"),
-    );
+    }).pipe(Effect.withSpan("stages.validateSchema"));
 };
 
 export const validateRequiredFields = (fields: string[]) => {

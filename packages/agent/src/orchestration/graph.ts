@@ -516,7 +516,7 @@ export function createHumanApprovalNode(config: HumanApprovalNodeConfig): AgentN
 
       // Request approval - in production, this would emit to Updates PubSub
       // For now, return a marker that the test runner can intercept
-      const approvalMarker = {
+      const _approvalMarker = {
         __approval_required__: true,
         nodeId: config.id,
         message,

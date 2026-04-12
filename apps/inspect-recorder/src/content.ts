@@ -19,9 +19,7 @@ function getSelector(element: Element): string {
   // Fall back to tag + parent context
   const parent = element.parentElement;
   if (parent) {
-    const siblings = Array.from(parent.children).filter(
-      (s) => s.tagName === element.tagName,
-    );
+    const siblings = Array.from(parent.children).filter((s) => s.tagName === element.tagName);
     const index = siblings.indexOf(element);
     const parentSelector = getSelector(parent);
     if (siblings.length === 1) {

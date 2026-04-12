@@ -32,9 +32,7 @@ export interface SauceLabsProviderService {
     caps: SauceLabsCapabilities,
   ) => Effect.Effect<SauceLabsSession, CloudGridError>;
   readonly deleteSession: (sessionId: string) => Effect.Effect<void, CloudGridError>;
-  readonly getSessionStatus: (
-    sessionId: string,
-  ) => Effect.Effect<SauceLabsSession, CloudGridError>;
+  readonly getSessionStatus: (sessionId: string) => Effect.Effect<SauceLabsSession, CloudGridError>;
   readonly getJobAssets: (
     sessionId: string,
   ) => Effect.Effect<{ videoUrl?: string; logUrl?: string }, CloudGridError>;
@@ -67,34 +65,12 @@ export class SauceLabsProvider extends ServiceMap.Service<
             status: "running",
             publicUrl: `${baseUrl}/tests/sl-${Date.now()}`,
           });
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new CloudGridError({
-                message: `Failed to create SauceLabs session: ${String(cause)}`,
-                provider: "saucelabs",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("SauceLabsProvider.createSession"),
-        );
+        }).pipe(Effect.withSpan("SauceLabsProvider.createSession"));
 
       const deleteSession = (sessionId: string) =>
         Effect.gen(function* () {
           yield* Effect.logInfo("Deleting SauceLabs session", { sessionId });
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new CloudGridError({
-                message: `Failed to delete SauceLabs session: ${String(cause)}`,
-                provider: "saucelabs",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("SauceLabsProvider.deleteSession"),
-        );
+        }).pipe(Effect.withSpan("SauceLabsProvider.deleteSession"));
 
       const getSessionStatus = (sessionId: string) =>
         Effect.sync(() => {

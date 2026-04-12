@@ -21,10 +21,9 @@ export interface DocumentRouterService {
   readonly ingest: (filePath: string) => Effect.Effect<IngestedDocument, DocumentIngestionError>;
 }
 
-export class DocumentRouter extends ServiceMap.Service<
-  DocumentRouter,
-  DocumentRouterService
->()("@inspect/DocumentRouter") {
+export class DocumentRouter extends ServiceMap.Service<DocumentRouter, DocumentRouterService>()(
+  "@inspect/DocumentRouter",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

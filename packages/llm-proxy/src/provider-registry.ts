@@ -23,10 +23,7 @@ export interface LLMProvider {
 }
 
 export interface ProviderRegistryService {
-  readonly register: (
-    name: string,
-    provider: LLMProvider,
-  ) => Effect.Effect<void>;
+  readonly register: (name: string, provider: LLMProvider) => Effect.Effect<void>;
   readonly get: (name: string) => Effect.Effect<LLMProvider, LLMProxyError>;
   readonly list: Effect.Effect<string[]>;
   readonly chat: (
@@ -63,9 +60,7 @@ export class ProviderRegistry extends ServiceMap.Service<
             });
           }
           return provider;
-        }).pipe(
-          Effect.withSpan("ProviderRegistry.get"),
-        );
+        }).pipe(Effect.withSpan("ProviderRegistry.get"));
 
       const list = Effect.sync(() => Array.from(providers.keys())).pipe(
         Effect.withSpan("ProviderRegistry.list"),

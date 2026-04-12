@@ -63,31 +63,30 @@ export class VectorStore extends ServiceMap.Service<VectorStore>()("@rag/VectorS
   make: Effect.gen(function* () {
     const store = new InMemoryVectorStore();
 
-    const add = Effect.fn("VectorStore.add")(
-      function* (document: Document, embedding: Embedding) {
-        store.add(document, embedding);
-        return yield* Effect.void;
-      },
-    );
+    const add = Effect.fn("VectorStore.add")(function* (document: Document, embedding: Embedding) {
+      store.add(document, embedding);
+      return yield* Effect.void;
+    });
 
-    const addMany = Effect.fn("VectorStore.addMany")(
-      function* (entries: ReadonlyArray<{ document: Document; embedding: Embedding }>) {
-        store.addMany(entries);
-        return yield* Effect.void;
-      },
-    );
+    const addMany = Effect.fn("VectorStore.addMany")(function* (
+      entries: ReadonlyArray<{ document: Document; embedding: Embedding }>,
+    ) {
+      store.addMany(entries);
+      return yield* Effect.void;
+    });
 
-    const search = Effect.fn("VectorStore.search")(
-      function* (queryVector: ReadonlyArray<number>, topK: number = 5) {
-        if (topK <= 0) {
-          return yield* new VectorStoreError({
-            operation: "search",
-            cause: "topK must be positive",
-          });
-        }
-        return store.search(queryVector, topK);
-      },
-    );
+    const search = Effect.fn("VectorStore.search")(function* (
+      queryVector: ReadonlyArray<number>,
+      topK: number = 5,
+    ) {
+      if (topK <= 0) {
+        return yield* new VectorStoreError({
+          operation: "search",
+          cause: "topK must be positive",
+        });
+      }
+      return store.search(queryVector, topK);
+    });
 
     const size = Effect.fn("VectorStore.size")(function* () {
       return store.size();

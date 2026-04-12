@@ -3,19 +3,22 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Effect, Schema } from "effect";
-import { PWAAuditError } from "./errors.js";
 
 export class CheckResult extends Schema.Class<CheckResult>("CheckResult")({
   name: Schema.String,
   passed: Schema.Boolean,
   score: Schema.Number,
   details: Schema.String,
-  category: Schema.Literals(["manifest", "service-worker", "offline", "performance", "security"] as const),
+  category: Schema.Literals([
+    "manifest",
+    "service-worker",
+    "offline",
+    "performance",
+    "security",
+  ] as const),
 }) {}
 
-export class ManifestCheckResult extends Schema.Class<ManifestCheckResult>(
-  "ManifestCheckResult",
-)({
+export class ManifestCheckResult extends Schema.Class<ManifestCheckResult>("ManifestCheckResult")({
   hasManifest: Schema.Boolean,
   name: Schema.optional(Schema.String),
   shortName: Schema.optional(Schema.String),
@@ -41,9 +44,7 @@ export class ServiceWorkerCheckResult extends Schema.Class<ServiceWorkerCheckRes
   updateFound: Schema.Boolean,
 }) {}
 
-export class OfflineCheckResult extends Schema.Class<OfflineCheckResult>(
-  "OfflineCheckResult",
-)({
+export class OfflineCheckResult extends Schema.Class<OfflineCheckResult>("OfflineCheckResult")({
   worksOffline: Schema.Boolean,
   hasOfflineFallback: Schema.Boolean,
   cachedAssets: Schema.Number,
@@ -78,7 +79,7 @@ export const checkServiceWorker = (pageContent: string) =>
   Effect.sync(() => {
     const hasServiceWorkerRegistration =
       pageContent.includes("navigator.serviceWorker.register") ||
-      pageContent.includes("serviceWorker") && pageContent.includes("register");
+      (pageContent.includes("serviceWorker") && pageContent.includes("register"));
 
     return new CheckResult({
       name: "service-worker-registered",
@@ -94,7 +95,8 @@ export const checkServiceWorker = (pageContent: string) =>
 export const checkOfflineCapability = (pageContent: string) =>
   Effect.sync(() => {
     const hasCacheApi = pageContent.includes("caches.open") || pageContent.includes("CacheStorage");
-    const hasFetchHandler = pageContent.includes("fetch") && pageContent.includes("event.respondWith");
+    const hasFetchHandler =
+      pageContent.includes("fetch") && pageContent.includes("event.respondWith");
     const hasInstallHandler = pageContent.includes("install") && pageContent.includes("waitUntil");
 
     const worksOffline = hasCacheApi && hasFetchHandler;

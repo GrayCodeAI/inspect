@@ -97,10 +97,9 @@ export class OpenRouterProvider extends ServiceMap.Service<
         }).pipe(Effect.withSpan("OpenRouterProvider.chat"));
 
       const streamChat = (
-        messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-        model?: string,
-      ) =>
-        Effect.succeed("").pipe(Effect.withSpan("OpenRouterProvider.streamChat"));
+        _messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+        _model?: string,
+      ) => Effect.succeed("").pipe(Effect.withSpan("OpenRouterProvider.streamChat"));
 
       return { chat, streamChat } as const;
     }),

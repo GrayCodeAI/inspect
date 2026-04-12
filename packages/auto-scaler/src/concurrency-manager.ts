@@ -112,18 +112,7 @@ export class ConcurrencyManager extends ServiceMap.Service<
           yield* Ref.set(stateRef, newState);
 
           return newState;
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new AutoScalerError({
-                message: `Failed to adjust concurrency: ${String(cause)}`,
-                component: "concurrency-manager",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("ConcurrencyManager.adjust"),
-        );
+        }).pipe(Effect.withSpan("ConcurrencyManager.adjust"));
 
       const getState = Ref.get(stateRef);
 

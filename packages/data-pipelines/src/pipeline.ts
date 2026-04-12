@@ -7,11 +7,11 @@ import { PipelineError } from "./errors.js";
 
 export type StageFn<I, O> = (input: I) => Effect.Effect<O, PipelineError>;
 
-export class PipelineStage<I, O> extends Schema.Class<PipelineStage<I, O>>("PipelineStage")({
+export class PipelineStage extends Schema.Class<PipelineStage>("PipelineStage")({
   name: Schema.String,
   order: Schema.Number,
 }) {
-  declare readonly execute: StageFn<I, O>;
+  declare readonly execute: StageFn<unknown, unknown>;
 }
 
 export class PipelineConfig extends Schema.Class<PipelineConfig>("PipelineConfig")({
@@ -20,28 +20,23 @@ export class PipelineConfig extends Schema.Class<PipelineConfig>("PipelineConfig
   batchSize: Schema.Number,
 }) {}
 
-export class PipelineResult<T> extends Schema.Class<PipelineResult<T>>("PipelineResult")({
+export class PipelineResult extends Schema.Class<PipelineResult>("PipelineResult")({
   success: Schema.Boolean,
-  data: Schema.Unknown as Schema.Schema<T, unknown, never>,
+  data: Schema.Unknown,
   duration: Schema.Number,
   stagesCompleted: Schema.Array(Schema.String),
   error: Schema.optional(Schema.String),
 }) {}
 
 export interface PipelineService {
-  readonly addStage: <I, O>(
-    name: string,
-    order: number,
-    fn: StageFn<I, O>,
-  ) => Effect.Effect<void>;
-  readonly execute: <T>(input: T) => Effect.Effect<PipelineResult<T>, PipelineError>;
+  readonly addStage: <I, O>(name: string, order: number, fn: StageFn<I, O>) => Effect.Effect<void>;
+  readonly execute: <T>(input: T) => Effect.Effect<PipelineResult, PipelineError>;
   readonly getStages: Effect.Effect<string[]>;
 }
 
-export class DataPipeline extends ServiceMap.Service<
-  DataPipeline,
-  PipelineService
->()("@inspect/DataPipeline") {
+export class DataPipeline extends ServiceMap.Service<DataPipeline, PipelineService>()(
+  "@inspect/DataPipeline",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -51,13 +46,11 @@ export class DataPipeline extends ServiceMap.Service<
       const addStage = <I, O>(name: string, order: number, fn: StageFn<I, O>) =>
         Effect.sync(() => {
           stages.set(name, fn as StageFn<unknown, unknown>);
-          const insertIndex = stageOrder.findIndex(
-            (s) => {
-              const stageOrderIndex = stageOrder.indexOf(s);
-              const existingStage = stages.get(s);
-              return existingStage !== undefined && stageOrderIndex >= order;
-            },
-          );
+          const insertIndex = stageOrder.findIndex((s) => {
+            const stageOrderIndex = stageOrder.indexOf(s);
+            const existingStage = stages.get(s);
+            return existingStage !== undefined && stageOrderIndex >= order;
+          });
           if (insertIndex >= 0) {
             stageOrder.splice(insertIndex, 0, name);
           } else {
@@ -111,9 +104,9 @@ export class DataPipeline extends ServiceMap.Service<
             duration,
           });
 
-          return new PipelineResult<T>({
+          return new PipelineResult({
             success: true,
-            data: current as T,
+            data: current,
             duration,
             stagesCompleted: completed,
           });

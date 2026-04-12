@@ -19,9 +19,7 @@ export class BrowserStackCapabilities extends Schema.Class<BrowserStackCapabilit
   osVersion: Schema.String,
 }) {}
 
-export class BrowserStackSession extends Schema.Class<BrowserStackSession>(
-  "BrowserStackSession",
-)({
+export class BrowserStackSession extends Schema.Class<BrowserStackSession>("BrowserStackSession")({
   sessionId: Schema.String,
   status: Schema.Literals(["running", "queued", "done"] as const),
   automateUrl: Schema.String,
@@ -45,11 +43,6 @@ export class BrowserStackProvider extends ServiceMap.Service<
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
-      const config = new BrowserStackConfig({
-        username: "placeholder",
-        accessKey: "placeholder",
-      });
-
       const baseUrl = "https://api.browserstack.com";
 
       const createSession = (caps: BrowserStackCapabilities) =>
@@ -64,34 +57,12 @@ export class BrowserStackProvider extends ServiceMap.Service<
             status: "running",
             automateUrl: `${baseUrl}/automate/builds/bs-${Date.now()}`,
           });
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new CloudGridError({
-                message: `Failed to create BrowserStack session: ${String(cause)}`,
-                provider: "browserstack",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("BrowserStackProvider.createSession"),
-        );
+        }).pipe(Effect.withSpan("BrowserStackProvider.createSession"));
 
       const deleteSession = (sessionId: string) =>
         Effect.gen(function* () {
           yield* Effect.logInfo("Deleting BrowserStack session", { sessionId });
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new CloudGridError({
-                message: `Failed to delete BrowserStack session: ${String(cause)}`,
-                provider: "browserstack",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("BrowserStackProvider.deleteSession"),
-        );
+        }).pipe(Effect.withSpan("BrowserStackProvider.deleteSession"));
 
       const updateSession = (sessionId: string, status: "passed" | "failed") =>
         Effect.gen(function* () {
@@ -99,18 +70,7 @@ export class BrowserStackProvider extends ServiceMap.Service<
             sessionId,
             status,
           });
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new CloudGridError({
-                message: `Failed to update BrowserStack session: ${String(cause)}`,
-                provider: "browserstack",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("BrowserStackProvider.updateSession"),
-        );
+        }).pipe(Effect.withSpan("BrowserStackProvider.updateSession"));
 
       return { createSession, deleteSession, updateSession } as const;
     }),

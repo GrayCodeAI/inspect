@@ -1,8 +1,8 @@
 import type { Command } from "commander";
 import chalk from "chalk";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
-import { chromium, type Page } from "playwright";
+import { resolve, dirname } from "node:path";
+import { chromium } from "playwright";
 import { SessionRecorder } from "@inspect/browser";
 import { createInterface } from "node:readline";
 

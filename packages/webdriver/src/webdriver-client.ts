@@ -1,10 +1,9 @@
-import { Effect, Layer, Ref, Scope, Schema, ServiceMap } from "effect";
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "@effect/platform";
-import { WebDriverError, SessionError, ElementNotFoundError, NavigationError } from "./errors.js";
+import { Effect, Layer, Ref, ServiceMap } from "effect";
+import { WebDriverError, ElementNotFoundError } from "./errors.js";
 
 export interface W3CCapabilities {
   alwaysMatch: Record<string, unknown>;
-  firstMatch: Record<string, unknown>[];
+  firstMatch: Array<Record<string, unknown>>;
 }
 
 export interface SessionResponse {
@@ -13,14 +12,8 @@ export interface SessionResponse {
 }
 
 export interface WebElement {
-  elementId: string;
-}
-
-export interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  "element-6066-11e4-a52e-4f735466cecf": string;
+  ELEMENT: string;
 }
 
 export interface Cookie {
@@ -39,21 +32,12 @@ export class WebDriverClient extends ServiceMap.Service<
   {
     readonly newSession: (
       capabilities: W3CCapabilities,
-    ) => Effect.Effect<SessionResponse, SessionError>;
-    readonly deleteSession: (
-      sessionId: string,
-    ) => Effect.Effect<void, WebDriverError>;
+    ) => Effect.Effect<SessionResponse, WebDriverError>;
+    readonly deleteSession: (sessionId: string) => Effect.Effect<void, WebDriverError>;
     readonly getStatus: Effect.Effect<Record<string, unknown>, WebDriverError>;
-    readonly navigateTo: (
-      sessionId: string,
-      url: string,
-    ) => Effect.Effect<void, NavigationError>;
-    readonly getCurrentUrl: (
-      sessionId: string,
-    ) => Effect.Effect<string, WebDriverError>;
-    readonly getTitle: (
-      sessionId: string,
-    ) => Effect.Effect<string, WebDriverError>;
+    readonly navigateTo: (sessionId: string, url: string) => Effect.Effect<void, WebDriverError>;
+    readonly getCurrentUrl: (sessionId: string) => Effect.Effect<string, WebDriverError>;
+    readonly getTitle: (sessionId: string) => Effect.Effect<string, WebDriverError>;
     readonly findElement: (
       sessionId: string,
       strategy: string,
@@ -77,19 +61,10 @@ export class WebDriverClient extends ServiceMap.Service<
       elementId: string,
       text: string,
     ) => Effect.Effect<void, WebDriverError>;
-    readonly takeScreenshot: (
-      sessionId: string,
-    ) => Effect.Effect<string, WebDriverError>;
-    readonly getCookies: (
-      sessionId: string,
-    ) => Effect.Effect<Cookie[], WebDriverError>;
-    readonly addCookie: (
-      sessionId: string,
-      cookie: Cookie,
-    ) => Effect.Effect<void, WebDriverError>;
-    readonly deleteCookies: (
-      sessionId: string,
-    ) => Effect.Effect<void, WebDriverError>;
+    readonly takeScreenshot: (sessionId: string) => Effect.Effect<string, WebDriverError>;
+    readonly getCookies: (sessionId: string) => Effect.Effect<Cookie[], WebDriverError>;
+    readonly addCookie: (sessionId: string, cookie: Cookie) => Effect.Effect<void, WebDriverError>;
+    readonly deleteCookies: (sessionId: string) => Effect.Effect<void, WebDriverError>;
     readonly executeScript: (
       sessionId: string,
       script: string,
@@ -102,150 +77,137 @@ export class WebDriverClient extends ServiceMap.Service<
   }
 >()("@inspect/webdriver/WebDriverClient") {
   static make = Effect.gen(function* () {
-    const httpClient = yield* HttpClient.HttpClient;
     const baseUrlRef = yield* Ref.make(DEFAULT_WEBDRIVER_URL);
 
     const baseUrl = (url: string) => Ref.set(baseUrlRef, url);
 
-    const executeCommand = <T>(
+    const exec = <T>(
       sessionId: string,
       method: string,
       command: string,
       body?: unknown,
-    ) =>
-      Effect.gen(function* () {
-        const baseUrl = yield* Ref.get(baseUrlRef);
-        const url = `${baseUrl}/session/${sessionId}/${command}`;
-
-        const request = HttpClientRequest.json(method)(url).pipe(
-          body ? HttpClientRequest.bodyJson(body) : (r: typeof request) => r,
-        );
-
-        const response = yield* httpClient.execute(request).pipe(
-          Effect.catchCause((cause) => new WebDriverError({ command, cause })),
-        );
-
-        const responseBody = yield* response.json.pipe(
-          Effect.catchCause((cause) => new WebDriverError({ command, cause })),
-        );
-
-        if (responseBody.error) {
-          return yield* new WebDriverError({
-            command,
-            cause: `${responseBody.error}: ${responseBody.message ?? ""}`,
+    ): Effect.Effect<T, WebDriverError> =>
+      Effect.tryPromise({
+        try: async () => {
+          const base = await Effect.runPromise(Ref.get(baseUrlRef));
+          const url = `${base}/session/${sessionId}/${command}`;
+          const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: body ? JSON.stringify(body) : undefined,
           });
-        }
+          return response.json() as Promise<Record<string, unknown>>;
+        },
+        catch: (cause) => new WebDriverError({ command, cause: String(cause) }),
+      }).pipe(
+        Effect.flatMap((rb) => {
+          if (rb.error) {
+            return Effect.fail(
+              new WebDriverError({
+                command,
+                cause: `${rb.error}: ${rb.message ?? ""}`,
+              }),
+            );
+          }
+          return Effect.succeed(rb.value as T);
+        }),
+      );
 
-        return responseBody.value as T;
-      }).pipe(Effect.withSpan(`WebDriverClient.${command}`));
-
-    const executeCommandNoSession = <T>(method: string, command: string, body?: unknown) =>
-      Effect.gen(function* () {
-        const baseUrl = yield* Ref.get(baseUrlRef);
-        const url = `${baseUrl}/${command}`;
-
-        const request = HttpClientRequest.json(method)(url).pipe(
-          body ? HttpClientRequest.bodyJson(body) : (r: typeof request) => r,
-        );
-
-        const response = yield* httpClient.execute(request).pipe(
-          Effect.catchCause((cause) => new WebDriverError({ command, cause })),
-        );
-
-        const responseBody = yield* response.json.pipe(
-          Effect.catchCause((cause) => new WebDriverError({ command, cause })),
-        );
-
-        if (responseBody.error) {
-          return yield* new WebDriverError({
-            command,
-            cause: `${responseBody.error}: ${responseBody.message ?? ""}`,
+    const execNoSession = <T>(
+      method: string,
+      command: string,
+      body?: unknown,
+    ): Effect.Effect<T, WebDriverError> =>
+      Effect.tryPromise({
+        try: async () => {
+          const base = await Effect.runPromise(Ref.get(baseUrlRef));
+          const url = `${base}/${command}`;
+          const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: body ? JSON.stringify(body) : undefined,
           });
-        }
-
-        return responseBody.value as T;
-      });
+          return response.json() as Promise<Record<string, unknown>>;
+        },
+        catch: (cause) => new WebDriverError({ command, cause: String(cause) }),
+      }).pipe(
+        Effect.flatMap((rb) => {
+          if (rb.error) {
+            return Effect.fail(
+              new WebDriverError({
+                command,
+                cause: `${rb.error}: ${rb.message ?? ""}`,
+              }),
+            );
+          }
+          return Effect.succeed(rb.value as T);
+        }),
+      );
 
     const newSession = (capabilities: W3CCapabilities) =>
-      executeCommandNoSession<SessionResponse>("POST", "session", {
-        capabilities,
-      }).pipe(
-        Effect.catchCause((cause) =>
-          new SessionError({
-            reason: "Failed to create session",
-            cause,
-          }).asEffect(),
-        ),
-        Effect.tap((session) =>
-          Effect.logInfo("WebDriver session created", {
-            sessionId: session.sessionId,
-          }),
-        ),
-      );
+      Effect.gen(function* () {
+        const session = yield* execNoSession<SessionResponse>("POST", "session", {
+          capabilities,
+        });
+
+        yield* Effect.logInfo("WebDriver session created", {
+          sessionId: session.sessionId,
+        });
+
+        return session;
+      });
 
     const deleteSession = (sessionId: string) =>
-      Effect.gen(function* () {
-        const baseUrl = yield* Ref.get(baseUrlRef);
-        const url = `${baseUrl}/session/${sessionId}`;
+      Effect.tryPromise({
+        try: async () => {
+          const base = await Effect.runPromise(Ref.get(baseUrlRef));
+          const url = `${base}/session/${sessionId}`;
+          await fetch(url, { method: "DELETE" });
+        },
+        catch: (cause) => new WebDriverError({ command: "deleteSession", cause: String(cause) }),
+      });
 
-        yield* httpClient
-          .delete_(url)
-          .pipe(Effect.catchCause((cause) => new WebDriverError({ command: "deleteSession", cause })));
-
-        yield* Effect.logDebug("WebDriver session deleted", { sessionId });
-      }).pipe(Effect.withSpan("WebDriverClient.deleteSession"));
-
-    const getStatus = executeCommandNoSession<Record<string, unknown>>("GET", "status");
+    const getStatus = execNoSession<Record<string, unknown>>("GET", "status");
 
     const navigateTo = (sessionId: string, url: string) =>
-      executeCommand<void>(sessionId, "POST", "url", { url }).pipe(
-        Effect.catchCause((cause) => new NavigationError({ url, cause }).asEffect()),
-      );
+      exec<void>(sessionId, "POST", "url", { url });
 
-    const getCurrentUrl = (sessionId: string) =>
-      executeCommand<string>(sessionId, "GET", "url");
+    const getCurrentUrl = (sessionId: string) => exec<string>(sessionId, "GET", "url");
 
-    const getTitle = (sessionId: string) => executeCommand<string>(sessionId, "GET", "title");
+    const getTitle = (sessionId: string) => exec<string>(sessionId, "GET", "title");
 
     const findElement = (sessionId: string, strategy: string, selector: string) =>
-      executeCommand<WebElement>(sessionId, "POST", "element", {
+      exec<WebElement>(sessionId, "POST", "element", {
         using: strategy,
         value: selector,
-      }).pipe(
-        Effect.catchTag("WebDriverError", (error) =>
-          new ElementNotFoundError({ strategy, selector, sessionId }).asEffect(),
-        ),
-      );
+      });
 
     const findElements = (sessionId: string, strategy: string, selector: string) =>
-      executeCommand<WebElement[]>(sessionId, "POST", "elements", {
+      exec<WebElement[]>(sessionId, "POST", "elements", {
         using: strategy,
         value: selector,
       });
 
     const getElementText = (sessionId: string, elementId: string) =>
-      executeCommand<string>(sessionId, "GET", `element/${elementId}/text`);
+      exec<string>(sessionId, "GET", `element/${elementId}/text`);
 
     const elementClick = (sessionId: string, elementId: string) =>
-      executeCommand<void>(sessionId, "POST", `element/${elementId}/click`);
+      exec<void>(sessionId, "POST", `element/${elementId}/click`);
 
     const elementSendKeys = (sessionId: string, elementId: string, text: string) =>
-      executeCommand<void>(sessionId, "POST", `element/${elementId}/value`, { text });
+      exec<void>(sessionId, "POST", `element/${elementId}/value`, { text });
 
-    const takeScreenshot = (sessionId: string) =>
-      executeCommand<string>(sessionId, "GET", "screenshot");
+    const takeScreenshot = (sessionId: string) => exec<string>(sessionId, "GET", "screenshot");
 
-    const getCookies = (sessionId: string) =>
-      executeCommand<Cookie[]>(sessionId, "GET", "cookie");
+    const getCookies = (sessionId: string) => exec<Cookie[]>(sessionId, "GET", "cookie");
 
     const addCookie = (sessionId: string, cookie: Cookie) =>
-      executeCommand<void>(sessionId, "POST", "cookie", { cookie });
+      exec<void>(sessionId, "POST", "cookie", { cookie });
 
-    const deleteCookies = (sessionId: string) =>
-      executeCommand<void>(sessionId, "DELETE", "cookie");
+    const deleteCookies = (sessionId: string) => exec<void>(sessionId, "DELETE", "cookie");
 
     const executeScript = (sessionId: string, script: string, args?: unknown[]) =>
-      executeCommand<unknown>(sessionId, "POST", "execute/sync", {
+      exec<unknown>(sessionId, "POST", "execute/sync", {
         script,
         args: args ?? [],
       });
@@ -253,7 +215,7 @@ export class WebDriverClient extends ServiceMap.Service<
     const setTimeouts = (
       sessionId: string,
       timeouts: { implicit?: number; pageLoad?: number; script?: number },
-    ) => executeCommand<void>(sessionId, "POST", "timeouts", timeouts);
+    ) => exec<void>(sessionId, "POST", "timeouts", timeouts);
 
     return {
       baseUrl,
@@ -277,7 +239,7 @@ export class WebDriverClient extends ServiceMap.Service<
     } as const;
   });
 
-  static layer = Layer.effect(this, this.make).pipe(Layer.provide(HttpClient.layer));
+  static layer = Layer.effect(this, this.make);
 }
 
 const DEFAULT_WEBDRIVER_URL = "http://localhost:4444";

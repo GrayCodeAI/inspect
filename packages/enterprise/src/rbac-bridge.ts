@@ -311,7 +311,7 @@ export class RBACUserPersistence {
     try {
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     } catch (err) {
-      if ((err as any).code !== "EEXIST") {
+      if (err instanceof Error && "code" in err && err.code !== "EEXIST") {
         throw err;
       }
     }

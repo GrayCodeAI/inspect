@@ -11,9 +11,7 @@ export class SafetyRule extends Schema.Class<SafetyRule>("SafetyRule")({
   severity: Schema.Literals(["block", "warn", "allow"] as const),
 }) {}
 
-export class SafetyCheckResult extends Schema.Class<SafetyCheckResult>(
-  "SafetyCheckResult",
-)({
+export class SafetyCheckResult extends Schema.Class<SafetyCheckResult>("SafetyCheckResult")({
   command: Schema.String,
   isAllowed: Schema.Boolean,
   warnings: Schema.Array(Schema.String),
@@ -49,10 +47,9 @@ export interface SafetyCheckerService {
   readonly getRules: Effect.Effect<SafetyRule[]>;
 }
 
-export class SafetyChecker extends ServiceMap.Service<
-  SafetyChecker,
-  SafetyCheckerService
->()("@inspect/SafetyChecker") {
+export class SafetyChecker extends ServiceMap.Service<SafetyChecker, SafetyCheckerService>()(
+  "@inspect/SafetyChecker",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

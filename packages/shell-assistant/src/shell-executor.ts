@@ -35,10 +35,9 @@ export interface ShellExecutorService {
   ) => Effect.Effect<ShellExecutionResult, ShellExecutionError>;
 }
 
-export class ShellExecutor extends ServiceMap.Service<
-  ShellExecutor,
-  ShellExecutorService
->()("@inspect/ShellExecutor") {
+export class ShellExecutor extends ServiceMap.Service<ShellExecutor, ShellExecutorService>()(
+  "@inspect/ShellExecutor",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -95,7 +94,8 @@ export class ShellExecutor extends ServiceMap.Service<
             },
             catch: (cause) => {
               const errorMessage = cause instanceof Error ? cause.message : String(cause);
-              const isTimeout = errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT");
+              const isTimeout =
+                errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT");
 
               return new ShellExecutionError({
                 message: isTimeout

@@ -83,7 +83,7 @@ export function getRegisteredEngines(): string[] {
 /**
  * Register common selector engines.
  */
-export function registerCommonEngines(page: Page): void {
+export function registerCommonEngines(_page: Page): void {
   registerSelectorEngine({
     name: "visible",
     create: (p, s) => p.locator(`${s}:visible`),
@@ -100,7 +100,7 @@ export function registerCommonEngines(page: Page): void {
 
   registerSelectorEngine({
     name: "role",
-    create: (p, s) => p.getByRole(s as any),
+    create: (p, s) => p.getByRole(s as Parameters<Page["getByRole"]>[0]),
   });
 
   registerSelectorEngine({

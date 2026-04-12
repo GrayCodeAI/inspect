@@ -82,8 +82,5 @@ function performInteraction(
         selector,
         cause: String(cause),
       }),
-  }).pipe(
-    Effect.asVoid,
-    Effect.withSpan("ComponentInteractions." + action),
-  );
+  }).pipe(Effect.asVoid, Effect.withSpan("ComponentInteractions." + action));
 }

@@ -1,14 +1,5 @@
-import { Effect, Layer, Schema, Stream, ServiceMap } from "effect";
-import {
-  TestPlanDraft,
-  TestPlan,
-  TestPlanStep,
-  StepId,
-  PlanId,
-  type UpdateContent,
-  type AgentProvider,
-} from "@inspect/shared";
-import { Updates } from "./updates.js";
+import { Effect, Layer, Schema, ServiceMap } from "effect";
+import { TestPlanDraft, TestPlan, TestPlanStep, StepId, PlanId } from "@inspect/shared";
 
 export class PlanningError extends Schema.ErrorClass<PlanningError>("PlanningError")({
   _tag: Schema.tag("PlanningError"),

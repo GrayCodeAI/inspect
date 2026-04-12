@@ -21,11 +21,7 @@ export class SSIMResult extends Schema.Class<SSIMResult>("SSIMResult")({
   covariance: Schema.Number,
 }) {}
 
-export const computeSSIM = (
-  image1: number[][],
-  image2: number[][],
-  config?: Partial<SSIMConfig>,
-) =>
+export const computeSSIM = (image1: number[][], image2: number[][], config?: Partial<SSIMConfig>) =>
   Effect.gen(function* () {
     const resolvedConfig = new SSIMConfig({
       windowSize: 11,
@@ -67,7 +63,12 @@ export const computeSSIM = (
       return sum / (rows * cols - 1);
     };
 
-    const covariance = (image1Arr: number[][], image2Arr: number[][], meanX: number, meanY: number): number => {
+    const covariance = (
+      image1Arr: number[][],
+      image2Arr: number[][],
+      meanX: number,
+      meanY: number,
+    ): number => {
       let sum = 0;
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -99,9 +100,7 @@ export const computeSSIM = (
       varianceY,
       covariance: covarianceXY,
     });
-  }).pipe(
-    Effect.withSpan("ssim.computeSSIM"),
-  );
+  }).pipe(Effect.withSpan("ssim.computeSSIM"));
 
 export const grayscaleToMatrix = (pixels: number[], width: number, height: number): number[][] => {
   const matrix: number[][] = [];

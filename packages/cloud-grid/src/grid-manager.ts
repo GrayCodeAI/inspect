@@ -32,10 +32,9 @@ export interface GridManagerService {
   readonly getProvider: (name: GridProvider) => Effect.Effect<string, CloudGridError>;
 }
 
-export class GridManager extends ServiceMap.Service<
-  GridManager,
-  GridManagerService
->()("@inspect/GridManager") {
+export class GridManager extends ServiceMap.Service<GridManager, GridManagerService>()(
+  "@inspect/GridManager",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -65,18 +64,7 @@ export class GridManager extends ServiceMap.Service<
           });
 
           return session;
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new CloudGridError({
-                message: `Failed to acquire grid session: ${String(cause)}`,
-                provider: "grid-manager",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("GridManager.acquireSession"),
-        );
+        }).pipe(Effect.withSpan("GridManager.acquireSession"));
 
       const releaseSession = (sessionId: string) =>
         Effect.gen(function* () {
@@ -91,18 +79,14 @@ export class GridManager extends ServiceMap.Service<
           sessions.delete(sessionId);
 
           yield* Effect.logInfo("Grid session released", { sessionId });
-        }).pipe(
-          Effect.withSpan("GridManager.releaseSession"),
-        );
+        }).pipe(Effect.withSpan("GridManager.releaseSession"));
 
       const activeSessions = Effect.sync(() => Array.from(sessions.values())).pipe(
         Effect.withSpan("GridManager.activeSessions"),
       );
 
       const getProvider = (name: GridProvider) =>
-        Effect.sync(() => name).pipe(
-          Effect.withSpan("GridManager.getProvider"),
-        );
+        Effect.sync(() => name).pipe(Effect.withSpan("GridManager.getProvider"));
 
       return { acquireSession, releaseSession, activeSessions, getProvider } as const;
     }),

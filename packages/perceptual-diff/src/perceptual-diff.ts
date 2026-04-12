@@ -67,7 +67,12 @@ export class PerceptualDiff extends ServiceMap.Service<
           }
 
           // For PNG files, parse the header to get dimensions and extract grayscale
-          if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+          if (
+            buffer[0] === 0x89 &&
+            buffer[1] === 0x50 &&
+            buffer[2] === 0x4e &&
+            buffer[3] === 0x47
+          ) {
             return parsePngToGrayscale(buffer);
           }
 
@@ -103,15 +108,9 @@ export class PerceptualDiff extends ServiceMap.Service<
             },
             duration: Date.now() - startTime,
           });
-        }).pipe(
-          Effect.withSpan("PerceptualDiff.compareBuffers"),
-        );
+        }).pipe(Effect.withSpan("PerceptualDiff.compareBuffers"));
 
-      const compare = (
-        image1Path: string,
-        image2Path: string,
-        config?: Partial<DiffConfig>,
-      ) =>
+      const compare = (image1Path: string, image2Path: string, config?: Partial<DiffConfig>) =>
         Effect.gen(function* () {
           const img1 = yield* loadGrayscaleImage(image1Path);
           const img2 = yield* loadGrayscaleImage(image2Path);
@@ -146,7 +145,7 @@ function parsePngToGrayscale(buffer: Buffer): { pixels: number[]; width: number;
   // Use a hash of the buffer to create a deterministic grayscale pattern
   // This is a stub — for production, use `sharp` or `pngjs`
   for (let i = 0; i < totalPixels; i++) {
-    const offset = 33 + (i * 3) % (buffer.length - 33);
+    const offset = 33 + ((i * 3) % (buffer.length - 33));
     if (offset + 2 < buffer.length) {
       // Convert RGB to grayscale using luminance formula
       const r = buffer[offset];

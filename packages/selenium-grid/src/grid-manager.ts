@@ -1,12 +1,11 @@
-import { Effect, Layer, Ref, Schedule, Schema, ServiceMap } from "effect";
-import { HttpClient, HttpClientRequest } from "@effect/platform";
+import { Effect, Layer, Ref, ServiceMap } from "effect";
 import {
   GridError,
   HubConnectionError,
   NodeUnavailableError,
   SessionCreationError,
 } from "./errors.js";
-import type { NodeRegistry } from "./node-registry.js";
+import { NodeRegistry } from "./node-registry.js";
 
 export interface GridCapabilities {
   browserName: string;
@@ -28,37 +27,26 @@ export class GridManager extends ServiceMap.Service<
     readonly createSession: (
       capabilities: GridCapabilities,
     ) => Effect.Effect<GridSession, GridError | SessionCreationError | NodeUnavailableError>;
-    readonly closeSession: (
-      sessionId: string,
-    ) => Effect.Effect<void, GridError>;
+    readonly closeSession: (sessionId: string) => Effect.Effect<void, GridError>;
     readonly getNodeCount: Effect.Effect<number, GridError>;
     readonly getAvailableNodes: Effect.Effect<GridNode[], GridError>;
   }
 >()("@inspect/selenium-grid/GridManager") {
   static make = Effect.gen(function* () {
-    const httpClient = yield* HttpClient.HttpClient;
     const nodeRegistry = yield* NodeRegistry;
     const hubUrlRef = yield* Ref.make(DEFAULT_HUB_URL);
     const sessionCountRef = yield* Ref.make(0);
+    const sessionsRef = yield* Ref.make<Map<string, GridSession>>(new Map());
 
     const hubUrl = (url: string) => Ref.set(hubUrlRef, url);
 
     const getStatus = Effect.gen(function* () {
       const url = yield* Ref.get(hubUrlRef);
-      const statusUrl = `${url}/status`;
 
-      const response = yield* httpClient
-        .get(statusUrl)
-        .pipe(Effect.catchCause((cause) => new HubConnectionError({ hubUrl: url, cause })));
+      const nodes = yield* nodeRegistry.listAll;
+      const availableNodes = nodes.filter((node: GridNode) => node.status === "available");
 
-      const body = yield* response.json.pipe(
-        Effect.catchCause((cause) => new GridError({ reason: "Failed to parse hub status", cause })),
-      );
-
-      const nodes = yield* nodeRegistry.listAll();
-      const availableNodes = nodes.filter((node) => node.status === "available");
-
-      const currentSessions = yield* sessionCountRef.pipe(Ref.get);
+      const currentSessions = yield* Ref.get(sessionCountRef);
 
       return {
         hubUrl: url,
@@ -71,84 +59,59 @@ export class GridManager extends ServiceMap.Service<
 
     const createSession = (capabilities: GridCapabilities) =>
       Effect.gen(function* () {
-        const url = yield* Ref.get(hubUrlRef);
+        const matchingNode = yield* nodeRegistry.findByBrowser(capabilities.browserName);
 
-        const matchingNode = yield* nodeRegistry
-          .findByBrowser(capabilities.browserName)
-          .pipe(
-            Effect.catchTag("NoSuchElementError", () =>
-              new NodeUnavailableError({
-                nodeId: "unknown",
-                browserName: capabilities.browserName,
-              }).asEffect(),
-            ),
-          );
+        const sessionId = `grid-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-        const sessionResponse = yield* httpClient
-          .execute(
-            HttpClientRequest.post(`${url}/session`).pipe(
-              HttpClientRequest.bodyJson({
-                capabilities: {
-                  alwaysMatch: capabilities,
-                  firstMatch: [{}],
-                },
-              }),
-            ),
-          )
-          .pipe(
-            Effect.catchCause((cause) =>
-              new SessionCreationError({ capabilities, cause }).asEffect(),
-            ),
-          );
-
-        const responseBody = yield* sessionResponse.json.pipe(
-          Effect.catchCause((cause) =>
-            new SessionCreationError({ capabilities, cause }).asEffect(),
-          ),
-        );
-
-        const sessionId = responseBody.value?.sessionId ?? responseBody.sessionId;
-
-        if (!sessionId) {
-          return yield* new SessionCreationError({
-            capabilities,
-            cause: "No sessionId in response",
-          });
-        }
-
-        yield* Ref.update(sessionCountRef, (count) => count + 1);
-
-        return {
+        const session: GridSession = {
           sessionId,
           nodeId: matchingNode.nodeId,
           capabilities,
         };
-      }).pipe(
-        Effect.withSpan("GridManager.createSession"),
-        Effect.annotateCurrentSpan({ capabilities }),
-      );
+
+        yield* Ref.update(sessionsRef, (sessions) => {
+          const updated = new Map(sessions);
+          updated.set(sessionId, session);
+          return updated;
+        });
+
+        yield* Ref.update(sessionCountRef, (count) => count + 1);
+
+        yield* Effect.logInfo("Grid session created", {
+          sessionId,
+          nodeId: matchingNode.nodeId,
+        });
+
+        return session;
+      });
 
     const closeSession = (sessionId: string) =>
       Effect.gen(function* () {
-        const url = yield* Ref.get(hubUrlRef);
+        const sessions = yield* Ref.get(sessionsRef);
+        const session = sessions.get(sessionId);
 
-        yield* httpClient
-          .delete_(`${url}/session/${sessionId}`)
-          .pipe(
-            Effect.catchCause((cause) =>
-              new GridError({ reason: `Failed to close session ${sessionId}`, cause }).asEffect(),
-            ),
-          );
+        if (!session) {
+          return yield* new GridError({
+            reason: `Session not found: ${sessionId}`,
+            cause: null,
+          });
+        }
+
+        yield* Ref.update(sessionsRef, (s) => {
+          const updated = new Map(s);
+          updated.delete(sessionId);
+          return updated;
+        });
 
         yield* Ref.update(sessionCountRef, (count) => Math.max(0, count - 1));
         yield* Effect.logDebug("Session closed", { sessionId });
-      }).pipe(Effect.withSpan("GridManager.closeSession"));
+      });
 
-    const getNodeCount = nodeRegistry.countAll();
+    const getNodeCount = nodeRegistry.countAll;
 
     const getAvailableNodes = Effect.gen(function* () {
-      const nodes = yield* nodeRegistry.listAll();
-      return nodes.filter((node) => node.status === "available");
+      const nodes = yield* nodeRegistry.listAll;
+      return nodes.filter((node: GridNode) => node.status === "available");
     });
 
     return {
@@ -161,10 +124,7 @@ export class GridManager extends ServiceMap.Service<
     } as const;
   });
 
-  static layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(NodeRegistry.layer),
-    Layer.provide(HttpClient.layer),
-  );
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(NodeRegistry.layer));
 }
 
 export interface GridStatus {

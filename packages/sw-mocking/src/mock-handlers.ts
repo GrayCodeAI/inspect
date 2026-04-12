@@ -25,22 +25,16 @@ export type RequestHandler = (
 ) => Effect.Effect<MockResponse | null, SWMockingError>;
 
 export interface MockHandlersService {
-  readonly addHandler: (
-    pattern: string,
-    handler: RequestHandler,
-  ) => Effect.Effect<void>;
+  readonly addHandler: (pattern: string, handler: RequestHandler) => Effect.Effect<void>;
   readonly addRoute: (route: MockRoute) => Effect.Effect<void>;
-  readonly match: (
-    request: MockRequest,
-  ) => Effect.Effect<MockResponse | null, SWMockingError>;
+  readonly match: (request: MockRequest) => Effect.Effect<MockResponse | null, SWMockingError>;
   readonly clear: () => Effect.Effect<void>;
   readonly getRoutes: Effect.Effect<MockRoute[]>;
 }
 
-export class MockHandlers extends ServiceMap.Service<
-  MockHandlers,
-  MockHandlersService
->()("@inspect/MockHandlers") {
+export class MockHandlers extends ServiceMap.Service<MockHandlers, MockHandlersService>()(
+  "@inspect/MockHandlers",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -51,9 +45,7 @@ export class MockHandlers extends ServiceMap.Service<
         Effect.sync(() => {
           customHandlers.push({ pattern, handler });
         }).pipe(
-          Effect.tap(() =>
-            Effect.logDebug("Custom mock handler added", { pattern }),
-          ),
+          Effect.tap(() => Effect.logDebug("Custom mock handler added", { pattern })),
           Effect.withSpan("MockHandlers.addHandler"),
         );
 
@@ -85,8 +77,7 @@ export class MockHandlers extends ServiceMap.Service<
           for (const route of routes) {
             const regex = new RegExp(route.pattern);
             const matchesPath = regex.test(url.pathname);
-            const matchesMethod =
-              route.method === "ANY" || route.method === request.method;
+            const matchesMethod = route.method === "ANY" || route.method === request.method;
 
             if (matchesPath && matchesMethod) {
               return new MockResponse({

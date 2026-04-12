@@ -5,7 +5,7 @@
  * instructions and pass them correctly to the act() method.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { NLParser } from "./parser.js";
 
 describe("NLParser Integration Tests", () => {

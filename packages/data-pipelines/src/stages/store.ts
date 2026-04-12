@@ -61,8 +61,7 @@ export const storeToCsv = (filePath: string, headers?: string[]) => {
     Effect.gen(function* () {
       const startTime = Date.now();
 
-      const resolvedHeaders =
-        headers ?? (data.length > 0 ? Object.keys(data[0]) : []);
+      const resolvedHeaders = headers ?? (data.length > 0 ? Object.keys(data[0]) : []);
 
       const rows = [resolvedHeaders.join(",")];
       for (const record of data) {

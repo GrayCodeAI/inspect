@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, ServiceMap } from "effect";
+import { Effect, Layer, ServiceMap } from "effect";
 import { TlsFingerprintError } from "./errors.js";
 
 export interface TlsFingerprint {
@@ -65,23 +65,23 @@ export class TlsFingerprintService extends ServiceMap.Service<TlsFingerprintServ
   "@stealth/TlsFingerprint",
   {
     make: Effect.gen(function* () {
-      const applyFingerprint = Effect.fn("TlsFingerprint.apply")(
-        function* (fingerprint: TlsFingerprint) {
-          return yield* Effect.tryPromise({
-            try: async () => {
-              return {
-                success: true,
-                appliedFingerprint: fingerprint.ja3Hash,
-              };
-            },
-            catch: (cause: unknown) =>
-              new TlsFingerprintError({
-                targetFingerprint: fingerprint.ja3Hash,
-                cause,
-              }),
-          });
-        },
-      );
+      const applyFingerprint = Effect.fn("TlsFingerprint.apply")(function* (
+        fingerprint: TlsFingerprint,
+      ) {
+        return yield* Effect.tryPromise({
+          try: async () => {
+            return {
+              success: true,
+              appliedFingerprint: fingerprint.ja3Hash,
+            };
+          },
+          catch: (cause: unknown) =>
+            new TlsFingerprintError({
+              targetFingerprint: fingerprint.ja3Hash,
+              cause,
+            }),
+        });
+      });
 
       const randomize = Effect.fn("TlsFingerprint.randomize")(function* () {
         const fingerprints = [CHROME_120_FINGERPRINT, FIREFOX_121_FINGERPRINT];

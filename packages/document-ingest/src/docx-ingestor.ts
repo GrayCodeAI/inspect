@@ -17,10 +17,9 @@ export interface DocxIngestorService {
   readonly extract: (filePath: string) => Effect.Effect<DocxDocument, DocumentIngestionError>;
 }
 
-export class DocxIngestor extends ServiceMap.Service<
-  DocxIngestor,
-  DocxIngestorService
->()("@inspect/DocxIngestor") {
+export class DocxIngestor extends ServiceMap.Service<DocxIngestor, DocxIngestorService>()(
+  "@inspect/DocxIngestor",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -53,9 +52,7 @@ export class DocxIngestor extends ServiceMap.Service<
             .replace(/\s+/g, " ")
             .trim();
 
-          const paragraphs = textContent
-            .split(/\n\s*\n/)
-            .filter((p) => p.trim().length > 0);
+          const paragraphs = textContent.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
 
           const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 

@@ -4,7 +4,7 @@
 
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import * as fs from "node:fs/promises";
-import { PageElement, PageObject, PageObjectConfig } from "./page-object.js";
+import { PageElement, PageObject, PageObjectConfig, PageActionResult } from "./page-object.js";
 
 export class PageFactoryConfig extends Schema.Class<PageFactoryConfig>("PageFactoryConfig")({
   format: Schema.Literals(["yaml", "json"] as const),
@@ -24,12 +24,8 @@ export class PageDefinition extends Schema.Class<PageDefinition>("PageDefinition
 }) {}
 
 export interface PageFactoryService {
-  readonly loadFromFile: (
-    path: string,
-  ) => Effect.Effect<PageObjectConfig, Error>;
-  readonly createPageObject: (
-    config: PageObjectConfig,
-  ) => Effect.Effect<PageObject>;
+  readonly loadFromFile: (path: string) => Effect.Effect<PageObjectConfig, Error>;
+  readonly createPageObject: (config: PageObjectConfig) => Effect.Effect<PageObject>;
   readonly fromYaml: (yamlContent: string) => Effect.Effect<PageObjectConfig, Error>;
   readonly fromJson: (jsonContent: string) => Effect.Effect<PageObjectConfig, Error>;
 }
@@ -48,10 +44,15 @@ class DynamicPageObject extends PageObject {
   }
 
   click(elementName: string) {
-    return Effect.gen(function* () {
+    return Effect.sync(() => {
       const element = this.getElement(elementName);
       if (!element) {
-        return yield* Effect.fail(new Error(`Element not found: ${elementName}`));
+        return new PageActionResult({
+          success: false,
+          elementName,
+          action: "click",
+          duration: 0,
+        });
       }
       return new PageActionResult({
         success: true,
@@ -59,14 +60,20 @@ class DynamicPageObject extends PageObject {
         action: "click",
         duration: 0,
       });
-    }.bind(this)).pipe(Effect.withSpan("DynamicPageObject.click"));
+    }).pipe(Effect.withSpan("DynamicPageObject.click"));
   }
 
   fill(elementName: string, value: string) {
-    return Effect.gen(function* () {
+    return Effect.sync(() => {
       const element = this.getElement(elementName);
       if (!element) {
-        return yield* Effect.fail(new Error(`Element not found: ${elementName}`));
+        return new PageActionResult({
+          success: false,
+          elementName,
+          action: "fill",
+          duration: 0,
+          value,
+        });
       }
       return new PageActionResult({
         success: true,
@@ -75,7 +82,7 @@ class DynamicPageObject extends PageObject {
         duration: 0,
         value,
       });
-    }.bind(this)).pipe(Effect.withSpan("DynamicPageObject.fill"));
+    }).pipe(Effect.withSpan("DynamicPageObject.fill"));
   }
 
   getText(elementName: string) {
@@ -84,15 +91,14 @@ class DynamicPageObject extends PageObject {
     );
   }
 
-  isVisible(elementName: string) {
+  isVisible(_elementName: string) {
     return Effect.sync(() => true).pipe(Effect.withSpan("DynamicPageObject.isVisible"));
   }
 }
 
-export class PageFactory extends ServiceMap.Service<
-  PageFactory,
-  PageFactoryService
->()("@inspect/PageFactory") {
+export class PageFactory extends ServiceMap.Service<PageFactory, PageFactoryService>()(
+  "@inspect/PageFactory",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -113,7 +119,10 @@ export class PageFactory extends ServiceMap.Service<
               result[currentKey] = {};
             } else {
               if (currentKey) {
-                (result[currentKey] as Record<string, unknown>)[key.trim()] = value.replace(/"/g, "");
+                (result[currentKey] as Record<string, unknown>)[key.trim()] = value.replace(
+                  /"/g,
+                  "",
+                );
               } else {
                 result[key.trim()] = value.replace(/"/g, "");
               }
@@ -128,7 +137,9 @@ export class PageFactory extends ServiceMap.Service<
           const parsed = parseYaml(yamlContent);
           const elements: PageElement[] = [];
 
-          const pageElements = parsed.elements as Record<string, Record<string, string>> | undefined;
+          const pageElements = parsed.elements as
+            | Record<string, Record<string, string>>
+            | undefined;
           if (pageElements) {
             for (const [name, props] of Object.entries(pageElements)) {
               elements.push(

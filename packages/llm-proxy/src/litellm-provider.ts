@@ -37,16 +37,12 @@ export class LLMResponse extends Schema.Class<LLMResponse>("LLMResponse")({
 
 export interface LiteLLMProviderService {
   readonly chat: (request: LLMRequest) => Effect.Effect<LLMResponse, LLMProxyError>;
-  readonly complete: (
-    prompt: string,
-    model?: string,
-  ) => Effect.Effect<string, LLMProxyError>;
+  readonly complete: (prompt: string, model?: string) => Effect.Effect<string, LLMProxyError>;
 }
 
-export class LiteLLMProvider extends ServiceMap.Service<
-  LiteLLMProvider,
-  LiteLLMProviderService
->()("@inspect/LiteLLMProvider") {
+export class LiteLLMProvider extends ServiceMap.Service<LiteLLMProvider, LiteLLMProviderService>()(
+  "@inspect/LiteLLMProvider",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

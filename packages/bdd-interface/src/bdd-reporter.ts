@@ -23,10 +23,9 @@ export interface BddReporterService {
   ) => Effect.Effect<void>;
 }
 
-export class BddReporter extends ServiceMap.Service<
-  BddReporter,
-  BddReporterService
->()("@inspect/BddReporter") {
+export class BddReporter extends ServiceMap.Service<BddReporter, BddReporterService>()(
+  "@inspect/BddReporter",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -81,7 +80,13 @@ export class BddReporter extends ServiceMap.Service<
           console.log(`${"=".repeat(40)}`);
         }).pipe(Effect.withSpan("BddReporter.reportSummary"));
 
-      return { reportSuiteStart, reportTestPass, reportTestFail, reportTestSkip, reportSummary } as const;
+      return {
+        reportSuiteStart,
+        reportTestPass,
+        reportTestFail,
+        reportTestSkip,
+        reportSummary,
+      } as const;
     }),
   );
 }

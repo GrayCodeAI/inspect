@@ -1,12 +1,12 @@
-import { Data, Effect, Layer, Match, Ref, Schema, ServiceMap } from "effect";
+import { Data, Effect, Layer, Match, Ref, ServiceMap } from "effect";
 import {
   PolicyViolationError,
-  RestrictedOperationError,
+  SandboxResourceExceededError,
   SecurityModeError,
   UnauthorizedAccessError,
 } from "./errors.js";
 import { PolicyEnforcer, type SecurityPolicy, type Permission } from "./policy-enforcer.js";
-import { Sandbox, type SandboxConfig, type ResourceLimits } from "./sandbox.js";
+import { Sandbox, type SandboxConfig } from "./sandbox.js";
 
 export type SecurityMode = Data.TaggedEnum<{
   Executor: { policies: SecurityPolicy[] };
@@ -26,7 +26,7 @@ export interface SecurityContext {
 export interface ExecutionResult<T = unknown> {
   success: boolean;
   data?: T;
-  error?: SecurityModeError;
+  error?: SecurityModeError | PolicyViolationError | UnauthorizedAccessError;
   policyChecks: PolicyCheckResult[];
   resourceUsage: ResourceUsage;
 }
@@ -54,7 +54,10 @@ export class SecurityModes extends ServiceMap.Service<
     readonly execute: <T>(
       operation: string,
       effect: Effect.Effect<T, SecurityModeError>,
-    ) => Effect.Effect<ExecutionResult<T>, SecurityModeError>;
+    ) => Effect.Effect<
+      ExecutionResult<T>,
+      SecurityModeError | SandboxResourceExceededError | PolicyViolationError
+    >;
     readonly checkPermission: (
       resource: string,
       permission: Permission,
@@ -89,10 +92,7 @@ export class SecurityModes extends ServiceMap.Service<
         });
       }).pipe(Effect.withSpan("SecurityModes.initialize"));
 
-    const execute = <T>(
-      operation: string,
-      effect: Effect.Effect<T, SecurityModeError>,
-    ) =>
+    const execute = <T>(operation: string, effect: Effect.Effect<T, SecurityModeError>) =>
       Effect.gen(function* () {
         const mode = yield* Ref.get(modeRef);
         const context = yield* Ref.get(contextRef);
@@ -134,23 +134,28 @@ export class SecurityModes extends ServiceMap.Service<
         const startTime = Date.now();
         const result = yield* effect.pipe(
           Effect.catchTag("SecurityModeError", (error) =>
-            Effect.succeed({ success: false, error, policyChecks, resourceUsage: EMPTY_RESOURCE_USAGE }),
+            Effect.succeed({
+              success: false,
+              error,
+              policyChecks,
+              resourceUsage: EMPTY_RESOURCE_USAGE,
+            }),
           ),
         );
 
         // If result is already wrapped execution result, return it
-        if ("success" in result) {
+        if (typeof result === "object" && result !== null && "success" in result) {
           return result;
         }
 
         const endTime = Date.now();
 
         // Collect resource usage
-        const resourceUsage = yield* sandbox.getResourceUsage();
+        const resourceUsage = yield* sandbox.getResourceUsage;
 
         return {
           success: true,
-          data: result,
+          data: result as T,
           policyChecks,
           resourceUsage: {
             ...resourceUsage,
@@ -166,15 +171,15 @@ export class SecurityModes extends ServiceMap.Service<
         if (!context) {
           return yield* new UnauthorizedAccessError({
             requestedResource: resource,
-            requiredPermission: permission,
+            requiredPermission: permission._tag,
           });
         }
 
-        const hasPermission = context.permissions.includes(permission);
+        const hasPermission = context.permissions.some((p) => p._tag === permission._tag);
         if (!hasPermission) {
           return yield* new UnauthorizedAccessError({
             requestedResource: resource,
-            requiredPermission: permission,
+            requiredPermission: permission._tag,
           });
         }
 
@@ -205,10 +210,10 @@ export class SecurityModes extends ServiceMap.Service<
 
 function extractPolicies(mode: SecurityMode): SecurityPolicy[] {
   return Match.value(mode).pipe(
-    Match.when({ _tag: "Executor" }, (m) => m.policies),
-    Match.when({ _tag: "Data" }, () => [DATA_ISOLATION_POLICY]),
-    Match.when({ _tag: "API" }, () => [API_RATE_LIMIT_POLICY, API_ENDPOINT_POLICY]),
-    Match.when({ _tag: "Restricted" }, () => [RESTRICTED_OPERATIONS_POLICY]),
+    Match.when({ _tag: "Executor" }, (m): SecurityPolicy[] => m.policies),
+    Match.when({ _tag: "Data" }, (): SecurityPolicy[] => []),
+    Match.when({ _tag: "API" }, (): SecurityPolicy[] => []),
+    Match.when({ _tag: "Restricted" }, (): SecurityPolicy[] => []),
     Match.exhaustive,
   );
 }
@@ -249,7 +254,7 @@ function extractSandboxConfig(mode: SecurityMode): SandboxConfig {
 function runPreExecutionChecks(
   mode: SecurityMode,
   operation: string,
-  context: SecurityContext,
+  _context: SecurityContext,
 ): Effect.Effect<PolicyCheckResult[], never> {
   return Match.value(mode).pipe(
     Match.when({ _tag: "Restricted" }, (m) => {
@@ -265,9 +270,7 @@ function runPreExecutionChecks(
       ]);
     }),
     Match.when({ _tag: "API" }, (m) => {
-      const endpointAllowed = m.allowedEndpoints.some((endpoint) =>
-        operation.includes(endpoint),
-      );
+      const endpointAllowed = m.allowedEndpoints.some((endpoint) => operation.includes(endpoint));
       return Effect.succeed([
         {
           policy: API_ENDPOINT_POLICY,
@@ -279,9 +282,7 @@ function runPreExecutionChecks(
       ]);
     }),
     Match.when({ _tag: "Data" }, (m) => {
-      const isBlocked = m.blockedPatterns.some((pattern) =>
-        operation.includes(pattern),
-      );
+      const isBlocked = m.blockedPatterns.some((pattern) => operation.includes(pattern));
       return Effect.succeed([
         {
           policy: DATA_ISOLATION_POLICY,
@@ -306,7 +307,7 @@ function runPreExecutionChecks(
 }
 
 const DATA_ISOLATION_POLICY = "data-isolation";
-const API_RATE_LIMIT_POLICY = "api-rate-limit";
+const _API_RATE_LIMIT_POLICY = "api-rate-limit";
 const API_ENDPOINT_POLICY = "api-endpoint-restriction";
 const RESTRICTED_OPERATIONS_POLICY = "restricted-operations";
 const EXECUTOR_POLICY = "executor-base";

@@ -5,14 +5,9 @@ import type { SnapshotData } from "./component-assertions.js";
 export class ComponentSnapshot extends ServiceMap.Service<
   ComponentSnapshot,
   {
-    readonly capture: (
-      selector: string,
-    ) => Effect.Effect<SnapshotData>;
+    readonly capture: (selector: string) => Effect.Effect<SnapshotData>;
     readonly load: (component: string) => Effect.Effect<Option.Option<SnapshotData>>;
-    readonly save: (
-      component: string,
-      snapshot: SnapshotData,
-    ) => Effect.Effect<void>;
+    readonly save: (component: string, snapshot: SnapshotData) => Effect.Effect<void>;
     readonly compare: (
       component: string,
       current: string,
@@ -26,9 +21,9 @@ export class ComponentSnapshot extends ServiceMap.Service<
         const snapshotDir = ".inspect/snapshots";
 
         // Ensure snapshot directory exists
-        yield* fs.makeDirectory(snapshotDir, { recursive: true }).pipe(
-          Effect.catchTags({ PlatformError: () => Effect.void }),
-        );
+        yield* fs
+          .makeDirectory(snapshotDir, { recursive: true })
+          .pipe(Effect.catchTags({ PlatformError: () => Effect.void }));
 
         const capture = (selector: string): Effect.Effect<SnapshotData> =>
           Effect.promise(async () => {
@@ -51,7 +46,9 @@ export class ComponentSnapshot extends ServiceMap.Service<
             const content = yield* fs.readFileString(path);
             return Option.some(JSON.parse(content) as SnapshotData);
           }).pipe(
-            Effect.catchTags({ PlatformError: () => Effect.succeed(Option.none() as Option.Option<SnapshotData>) }),
+            Effect.catchTags({
+              PlatformError: () => Effect.succeed(Option.none() as Option.Option<SnapshotData>),
+            }),
           );
 
         const save = (component: string, snapshot: SnapshotData): Effect.Effect<void> =>
@@ -59,9 +56,7 @@ export class ComponentSnapshot extends ServiceMap.Service<
             const path = snapshotPath(component);
             const content = JSON.stringify(snapshot, undefined, 2);
             yield* fs.writeFile(path, Buffer.from(content, "utf-8"));
-          }).pipe(
-            Effect.catchTags({ PlatformError: Effect.die }),
-          );
+          }).pipe(Effect.catchTags({ PlatformError: Effect.die }));
 
         const compare = (component: string, current: string) =>
           Effect.gen(function* () {
@@ -70,9 +65,7 @@ export class ComponentSnapshot extends ServiceMap.Service<
             const matches = saved.value.dom === current;
             return {
               matches,
-              diff: matches
-                ? undefined
-                : "DOM content differs from baseline",
+              diff: matches ? undefined : "DOM content differs from baseline",
             };
           });
 

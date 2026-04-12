@@ -19,21 +19,20 @@ export class AppiumResponse extends Schema.Class<AppiumResponse>("AppiumResponse
 
 export interface AppiumClientService {
   readonly connect: () => Effect.Effect<void, AppiumConnectionError>;
-  readonly disconnect: () => Effect.Effect<void>;
+  readonly disconnect: () => Effect.Effect<void, AppiumConnectionError>;
   readonly sendCommand: (
     command: AppiumCommand,
   ) => Effect.Effect<AppiumResponse, AppiumConnectionError>;
   readonly createSession: (
     capabilities: Record<string, unknown>,
   ) => Effect.Effect<string, AppiumConnectionError>;
-  readonly deleteSession: (sessionId: string) => Effect.Effect<void>;
+  readonly deleteSession: (sessionId: string) => Effect.Effect<void, AppiumConnectionError>;
   readonly sessionId: Effect.Effect<string | undefined>;
 }
 
-export class AppiumClient extends ServiceMap.Service<
-  AppiumClient,
-  AppiumClientService
->()("@inspect/AppiumClient") {
+export class AppiumClient extends ServiceMap.Service<AppiumClient, AppiumClientService>()(
+  "@inspect/AppiumClient",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -44,40 +43,45 @@ export class AppiumClient extends ServiceMap.Service<
 
       let currentSessionId: string | undefined;
 
-      const connect = Effect.gen(function* () {
-        yield* Effect.logDebug("Connecting to Appium server", {
-          host: config.host,
-          port: config.port,
-        });
+      const connect = () =>
+        Effect.gen(function* () {
+          yield* Effect.logDebug("Connecting to Appium server", {
+            host: config.host,
+            port: config.port,
+          });
 
-        return yield* Effect.tryPromise({
-          try: async () => {
-            const response = await fetch(`http://${config.host}:${config.port}/status`);
-            if (!response.ok) {
-              throw new Error(`Appium server returned ${response.status}`);
-            }
-            return response.json() as Promise<Record<string, unknown>>;
-          },
-          catch: (cause) =>
-            new AppiumConnectionError({
-              host: config.host,
-              port: config.port,
-              cause,
-            }),
+          return yield* Effect.tryPromise({
+            try: async () => {
+              const response = await fetch(`http://${config.host}:${config.port}/status`);
+              if (!response.ok) {
+                throw new Error(`Appium server returned ${response.status}`);
+              }
+              return response.json() as Promise<Record<string, unknown>>;
+            },
+            catch: (cause) =>
+              new AppiumConnectionError({
+                host: config.host,
+                port: config.port,
+                cause,
+              }),
+          }).pipe(
+            Effect.tap(() =>
+              Effect.logInfo("Connected to Appium server", {
+                host: config.host,
+                port: config.port,
+              }),
+            ),
+          );
+        }).pipe(Effect.withSpan("AppiumClient.connect"));
+
+      const disconnect = () =>
+        Effect.sync(() => {
+          currentSessionId = undefined;
+          return void 0;
         }).pipe(
-          Effect.tap(() =>
-            Effect.logInfo("Connected to Appium server", {
-              host: config.host,
-              port: config.port,
-            }),
-          ),
+          Effect.tap(() => Effect.logInfo("Disconnected from Appium server")),
+          Effect.withSpan("AppiumClient.disconnect"),
         );
-      });
-
-      const disconnect = Effect.sync(() => {
-        currentSessionId = undefined;
-        return void 0;
-      }).pipe(Effect.tap(() => Effect.logInfo("Disconnected from Appium server")));
 
       const sendCommand = (command: AppiumCommand) =>
         Effect.gen(function* () {
@@ -128,18 +132,17 @@ export class AppiumClient extends ServiceMap.Service<
         );
 
       const deleteSession = (sessionId: string) =>
-        sendCommand(
-          new AppiumCommand({
-            method: "DELETE",
-            endpoint: `/session/${sessionId}`,
-          }),
-        ).pipe(
-          Effect.tap(() => {
-            if (currentSessionId === sessionId) {
-              currentSessionId = undefined;
-            }
-          }),
-        );
+        Effect.gen(function* () {
+          yield* sendCommand(
+            new AppiumCommand({
+              method: "DELETE",
+              endpoint: `/session/${sessionId}`,
+            }),
+          );
+          if (currentSessionId === sessionId) {
+            currentSessionId = undefined;
+          }
+        }).pipe(Effect.withSpan("AppiumClient.deleteSession"));
 
       const sessionId = Effect.sync(() => currentSessionId);
 

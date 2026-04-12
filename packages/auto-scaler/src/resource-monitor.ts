@@ -13,9 +13,7 @@ export class ResourceMetrics extends Schema.Class<ResourceMetrics>("ResourceMetr
   timestamp: Schema.Number,
 }) {}
 
-export class ResourceThresholds extends Schema.Class<ResourceThresholds>(
-  "ResourceThresholds",
-)({
+export class ResourceThresholds extends Schema.Class<ResourceThresholds>("ResourceThresholds")({
   cpuHigh: Schema.Number,
   cpuCritical: Schema.Number,
   memoryHigh: Schema.Number,
@@ -24,16 +22,13 @@ export class ResourceThresholds extends Schema.Class<ResourceThresholds>(
 
 export interface ResourceMonitorService {
   readonly getMetrics: () => Effect.Effect<ResourceMetrics, AutoScalerError>;
-  readonly isHealthy: (
-    metrics: ResourceMetrics,
-  ) => Effect.Effect<boolean>;
+  readonly isHealthy: (metrics: ResourceMetrics) => Effect.Effect<boolean>;
   readonly getSystemLoad: () => Effect.Effect<number, AutoScalerError>;
 }
 
-export class ResourceMonitor extends ServiceMap.Service<
-  ResourceMonitor,
-  ResourceMonitorService
->()("@inspect/ResourceMonitor") {
+export class ResourceMonitor extends ServiceMap.Service<ResourceMonitor, ResourceMonitorService>()(
+  "@inspect/ResourceMonitor",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -46,17 +41,24 @@ export class ResourceMonitor extends ServiceMap.Service<
 
       const getMetrics = () =>
         Effect.gen(function* () {
-          const os = yield* Effect.sync(() => import("node:os"));
+          const osModule = yield* Effect.tryPromise({
+            try: () => import("node:os"),
+            catch: () =>
+              new AutoScalerError({
+                message: "Failed to load os module",
+                component: "resource-monitor",
+              }),
+          });
 
-          const cpus = os.cpus();
+          const cpus = osModule.cpus();
           const cpuCount = cpus.length;
 
-          const totalMem = os.totalmem();
-          const freeMem = os.freemem();
+          const totalMem = osModule.totalmem();
+          const freeMem = osModule.freemem();
           const usedMem = totalMem - freeMem;
           const memoryUsage = usedMem / totalMem;
 
-          const loadAvg = os.loadavg();
+          const loadAvg = osModule.loadavg();
           const systemLoad = loadAvg[0] / cpuCount;
 
           return new ResourceMetrics({
@@ -66,18 +68,7 @@ export class ResourceMonitor extends ServiceMap.Service<
             activeProcesses: Math.ceil(loadAvg[0]),
             timestamp: Date.now(),
           });
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new AutoScalerError({
-                message: `Failed to get resource metrics: ${String(cause)}`,
-                component: "resource-monitor",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("ResourceMonitor.getMetrics"),
-        );
+        }).pipe(Effect.withSpan("ResourceMonitor.getMetrics"));
 
       const isHealthy = (metrics: ResourceMetrics) =>
         Effect.sync(() => {

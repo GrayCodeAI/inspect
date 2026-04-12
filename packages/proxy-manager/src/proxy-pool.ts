@@ -1,5 +1,5 @@
 import { Effect, Layer, Option, ServiceMap } from "effect";
-import { ProxyError, ProxyHealthCheckError, ProxyPoolExhaustedError } from "./errors.js";
+import { ProxyHealthCheckError, ProxyPoolExhaustedError } from "./errors.js";
 
 export interface ProxyServer {
   readonly url: string;
@@ -34,58 +34,56 @@ export class ProxyPool extends ServiceMap.Service<ProxyPool>()("@proxy-manager/P
       return yield* Effect.void;
     });
 
-    const addMany = Effect.fn("ProxyPool.addMany")(
-      function* (proxyList: ReadonlyArray<ProxyServer>) {
-        for (const proxy of proxyList) {
-          proxies.push({ proxy, health: Option.none() });
-        }
-        return yield* Effect.void;
-      },
-    );
+    const addMany = Effect.fn("ProxyPool.addMany")(function* (
+      proxyList: ReadonlyArray<ProxyServer>,
+    ) {
+      for (const proxy of proxyList) {
+        proxies.push({ proxy, health: Option.none() });
+      }
+      return yield* Effect.void;
+    });
 
-    const healthCheck = Effect.fn("ProxyPool.healthCheck")(
-      function* (proxy: ProxyServer) {
-        const startTime = Date.now();
+    const healthCheck = Effect.fn("ProxyPool.healthCheck")(function* (proxy: ProxyServer) {
+      const startTime = Date.now();
 
-        return yield* Effect.tryPromise({
-          try: async () => {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 5000);
+      return yield* Effect.tryPromise({
+        try: async () => {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
 
-            try {
-              await fetch(proxy.url, {
-                method: "GET",
-                signal: controller.signal,
-              });
-              clearTimeout(timeout);
+          try {
+            await fetch(proxy.url, {
+              method: "GET",
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
 
-              const latency = Date.now() - startTime;
-              return {
-                proxy,
-                isHealthy: true,
-                latencyMs: latency,
-                lastChecked: new Date(),
-              } satisfies ProxyHealth;
-            } catch {
-              clearTimeout(timeout);
-              const latency = Date.now() - startTime;
-              return {
-                proxy,
-                isHealthy: false,
-                latencyMs: latency,
-                lastChecked: new Date(),
-              } satisfies ProxyHealth;
-            }
-          },
-          catch: (cause: unknown) =>
-            new ProxyHealthCheckError({
-              proxyUrl: proxy.url,
-              latency: Date.now() - startTime,
-              cause,
-            }),
-        });
-      },
-    );
+            const latency = Date.now() - startTime;
+            return {
+              proxy,
+              isHealthy: true,
+              latencyMs: latency,
+              lastChecked: new Date(),
+            } satisfies ProxyHealth;
+          } catch {
+            clearTimeout(timeout);
+            const latency = Date.now() - startTime;
+            return {
+              proxy,
+              isHealthy: false,
+              latencyMs: latency,
+              lastChecked: new Date(),
+            } satisfies ProxyHealth;
+          }
+        },
+        catch: (cause: unknown) =>
+          new ProxyHealthCheckError({
+            proxyUrl: proxy.url,
+            latency: Date.now() - startTime,
+            cause,
+          }),
+      });
+    });
 
     const checkAll = Effect.fn("ProxyPool.checkAll")(function* () {
       const results: ProxyHealth[] = [];
@@ -148,20 +146,21 @@ export class ProxyPool extends ServiceMap.Service<ProxyPool>()("@proxy-manager/P
       return proxy;
     });
 
-    const markUnhealthy = Effect.fn("ProxyPool.markUnhealthy")(
-      function* (proxyUrl: string, cause: unknown) {
-        const entry = proxies.find((p) => p.proxy.url === proxyUrl);
-        if (entry) {
-          entry.health = Option.some({
-            proxy: entry.proxy,
-            isHealthy: false,
-            latencyMs: -1,
-            lastChecked: new Date(),
-          });
-        }
-        return yield* Effect.void;
-      },
-    );
+    const markUnhealthy = Effect.fn("ProxyPool.markUnhealthy")(function* (
+      proxyUrl: string,
+      _cause: unknown,
+    ) {
+      const entry = proxies.find((p) => p.proxy.url === proxyUrl);
+      if (entry) {
+        entry.health = Option.some({
+          proxy: entry.proxy,
+          isHealthy: false,
+          latencyMs: -1,
+          lastChecked: new Date(),
+        });
+      }
+      return yield* Effect.void;
+    });
 
     const getStats = Effect.fn("ProxyPool.getStats")(function* () {
       let healthy = 0;

@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Effect, Layer, Schema, ServiceMap } from "effect";
-import { BddAssertionError, BddExecutionError } from "./errors.js";
+import { BddExecutionError } from "./errors.js";
 
 export type HookFn = () => Effect.Effect<void, BddExecutionError>;
 export type TestFn = () => Effect.Effect<void, BddExecutionError>;
@@ -42,19 +42,15 @@ export interface BddRunnerService {
     name: string,
     fn: () => Effect.Effect<void, BddExecutionError>,
   ) => Effect.Effect<BddTestSuite, BddExecutionError>;
-  readonly it: (
-    name: string,
-    fn: TestFn,
-  ) => Effect.Effect<BddTestCase, BddExecutionError>;
+  readonly it: (name: string, fn: TestFn) => Effect.Effect<BddTestCase, BddExecutionError>;
   readonly before: (fn: HookFn) => Effect.Effect<void>;
   readonly after: (fn: HookFn) => Effect.Effect<void>;
   readonly run: () => Effect.Effect<BddTestResult, BddExecutionError>;
 }
 
-export class BddRunner extends ServiceMap.Service<
-  BddRunner,
-  BddRunnerService
->()("@inspect/BddRunner") {
+export class BddRunner extends ServiceMap.Service<BddRunner, BddRunnerService>()(
+  "@inspect/BddRunner",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

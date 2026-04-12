@@ -1,14 +1,11 @@
-import { Effect, Layer, Schema, Stream, ServiceMap } from "effect";
+import { Effect, Layer, Schema, ServiceMap } from "effect";
 import {
   TestPlan,
   ExecutedTestPlan,
   RunStarted,
   StepStarted,
   StepCompleted,
-  StepFailed,
-  UpdateContent,
   PlanId,
-  StepId,
 } from "@inspect/shared";
 import { Updates } from "./updates.js";
 

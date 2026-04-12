@@ -1,6 +1,6 @@
 import { Effect, Layer, ServiceMap } from "effect";
 import { DagRenderError } from "./errors.js";
-import type { DagGraph, DagStep, StepId } from "./dag-builder.js";
+import type { DagGraph, StepId } from "./dag-builder.js";
 
 export interface DagRenderOptions {
   readonly showDependencies: boolean;
@@ -16,56 +16,50 @@ const DEFAULT_RENDER_OPTIONS: DagRenderOptions = {
   maxWidth: 80,
 };
 
-export class DagRenderer extends ServiceMap.Service<DagRenderer>()(
-  "@visual-debugger/DagRenderer",
-  {
-    make: Effect.gen(function* () {
-      const renderAscii = Effect.fn("DagRenderer.renderAscii")(
-        function* (dag: DagGraph, options?: Partial<DagRenderOptions>) {
-          return yield* Effect.try({
-            try: () => {
-              const opts = { ...DEFAULT_RENDER_OPTIONS, ...options };
-              return renderDagAscii(dag, opts);
-            },
-            catch: (cause) =>
-              new DagRenderError({
-                format: "ascii",
-                cause,
-              }),
-          });
+export class DagRenderer extends ServiceMap.Service<DagRenderer>()("@visual-debugger/DagRenderer", {
+  make: Effect.gen(function* () {
+    const renderAscii = Effect.fn("DagRenderer.renderAscii")(function* (
+      dag: DagGraph,
+      options?: Partial<DagRenderOptions>,
+    ) {
+      return yield* Effect.try({
+        try: () => {
+          const opts = { ...DEFAULT_RENDER_OPTIONS, ...options };
+          return renderDagAscii(dag, opts);
         },
-      );
+        catch: (cause) =>
+          new DagRenderError({
+            format: "ascii",
+            cause,
+          }),
+      });
+    });
 
-      const renderMarkdown = Effect.fn("DagRenderer.renderMarkdown")(
-        function* (dag: DagGraph) {
-          return yield* Effect.try({
-            try: () => renderDagMarkdown(dag),
-            catch: (cause) =>
-              new DagRenderError({
-                format: "markdown",
-                cause,
-              }),
-          });
-        },
-      );
+    const renderMarkdown = Effect.fn("DagRenderer.renderMarkdown")(function* (dag: DagGraph) {
+      return yield* Effect.try({
+        try: () => renderDagMarkdown(dag),
+        catch: (cause) =>
+          new DagRenderError({
+            format: "markdown",
+            cause,
+          }),
+      });
+    });
 
-      const renderMermaid = Effect.fn("DagRenderer.renderMermaid")(
-        function* (dag: DagGraph) {
-          return yield* Effect.try({
-            try: () => renderDagMermaid(dag),
-            catch: (cause) =>
-              new DagRenderError({
-                format: "mermaid",
-                cause,
-              }),
-          });
-        },
-      );
+    const renderMermaid = Effect.fn("DagRenderer.renderMermaid")(function* (dag: DagGraph) {
+      return yield* Effect.try({
+        try: () => renderDagMermaid(dag),
+        catch: (cause) =>
+          new DagRenderError({
+            format: "mermaid",
+            cause,
+          }),
+      });
+    });
 
-      return { renderAscii, renderMarkdown, renderMermaid } as const;
-    }),
-  },
-) {
+    return { renderAscii, renderMarkdown, renderMermaid } as const;
+  }),
+}) {
   static layer = Layer.effect(this)(this.make);
 }
 
@@ -105,9 +99,7 @@ function renderDagAscii(dag: DagGraph, options: DagRenderOptions): string {
     }
 
     if (options.showDependencies) {
-      const dependents = dag.steps.filter((s) =>
-        s.dependencies.includes(stepId),
-      );
+      const dependents = dag.steps.filter((s) => s.dependencies.includes(stepId));
 
       for (const dependent of dependents) {
         renderStep(dependent.id, depth + 1);
@@ -145,7 +137,9 @@ function renderDagMarkdown(dag: DagGraph): string {
     lines.push("");
     lines.push(`- **Name:** ${step.name}`);
     lines.push(`- **Type:** ${step.type}`);
-    lines.push(`- **Dependencies:** ${step.dependencies.length > 0 ? step.dependencies.join(", ") : "none"}`);
+    lines.push(
+      `- **Dependencies:** ${step.dependencies.length > 0 ? step.dependencies.join(", ") : "none"}`,
+    );
 
     if (Object.keys(step.config).length > 0) {
       lines.push("- **Config:**");

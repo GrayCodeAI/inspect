@@ -18,13 +18,13 @@ export class NodeUnavailableError extends Schema.ErrorClass<NodeUnavailableError
   message = `Grid node "${this.nodeId}" with browser "${this.browserName}" is unavailable`;
 }
 
-export class HubConnectionError extends Schema.ErrorClass<HubConnectionError>(
-  "HubConnectionError",
-)({
-  _tag: Schema.tag("HubConnectionError"),
-  hubUrl: Schema.String,
-  cause: Schema.Unknown,
-}) {
+export class HubConnectionError extends Schema.ErrorClass<HubConnectionError>("HubConnectionError")(
+  {
+    _tag: Schema.tag("HubConnectionError"),
+    hubUrl: Schema.String,
+    cause: Schema.Unknown,
+  },
+) {
   message = `Failed to connect to Selenium Grid hub at ${this.hubUrl}`;
 }
 

@@ -25,10 +25,9 @@ export interface UrlDeduplicatorService {
   }>;
 }
 
-export class UrlDeduplicator extends ServiceMap.Service<
-  UrlDeduplicator,
-  UrlDeduplicatorService
->()("@inspect/UrlDeduplicator") {
+export class UrlDeduplicator extends ServiceMap.Service<UrlDeduplicator, UrlDeduplicatorService>()(
+  "@inspect/UrlDeduplicator",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

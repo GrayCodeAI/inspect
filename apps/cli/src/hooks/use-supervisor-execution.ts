@@ -83,7 +83,7 @@ function getRandomDelay(): number {
  * Convert UpdateContent event to step state update
  * Used by both simulation and real orchestrator
  */
-function updateStepFromEvent(steps: TestPlanStepData[], event: UpdateContent): TestPlanStepData[] {
+function _updateStepFromEvent(steps: TestPlanStepData[], event: UpdateContent): TestPlanStepData[] {
   if (event._tag === "StepStarted" && "stepId" in event) {
     return steps.map((s) =>
       s.id === (event as StepStarted).stepId ? { ...s, status: "active" } : s,
@@ -224,10 +224,10 @@ export function useSupervisorExecution(options: UseSupervisorExecutionOptions) {
     const finalSteps = currentState.executedPlan?.steps ?? [];
     const allPassed = finalSteps.every((s) => s.status === "passed");
     const report: TestReport = {
-      plan: currentState.executedPlan as any,
+      plan: currentState.executedPlan as unknown,
       summary: allPassed ? "All tests passed" : "Some tests failed",
       steps: finalSteps.map((s) => ({
-        stepId: s.id as any,
+        stepId: s.id as unknown,
         title: s.instruction,
         status: s.status === "passed" ? "passed" : s.status === "failed" ? "failed" : "not-run",
         summary: s.summary ?? "",

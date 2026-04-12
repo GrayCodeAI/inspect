@@ -19,15 +19,9 @@ export interface ComponentAssertionResult {
 export class ComponentReporter extends ServiceMap.Service<
   ComponentReporter,
   {
-    readonly report: (
-      results: readonly ComponentTestResult[],
-    ) => Effect.Effect<string>;
-    readonly reportSummary: (
-      results: readonly ComponentTestResult[],
-    ) => Effect.Effect<string>;
-    readonly reportJSON: (
-      results: readonly ComponentTestResult[],
-    ) => Effect.Effect<string>;
+    readonly report: (results: readonly ComponentTestResult[]) => Effect.Effect<string>;
+    readonly reportSummary: (results: readonly ComponentTestResult[]) => Effect.Effect<string>;
+    readonly reportJSON: (results: readonly ComponentTestResult[]) => Effect.Effect<string>;
   }
 >()("@component-testing/ComponentReporter") {
   static layer = Layer.succeed(this, {
@@ -36,10 +30,7 @@ export class ComponentReporter extends ServiceMap.Service<
         const total = results.length;
         const passed = results.filter((r) => r.failed === 0).length;
         const failed = total - passed;
-        const totalAssertions = results.reduce(
-          (sum, r) => sum + r.passed + r.failed,
-          0,
-        );
+        const totalAssertions = results.reduce((sum, r) => sum + r.passed + r.failed, 0);
         const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
         return [

@@ -22,7 +22,11 @@ export type {
 } from "./coverage-processor.js";
 
 export { CoverageReporter } from "./coverage-reporter.js";
-export type { ReportFormat, CoverageReporterOptions, WatermarkConfig } from "./coverage-reporter.js";
+export type {
+  ReportFormat,
+  CoverageReporterOptions,
+  WatermarkConfig,
+} from "./coverage-reporter.js";
 
 export { CoverageThreshold } from "./coverage-threshold.js";
 export type { CoverageThresholds, ThresholdCheckResult } from "./coverage-threshold.js";

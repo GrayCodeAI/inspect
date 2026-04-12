@@ -1,4 +1,4 @@
-import { Effect, Layer, Ref, Scope, ServiceMap } from "effect";
+import { Effect, Layer, Ref, ServiceMap } from "effect";
 import { SandboxResourceExceededError, SecurityModeError } from "./errors.js";
 
 export interface ResourceLimits {
@@ -31,11 +31,11 @@ export class Sandbox extends ServiceMap.Service<
     readonly checkResourceLimit: (
       resource: keyof ResourceLimits,
       usage: number,
-    ) => Effect.Effect<void, SandboxResourceExceededError>;
+    ) => Effect.Effect<void, SandboxResourceExceededError | SecurityModeError>;
     readonly recordResourceUsage: (
       resource: keyof ResourceLimits,
       amount: number,
-    ) => Effect.Effect<void, SecurityModeError>;
+    ) => Effect.Effect<void, SecurityModeError | SandboxResourceExceededError>;
   }
 >()("@inspect/security-modes/Sandbox") {
   static make = Effect.gen(function* () {
@@ -114,9 +114,9 @@ export class Sandbox extends ServiceMap.Service<
           });
         }
 
-        const limit = config.limits[resource];
+        const limit = config.limits[resource] as number | undefined;
 
-        if (usage > limit) {
+        if (limit !== undefined && usage > limit) {
           return yield* new SandboxResourceExceededError({
             resource,
             limit,
@@ -129,6 +129,7 @@ export class Sandbox extends ServiceMap.Service<
           usage,
           limit,
         });
+        return void 0;
       }).pipe(Effect.withSpan("Sandbox.checkResourceLimit"));
 
     const recordResourceUsage = (resource: keyof ResourceLimits, amount: number) =>
@@ -145,10 +146,10 @@ export class Sandbox extends ServiceMap.Service<
         const usage = yield* Ref.get(usageRef);
 
         if (config) {
-          const limit = config.limits[resource];
+          const limit = config.limits[resource] as number | undefined;
           const currentUsage = usage[resourceToUsageKey(resource)];
 
-          if (currentUsage > limit) {
+          if (limit !== undefined && currentUsage > limit) {
             return yield* new SandboxResourceExceededError({
               resource,
               limit,
@@ -170,9 +171,7 @@ export class Sandbox extends ServiceMap.Service<
   static layer = Layer.effect(this, this.make);
 }
 
-function resourceToUsageKey(
-  resource: keyof ResourceLimits,
-): keyof SandboxResourceUsage {
+function resourceToUsageKey(resource: keyof ResourceLimits): keyof SandboxResourceUsage {
   switch (resource) {
     case "memoryMB":
       return "memoryUsed";

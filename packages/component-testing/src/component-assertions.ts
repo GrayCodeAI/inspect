@@ -11,12 +11,8 @@ export interface SnapshotData {
 export class ComponentAssertions extends ServiceMap.Service<
   ComponentAssertions,
   {
-    readonly assertVisible: (
-      selector: string,
-    ) => Effect.Effect<void, ComponentAssertionError>;
-    readonly assertHidden: (
-      selector: string,
-    ) => Effect.Effect<void, ComponentAssertionError>;
+    readonly assertVisible: (selector: string) => Effect.Effect<void, ComponentAssertionError>;
+    readonly assertHidden: (selector: string) => Effect.Effect<void, ComponentAssertionError>;
     readonly assertText: (
       selector: string,
       expected: string,
@@ -69,17 +65,29 @@ export class ComponentAssertions extends ServiceMap.Service<
         }),
 
       assertContainsText: (selector: string, text: string) =>
-        assertWithLocator(page, "assertContainsText", selector, `text to contain "${text}"`, async (loc) => {
-          const actual = await loc.textContent();
-          const trimmed = actual?.trim() ?? "";
-          return { pass: trimmed.includes(text), actual: trimmed };
-        }),
+        assertWithLocator(
+          page,
+          "assertContainsText",
+          selector,
+          `text to contain "${text}"`,
+          async (loc) => {
+            const actual = await loc.textContent();
+            const trimmed = actual?.trim() ?? "";
+            return { pass: trimmed.includes(text), actual: trimmed };
+          },
+        ),
 
       assertAttribute: (selector: string, attribute: string, expected: string) =>
-        assertWithLocator(page, "assertAttribute", selector, `attribute "${attribute}" to be "${expected}"`, async (loc) => {
-          const actual = await loc.getAttribute(attribute);
-          return { pass: actual === expected, actual: actual ?? "" };
-        }),
+        assertWithLocator(
+          page,
+          "assertAttribute",
+          selector,
+          `attribute "${attribute}" to be "${expected}"`,
+          async (loc) => {
+            const actual = await loc.getAttribute(attribute);
+            return { pass: actual === expected, actual: actual ?? "" };
+          },
+        ),
 
       assertCount: (selector: string, expected: number) =>
         assertWithLocator(page, "assertCount", selector, `count to be ${expected}`, async (loc) => {

@@ -27,15 +27,12 @@ export interface CrawlSpiderService {
     startUrl: string,
     config?: Partial<CrawlConfig>,
   ) => Effect.Effect<CrawlResult[], SpiderError | RobotsTxtError | null>;
-  readonly checkRobotsTxt: (
-    url: string,
-  ) => Effect.Effect<boolean, RobotsTxtError | null>;
+  readonly checkRobotsTxt: (url: string) => Effect.Effect<boolean, RobotsTxtError | null>;
 }
 
-export class CrawlSpider extends ServiceMap.Service<
-  CrawlSpider,
-  CrawlSpiderService
->()("@inspect/CrawlSpider") {
+export class CrawlSpider extends ServiceMap.Service<CrawlSpider, CrawlSpiderService>()(
+  "@inspect/CrawlSpider",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -102,7 +99,10 @@ export class CrawlSpider extends ServiceMap.Service<
       };
 
       const extractText = (html: string): string => {
-        return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+        return html
+          .replace(/<[^>]*>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
       };
 
       const crawl = (startUrl: string, config?: Partial<CrawlConfig>) =>
@@ -124,9 +124,7 @@ export class CrawlSpider extends ServiceMap.Service<
             maxPages: resolvedConfig.maxPages,
           });
 
-          const queue: Array<{ url: string; depth: number }> = [
-            { url: startUrl, depth: 0 },
-          ];
+          const queue: Array<{ url: string; depth: number }> = [{ url: startUrl, depth: 0 }];
 
           while (queue.length > 0 && results.length < resolvedConfig.maxPages) {
             const current = queue.shift();
@@ -204,10 +202,7 @@ export class CrawlSpider extends ServiceMap.Service<
           });
 
           return results;
-        }).pipe(
-          Effect.catchTag("SpiderError", Effect.fail),
-          Effect.withSpan("CrawlSpider.crawl"),
-        );
+        }).pipe(Effect.catchTag("SpiderError", Effect.fail), Effect.withSpan("CrawlSpider.crawl"));
 
       return { crawl, checkRobotsTxt } as const;
     }),

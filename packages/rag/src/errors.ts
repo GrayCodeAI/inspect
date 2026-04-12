@@ -24,9 +24,7 @@ export class EmbeddingError extends Schema.ErrorClass<EmbeddingError>("Embedding
   message = `Embedding generation failed via ${this.provider}`;
 }
 
-export class DocumentLoadError extends Schema.ErrorClass<DocumentLoadError>(
-  "DocumentLoadError",
-)({
+export class DocumentLoadError extends Schema.ErrorClass<DocumentLoadError>("DocumentLoadError")({
   _tag: Schema.tag("DocumentLoadError"),
   source: Schema.String,
   cause: Schema.Unknown,

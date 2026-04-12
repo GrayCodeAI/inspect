@@ -56,7 +56,10 @@ describe("SSIM", () => {
 
     effectIt("should fail on dimension mismatch", () =>
       Effect.gen(function* () {
-        const image1 = [[1, 2], [3, 4]];
+        const image1 = [
+          [1, 2],
+          [3, 4],
+        ];
         const image2 = [[1, 2, 3]];
         const error = yield* computeSSIM(image1, image2).pipe(Effect.flip);
         expect(error instanceof DimensionMismatchError).toBe(true);
@@ -84,8 +87,14 @@ describe("PerceptualDiff", () => {
     effectIt("should detect different images", () =>
       Effect.gen(function* () {
         const diff = yield* PerceptualDiff;
-        const white = [[255, 255], [255, 255]];
-        const black = [[0, 0], [0, 0]];
+        const white = [
+          [255, 255],
+          [255, 255],
+        ];
+        const black = [
+          [0, 0],
+          [0, 0],
+        ];
 
         const result = yield* diff.compareBuffers(white, black, { threshold: 0.1 });
         expect(result.isSimilar).toBe(false);
@@ -99,22 +108,26 @@ describe("DiffReporter", () => {
     Effect.gen(function* () {
       const reporter = yield* DiffReporter;
 
-      yield* reporter.recordComparison(new DiffReportEntry({
-        image1Path: "baseline.png",
-        image2Path: "current.png",
-        similarity: 0.85,
-        isSimilar: true,
-        threshold: 0.05,
-        duration: 100,
-      }));
-      yield* reporter.recordComparison(new DiffReportEntry({
-        image1Path: "baseline.png",
-        image2Path: "new.png",
-        similarity: 0.95,
-        isSimilar: true,
-        threshold: 0.05,
-        duration: 80,
-      }));
+      yield* reporter.recordComparison(
+        new DiffReportEntry({
+          image1Path: "baseline.png",
+          image2Path: "current.png",
+          similarity: 0.85,
+          isSimilar: true,
+          threshold: 0.05,
+          duration: 100,
+        }),
+      );
+      yield* reporter.recordComparison(
+        new DiffReportEntry({
+          image1Path: "baseline.png",
+          image2Path: "new.png",
+          similarity: 0.95,
+          isSimilar: true,
+          threshold: 0.05,
+          duration: 80,
+        }),
+      );
 
       const entries = yield* reporter.getEntries;
       expect(entries).toHaveLength(2);
@@ -131,14 +144,16 @@ describe("DiffReporter", () => {
     Effect.gen(function* () {
       const reporter = yield* DiffReporter;
 
-      yield* reporter.recordComparison(new DiffReportEntry({
-        image1Path: "a.png",
-        image2Path: "b.png",
-        similarity: 0.9,
-        isSimilar: true,
-        threshold: 0.05,
-        duration: 50,
-      }));
+      yield* reporter.recordComparison(
+        new DiffReportEntry({
+          image1Path: "a.png",
+          image2Path: "b.png",
+          similarity: 0.9,
+          isSimilar: true,
+          threshold: 0.05,
+          duration: 50,
+        }),
+      );
       const before = yield* reporter.getEntries;
       expect(before).toHaveLength(1);
 

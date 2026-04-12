@@ -28,14 +28,13 @@ export interface AutoScalerService {
   readonly getCurrentState: Effect.Effect<ConcurrencyState>;
 }
 
-export class AutoScaler extends ServiceMap.Service<
-  AutoScaler,
-  AutoScalerService
->()("@inspect/AutoScaler") {
+export class AutoScaler extends ServiceMap.Service<AutoScaler, AutoScalerService>()(
+  "@inspect/AutoScaler",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
-      const resourceMonitor = yield* ResourceMonitor;
+      const _resourceMonitor = yield* ResourceMonitor;
       const concurrencyManager = yield* ConcurrencyManager;
       const config = new AutoScalerConfig({ checkInterval: 5000, enabled: true });
 
@@ -61,25 +60,15 @@ export class AutoScaler extends ServiceMap.Service<
           });
 
           yield* Effect.logInfo("Auto scaler monitoring loop active");
-        }).pipe(
-          Effect.catchTag("NoSuchElementError", (cause) =>
-            Effect.fail(
-              new AutoScalerError({
-                message: `Failed to start auto scaler: ${String(cause)}`,
-                component: "auto-scaler",
-                cause,
-              }),
-            ),
-          ),
-          Effect.withSpan("AutoScaler.start"),
-        );
+        }).pipe(Effect.withSpan("AutoScaler.start"));
 
-      const stop = Effect.sync(() => {
-        isRunning = false;
-      }).pipe(
-        Effect.tap(() => Effect.logInfo("Auto scaler stopped")),
-        Effect.withSpan("AutoScaler.stop"),
-      );
+      const stop = () =>
+        Effect.sync(() => {
+          isRunning = false;
+        }).pipe(
+          Effect.tap(() => Effect.logInfo("Auto scaler stopped")),
+          Effect.withSpan("AutoScaler.stop"),
+        );
 
       const isRunningEffect = Effect.sync(() => isRunning);
 
@@ -91,5 +80,5 @@ export class AutoScaler extends ServiceMap.Service<
 
       return { start, stop, isRunning: isRunningEffect, getEvents, getCurrentState } as const;
     }),
-  ).pipe(Layer.provideMerge(ResourceMonitor.layer, ConcurrencyManager.layer));
+  ).pipe(Layer.provide(Layer.merge(ResourceMonitor.layer, ConcurrencyManager.layer)));
 }

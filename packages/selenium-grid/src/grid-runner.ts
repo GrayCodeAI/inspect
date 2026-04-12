@@ -1,6 +1,6 @@
-import { Effect, FiberMap, Layer, Ref, Schedule, ServiceMap } from "effect";
-import { GridManager, type GridSession, type GridCapabilities } from "./grid-manager.js";
-import { GridError, SessionCreationError } from "./errors.js";
+import { Effect, Layer, Ref, ServiceMap } from "effect";
+import { GridManager, type GridCapabilities } from "./grid-manager.js";
+import { GridError, NodeUnavailableError, SessionCreationError } from "./errors.js";
 
 export interface TestExecution {
   testId: string;
@@ -28,19 +28,16 @@ export class GridRunner extends ServiceMap.Service<
   {
     readonly runTest: (
       plan: DistributedTestPlan,
-    ) => Effect.Effect<TestExecution, GridError | SessionCreationError>;
+    ) => Effect.Effect<TestExecution, GridError | SessionCreationError | NodeUnavailableError>;
     readonly runTests: (
       plans: DistributedTestPlan[],
-    ) => Effect.Effect<TestExecution[], GridError | SessionCreationError>;
-    readonly cancelTest: (
-      testId: string,
-    ) => Effect.Effect<void, GridError>;
+    ) => Effect.Effect<TestExecution[], GridError | SessionCreationError | NodeUnavailableError>;
+    readonly cancelTest: (testId: string) => Effect.Effect<void, GridError>;
     readonly getRunningTests: Effect.Effect<string[], GridError>;
   }
 >()("@inspect/selenium-grid/GridRunner") {
   static make = Effect.gen(function* () {
     const gridManager = yield* GridManager;
-    const runningFibers = yield* FiberMap.make<string>();
     const executionsRef = yield* Ref.make<Map<string, TestExecution>>(new Map());
 
     const runTest = (plan: DistributedTestPlan) =>
@@ -60,8 +57,17 @@ export class GridRunner extends ServiceMap.Service<
 
         const session = yield* gridManager.createSession(plan.capabilities);
 
-        execution.sessionId = session.sessionId;
-        execution.nodeId = session.nodeId;
+        const runningExecution: TestExecution = {
+          ...execution,
+          sessionId: session.sessionId,
+          nodeId: session.nodeId,
+        };
+
+        yield* Ref.update(executionsRef, (executions) => {
+          const updated = new Map(executions);
+          updated.set(plan.testId, runningExecution);
+          return updated;
+        });
 
         yield* Effect.logInfo("Starting distributed test", {
           testId: plan.testId,
@@ -69,59 +75,53 @@ export class GridRunner extends ServiceMap.Service<
           nodeId: session.nodeId,
         });
 
-        // Execute test steps sequentially
         let allPassed = true;
         let lastResult: unknown;
 
         for (const step of plan.steps) {
           const stepResult = yield* executeStep(session.sessionId, step).pipe(
-            Effect.catchTags({
-              GridError: (error) => {
-                allPassed = false;
-                lastResult = error;
-                return Effect.succeed(undefined);
-              },
-              SessionCreationError: (error) => {
-                allPassed = false;
-                lastResult = error;
-                return Effect.succeed(undefined);
-              },
+            Effect.match({
+              onSuccess: (result) => result,
+              onFailure: () => undefined,
             }),
           );
 
-          if (stepResult !== undefined) {
+          if (stepResult === undefined) {
+            allPassed = false;
+          } else {
             lastResult = stepResult;
           }
         }
 
-        execution.status = allPassed ? "passed" : "failed";
-        execution.result = lastResult;
+        const finalExecution: TestExecution = {
+          ...runningExecution,
+          status: allPassed ? "passed" : "failed",
+          result: lastResult,
+        };
+
+        yield* Ref.update(executionsRef, (executions) => {
+          const updated = new Map(executions);
+          updated.set(plan.testId, finalExecution);
+          return updated;
+        });
 
         yield* gridManager.closeSession(session.sessionId);
 
         yield* Effect.logInfo("Distributed test completed", {
           testId: plan.testId,
-          status: execution.status,
+          status: finalExecution.status,
         });
 
-        return execution;
-      }).pipe(
-        Effect.withSpan("GridRunner.runTest"),
-        Effect.annotateCurrentSpan({ testId: plan.testId }),
-      );
+        return finalExecution;
+      });
 
     const runTests = (plans: DistributedTestPlan[]) =>
-      Effect.forEach(
-        plans,
-        (plan) => runTest(plan),
-        { concurrency: MAX_CONCURRENT_TESTS },
-      ).pipe(Effect.withSpan("GridRunner.runTests"));
+      Effect.forEach(plans, (plan) => runTest(plan), { concurrency: MAX_CONCURRENT_TESTS });
 
     const cancelTest = (testId: string) =>
       Effect.gen(function* () {
-        const execution = yield* Ref.get(executionsRef).pipe(
-          Effect.map((executions) => executions.get(testId)),
-        );
+        const executions = yield* Ref.get(executionsRef);
+        const execution = executions.get(testId);
 
         if (execution?.sessionId) {
           yield* gridManager.closeSession(execution.sessionId);
@@ -137,7 +137,7 @@ export class GridRunner extends ServiceMap.Service<
         });
 
         yield* Effect.logInfo("Test cancelled", { testId });
-      }).pipe(Effect.withSpan("GridRunner.cancelTest"));
+      });
 
     const getRunningTests = Effect.gen(function* () {
       const executions = yield* Ref.get(executionsRef);
@@ -157,10 +157,7 @@ export class GridRunner extends ServiceMap.Service<
   static layer = Layer.effect(this, this.make).pipe(Layer.provide(GridManager.layer));
 }
 
-function executeStep(
-  sessionId: string,
-  step: TestStep,
-): Effect.Effect<unknown, GridError> {
+function executeStep(sessionId: string, step: TestStep): Effect.Effect<unknown, GridError> {
   return Effect.gen(function* () {
     yield* Effect.logDebug("Executing step", {
       sessionId,
@@ -168,8 +165,6 @@ function executeStep(
       selector: step.selector,
     });
 
-    // Steps are executed via the WebDriver session
-    // Actual implementation would integrate with @inspect/webdriver
     return { action: step.action, success: true };
   });
 }

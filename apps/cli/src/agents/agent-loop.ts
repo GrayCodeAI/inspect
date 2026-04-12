@@ -13,7 +13,6 @@ import type { Page } from "@inspect/browser";
 import {
   AnnotatedScreenshot,
   DOMDiff,
-  AriaSnapshotBuilder,
   createNLAct,
   DiffElement as DOMDiffElement,
   AnnotatedElement,

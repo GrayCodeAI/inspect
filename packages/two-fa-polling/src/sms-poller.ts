@@ -1,11 +1,6 @@
 import { Effect, Layer, Ref, ServiceMap } from "effect";
 
-import {
-  CodeExtractionError,
-  PollingTimeoutError,
-  TwoFAError,
-  UnsupportedChannelError,
-} from "./errors.js";
+import { CodeExtractionError, PollingTimeoutError, TwoFAError } from "./errors.js";
 
 export interface SMSGatewayConfig {
   provider: "twilio" | "vonage" | "plivo" | "custom";
@@ -26,9 +21,7 @@ export interface SMSMessage {
 export class SMSPoller extends ServiceMap.Service<
   SMSPoller,
   {
-    readonly configure: (
-      config: SMSGatewayConfig,
-    ) => Effect.Effect<void, TwoFAError>;
+    readonly configure: (config: SMSGatewayConfig) => Effect.Effect<void, TwoFAError>;
     readonly pollForOTP: (
       options: SMSPollOptions,
     ) => Effect.Effect<string, TwoFAError | PollingTimeoutError | CodeExtractionError>;
@@ -37,7 +30,6 @@ export class SMSPoller extends ServiceMap.Service<
   }
 >()("@inspect/two-fa-polling/SMSPoller") {
   static make = Effect.gen(function* () {
-    
     const configRef = yield* Ref.make<SMSGatewayConfig | null>(null);
 
     const configure = (config: SMSGatewayConfig) =>
@@ -108,7 +100,7 @@ export class SMSPoller extends ServiceMap.Service<
         const startTime = Date.now();
         let attempts = 0;
 
-        while (Date.now() - startTime < options.timeoutMs) {
+        while (Date.now() - startTime < (options.timeoutMs ?? 60000)) {
           attempts++;
 
           const messages = yield* fetchLatestSMS;
@@ -147,7 +139,7 @@ export class SMSPoller extends ServiceMap.Service<
 
         return yield* new PollingTimeoutError({
           channel: "sms",
-          timeoutMs: options.timeoutMs,
+          timeoutMs: options.timeoutMs ?? 60000,
           attempts,
         });
       }).pipe(Effect.withSpan("SMSPoller.pollForOTP"));

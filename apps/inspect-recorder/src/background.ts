@@ -3,13 +3,7 @@
 // Manages recording state and event storage
 // ──────────────────────────────────────────────────────────────────────────────
 
-type EventType =
-  | "navigation"
-  | "click"
-  | "type"
-  | "select"
-  | "submit"
-  | "scroll";
+type EventType = "navigation" | "click" | "type" | "select" | "submit" | "scroll";
 
 interface RecordedEvent {
   type: EventType;
@@ -95,9 +89,7 @@ function buildTestScript(events: RecordedEvent[]): string {
         lines.push(`${stepNumber}. Click on ${buildSelectorDesc(event.selector)}`);
         break;
       case "type":
-        lines.push(
-          `${stepNumber}. Type "${event.text}" into ${buildSelectorDesc(event.selector)}`,
-        );
+        lines.push(`${stepNumber}. Type "${event.text}" into ${buildSelectorDesc(event.selector)}`);
         break;
       case "select":
         lines.push(
@@ -198,7 +190,11 @@ chrome.runtime.onMessage.addListener(
   (
     message: { action: string; event?: RecordedEvent },
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: { success?: boolean; events?: RecordedEvent[]; testScript?: string }) => void,
+    sendResponse: (response: {
+      success?: boolean;
+      events?: RecordedEvent[];
+      testScript?: string;
+    }) => void,
   ) => {
     switch (message.action) {
       case "startRecording":

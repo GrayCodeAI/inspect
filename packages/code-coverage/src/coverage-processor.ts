@@ -187,7 +187,9 @@ export class CoverageProcessor extends ServiceMap.Service<CoverageProcessor>()(
                 if (branch.taken) coveredBranches++;
               }
 
-              const coveredFunctions = Arr.fromIterable(functionMap.values()).filter(Boolean).length;
+              const coveredFunctions = Arr.fromIterable(functionMap.values()).filter(
+                Boolean,
+              ).length;
               const totalFunctions = functionMap.size;
 
               files.push({
@@ -221,12 +223,13 @@ export class CoverageProcessor extends ServiceMap.Service<CoverageProcessor>()(
           return coverage.filter((script) => {
             if (!script.url) return false;
 
-            const shouldInclude = filter.include.length === 0
-              ? true
-              : filter.include.some((pattern) => matchesPattern(script.url, pattern));
+            const shouldInclude =
+              filter.include.length === 0
+                ? true
+                : filter.include.some((pattern) => matchesPattern(script.url, pattern));
 
             const shouldExclude = filter.exclude.some((pattern) =>
-              matchesPattern(script.url, pattern)
+              matchesPattern(script.url, pattern),
             );
 
             return shouldInclude && !shouldExclude;
@@ -274,9 +277,7 @@ function createMetrics(total: number, covered: number): CoverageMetrics {
   };
 }
 
-function aggregateMetrics(
-  metricsArray: ReadonlyArray<CoverageMetrics>,
-): CoverageMetrics {
+function aggregateMetrics(metricsArray: ReadonlyArray<CoverageMetrics>): CoverageMetrics {
   const total = metricsArray.reduce((sum, m) => sum + m.total, 0);
   const covered = metricsArray.reduce((sum, m) => sum + m.covered, 0);
   const skipped = metricsArray.reduce((sum, m) => sum + m.skipped, 0);

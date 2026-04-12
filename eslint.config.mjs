@@ -32,4 +32,16 @@ export default tseslint.config(
       "require-yield": "off",
     },
   },
+  {
+    files: ["apps/inspect-recorder/build.mjs"],
+    rules: {
+      "no-undef": "off",
+    },
+  },
+  {
+    files: ["packages/document-ingest/src/pdf-ingestor.ts"],
+    rules: {
+      "no-control-regex": "off",
+    },
+  },
 );

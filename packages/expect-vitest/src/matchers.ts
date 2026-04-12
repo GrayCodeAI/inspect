@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 /** Extend Vitest's expect with Inspect matchers */
-export function extendExpect(vitestExpect: typeof expect) {
+export function extendExpect(_vitestExpect: typeof expect) {
   expect.extend({
     // Element visibility
     async toBeVisible(received: Locator | Page, selector?: string) {
@@ -404,9 +404,10 @@ export function extendExpect(vitestExpect: typeof expect) {
         writeFileSync(snapshotPath, serialized, "utf-8");
         return {
           pass: true,
-          message: () => updateSnapshot
-            ? `snapshot updated: ${snapshotName}`
-            : `snapshot created: ${snapshotName}`,
+          message: () =>
+            updateSnapshot
+              ? `snapshot updated: ${snapshotName}`
+              : `snapshot created: ${snapshotName}`,
           actual: null,
           expected: null,
         };
@@ -418,9 +419,7 @@ export function extendExpect(vitestExpect: typeof expect) {
       return {
         pass,
         message: () =>
-          pass
-            ? "snapshot matches"
-            : `snapshot does not match. Update with UPDATE_SNAPSHOTS=1`,
+          pass ? "snapshot matches" : `snapshot does not match. Update with UPDATE_SNAPSHOTS=1`,
         actual: received,
         expected: JSON.parse(existing),
       };
@@ -443,9 +442,10 @@ export function extendExpect(vitestExpect: typeof expect) {
         writeFileSync(snapshotPath, screenshot);
         return {
           pass: true,
-          message: () => updateSnapshot
-            ? `screenshot snapshot updated: ${name}.png`
-            : `screenshot snapshot created: ${name}.png`,
+          message: () =>
+            updateSnapshot
+              ? `screenshot snapshot updated: ${name}.png`
+              : `screenshot snapshot created: ${name}.png`,
           actual: null,
           expected: null,
         };
@@ -488,19 +488,30 @@ export function extendExpect(vitestExpect: typeof expect) {
       }
 
       if (updateSnapshot || !existsSync(snapshotPath)) {
-        writeFileSync(snapshotPath, JSON.stringify({ tree, url: received.url(), title: await received.title() }, null, 2), "utf-8");
+        writeFileSync(
+          snapshotPath,
+          JSON.stringify({ tree, url: received.url(), title: await received.title() }, null, 2),
+          "utf-8",
+        );
         return {
           pass: true,
-          message: () => updateSnapshot
-            ? `accessibility snapshot updated: ${name}.a11y.json`
-            : `accessibility snapshot created: ${name}.a11y.json`,
+          message: () =>
+            updateSnapshot
+              ? `accessibility snapshot updated: ${name}.a11y.json`
+              : `accessibility snapshot created: ${name}.a11y.json`,
           actual: null,
           expected: null,
         };
       }
 
       const existing = readFileSync(snapshotPath, "utf-8");
-      const pass = existing.trim() === JSON.stringify({ tree, url: received.url(), title: await received.title() }, null, 2).trim();
+      const pass =
+        existing.trim() ===
+        JSON.stringify(
+          { tree, url: received.url(), title: await received.title() },
+          null,
+          2,
+        ).trim();
 
       return {
         pass,

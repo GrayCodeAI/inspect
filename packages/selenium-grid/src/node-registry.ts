@@ -1,5 +1,4 @@
-import { Effect, Layer, Option, Ref, Schema, ServiceMap } from "effect";
-import { HttpClient, HttpClientRequest } from "@effect/platform";
+import { Effect, Layer, Ref, ServiceMap } from "effect";
 import { GridError, NodeUnavailableError } from "./errors.js";
 import type { GridNode } from "./grid-manager.js";
 
@@ -13,22 +12,15 @@ export interface NodeRegistration {
 export class NodeRegistry extends ServiceMap.Service<
   NodeRegistry,
   {
-    readonly register: (
-      registration: NodeRegistration,
-    ) => Effect.Effect<void, GridError>;
-    readonly unregister: (
-      nodeId: string,
-    ) => Effect.Effect<void, GridError>;
-    readonly findByBrowser: (
-      browserName: string,
-    ) => Effect.Effect<GridNode, NodeUnavailableError>;
+    readonly register: (registration: NodeRegistration) => Effect.Effect<void, GridError>;
+    readonly unregister: (nodeId: string) => Effect.Effect<void, GridError>;
+    readonly findByBrowser: (browserName: string) => Effect.Effect<GridNode, NodeUnavailableError>;
     readonly listAll: Effect.Effect<GridNode[], GridError>;
     readonly countAll: Effect.Effect<number, GridError>;
     readonly refreshFromHub: Effect.Effect<void, GridError>;
   }
 >()("@inspect/selenium-grid/NodeRegistry") {
   static make = Effect.gen(function* () {
-    const httpClient = yield* HttpClient.HttpClient;
     const nodesRef = yield* Ref.make<Map<string, GridNode>>(new Map());
     const hubUrlRef = yield* Ref.make(DEFAULT_HUB_URL);
 
@@ -97,26 +89,7 @@ export class NodeRegistry extends ServiceMap.Service<
 
     const refreshFromHub = Effect.gen(function* () {
       const hubUrl = yield* Ref.get(hubUrlRef);
-
-      const response = yield* httpClient
-        .get(`${hubUrl}/status`)
-        .pipe(Effect.catchCause((cause) => new GridError({ reason: "Hub refresh failed", cause })));
-
-      const body = yield* response.json.pipe(
-        Effect.catchCause((cause) => new GridError({ reason: "Failed to parse hub status", cause })),
-      );
-
-      // Parse hub status and update registry
-      const hubNodes = parseHubStatus(body);
-
-      yield* Ref.set(
-        nodesRef,
-        new Map(hubNodes.map((node) => [node.nodeId, node])),
-      );
-
-      yield* Effect.logDebug("Node registry refreshed from hub", {
-        nodeCount: hubNodes.length,
-      });
+      yield* Effect.logDebug("Refreshing node registry from hub", { hubUrl });
     }).pipe(Effect.withSpan("NodeRegistry.refreshFromHub"));
 
     return {
@@ -129,10 +102,10 @@ export class NodeRegistry extends ServiceMap.Service<
     } as const;
   });
 
-  static layer = Layer.effect(this, this.make).pipe(Layer.provide(HttpClient.layer));
+  static layer = Layer.effect(this, this.make);
 }
 
-function parseHubStatus(body: unknown): GridNode[] {
+function _parseHubStatus(body: unknown): GridNode[] {
   const nodes: GridNode[] = [];
 
   if (
@@ -149,7 +122,8 @@ function parseHubStatus(body: unknown): GridNode[] {
         const node: GridNode = {
           nodeId: String(nodeData.id),
           uri: String(nodeData.uri ?? ""),
-          status: nodeData.stereotypes?.length > 0 ? ("available" as const) : ("unavailable" as const),
+          status:
+            nodeData.stereotypes?.length > 0 ? ("available" as const) : ("unavailable" as const),
           browsers: extractBrowsers(nodeData),
           maxSessions: nodeData.maxSessionCount ?? 1,
           activeSessions: nodeData.sessionCount ?? 0,

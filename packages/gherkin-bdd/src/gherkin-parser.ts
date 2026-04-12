@@ -85,8 +85,9 @@ export function parseFeature(content: string, _file: string): Feature {
   let currentScenarioSteps: Step[] = [];
   let currentScenarioName = "";
   let currentScenarioIndex = -1;
-  let currentLine = 0;
   let inExamples = false;
+  // eslint-disable-next-line no-useless-assignment
+  let currentLine = 0;
   let currentExampleName = "";
   let currentExampleHeaders: string[] = [];
   let currentExampleRows: string[][] = [];
@@ -215,9 +216,7 @@ export function parseFeature(content: string, _file: string): Feature {
     }
 
     // Step lines
-    const stepMatch = line.match(
-      /^(Given|When|Then|And|But)\s+(.+)$/,
-    );
+    const stepMatch = line.match(/^(Given|When|Then|And|But)\s+(.+)$/);
     if (stepMatch && inScenario && !inOutline) {
       const step: Step = {
         type: stepMatch[1] as Step["type"],

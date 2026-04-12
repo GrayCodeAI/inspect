@@ -1,9 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { it as effectIt } from "@effect/vitest";
 import { Effect } from "effect";
-import { CoverageProcessor, type RawCoverageData, type CoverageSummary } from "./coverage-processor.js";
+import {
+  CoverageProcessor,
+  type RawCoverageData,
+  type CoverageSummary,
+} from "./coverage-processor.js";
 import { CoverageThreshold } from "./coverage-threshold.js";
-import { CoverageCollectionError, CoverageProcessingError, CoverageThresholdError } from "./errors.js";
+import {
+  CoverageCollectionError,
+  CoverageProcessingError,
+  CoverageThresholdError,
+} from "./errors.js";
 
 function makeMetrics(overrides: Partial<CoverageSummary> = {}): CoverageSummary {
   return {
@@ -29,9 +37,7 @@ describe("CoverageProcessor", () => {
               {
                 functionName: "foo",
                 isBlockCoverage: true,
-                ranges: [
-                  { startOffset: 0, endOffset: 100, count: 1 },
-                ],
+                ranges: [{ startOffset: 0, endOffset: 100, count: 1 }],
               },
             ],
           },

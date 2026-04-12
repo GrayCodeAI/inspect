@@ -29,12 +29,12 @@ export class ProxyHealthCheckError extends Schema.ErrorClass<ProxyHealthCheckErr
   message = `Health check failed for ${this.proxyUrl} (latency: ${this.latency}ms)`;
 }
 
-export class ProxyProviderError extends Schema.ErrorClass<ProxyProviderError>(
-  "ProxyProviderError",
-)({
-  _tag: Schema.tag("ProxyProviderError"),
-  provider: Schema.String,
-  cause: Schema.Unknown,
-}) {
+export class ProxyProviderError extends Schema.ErrorClass<ProxyProviderError>("ProxyProviderError")(
+  {
+    _tag: Schema.tag("ProxyProviderError"),
+    provider: Schema.String,
+    cause: Schema.Unknown,
+  },
+) {
   message = `Proxy provider ${this.provider} failed`;
 }

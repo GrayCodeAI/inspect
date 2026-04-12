@@ -240,10 +240,16 @@ export class HistoryStore {
       let totalCost = 0;
       for (const run of recentRuns) {
         // Estimate cost: input tokens * 0.003 + output tokens * 0.015
-        const report = run.report as any;
-        if (report?.metadata?.tokenUsage) {
-          const { inputTokens = 0, outputTokens = 0 } = report.metadata.tokenUsage;
-          totalCost += inputTokens * 0.000003 + outputTokens * 0.000015;
+        const report = run.report as unknown;
+        if (report && typeof report === "object" && "metadata" in report) {
+          const metadata = (report as Record<string, unknown>).metadata;
+          if (metadata && typeof metadata === "object" && "tokenUsage" in metadata) {
+            const tokenUsage = (metadata as Record<string, unknown>).tokenUsage;
+            if (tokenUsage && typeof tokenUsage === "object") {
+              const { inputTokens = 0, outputTokens = 0 } = tokenUsage as Record<string, number>;
+              totalCost += inputTokens * 0.000003 + outputTokens * 0.000015;
+            }
+          }
         }
       }
       const avgCost = totalCost / recentRuns.length;
@@ -350,7 +356,7 @@ export class HistoryStore {
     try {
       fs.mkdirSync(this.historyDir, { recursive: true, mode: 0o700 });
     } catch (err) {
-      if ((err as any).code !== "EEXIST") {
+      if (err instanceof Error && "code" in err && err.code !== "EEXIST") {
         throw err;
       }
     }

@@ -5,7 +5,7 @@ import { ClockService, ClockNotInstalledError } from "./clock-service.js";
 describe("ClockService", () => {
   describe("standalone layer", () => {
     it("should install and report state", async () => {
-      const result = await Effect.runPromise(
+      await Effect.runPromise(
         Effect.gen(function* () {
           const clock = yield* ClockService;
 

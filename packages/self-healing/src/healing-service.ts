@@ -9,7 +9,6 @@ import type {
   PageSnapshot,
   HealingConfig,
   HealingResult,
-  RecoveryAction,
   HealingStats,
   HealingEvent,
 } from "./types.js";

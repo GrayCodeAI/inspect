@@ -21,15 +21,12 @@ export class XmlFeed extends Schema.Class<XmlFeed>("XmlFeed")({
 }) {}
 
 export interface XmlFeedSpiderService {
-  readonly parseFeed: (
-    feedUrl: string,
-  ) => Effect.Effect<XmlFeed, SpiderError>;
+  readonly parseFeed: (feedUrl: string) => Effect.Effect<XmlFeed, SpiderError>;
 }
 
-export class XmlFeedSpider extends ServiceMap.Service<
-  XmlFeedSpider,
-  XmlFeedSpiderService
->()("@inspect/XmlFeedSpider") {
+export class XmlFeedSpider extends ServiceMap.Service<XmlFeedSpider, XmlFeedSpiderService>()(
+  "@inspect/XmlFeedSpider",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -70,9 +67,7 @@ export class XmlFeedSpider extends ServiceMap.Service<
 
       const parseAtom = (xml: string, feedUrl: string): XmlFeed => {
         const titleMatch = xml.match(/<title[^>]*>([^<]+)<\/title>/i);
-        const linkMatch = xml.match(
-          /<link[^>]*href="([^"]+)"[^>]*\/>/i,
-        );
+        const linkMatch = xml.match(/<link[^>]*href="([^"]+)"[^>]*\/>/i);
 
         const entries: FeedEntry[] = [];
         const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
@@ -81,8 +76,7 @@ export class XmlFeedSpider extends ServiceMap.Service<
         while ((entryMatch = entryRegex.exec(xml)) !== null) {
           const entryBlock = entryMatch[1];
           const entryTitle = entryBlock.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ?? "";
-          const entryLink =
-            entryBlock.match(/<link[^>]*href="([^"]+)"[^>]*\/>/i)?.[1] ?? "";
+          const entryLink = entryBlock.match(/<link[^>]*href="([^"]+)"[^>]*\/>/i)?.[1] ?? "";
           const entrySummary = entryBlock.match(/<summary[^>]*>([^<]+)<\/summary>/i)?.[1];
           const entryUpdated = entryBlock.match(/<updated[^>]*>([^<]+)<\/updated>/i)?.[1];
           const entryAuthor = entryBlock.match(/<name[^>]*>([^<]+)<\/name>/i)?.[1];
@@ -123,9 +117,14 @@ export class XmlFeedSpider extends ServiceMap.Service<
           });
 
           const isRss = xml.includes("<rss") || xml.includes("<item");
-          const isAtom = xml.includes('xmlns="http://www.w3.org/2005/Atom') || xml.includes("<entry>");
+          const isAtom =
+            xml.includes('xmlns="http://www.w3.org/2005/Atom') || xml.includes("<entry>");
 
-          const feed = isAtom ? parseAtom(xml, feedUrl) : isRss ? parseRss(xml, feedUrl) : parseRss(xml, feedUrl);
+          const feed = isAtom
+            ? parseAtom(xml, feedUrl)
+            : isRss
+              ? parseRss(xml, feedUrl)
+              : parseRss(xml, feedUrl);
 
           yield* Effect.logInfo("Feed parsed successfully", {
             url: feedUrl,

@@ -1,5 +1,4 @@
 import { Effect, Layer, ServiceMap } from "effect";
-import { FingerprintRotationError } from "./errors.js";
 
 export interface CanvasFingerprint {
   readonly _tag: "CanvasFingerprint";
@@ -56,12 +55,7 @@ const WEBGL_RENDERERS = [
   "ANGLE (Apple, Apple M1 Direct3D11 vs_5_0 ps_5_0)",
 ] as const;
 
-const WEBGL_VENDORS = [
-  "Intel Inc.",
-  "Google Inc. (NVIDIA)",
-  "Google Inc. (AMD)",
-  "Apple",
-] as const;
+const WEBGL_VENDORS = ["Intel Inc.", "Google Inc. (NVIDIA)", "Google Inc. (AMD)", "Apple"] as const;
 
 export class FingerprintRotator extends ServiceMap.Service<FingerprintRotator>()(
   "@stealth/FingerprintRotator",
@@ -71,71 +65,71 @@ export class FingerprintRotator extends ServiceMap.Service<FingerprintRotator>()
         function* () {
           const noiseOffset = 0.1 + Math.random() * 1.4;
           const noiseSeed = Math.random().toString(36).slice(2);
-          return { _tag: "CanvasFingerprint" as const, noiseOffset, noiseSeed } satisfies CanvasFingerprint;
-        },
-      );
-
-      const generateWebGLFingerprint = Effect.fn("FingerprintRotator.generateWebGL")(
-        function* () {
-          const rendererIndex = Math.floor(Math.random() * WEBGL_RENDERERS.length);
-          const vendorIndex = Math.floor(Math.random() * WEBGL_VENDORS.length);
-          const noiseFactor = 0.01 + Math.random() * 0.09;
-
           return {
-            _tag: "WebGLFingerprint" as const,
-            renderer: WEBGL_RENDERERS[rendererIndex],
-            vendor: WEBGL_VENDORS[vendorIndex],
-            noiseFactor,
-          } satisfies WebGLFingerprint;
+            _tag: "CanvasFingerprint" as const,
+            noiseOffset,
+            noiseSeed,
+          } satisfies CanvasFingerprint;
         },
       );
 
-      const generateAudioFingerprint = Effect.fn("FingerprintRotator.generateAudio")(
-        function* () {
-          const oscillatorNoise = 0.001 + Math.random() * 0.009;
-          const analyserNoise = 0.001 + Math.random() * 0.009;
-          return { _tag: "AudioFingerprint" as const, oscillatorNoise, analyserNoise } satisfies AudioFingerprint;
-        },
-      );
+      const generateWebGLFingerprint = Effect.fn("FingerprintRotator.generateWebGL")(function* () {
+        const rendererIndex = Math.floor(Math.random() * WEBGL_RENDERERS.length);
+        const vendorIndex = Math.floor(Math.random() * WEBGL_VENDORS.length);
+        const noiseFactor = 0.01 + Math.random() * 0.09;
 
-      const generateFontFingerprint = Effect.fn("FingerprintRotator.generateFont")(
-        function* () {
-          const numFonts = 8 + Math.floor(Math.random() * (COMMON_FONTS.length - 8));
-          const selectedFonts = [...COMMON_FONTS].slice(0, numFonts);
+        return {
+          _tag: "WebGLFingerprint" as const,
+          renderer: WEBGL_RENDERERS[rendererIndex],
+          vendor: WEBGL_VENDORS[vendorIndex],
+          noiseFactor,
+        } satisfies WebGLFingerprint;
+      });
 
-          const fontMetrics: Record<string, { width: number; height: number }> = {};
-          for (const font of selectedFonts) {
-            fontMetrics[font] = {
-              width: 100 + Math.round(Math.random() * 20),
-              height: 14 + Math.round(Math.random() * 4),
-            };
-          }
+      const generateAudioFingerprint = Effect.fn("FingerprintRotator.generateAudio")(function* () {
+        const oscillatorNoise = 0.001 + Math.random() * 0.009;
+        const analyserNoise = 0.001 + Math.random() * 0.009;
+        return {
+          _tag: "AudioFingerprint" as const,
+          oscillatorNoise,
+          analyserNoise,
+        } satisfies AudioFingerprint;
+      });
 
-          return {
-            _tag: "FontFingerprint" as const,
-            availableFonts: selectedFonts,
-            fontMetrics,
-          } satisfies FontFingerprint;
-        },
-      );
+      const generateFontFingerprint = Effect.fn("FingerprintRotator.generateFont")(function* () {
+        const numFonts = 8 + Math.floor(Math.random() * (COMMON_FONTS.length - 8));
+        const selectedFonts = [...COMMON_FONTS].slice(0, numFonts);
 
-      const generateFullFingerprint = Effect.fn("FingerprintRotator.generateFull")(
-        function* () {
-          return yield* Effect.all({
-            canvas: generateCanvasFingerprint(),
-            webgl: generateWebGLFingerprint(),
-            audio: generateAudioFingerprint(),
-            fonts: generateFontFingerprint(),
-          });
-        },
-      );
+        const fontMetrics: Record<string, { width: number; height: number }> = {};
+        for (const font of selectedFonts) {
+          fontMetrics[font] = {
+            width: 100 + Math.round(Math.random() * 20),
+            height: 14 + Math.round(Math.random() * 4),
+          };
+        }
 
-      const applyFingerprint = Effect.fn("FingerprintRotator.apply")(
-        function* (_fingerprint: BrowserFingerprint) {
-          yield* Effect.logDebug("Applying browser fingerprint");
-          return true;
-        },
-      );
+        return {
+          _tag: "FontFingerprint" as const,
+          availableFonts: selectedFonts,
+          fontMetrics,
+        } satisfies FontFingerprint;
+      });
+
+      const generateFullFingerprint = Effect.fn("FingerprintRotator.generateFull")(function* () {
+        return yield* Effect.all({
+          canvas: generateCanvasFingerprint(),
+          webgl: generateWebGLFingerprint(),
+          audio: generateAudioFingerprint(),
+          fonts: generateFontFingerprint(),
+        });
+      });
+
+      const applyFingerprint = Effect.fn("FingerprintRotator.apply")(function* (
+        _fingerprint: BrowserFingerprint,
+      ) {
+        yield* Effect.logDebug("Applying browser fingerprint");
+        return true;
+      });
 
       return {
         generateCanvasFingerprint,

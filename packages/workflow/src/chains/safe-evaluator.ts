@@ -266,7 +266,7 @@ export function evaluateSafely(expression: string, variables: Record<string, unk
     const tokens = tokenize(expression);
     const { result } = evaluateExpression(tokens, variables);
     return Boolean(result);
-  } catch (error) {
+  } catch (_error) {
     // Return false on any parsing error for safety
     return false;
   }

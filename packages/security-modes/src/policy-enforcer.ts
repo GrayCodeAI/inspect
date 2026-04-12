@@ -1,4 +1,4 @@
-import { Data, Effect, Layer, Ref, Schema, ServiceMap } from "effect";
+import { Data, Effect, Layer, Ref, ServiceMap } from "effect";
 import { PolicyViolationError, SecurityModeError } from "./errors.js";
 
 export type Permission = Data.TaggedEnum<{
@@ -39,9 +39,7 @@ export interface PolicyViolation {
 export class PolicyEnforcer extends ServiceMap.Service<
   PolicyEnforcer,
   {
-    readonly loadPolicies: (
-      policies: SecurityPolicy[],
-    ) => Effect.Effect<void, SecurityModeError>;
+    readonly loadPolicies: (policies: SecurityPolicy[]) => Effect.Effect<void, SecurityModeError>;
     readonly evaluate: (
       policyId: string,
       context: Record<string, unknown>,
@@ -50,11 +48,9 @@ export class PolicyEnforcer extends ServiceMap.Service<
       policyId: string,
       action: string,
       context: Record<string, unknown>,
-    ) => Effect.Effect<void, PolicyViolationError>;
+    ) => Effect.Effect<void, PolicyViolationError | SecurityModeError>;
     readonly getPolicies: Effect.Effect<SecurityPolicy[], SecurityModeError>;
-    readonly hasPermission: (
-      permission: Permission,
-    ) => Effect.Effect<boolean, SecurityModeError>;
+    readonly hasPermission: (permission: Permission) => Effect.Effect<boolean, SecurityModeError>;
   }
 >()("@inspect/security-modes/PolicyEnforcer") {
   static make = Effect.gen(function* () {
@@ -122,6 +118,7 @@ export class PolicyEnforcer extends ServiceMap.Service<
           policyId,
           action,
         });
+        return void 0;
       }).pipe(Effect.withSpan("PolicyEnforcer.enforce"));
 
     const getPolicies = Effect.gen(function* () {
@@ -149,10 +146,7 @@ export class PolicyEnforcer extends ServiceMap.Service<
   static layer = Layer.effect(this, this.make);
 }
 
-function evaluateRule(
-  rule: PolicyRule,
-  context: Record<string, unknown>,
-): boolean {
+function evaluateRule(rule: PolicyRule, context: Record<string, unknown>): boolean {
   // Simple rule evaluation based on condition string
   // In production, this would use a proper rule engine or DSL
   const condition = rule.condition.toLowerCase();
@@ -185,10 +179,7 @@ function evaluateRule(
   return false;
 }
 
-function permissionsMatch(
-  existing: Permission,
-  requested: Permission,
-): boolean {
+function permissionsMatch(existing: Permission, requested: Permission): boolean {
   // Check if permissions have the same tag
   if (existing._tag !== requested._tag) {
     return false;

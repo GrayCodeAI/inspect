@@ -4,9 +4,7 @@
 
 import { Schema } from "effect";
 
-export class BddExecutionError extends Schema.ErrorClass<BddExecutionError>(
-  "BddExecutionError",
-)({
+export class BddExecutionError extends Schema.ErrorClass<BddExecutionError>("BddExecutionError")({
   _tag: Schema.tag("BddExecutionError"),
   suite: Schema.optional(Schema.String),
   test: Schema.optional(Schema.String),
@@ -18,9 +16,7 @@ export class BddExecutionError extends Schema.ErrorClass<BddExecutionError>(
   }
 }
 
-export class BddAssertionError extends Schema.ErrorClass<BddAssertionError>(
-  "BddAssertionError",
-)({
+export class BddAssertionError extends Schema.ErrorClass<BddAssertionError>("BddAssertionError")({
   _tag: Schema.tag("BddAssertionError"),
   expected: Schema.optional(Schema.Unknown),
   actual: Schema.optional(Schema.Unknown),

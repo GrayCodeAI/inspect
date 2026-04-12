@@ -68,7 +68,7 @@ export class ReplayValidator {
   /**
    * Play back and validate all recorded actions
    */
-  async validate(page: PageLike, baseUrl: string): Promise<ReplayValidationResult> {
+  async validate(page: PageLike, _baseUrl: string): Promise<ReplayValidationResult> {
     const startedAt = Date.now();
     const results: ReplayValidationStep[] = [];
     let passedSteps = 0;
@@ -129,7 +129,7 @@ export class ReplayValidator {
   private async validateStep(
     page: PageLike,
     action: ExtractedAction,
-    stepIndex: number,
+    _stepIndex: number,
   ): Promise<void> {
     switch (action.type) {
       case "navigate": {

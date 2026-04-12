@@ -20,19 +20,16 @@ export class PipelineResult extends Schema.Class<PipelineResult>("PipelineResult
 }) {}
 
 export interface PipelineService {
-  readonly run: (
-    context: MiddlewareContext,
-  ) => Effect.Effect<PipelineResult, MiddlewareError>;
+  readonly run: (context: MiddlewareContext) => Effect.Effect<PipelineResult, MiddlewareError>;
   readonly runStage: (
     stage: string,
     context: MiddlewareContext,
   ) => Effect.Effect<MiddlewareContext, MiddlewareError>;
 }
 
-export class MiddlewarePipeline extends ServiceMap.Service<
-  MiddlewarePipeline,
-  PipelineService
->()("@inspect/MiddlewarePipeline") {
+export class MiddlewarePipeline extends ServiceMap.Service<MiddlewarePipeline, PipelineService>()(
+  "@inspect/MiddlewarePipeline",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -48,24 +45,28 @@ export class MiddlewarePipeline extends ServiceMap.Service<
 
           let current = context;
 
-          const executeMiddleware = (index: number): Effect.Effect<MiddlewareContext, MiddlewareError> => {
+          const executeMiddleware = (
+            index: number,
+          ): Effect.Effect<MiddlewareContext, MiddlewareError> => {
             if (index >= middlewares.length) {
               return Effect.succeed(current);
             }
 
             const middleware = middlewares[index];
 
-            return middleware.fn(current, () => executeMiddleware(index + 1)).pipe(
-              Effect.catchTag("MiddlewareError", (err) =>
-                Effect.fail(
-                  new MiddlewareError({
-                    message: `Middleware "${middleware.name}" failed: ${err.message}`,
-                    middleware: middleware.name,
-                    cause: err.cause,
-                  }),
+            return middleware
+              .fn(current, () => executeMiddleware(index + 1))
+              .pipe(
+                Effect.catchTag("MiddlewareError", (err) =>
+                  Effect.fail(
+                    new MiddlewareError({
+                      message: `Middleware "${middleware.name}" failed: ${err.message}`,
+                      middleware: middleware.name,
+                      cause: err.cause,
+                    }),
+                  ),
                 ),
-              ),
-            );
+              );
           };
 
           current = yield* executeMiddleware(0);

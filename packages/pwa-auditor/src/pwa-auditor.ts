@@ -4,7 +4,13 @@
 
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 import { PWAAuditError } from "./errors.js";
-import { checkManifest, checkServiceWorker, checkOfflineCapability, checkHttps, CheckResult } from "./pwa-checks.js";
+import {
+  checkManifest,
+  checkServiceWorker,
+  checkOfflineCapability,
+  checkHttps,
+  CheckResult,
+} from "./pwa-checks.js";
 export { CheckResult };
 
 export class AuditConfig extends Schema.Class<AuditConfig>("AuditConfig")({
@@ -26,15 +32,12 @@ export class AuditReport extends Schema.Class<AuditReport>("AuditReport")({
 }) {}
 
 export interface PWAAuditorService {
-  readonly audit: (
-    config: AuditConfig,
-  ) => Effect.Effect<AuditReport, PWAAuditError>;
+  readonly audit: (config: AuditConfig) => Effect.Effect<AuditReport, PWAAuditError>;
 }
 
-export class PWAAuditor extends ServiceMap.Service<
-  PWAAuditor,
-  PWAAuditorService
->()("@inspect/PWAAuditor") {
+export class PWAAuditor extends ServiceMap.Service<PWAAuditor, PWAAuditorService>()(
+  "@inspect/PWAAuditor",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -71,9 +74,7 @@ export class PWAAuditor extends ServiceMap.Service<
           const passed = checks.filter((c) => c.passed).length;
           const failed = checks.filter((c) => !c.passed).length;
           const totalScore =
-            checks.length > 0
-              ? checks.reduce((sum, c) => sum + c.score, 0) / checks.length
-              : 0;
+            checks.length > 0 ? checks.reduce((sum, c) => sum + c.score, 0) / checks.length : 0;
 
           const report = new AuditReport({
             url: config.url,
@@ -93,9 +94,7 @@ export class PWAAuditor extends ServiceMap.Service<
           });
 
           return report;
-        }).pipe(
-          Effect.withSpan("PWAAuditor.audit"),
-        );
+        }).pipe(Effect.withSpan("PWAAuditor.audit"));
 
       return { audit } as const;
     }),

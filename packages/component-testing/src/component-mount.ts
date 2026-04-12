@@ -44,9 +44,7 @@ export class ComponentMounter extends ServiceMap.Service<
             const framework = options.framework ?? (yield* detector.detect()).type;
 
             if (framework === "unknown") {
-              yield* Effect.logWarning(
-                "No framework detected, using generic mount",
-              );
+              yield* Effect.logWarning("No framework detected, using generic mount");
             }
 
             const componentId = `component-${nextId++}`;
@@ -101,9 +99,7 @@ export class ComponentMounter extends ServiceMap.Service<
 
         return { mount } as const;
       }),
-    ).pipe(
-      Layer.provide(FrameworkDetector.layer(page)),
-    );
+    ).pipe(Layer.provide(FrameworkDetector.layer(page)));
 }
 
 function updateProps(
@@ -129,20 +125,19 @@ function updateProps(
   }).pipe(Effect.asVoid);
 }
 
-function unmountComponent(
-  page: Page,
-  componentId: string,
-  container: string,
-): Effect.Effect<void> {
+function unmountComponent(page: Page, componentId: string, container: string): Effect.Effect<void> {
   return Effect.promise(async () => {
     try {
-      await page.evaluate(({ sel, id }) => {
-        const el = document.querySelector(sel);
-        if (el) {
-          el.innerHTML = "";
-          document.dispatchEvent(new CustomEvent(`inspect-unmount-${id}`));
-        }
-      }, { sel: container, id: componentId });
+      await page.evaluate(
+        ({ sel, id }) => {
+          const el = document.querySelector(sel);
+          if (el) {
+            el.innerHTML = "";
+            document.dispatchEvent(new CustomEvent(`inspect-unmount-${id}`));
+          }
+        },
+        { sel: container, id: componentId },
+      );
     } catch {
       // Ignore errors during unmount
     }

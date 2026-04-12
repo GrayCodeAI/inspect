@@ -2,9 +2,7 @@ import { Effect, ServiceMap, Layer, Ref } from "effect";
 import type { Step, Scenario } from "./gherkin-parser.js";
 import { StepDefinitionNotFoundError, ScenarioExecutionError } from "./errors.js";
 
-export type StepHandler = (
-  context: StepContext,
-) => Effect.Effect<void, ScenarioExecutionError>;
+export type StepHandler = (context: StepContext) => Effect.Effect<void, ScenarioExecutionError>;
 
 export interface StepContext {
   readonly stepText: string;
@@ -20,10 +18,7 @@ export interface StepDefinition {
 export class StepRegistry extends ServiceMap.Service<
   StepRegistry,
   {
-    readonly register: (
-      pattern: string,
-      handler: StepHandler,
-    ) => Effect.Effect<void>;
+    readonly register: (pattern: string, handler: StepHandler) => Effect.Effect<void>;
     readonly matchStep: (
       text: string,
     ) => Effect.Effect<StepDefinition, StepDefinitionNotFoundError>;
@@ -34,27 +29,20 @@ export class StepRegistry extends ServiceMap.Service<
     const definitions = yield* Ref.make<StepDefinition[]>([]);
 
     const register = (pattern: string, handler: StepHandler) =>
-      Ref.update(definitions, (defs) => [
-        ...defs,
-        { pattern: new RegExp(pattern), handler },
-      ]);
+      Ref.update(definitions, (defs) => [...defs, { pattern: new RegExp(pattern), handler }]);
 
     const matchStep = (text: string) =>
       Ref.get(definitions).pipe(
         Effect.flatMap((defs) => {
           const found = defs.find((d) => d.pattern.test(text));
           if (!found) {
-            return Effect.fail(
-              new StepDefinitionNotFoundError({ stepText: text }),
-            );
+            return Effect.fail(new StepDefinitionNotFoundError({ stepText: text }));
           }
           return Effect.succeed(found);
         }),
       );
 
-    const getRegisteredCount = Ref.get(definitions).pipe(
-      Effect.map((defs) => defs.length),
-    );
+    const getRegisteredCount = Ref.get(definitions).pipe(Effect.map((defs) => defs.length));
 
     return { register, matchStep, getRegisteredCount } as const;
   });
@@ -67,10 +55,7 @@ export class ScenarioRunner extends ServiceMap.Service<
   {
     readonly runScenario: (
       scenario: Scenario,
-    ) => Effect.Effect<
-      { passed: number; failed: number; errors: ScenarioExecutionError[] },
-      never
-    >;
+    ) => Effect.Effect<{ passed: number; failed: number; errors: ScenarioExecutionError[] }, never>;
   }
 >()("@gherkin-bdd/ScenarioRunner") {
   static make = Effect.gen(function* () {
@@ -95,10 +80,7 @@ export class ScenarioRunner extends ServiceMap.Service<
         return { passed, failed, errors } as const;
       }).pipe(Effect.withSpan("ScenarioRunner.runScenario"));
 
-    const runStep = (
-      step: Step,
-      scenarioName: string,
-    ) =>
+    const runStep = (step: Step, scenarioName: string) =>
       Effect.gen(function* () {
         const definition = yield* registry.matchStep(step.text).pipe(
           Effect.catchTag("StepDefinitionNotFoundError", () =>
@@ -135,7 +117,5 @@ export class ScenarioRunner extends ServiceMap.Service<
     return { runScenario } as const;
   });
 
-  static layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(StepRegistry.layer),
-  );
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(StepRegistry.layer));
 }

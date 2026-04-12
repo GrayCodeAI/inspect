@@ -1,8 +1,6 @@
 import { Schema } from "effect";
 
-export class GherkinParseError extends Schema.ErrorClass<GherkinParseError>(
-  "GherkinParseError",
-)({
+export class GherkinParseError extends Schema.ErrorClass<GherkinParseError>("GherkinParseError")({
   _tag: Schema.tag("GherkinParseError"),
   file: Schema.String,
   line: Schema.Number,

@@ -13,22 +13,17 @@ export class SitemapUrl extends Schema.Class<SitemapUrl>("SitemapUrl")({
 }) {}
 
 export interface SitemapSpiderService {
-  readonly parseSitemap: (
-    sitemapUrl: string,
-  ) => Effect.Effect<SitemapUrl[], SpiderError>;
-  readonly findSitemaps: (
-    baseUrl: string,
-  ) => Effect.Effect<string[], { ok: boolean }>;
+  readonly parseSitemap: (sitemapUrl: string) => Effect.Effect<SitemapUrl[], SpiderError>;
+  readonly findSitemaps: (baseUrl: string) => Effect.Effect<string[], { ok: boolean }>;
 }
 
-export class SitemapSpider extends ServiceMap.Service<
-  SitemapSpider,
-  SitemapSpiderService
->()("@inspect/SitemapSpider") {
+export class SitemapSpider extends ServiceMap.Service<SitemapSpider, SitemapSpiderService>()(
+  "@inspect/SitemapSpider",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
-      const parseSitemapXml = (xml: string, baseUrl: string): SitemapUrl[] => {
+      const parseSitemapXml = (xml: string, _baseUrl: string): SitemapUrl[] => {
         const urls: SitemapUrl[] = [];
         const urlRegex = /<url>([\s\S]*?)<\/url>/gi;
 

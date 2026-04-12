@@ -29,17 +29,16 @@ export interface SwGeneratorService {
   ) => Effect.Effect<string, SWMockingError>;
 }
 
-export class SwGenerator extends ServiceMap.Service<
-  SwGenerator,
-  SwGeneratorService
->()("@inspect/SwGenerator") {
+export class SwGenerator extends ServiceMap.Service<SwGenerator, SwGeneratorService>()(
+  "@inspect/SwGenerator",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
       const escapeString = (str: string): string =>
         str.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 
-      const generateScript = (routes: readonly MockRoute[], scope = "/") =>
+      const generateScript = (routes: readonly MockRoute[], _scope = "/") =>
         Effect.sync(() => {
           const routesArray = routes
             .map(
@@ -91,7 +90,7 @@ self.addEventListener('fetch', (event) => {
   });
 
   if (!matchingRoute) {
-    ${'// Fallback to network'}
+    ${"// Fallback to network"}
     return;
   }
 
@@ -126,9 +125,7 @@ self.addEventListener('fetch', (event) => {
         );
 
       const generate = (config: SwConfig) =>
-        generateScript(config.routes, config.scope).pipe(
-          Effect.withSpan("SwGenerator.generate"),
-        );
+        generateScript(config.routes, config.scope).pipe(Effect.withSpan("SwGenerator.generate"));
 
       return { generate, generateScript } as const;
     }),

@@ -48,9 +48,7 @@ export class ClockService extends ServiceMap.Service<
     readonly setSystemTime: (
       time: number | Date,
     ) => Effect.Effect<void, ClockError | ClockNotInstalledError>;
-    readonly fastForward: (
-      ms: number,
-    ) => Effect.Effect<void, ClockError | ClockNotInstalledError>;
+    readonly fastForward: (ms: number) => Effect.Effect<void, ClockError | ClockNotInstalledError>;
     readonly restore: () => Effect.Effect<void, ClockError | ClockNotInstalledError>;
     readonly getState: () => Effect.Effect<ClockState>;
   }
@@ -93,7 +91,10 @@ export class ClockService extends ServiceMap.Service<
           }
           const timestamp = time instanceof Date ? time.getTime() : time;
           currentTime = Option.some(timestamp);
-          yield* Effect.logDebug("System time set", { timestamp, iso: new Date(timestamp).toISOString() });
+          yield* Effect.logDebug("System time set", {
+            timestamp,
+            iso: new Date(timestamp).toISOString(),
+          });
         });
 
       const fastForward = (ms: number) =>
@@ -134,9 +135,7 @@ export class ClockService extends ServiceMap.Service<
    * Playwright-integrated layer — uses page.clock() API for real time manipulation.
    * Requires a Playwright Page to be available in the Effect context.
    */
-  static playwrightLayer = (
-    getPage: Effect.Effect<{ clock: PlaywrightClock }, never, never>,
-  ) =>
+  static playwrightLayer = (getPage: Effect.Effect<{ clock: PlaywrightClock }, never, never>) =>
     Layer.effect(
       this,
       Effect.gen(function* () {
@@ -209,11 +208,13 @@ export class ClockService extends ServiceMap.Service<
           });
 
         const getState = () =>
-          Effect.sync((): ClockState => ({
-            installed: true,
-            paused: false,
-            currentTime: Option.none(),
-          }));
+          Effect.sync(
+            (): ClockState => ({
+              installed: true,
+              paused: false,
+              currentTime: Option.none(),
+            }),
+          );
 
         return { install, pause, resume, setSystemTime, fastForward, restore, getState } as const;
       }),

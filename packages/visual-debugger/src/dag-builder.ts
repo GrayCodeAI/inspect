@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, ServiceMap } from "effect";
+import { Effect, Layer, ServiceMap } from "effect";
 import { DagParseError } from "./errors.js";
 
 export type StepId = string & { readonly __brand: "StepId" };
@@ -18,158 +18,146 @@ export interface DagGraph {
   readonly edges: readonly { readonly from: StepId; readonly to: StepId }[];
 }
 
-export class DagBuilder extends ServiceMap.Service<DagBuilder>()(
-  "@visual-debugger/DagBuilder",
-  {
-    make: Effect.gen(function* () {
-      const buildFromYaml = Effect.fn("DagBuilder.buildFromYaml")(
-        function* (yamlContent: string) {
-          return yield* Effect.try({
-            try: () => parseYamlToDag(yamlContent),
-            catch: (cause) =>
-              new DagParseError({
-                source: "yaml",
-                cause,
-              }),
-          });
-        },
-      );
+export class DagBuilder extends ServiceMap.Service<DagBuilder>()("@visual-debugger/DagBuilder", {
+  make: Effect.gen(function* () {
+    const buildFromYaml = Effect.fn("DagBuilder.buildFromYaml")(function* (yamlContent: string) {
+      return yield* Effect.try({
+        try: () => parseYamlToDag(yamlContent),
+        catch: (cause) =>
+          new DagParseError({
+            source: "yaml",
+            cause,
+          }),
+      });
+    });
 
-      const buildFromJson = Effect.fn("DagBuilder.buildFromJson")(
-        function* (jsonContent: string) {
-          return yield* Effect.try({
-            try: () => {
-              const parsed = JSON.parse(jsonContent) as {
-                id: string;
-                name: string;
-                steps: Array<{
-                  id: string;
-                  name: string;
-                  type: string;
-                  dependencies?: string[];
-                  config?: Record<string, string>;
-                }>;
-              };
-
-              const steps: DagStep[] = parsed.steps.map((step) => ({
-                id: step.id as StepId,
-                name: step.name,
-                type: step.type,
-                dependencies: (step.dependencies ?? []) as StepId[],
-                config: step.config ?? {},
-              }));
-
-              const edges: Array<{ from: StepId; to: StepId }> = [];
-              for (const step of steps) {
-                for (const dep of step.dependencies) {
-                  edges.push({ from: dep, to: step.id });
-                }
-              }
-
-              return {
-                id: parsed.id,
-                name: parsed.name,
-                steps,
-                edges,
-              } satisfies DagGraph;
-            },
-            catch: (cause) =>
-              new DagParseError({
-                source: "json",
-                cause,
-              }),
-          });
-        },
-      );
-
-      const validate = Effect.fn("DagBuilder.validate")(
-        function* (dag: DagGraph) {
-          const errors: string[] = [];
-
-          const stepIds = new Set(dag.steps.map((s) => s.id));
-          for (const step of dag.steps) {
-            for (const dep of step.dependencies) {
-              if (!stepIds.has(dep)) {
-                errors.push(`Step "${step.id}" depends on non-existent step "${dep}"`);
-              }
-            }
-          }
-
-          if (hasCycle(dag)) {
-            errors.push("DAG contains cycles, which is not allowed");
-          }
-
-          if (errors.length > 0) {
-            return yield* new DagParseError({
-              source: "validation",
-              cause: errors.join("; "),
-            });
-          }
-
-          return yield* Effect.succeed(dag);
-        },
-      );
-
-      const getExecutionOrder = Effect.fn("DagBuilder.getExecutionOrder")(
-        function* (dag: DagGraph) {
-          const order: StepId[] = [];
-          const visited = new Set<StepId>();
-          const tempVisited = new Set<StepId>();
-
-          const visit = (stepId: StepId) => {
-            if (tempVisited.has(stepId)) return;
-            if (visited.has(stepId)) return;
-
-            tempVisited.add(stepId);
-
-            const step = dag.steps.find((s) => s.id === stepId);
-            if (step) {
-              for (const dep of step.dependencies) {
-                visit(dep);
-              }
-            }
-
-            tempVisited.delete(stepId);
-            visited.add(stepId);
-            order.push(stepId);
+    const buildFromJson = Effect.fn("DagBuilder.buildFromJson")(function* (jsonContent: string) {
+      return yield* Effect.try({
+        try: () => {
+          const parsed = JSON.parse(jsonContent) as {
+            id: string;
+            name: string;
+            steps: Array<{
+              id: string;
+              name: string;
+              type: string;
+              dependencies?: string[];
+              config?: Record<string, string>;
+            }>;
           };
 
-          for (const step of dag.steps) {
-            visit(step.id);
+          const steps: DagStep[] = parsed.steps.map((step) => ({
+            id: step.id as StepId,
+            name: step.name,
+            type: step.type,
+            dependencies: (step.dependencies ?? []) as StepId[],
+            config: step.config ?? {},
+          }));
+
+          const edges: Array<{ from: StepId; to: StepId }> = [];
+          for (const step of steps) {
+            for (const dep of step.dependencies) {
+              edges.push({ from: dep, to: step.id });
+            }
           }
 
-          return order;
+          return {
+            id: parsed.id,
+            name: parsed.name,
+            steps,
+            edges,
+          } satisfies DagGraph;
         },
-      );
-
-      const getRootSteps = Effect.fn("DagBuilder.getRootSteps")(function* (dag: DagGraph) {
-        return dag.steps.filter((step) => step.dependencies.length === 0);
+        catch: (cause) =>
+          new DagParseError({
+            source: "json",
+            cause,
+          }),
       });
+    });
 
-      const getLeafSteps = Effect.fn("DagBuilder.getLeafSteps")(function* (dag: DagGraph) {
-        const stepIds = new Set(dag.steps.map((s) => s.id));
-        const hasDependents = new Set<StepId>();
+    const validate = Effect.fn("DagBuilder.validate")(function* (dag: DagGraph) {
+      const errors: string[] = [];
 
-        for (const step of dag.steps) {
+      const stepIds = new Set(dag.steps.map((s) => s.id));
+      for (const step of dag.steps) {
+        for (const dep of step.dependencies) {
+          if (!stepIds.has(dep)) {
+            errors.push(`Step "${step.id}" depends on non-existent step "${dep}"`);
+          }
+        }
+      }
+
+      if (hasCycle(dag)) {
+        errors.push("DAG contains cycles, which is not allowed");
+      }
+
+      if (errors.length > 0) {
+        return yield* new DagParseError({
+          source: "validation",
+          cause: errors.join("; "),
+        });
+      }
+
+      return yield* Effect.succeed(dag);
+    });
+
+    const getExecutionOrder = Effect.fn("DagBuilder.getExecutionOrder")(function* (dag: DagGraph) {
+      const order: StepId[] = [];
+      const visited = new Set<StepId>();
+      const tempVisited = new Set<StepId>();
+
+      const visit = (stepId: StepId) => {
+        if (tempVisited.has(stepId)) return;
+        if (visited.has(stepId)) return;
+
+        tempVisited.add(stepId);
+
+        const step = dag.steps.find((s) => s.id === stepId);
+        if (step) {
           for (const dep of step.dependencies) {
-            hasDependents.add(dep);
+            visit(dep);
           }
         }
 
-        return dag.steps.filter((step) => !hasDependents.has(step.id));
-      });
+        tempVisited.delete(stepId);
+        visited.add(stepId);
+        order.push(stepId);
+      };
 
-      return {
-        buildFromYaml,
-        buildFromJson,
-        validate,
-        getExecutionOrder,
-        getRootSteps,
-        getLeafSteps,
-      } as const;
-    }),
-  },
-) {
+      for (const step of dag.steps) {
+        visit(step.id);
+      }
+
+      return order;
+    });
+
+    const getRootSteps = Effect.fn("DagBuilder.getRootSteps")(function* (dag: DagGraph) {
+      return dag.steps.filter((step) => step.dependencies.length === 0);
+    });
+
+    const getLeafSteps = Effect.fn("DagBuilder.getLeafSteps")(function* (dag: DagGraph) {
+      const hasDependents = new Set<StepId>();
+
+      for (const step of dag.steps) {
+        for (const dep of step.dependencies) {
+          hasDependents.add(dep);
+        }
+      }
+
+      return dag.steps.filter((step) => !hasDependents.has(step.id));
+    });
+
+    return {
+      buildFromYaml,
+      buildFromJson,
+      validate,
+      getExecutionOrder,
+      getRootSteps,
+      getLeafSteps,
+    } as const;
+  }),
+}) {
   static layer = Layer.effect(this)(this.make);
 }
 
@@ -180,13 +168,21 @@ function parseYamlToDag(yamlContent: string): DagGraph {
   let name = "Workflow";
   const steps: DagStep[] = [];
 
-  let currentStep: { id?: StepId; name?: string; type?: string; dependencies?: StepId[]; config?: Record<string, string> } = {};
+  let currentStep: {
+    id?: StepId;
+    name?: string;
+    type?: string;
+    dependencies?: StepId[];
+    config?: Record<string, string>;
+  } = {};
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.startsWith("id:")) {
+    if (trimmed.startsWith("id:") && !currentStep.id) {
       id = trimmed.replace("id:", "").trim();
+    } else if (trimmed.startsWith("name:") && currentStep.id) {
+      currentStep.name = trimmed.replace("name:", "").trim();
     } else if (trimmed.startsWith("name:")) {
       name = trimmed.replace("name:", "").trim();
     } else if (trimmed.startsWith("- id:")) {
@@ -200,8 +196,6 @@ function parseYamlToDag(yamlContent: string): DagGraph {
         });
       }
       currentStep = { id: trimmed.replace("- id:", "").trim() as StepId };
-    } else if (trimmed.startsWith("name:") && currentStep.id) {
-      currentStep.name = trimmed.replace("name:", "").trim();
     } else if (trimmed.startsWith("type:") && currentStep.id) {
       currentStep.type = trimmed.replace("type:", "").trim();
     } else if (trimmed.startsWith("dependencies:") && currentStep.id) {

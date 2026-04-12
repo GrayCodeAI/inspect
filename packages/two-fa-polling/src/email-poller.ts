@@ -1,11 +1,6 @@
-import { Config, Effect, Layer, Match, Ref, Schedule, ServiceMap } from "effect";
+import { Effect, Layer, Ref, ServiceMap } from "effect";
 
-import {
-  CodeExtractionError,
-  PollingTimeoutError,
-  TwoFAError,
-  UnsupportedChannelError,
-} from "./errors.js";
+import { CodeExtractionError, PollingTimeoutError, TwoFAError } from "./errors.js";
 
 export interface EmailPollerConfig {
   imapHost: string;
@@ -27,6 +22,7 @@ export interface EmailMessage {
 export class EmailPoller extends ServiceMap.Service<
   EmailPoller,
   {
+    readonly configure: (config: EmailPollerConfig) => Effect.Effect<void>;
     readonly pollForOTP: (
       options: PollOptions,
     ) => Effect.Effect<string, TwoFAError | PollingTimeoutError | CodeExtractionError>;
@@ -35,7 +31,6 @@ export class EmailPoller extends ServiceMap.Service<
   }
 >()("@inspect/two-fa-polling/EmailPoller") {
   static make = Effect.gen(function* () {
-    
     const configRef = yield* Ref.make<EmailPollerConfig | null>(null);
 
     const configure = (config: EmailPollerConfig) =>
@@ -105,7 +100,7 @@ export class EmailPoller extends ServiceMap.Service<
         const startTime = Date.now();
         let attempts = 0;
 
-        while (Date.now() - startTime < options.timeoutMs) {
+        while (Date.now() - startTime < (options.timeoutMs ?? 60000)) {
           attempts++;
 
           const emails = yield* fetchLatestEmails;
@@ -144,7 +139,7 @@ export class EmailPoller extends ServiceMap.Service<
 
         return yield* new PollingTimeoutError({
           channel: "email",
-          timeoutMs: options.timeoutMs,
+          timeoutMs: options.timeoutMs ?? 60000,
           attempts,
         });
       }).pipe(Effect.withSpan("EmailPoller.pollForOTP"));

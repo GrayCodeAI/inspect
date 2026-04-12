@@ -1,8 +1,6 @@
 import { Schema } from "effect";
 
-export class SecurityModeError extends Schema.ErrorClass<SecurityModeError>(
-  "SecurityModeError",
-)({
+export class SecurityModeError extends Schema.ErrorClass<SecurityModeError>("SecurityModeError")({
   _tag: Schema.tag("SecurityModeError"),
   mode: Schema.String,
   reason: Schema.String,

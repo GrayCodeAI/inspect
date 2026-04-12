@@ -430,7 +430,7 @@ export class ActionCache {
 
     // Check for DOM changes that might invalidate
     if (this.config.invalidateOnDomChange && currentElements) {
-      const currentDomHash = this.generateDomHash(currentElements);
+      const _currentDomHash = this.generateDomHash(currentElements);
       const currentStructuralHash = this.generateStructuralDomHash(currentElements);
 
       // Try structural match (same layout, different content)

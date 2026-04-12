@@ -214,7 +214,7 @@ export class RateLimitWatchdog {
     let retryAfter: number | undefined;
 
     // Check response headers
-    const headers = await this.page.evaluate(() => {
+    const _headers = await this.page.evaluate(() => {
       // Try to get headers from performance entries
       const entries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
       return entries[0]?.responseStatus;

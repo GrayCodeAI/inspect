@@ -21,10 +21,9 @@ export interface CsvIngestorService {
   ) => Effect.Effect<CsvDocument, DocumentIngestionError>;
 }
 
-export class CsvIngestor extends ServiceMap.Service<
-  CsvIngestor,
-  CsvIngestorService
->()("@inspect/CsvIngestor") {
+export class CsvIngestor extends ServiceMap.Service<CsvIngestor, CsvIngestorService>()(
+  "@inspect/CsvIngestor",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

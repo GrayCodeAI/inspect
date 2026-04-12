@@ -30,10 +30,9 @@ export interface PdfIngestorService {
   readonly getMetadata: (filePath: string) => Effect.Effect<PdfMetadata, DocumentIngestionError>;
 }
 
-export class PdfIngestor extends ServiceMap.Service<
-  PdfIngestor,
-  PdfIngestorService
->()("@inspect/PdfIngestor") {
+export class PdfIngestor extends ServiceMap.Service<PdfIngestor, PdfIngestorService>()(
+  "@inspect/PdfIngestor",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

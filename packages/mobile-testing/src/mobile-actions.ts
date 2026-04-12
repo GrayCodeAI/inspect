@@ -64,10 +64,9 @@ export interface MobileActionsService {
   readonly home: () => Effect.Effect<ActionPerformed, MobileError>;
 }
 
-export class MobileActions extends ServiceMap.Service<
-  MobileActions,
-  MobileActionsService
->()("@inspect/MobileActions") {
+export class MobileActions extends ServiceMap.Service<MobileActions, MobileActionsService>()(
+  "@inspect/MobileActions",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -232,52 +231,54 @@ export class MobileActions extends ServiceMap.Service<
           Effect.withSpan("MobileActions.rotate"),
         );
 
-      const back = Effect.gen(function* () {
-        const start = Date.now();
+      const back = () =>
+        Effect.gen(function* () {
+          const start = Date.now();
 
-        yield* appium.sendCommand({
-          method: "POST",
-          endpoint: "/back",
-        });
+          yield* appium.sendCommand({
+            method: "POST",
+            endpoint: "/back",
+          });
 
-        return new ActionPerformed({
-          action: "back",
-          success: true,
-          duration: Date.now() - start,
-        });
-      }).pipe(
-        Effect.catchTag("AppiumConnectionError", (err) =>
-          new MobileError({
-            message: `Failed to navigate back: ${err.message}`,
-            cause: err,
-          }).asEffect(),
-        ),
-        Effect.withSpan("MobileActions.back"),
-      );
+          return new ActionPerformed({
+            action: "back",
+            success: true,
+            duration: Date.now() - start,
+          });
+        }).pipe(
+          Effect.catchTag("AppiumConnectionError", (err) =>
+            new MobileError({
+              message: `Failed to navigate back: ${err.message}`,
+              cause: err,
+            }).asEffect(),
+          ),
+          Effect.withSpan("MobileActions.back"),
+        );
 
-      const home = Effect.gen(function* () {
-        const start = Date.now();
+      const home = () =>
+        Effect.gen(function* () {
+          const start = Date.now();
 
-        yield* appium.sendCommand({
-          method: "POST",
-          endpoint: "/url",
-          body: { url: "about:blank" },
-        });
+          yield* appium.sendCommand({
+            method: "POST",
+            endpoint: "/url",
+            body: { url: "about:blank" },
+          });
 
-        return new ActionPerformed({
-          action: "home",
-          success: true,
-          duration: Date.now() - start,
-        });
-      }).pipe(
-        Effect.catchTag("AppiumConnectionError", (err) =>
-          new MobileError({
-            message: `Failed to navigate home: ${err.message}`,
-            cause: err,
-          }).asEffect(),
-        ),
-        Effect.withSpan("MobileActions.home"),
-      );
+          return new ActionPerformed({
+            action: "home",
+            success: true,
+            duration: Date.now() - start,
+          });
+        }).pipe(
+          Effect.catchTag("AppiumConnectionError", (err) =>
+            new MobileError({
+              message: `Failed to navigate home: ${err.message}`,
+              cause: err,
+            }).asEffect(),
+          ),
+          Effect.withSpan("MobileActions.home"),
+        );
 
       return { tap, swipe, pinch, rotate, back, home } as const;
     }),

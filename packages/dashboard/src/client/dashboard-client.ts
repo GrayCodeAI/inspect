@@ -3,7 +3,7 @@
 // Browser client for connecting to the dashboard WebSocket server
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { DashboardMessage, TestExecution, DashboardStats } from "../types/index.js";
+import type { DashboardMessage } from "../types/index.js";
 
 export interface DashboardClientConfig {
   url: string;

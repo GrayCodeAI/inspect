@@ -262,7 +262,7 @@ export class AgentStateStore {
     try {
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     } catch (err) {
-      if ((err as any).code !== "EEXIST") {
+      if ((err as unknown as { code: string }).code !== "EEXIST") {
         throw err;
       }
     }

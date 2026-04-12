@@ -1,5 +1,7 @@
-import { Data, Effect, Schema } from "effect";
+import { Effect, Schedule } from "effect";
 import type { WebDriverClient } from "./webdriver-client.js";
+
+type WebDriverClientService = InstanceType<typeof WebDriverClient>;
 
 // W3C WebDriver locator strategies
 export const LOCATOR_STRATEGIES = {
@@ -36,15 +38,13 @@ export interface PointerInput {
 }
 
 export class Actions {
-  constructor(private readonly client: WebDriverClient) {}
+  constructor(private readonly client: WebDriverClientService) {}
 
   click(
     sessionId: string,
     elementId: string,
   ): Effect.Effect<void, import("./errors.js").WebDriverError> {
-    return this.client.elementClick(sessionId, elementId).pipe(
-      Effect.withSpan("Actions.click"),
-    );
+    return this.client.elementClick(sessionId, elementId).pipe(Effect.withSpan("Actions.click"));
   }
 
   sendKeys(
@@ -52,9 +52,9 @@ export class Actions {
     elementId: string,
     text: string,
   ): Effect.Effect<void, import("./errors.js").WebDriverError> {
-    return this.client.elementSendKeys(sessionId, elementId, text).pipe(
-      Effect.withSpan("Actions.sendKeys"),
-    );
+    return this.client
+      .elementSendKeys(sessionId, elementId, text)
+      .pipe(Effect.withSpan("Actions.sendKeys"));
   }
 
   moveTo(
@@ -81,7 +81,7 @@ export class Actions {
               y: options.y ?? 0,
               origin: options.elementId
                 ? { "element-6066-11e4-a52e-4f735466cecf": options.elementId }
-                : options.origin ?? "viewport",
+                : (options.origin ?? "viewport"),
             },
           ],
         },
@@ -111,9 +111,21 @@ export class Actions {
           id: "drag",
           parameters: { pointerType: "mouse" as const },
           actions: [
-            { type: "pointerMove" as const, duration: 100, x: 0, y: 0, origin: { "element-6066-11e4-a52e-4f735466cecf": sourceElementId } },
+            {
+              type: "pointerMove" as const,
+              duration: 100,
+              x: 0,
+              y: 0,
+              origin: { "element-6066-11e4-a52e-4f735466cecf": sourceElementId },
+            },
             { type: "pointerDown" as const, button: 0 },
-            { type: "pointerMove" as const, duration: 200, x: 0, y: 0, origin: { "element-6066-11e4-a52e-4f735466cecf": targetElementId } },
+            {
+              type: "pointerMove" as const,
+              duration: 200,
+              x: 0,
+              y: 0,
+              origin: { "element-6066-11e4-a52e-4f735466cecf": targetElementId },
+            },
             { type: "pointerUp" as const, button: 0 },
           ],
         },
@@ -132,9 +144,11 @@ export class Actions {
     sessionId: string,
     elementId: string,
   ): Effect.Effect<void, import("./errors.js").WebDriverError> {
-    return this.client.executeScript(sessionId, "arguments[0].value = '';", [
-      { "element-6066-11e4-a52e-4f735466cecf": elementId },
-    ]).pipe(Effect.withSpan("Actions.clearElement"));
+    return this.client
+      .executeScript(sessionId, "arguments[0].value = '';", [
+        { "element-6066-11e4-a52e-4f735466cecf": elementId },
+      ])
+      .pipe(Effect.withSpan("Actions.clearElement"));
   }
 
   selectOption(
@@ -162,9 +176,9 @@ export class Actions {
     sessionId: string,
     elementId: string,
   ): Effect.Effect<string, import("./errors.js").WebDriverError> {
-    return this.client.getElementText(sessionId, elementId).pipe(
-      Effect.withSpan("Actions.getText"),
-    );
+    return this.client
+      .getElementText(sessionId, elementId)
+      .pipe(Effect.withSpan("Actions.getText"));
   }
 
   getAttribute(
@@ -173,14 +187,10 @@ export class Actions {
     attributeName: string,
   ): Effect.Effect<string | null, import("./errors.js").WebDriverError> {
     return this.client
-      .executeScript(
-        sessionId,
-        "return arguments[0].getAttribute(arguments[1]);",
-        [
-          { "element-6066-11e4-a52e-4f735466cecf": elementId },
-          attributeName,
-        ],
-      )
+      .executeScript(sessionId, "return arguments[0].getAttribute(arguments[1]);", [
+        { "element-6066-11e4-a52e-4f735466cecf": elementId },
+        attributeName,
+      ])
       .pipe(Effect.withSpan("Actions.getAttribute"));
   }
 
@@ -189,11 +199,9 @@ export class Actions {
     elementId: string,
   ): Effect.Effect<boolean, import("./errors.js").WebDriverError> {
     return this.client
-      .executeScript(
-        sessionId,
-        "return arguments[0].checked;",
-        [{ "element-6066-11e4-a52e-4f735466cecf": elementId }],
-      )
+      .executeScript(sessionId, "return arguments[0].checked;", [
+        { "element-6066-11e4-a52e-4f735466cecf": elementId },
+      ])
       .pipe(Effect.withSpan("Actions.isChecked"));
   }
 
@@ -202,11 +210,14 @@ export class Actions {
     strategy: string,
     selector: string,
     timeoutMs: number = DEFAULT_WAIT_TIMEOUT_MS,
-  ): Effect.Effect<import("./webdriver-client.js").WebElement, import("./errors.js").ElementNotFoundError | import("./errors.js").WebDriverError> {
+  ): Effect.Effect<
+    import("./webdriver-client.js").WebElement,
+    import("./errors.js").ElementNotFoundError | import("./errors.js").WebDriverError
+  > {
     return this.client.findElement(sessionId, strategy, selector).pipe(
       Effect.retry({
         times: MAX_RETRIES,
-        schedule: Effect.schedule.spaced(RETRY_INTERVAL_MS),
+        schedule: Schedule.spaced(RETRY_INTERVAL_MS),
       }),
       Effect.timeout(timeoutMs),
       Effect.withSpan("Actions.waitForElement"),
@@ -217,42 +228,60 @@ export class Actions {
     sessionId: string,
     expectedUrl: string,
     timeoutMs: number = DEFAULT_WAIT_TIMEOUT_MS,
-  ): Effect.Effect<boolean, import("./errors.js").WebDriverError> {
+  ): Effect.Effect<boolean, never, unknown> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     return Effect.gen(function* () {
-      const client = this.client;
-      const startTime = Date.now();
+      let found = false;
+      const endTime = Date.now() + timeoutMs;
 
-      while (Date.now() - startTime < timeoutMs) {
-        const currentUrl = yield* client.getCurrentUrl(sessionId);
+      while (!found && Date.now() < endTime) {
+        const currentUrl = yield* self.client.getCurrentUrl(sessionId);
         if (currentUrl.includes(expectedUrl)) {
-          return true;
+          found = true;
+        } else {
+          yield* Effect.sleep(POLL_INTERVAL_MS);
         }
-        yield* Effect.sleep(POLL_INTERVAL_MS);
       }
 
-      return false;
-    }).pipe(Effect.withSpan("Actions.waitForUrl"));
+      return found;
+    }).pipe(
+      Effect.match({
+        onSuccess: (result) => result,
+        onFailure: () => false,
+      }),
+      Effect.withSpan("Actions.waitForUrl"),
+    );
   }
 
   waitForTitle(
     sessionId: string,
     expectedTitle: string,
     timeoutMs: number = DEFAULT_WAIT_TIMEOUT_MS,
-  ): Effect.Effect<boolean, import("./errors.js").WebDriverError> {
+  ): Effect.Effect<boolean, never, unknown> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     return Effect.gen(function* () {
-      const client = this.client;
-      const startTime = Date.now();
+      let found = false;
+      const endTime = Date.now() + timeoutMs;
 
-      while (Date.now() - startTime < timeoutMs) {
-        const title = yield* client.getTitle(sessionId);
+      while (!found && Date.now() < endTime) {
+        const title = yield* self.client.getTitle(sessionId);
         if (title.includes(expectedTitle)) {
-          return true;
+          found = true;
+        } else {
+          yield* Effect.sleep(POLL_INTERVAL_MS);
         }
-        yield* Effect.sleep(POLL_INTERVAL_MS);
       }
 
-      return false;
-    }).pipe(Effect.withSpan("Actions.waitForTitle"));
+      return found;
+    }).pipe(
+      Effect.match({
+        onSuccess: (result) => result,
+        onFailure: () => false,
+      }),
+      Effect.withSpan("Actions.waitForTitle"),
+    );
   }
 }
 

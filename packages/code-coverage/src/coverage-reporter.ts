@@ -44,14 +44,19 @@ export class CoverageReporter extends ServiceMap.Service<CoverageReporter>()(
               reason: `Failed to write ${fileName}`,
               cause: String(cause),
             }),
-        }).pipe(Effect.flatMap((filePath) => Effect.logInfo(`Report generated`, { path: filePath })));
+        }).pipe(
+          Effect.flatMap((filePath) => Effect.logInfo(`Report generated`, { path: filePath })),
+        );
 
       const generateReport = (
         summary: CoverageSummary,
         options: CoverageReporterOptions,
       ): Effect.Effect<void, CoverageProcessingError> =>
         Effect.gen(function* () {
-          yield* Effect.annotateCurrentSpan({ format: options.format, outputDir: options.outputDir });
+          yield* Effect.annotateCurrentSpan({
+            format: options.format,
+            outputDir: options.outputDir,
+          });
 
           const outputDir = path.resolve(options.outputDir);
           yield* Effect.tryPromise({

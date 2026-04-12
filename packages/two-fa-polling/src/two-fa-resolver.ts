@@ -1,4 +1,4 @@
-import { Data, Effect, Layer, Match, Ref, ServiceMap } from "effect";
+import { Data, Effect, Layer, Match, ServiceMap } from "effect";
 import { EmailPoller, type EmailPollerConfig, type PollOptions } from "./email-poller.js";
 import { SMSPoller, type SMSGatewayConfig, type SMSPollOptions } from "./sms-poller.js";
 import {
@@ -6,13 +6,12 @@ import {
   InvalidOTPCodeError,
   PollingTimeoutError,
   TwoFAError,
-  UnsupportedChannelError,
 } from "./errors.js";
 
 export type TwoFAType = Data.TaggedEnum<{
   Email: { config: EmailPollerConfig; pollOptions?: PollOptions };
   SMS: { config: SMSGatewayConfig; pollOptions?: SMSPollOptions };
-  Unknown: {};
+  Unknown: { _placeholder: string };
 }>;
 export const TwoFAType = Data.taggedEnum<TwoFAType>();
 
@@ -26,23 +25,28 @@ export interface TwoFAResolution {
 export class TwoFAResolver extends ServiceMap.Service<
   TwoFAResolver,
   {
-    readonly detectType: (
-      hint: string,
-    ) => Effect.Effect<TwoFAType, TwoFAError>;
+    readonly detectType: (hint: string) => Effect.Effect<TwoFAType, TwoFAError>;
     readonly resolve: (
       type: TwoFAType,
-    ) => Effect.Effect<TwoFAResolution, TwoFAError | PollingTimeoutError | CodeExtractionError>;
+    ) => Effect.Effect<
+      TwoFAResolution,
+      TwoFAError | PollingTimeoutError | CodeExtractionError | InvalidOTPCodeError
+    >;
     readonly resolveFromEmail: (
       config: EmailPollerConfig,
       options?: PollOptions,
-    ) => Effect.Effect<TwoFAResolution, TwoFAError | PollingTimeoutError | CodeExtractionError>;
+    ) => Effect.Effect<
+      TwoFAResolution,
+      TwoFAError | PollingTimeoutError | CodeExtractionError | InvalidOTPCodeError
+    >;
     readonly resolveFromSMS: (
       config: SMSGatewayConfig,
       options?: SMSPollOptions,
-    ) => Effect.Effect<TwoFAResolution, TwoFAError | PollingTimeoutError | CodeExtractionError>;
-    readonly validateOTP: (
-      code: string,
-    ) => Effect.Effect<string, InvalidOTPCodeError>;
+    ) => Effect.Effect<
+      TwoFAResolution,
+      TwoFAError | PollingTimeoutError | CodeExtractionError | InvalidOTPCodeError
+    >;
+    readonly validateOTP: (code: string) => Effect.Effect<string, InvalidOTPCodeError>;
   }
 >()("@inspect/two-fa-polling/TwoFAResolver") {
   static make = Effect.gen(function* () {
@@ -76,13 +80,15 @@ export class TwoFAResolver extends ServiceMap.Service<
           /^\+?\d{10,}$/.test(normalizedHint)
         ) {
           return TwoFAType.SMS({
-            provider: "twilio",
-            apiUrl: "",
-            apiKey: "",
+            config: {
+              provider: "twilio",
+              apiUrl: "",
+              apiKey: "",
+            },
           });
         }
 
-        return TwoFAType.Unknown();
+        return TwoFAType.Unknown({ _placeholder: "" });
       }).pipe(Effect.withSpan("TwoFAResolver.detectType"));
 
     const resolveFromEmail = (config: EmailPollerConfig, options?: PollOptions) =>
@@ -105,7 +111,13 @@ export class TwoFAResolver extends ServiceMap.Service<
           channel: "email" as const,
           resolvedAt: new Date(),
         };
-      }).pipe(Effect.withSpan("TwoFAResolver.resolveFromEmail"));
+      }).pipe(
+        Effect.catchTag("PollingTimeoutError", Effect.fail),
+        Effect.catchTag("CodeExtractionError", Effect.fail),
+        Effect.catchTag("InvalidOTPCodeError", Effect.fail),
+        Effect.catchTag("TwoFAError", Effect.fail),
+        Effect.withSpan("TwoFAResolver.resolveFromEmail"),
+      );
 
     const resolveFromSMS = (config: SMSGatewayConfig, options?: SMSPollOptions) =>
       Effect.gen(function* () {
@@ -127,13 +139,17 @@ export class TwoFAResolver extends ServiceMap.Service<
           channel: "sms" as const,
           resolvedAt: new Date(),
         };
-      }).pipe(Effect.withSpan("TwoFAResolver.resolveFromSMS"));
+      }).pipe(
+        Effect.catchTag("PollingTimeoutError", Effect.fail),
+        Effect.catchTag("CodeExtractionError", Effect.fail),
+        Effect.catchTag("InvalidOTPCodeError", Effect.fail),
+        Effect.catchTag("TwoFAError", Effect.fail),
+        Effect.withSpan("TwoFAResolver.resolveFromSMS"),
+      );
 
     const resolve = (type: TwoFAType) =>
       Match.value(type).pipe(
-        Match.when({ _tag: "Email" }, (email) =>
-          resolveFromEmail(email.config, email.pollOptions),
-        ),
+        Match.when({ _tag: "Email" }, (email) => resolveFromEmail(email.config, email.pollOptions)),
         Match.when({ _tag: "SMS" }, (sms) => resolveFromSMS(sms.config, sms.pollOptions)),
         Match.when({ _tag: "Unknown" }, () =>
           new TwoFAError({
@@ -161,9 +177,7 @@ export class TwoFAResolver extends ServiceMap.Service<
   );
 }
 
-function validateCode(
-  code: string,
-): Effect.Effect<string, InvalidOTPCodeError> {
+function validateCode(code: string): Effect.Effect<string, InvalidOTPCodeError> {
   // Validate OTP code format (4-8 digits)
   if (!/^\d{4,8}$/.test(code)) {
     return new InvalidOTPCodeError({

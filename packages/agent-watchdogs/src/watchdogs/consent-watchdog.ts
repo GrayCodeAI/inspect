@@ -82,7 +82,8 @@ const DEFAULT_ACCEPT_SELECTORS = [
   '[data-testid="accept-all"]',
 ];
 
-const DEFAULT_REJECT_SELECTORS = [
+/** Default selectors for reject/decline buttons */
+const _DEFAULT_REJECT_SELECTORS = [
   'button:has-text("Reject")',
   'button:has-text("Decline")',
   'button:has-text("Refuse")',

@@ -28,13 +28,13 @@ const extractTarget = (match: RegExpMatchArray): Partial<ActionParams> => ({
 });
 
 /** Extract target and value */
-const extractTargetAndValue = (match: RegExpMatchArray): Partial<ActionParams> => ({
+const _extractTargetAndValue = (match: RegExpMatchArray): Partial<ActionParams> => ({
   target: match[1]?.trim(),
   value: match[2]?.trim(),
 });
 
 /** Extract numeric value */
-const extractNumeric = (match: RegExpMatchArray): Partial<ActionParams> => {
+const _extractNumeric = (match: RegExpMatchArray): Partial<ActionParams> => {
   const num = parseInt(match[1], 10);
   return { numericValue: isNaN(num) ? undefined : num };
 };
@@ -45,7 +45,7 @@ const extractUrl = (match: RegExpMatchArray): Partial<ActionParams> => ({
 });
 
 /** Extract direction */
-const extractDirection = (match: RegExpMatchArray): Partial<ActionParams> => {
+const _extractDirection = (match: RegExpMatchArray): Partial<ActionParams> => {
   const dir = match[1]?.toLowerCase();
   const directionMap: Record<string, ActionParams["direction"]> = {
     up: "up",

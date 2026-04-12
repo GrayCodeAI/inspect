@@ -21,9 +21,7 @@ export class Retriever extends ServiceMap.Service<Retriever>()("@rag/Retriever",
 
         const results = yield* vectorStore.search(queryEmbedding.vector, config.topK);
 
-        const filtered = results.filter(
-          (result: SearchResult) => result.score >= config.minScore,
-        );
+        const filtered = results.filter((result: SearchResult) => result.score >= config.minScore);
 
         return filtered;
       }).pipe(
@@ -36,11 +34,9 @@ export class Retriever extends ServiceMap.Service<Retriever>()("@rag/Retriever",
       );
     });
 
-    const retrieveWithScores = Effect.fn("Retriever.retrieveWithScores")(
-      function* (query: string) {
-        return yield* retrieve(query);
-      },
-    );
+    const retrieveWithScores = Effect.fn("Retriever.retrieveWithScores")(function* (query: string) {
+      return yield* retrieve(query);
+    });
 
     return { retrieve, retrieveWithScores } as const;
   }),

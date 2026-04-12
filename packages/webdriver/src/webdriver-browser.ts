@@ -1,6 +1,8 @@
-import { Effect, Layer, Schema, Scope, ServiceMap } from "effect";
+import { Effect, ServiceMap } from "effect";
 import { WebDriverClient, type W3CCapabilities, type SessionResponse } from "./webdriver-client.js";
-import { WebDriverError, SessionError } from "./errors.js";
+import { WebDriverError } from "./errors.js";
+
+type WebDriverClientService = InstanceType<typeof WebDriverClient>;
 
 export interface BrowserOptions {
   browserName: string;
@@ -30,12 +32,12 @@ export class WebDriverBrowser extends ServiceMap.Service<
 
       const capabilities: W3CCapabilities = {
         alwaysMatch: {
-          browserName: options.browserName,
           browserVersion: options.browserVersion,
           platformName: options.platformName,
           acceptInsecureCerts: options.acceptInsecureCerts ?? false,
           pageLoadStrategy: options.pageLoadStrategy ?? "normal",
           ...options,
+          browserName: options.browserName,
         },
         firstMatch: [{}],
       };
@@ -50,22 +52,18 @@ export class WebDriverBrowser extends ServiceMap.Service<
 
       return Object.assign(browserApi, {
         sessionId: session.sessionId,
-        capabilities: session.capabilities,
+        capabilities: session.capabilities as Record<string, unknown>,
         close: client.deleteSession(session.sessionId),
       });
-    }).pipe(
-      Effect.withSpan("WebDriverBrowser.create"),
-      Effect.annotateCurrentSpan({ browserName: options.browserName }),
-    );
+    });
 
   static scoped = (options: BrowserOptions) =>
-    Effect.acquireRelease(
-      WebDriverBrowser.create(options),
-      (browser) => browser.close,
+    Effect.acquireRelease(WebDriverBrowser.create(options), (browser) =>
+      Effect.ignore(browser.close),
     );
 }
 
-function createBrowserApi(session: SessionResponse, client: WebDriverClient) {
+function createBrowserApi(session: SessionResponse, client: WebDriverClientService) {
   const sessionId = session.sessionId;
 
   const navigate = (url: string) => client.navigateTo(sessionId, url);

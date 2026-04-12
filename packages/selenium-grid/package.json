@@ -20,6 +20,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@effect/platform": "^0.96.0",
     "@inspect/shared": "workspace:*",
     "effect": "4.0.0-beta.35"
   },

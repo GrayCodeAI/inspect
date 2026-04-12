@@ -43,9 +43,9 @@ export abstract class PageObject {
     return this.config.elements.find((el) => el.name === name);
   }
 
-  abstract navigate(): Effect.Effect<PageActionResult>;
-  abstract click(elementName: string): Effect.Effect<PageActionResult>;
-  abstract fill(elementName: string, value: string): Effect.Effect<PageActionResult>;
-  abstract getText(elementName: string): Effect.Effect<string>;
-  abstract isVisible(elementName: string): Effect.Effect<boolean>;
+  abstract navigate(): Effect.Effect<PageActionResult, never>;
+  abstract click(elementName: string): Effect.Effect<PageActionResult, never>;
+  abstract fill(elementName: string, value: string): Effect.Effect<PageActionResult, never>;
+  abstract getText(elementName: string): Effect.Effect<string, never>;
+  abstract isVisible(elementName: string): Effect.Effect<boolean, never>;
 }

@@ -1,17 +1,12 @@
 import type { Command } from "commander";
 import chalk from "chalk";
-import {
-  MultiAgentOrchestrator,
-  createMultiAgentOrchestrator,
-  type Task,
-  type AgentCapability,
-} from "@inspect/core";
+import { createMultiAgentOrchestrator, type Task, type AgentCapability } from "@inspect/core";
 
-function generateId(): string {
+function _generateId(): string {
   return `agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function generateTaskId(): string {
+function _generateTaskId(): string {
   return `task-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 

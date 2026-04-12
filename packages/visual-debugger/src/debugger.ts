@@ -9,7 +9,11 @@ export type DebugEventType =
   | { readonly _tag: "StepComplete"; readonly stepId: StepId; readonly result: string }
   | { readonly _tag: "StepError"; readonly stepId: StepId; readonly error: string }
   | { readonly _tag: "BreakpointHit"; readonly stepId: StepId }
-  | { readonly _tag: "StateUpdate"; readonly stepId: StepId; readonly state: Record<string, unknown> };
+  | {
+      readonly _tag: "StateUpdate";
+      readonly stepId: StepId;
+      readonly state: Record<string, unknown>;
+    };
 
 export interface DebugEvent {
   readonly type: DebugEventType;
@@ -52,42 +56,39 @@ export class Debugger extends ServiceMap.Service<Debugger>()("@visual-debugger/D
       return dag;
     });
 
-    const renderDag = Effect.fn("Debugger.renderDag")(
-      function* (dag: DagGraph) {
-        return yield* dagRenderer.renderAscii(dag);
-      },
-    );
+    const renderDag = Effect.fn("Debugger.renderDag")(function* (dag: DagGraph) {
+      return yield* dagRenderer.renderAscii(dag);
+    });
 
-    const addBreakpoint = Effect.fn("Debugger.addBreakpoint")(
-      function* (stepId: StepId, condition?: string) {
-        const exists = currentState.breakpoints.some((bp) => bp.stepId === stepId);
-        if (exists) {
-          return yield* new BreakpointError({
-            stepId,
-            reason: "Breakpoint already exists",
-          });
-        }
+    const addBreakpoint = Effect.fn("Debugger.addBreakpoint")(function* (
+      stepId: StepId,
+      condition?: string,
+    ) {
+      const exists = currentState.breakpoints.some((bp) => bp.stepId === stepId);
+      if (exists) {
+        return yield* new BreakpointError({
+          stepId,
+          reason: "Breakpoint already exists",
+        });
+      }
 
-        currentState = {
-          ...currentState,
-          breakpoints: [...currentState.breakpoints, { stepId, condition, enabled: true }],
-        };
+      currentState = {
+        ...currentState,
+        breakpoints: [...currentState.breakpoints, { stepId, condition, enabled: true }],
+      };
 
-        return yield* Effect.void;
-      },
-    );
+      return yield* Effect.void;
+    });
 
-    const removeBreakpoint = Effect.fn("Debugger.removeBreakpoint")(
-      function* (stepId: StepId) {
-        currentState = {
-          ...currentState,
-          breakpoints: currentState.breakpoints.filter((bp) => bp.stepId !== stepId),
-        };
-        return yield* Effect.void;
-      },
-    );
+    const removeBreakpoint = Effect.fn("Debugger.removeBreakpoint")(function* (stepId: StepId) {
+      currentState = {
+        ...currentState,
+        breakpoints: currentState.breakpoints.filter((bp) => bp.stepId !== stepId),
+      };
+      return yield* Effect.void;
+    });
 
-      const stepOver = Effect.fn("Debugger.stepOver")(function* () {
+    const stepOver = Effect.fn("Debugger.stepOver")(function* () {
       if (!currentState.isPaused) {
         return yield* new VisualDebuggerError({
           component: "Debugger",
@@ -118,65 +119,63 @@ export class Debugger extends ServiceMap.Service<Debugger>()("@visual-debugger/D
       return currentState.state;
     });
 
-    const setVariable = Effect.fn("Debugger.setVariable")(
-      function* (key: string, value: unknown) {
-        currentState = {
-          ...currentState,
-          state: { ...currentState.state, [key]: value },
-        };
-        return yield* Effect.void;
-      },
-    );
+    const setVariable = Effect.fn("Debugger.setVariable")(function* (key: string, value: unknown) {
+      currentState = {
+        ...currentState,
+        state: { ...currentState.state, [key]: value },
+      };
+      return yield* Effect.void;
+    });
 
-    const emitEvent = Effect.fn("Debugger.emitEvent")(
-      function* (dagId: string, eventType: DebugEventType) {
-        const event: DebugEvent = {
-          type: eventType,
-          timestamp: new Date(),
-          dagId,
-        };
+    const emitEvent = Effect.fn("Debugger.emitEvent")(function* (
+      dagId: string,
+      eventType: DebugEventType,
+    ) {
+      const event: DebugEvent = {
+        type: eventType,
+        timestamp: new Date(),
+        dagId,
+      };
 
-        yield* PubSub.publish(pubsub, event);
+      yield* PubSub.publish(pubsub, event);
 
-        switch (eventType._tag) {
-          case "StepStart":
-            currentState = {
-              ...currentState,
-              currentStep: eventType.stepId,
-            };
+      switch (eventType._tag) {
+        case "StepStart": {
+          currentState = {
+            ...currentState,
+            currentStep: eventType.stepId,
+          };
 
-            const breakpoint = currentState.breakpoints.find(
-              (bp) => bp.stepId === eventType.stepId && bp.enabled,
-            );
+          const breakpoint = currentState.breakpoints.find(
+            (bp) => bp.stepId === eventType.stepId && bp.enabled,
+          );
 
-            if (breakpoint) {
-              yield* PubSub.publish(pubsub, {
-                type: { _tag: "BreakpointHit", stepId: eventType.stepId },
-                timestamp: new Date(),
-                dagId,
-              } satisfies DebugEvent);
+          if (breakpoint) {
+            yield* PubSub.publish(pubsub, {
+              type: { _tag: "BreakpointHit", stepId: eventType.stepId },
+              timestamp: new Date(),
+              dagId,
+            } satisfies DebugEvent);
 
-              currentState = { ...currentState, isPaused: true };
-            }
-            break;
-
-          case "StepComplete":
-            currentState = {
-              ...currentState,
-              executedSteps: [...currentState.executedSteps, eventType.stepId],
-            };
-            break;
+            currentState = { ...currentState, isPaused: true };
+          }
+          break;
         }
 
-        return event;
-      },
-    );
+        case "StepComplete":
+          currentState = {
+            ...currentState,
+            executedSteps: [...currentState.executedSteps, eventType.stepId],
+          };
+          break;
+      }
 
-    const subscribe = Effect.fn("Debugger.subscribe")(
-      function* () {
-        return yield* PubSub.subscribe(pubsub);
-      },
-    );
+      return event;
+    });
+
+    const subscribe = Effect.fn("Debugger.subscribe")(function* () {
+      return yield* PubSub.subscribe(pubsub);
+    });
 
     const reset = Effect.fn("Debugger.reset")(function* () {
       currentState = {
@@ -189,21 +188,23 @@ export class Debugger extends ServiceMap.Service<Debugger>()("@visual-debugger/D
       return yield* Effect.void;
     });
 
-    const executeStep = Effect.fn("Debugger.executeStep")(
-      function* (dagId: string, stepId: StepId, stepFn: Effect.Effect<string>) {
-        yield* emitEvent(dagId, { _tag: "StepStart", stepId });
+    const executeStep = Effect.fn("Debugger.executeStep")(function* (
+      dagId: string,
+      stepId: StepId,
+      stepFn: Effect.Effect<string>,
+    ) {
+      yield* emitEvent(dagId, { _tag: "StepStart", stepId });
 
-        if (currentState.isPaused) {
-          yield* Effect.logDebug(`Paused at step ${stepId}`);
-        }
+      if (currentState.isPaused) {
+        yield* Effect.logDebug(`Paused at step ${stepId}`);
+      }
 
-        const result = yield* stepFn;
+      const result = yield* stepFn;
 
-        yield* emitEvent(dagId, { _tag: "StepComplete", stepId, result });
+      yield* emitEvent(dagId, { _tag: "StepComplete", stepId, result });
 
-        return result;
-      },
-    );
+      return result;
+    });
 
     return {
       loadDag,

@@ -16,7 +16,10 @@ let events: PopupRecordedEvent[] = [];
 let generatedTestScript = "";
 
 /** Send message to background script */
-function sendMessage(action: string, data?: Record<string, unknown>): Promise<Record<string, unknown>> {
+function sendMessage(
+  action: string,
+  data?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ action, ...data }, (response) => {
       resolve(response || {});
@@ -54,9 +57,10 @@ function updateUI(): void {
   }
 
   if (stats) {
-    const duration = events.length > 0
-      ? Math.round((events[events.length - 1].timestamp - events[0].timestamp) / 1000)
-      : 0;
+    const duration =
+      events.length > 0
+        ? Math.round((events[events.length - 1].timestamp - events[0].timestamp) / 1000)
+        : 0;
     stats.textContent = `${events.length} event${events.length !== 1 ? "s" : ""} recorded${duration > 0 ? ` • ${duration}s` : ""}`;
   }
 }
@@ -126,7 +130,7 @@ function generateTestScript(eventList: PopupRecordedEvent[]): string {
 
   for (const event of eventList) {
     const desc = describeEvent(event);
-    lines.push(`${stepNumber}. ${describeEvent(event)}`);
+    lines.push(`${stepNumber}. ${desc}`);
     stepNumber++;
   }
 

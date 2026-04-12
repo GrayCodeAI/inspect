@@ -27,7 +27,9 @@ export interface CoverageCollector {
     sessionId: string,
   ) => Effect.Effect<RawCoverageData, CoverageCollectionError>;
   readonly stopPreciseCoverage: (sessionId: string) => Effect.Effect<void, CoverageCollectionError>;
-  readonly collectAndStop: (sessionId: string) => Effect.Effect<RawCoverageData, CoverageCollectionError>;
+  readonly collectAndStop: (
+    sessionId: string,
+  ) => Effect.Effect<RawCoverageData, CoverageCollectionError>;
 }
 
 export class CoverageCollectorService extends ServiceMap.Service<CoverageCollectorService>()(

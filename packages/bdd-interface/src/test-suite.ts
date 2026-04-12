@@ -45,9 +45,7 @@ export class TestSuiteBuilder extends ServiceMap.Service<
         Effect.sync(() => {
           scenarios.push(scenario);
         }).pipe(
-          Effect.tap(() =>
-            Effect.logDebug("Test scenario added", { scenario: scenario.name }),
-          ),
+          Effect.tap(() => Effect.logDebug("Test scenario added", { scenario: scenario.name })),
           Effect.withSpan("TestSuiteBuilder.addScenario"),
         );
 

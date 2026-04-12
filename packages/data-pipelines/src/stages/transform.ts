@@ -57,9 +57,7 @@ export const transformWith = <I, O>(fn: (input: I) => O) => {
 
 export const filterWith = <T>(predicate: (item: T) => boolean) => {
   return (items: T[]) =>
-    Effect.sync(() => items.filter(predicate)).pipe(
-      Effect.withSpan("stages.filterWith"),
-    );
+    Effect.sync(() => items.filter(predicate)).pipe(Effect.withSpan("stages.filterWith"));
 };
 
 export const normalizeUrls = (input: string[]) =>

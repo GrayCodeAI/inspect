@@ -63,7 +63,7 @@ export interface SessionValidationResult {
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
-const TAG_LENGTH = 16;
+const _TAG_LENGTH = 16;
 const SALT_LENGTH = 32;
 const PBKDF2_ITERATIONS = 600_000;
 const PBKDF2_ITERATIONS_LEGACY = 100_000;
@@ -331,7 +331,7 @@ export class ProfileManager {
     try {
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     } catch (err) {
-      if ((err as any).code !== "EEXIST") {
+      if (err instanceof Error && "code" in err && err.code !== "EEXIST") {
         throw err;
       }
     }

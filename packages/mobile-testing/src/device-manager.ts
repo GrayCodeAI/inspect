@@ -36,18 +36,15 @@ export class DeviceSession extends Schema.Class<DeviceSession>("DeviceSession")(
 
 export interface DeviceManagerService {
   readonly listDevices: () => Effect.Effect<DeviceInfo[], MobileError>;
-  readonly connect: (
-    device: DeviceCapabilities,
-  ) => Effect.Effect<DeviceSession, MobileError>;
+  readonly connect: (device: DeviceCapabilities) => Effect.Effect<DeviceSession, MobileError>;
   readonly disconnect: (sessionId: string) => Effect.Effect<void, MobileError>;
-  readonly getDevice: (deviceId: string) => Effect.Effect<DeviceInfo, DeviceNotFoundError>;
+  readonly getDevice: (deviceId: string) => Effect.Effect<DeviceInfo, MobileError>;
   readonly activeSessions: Effect.Effect<DeviceSession[]>;
 }
 
-export class DeviceManager extends ServiceMap.Service<
-  DeviceManager,
-  DeviceManagerService
->()("@inspect/DeviceManager") {
+export class DeviceManager extends ServiceMap.Service<DeviceManager, DeviceManagerService>()(
+  "@inspect/DeviceManager",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {
@@ -55,10 +52,11 @@ export class DeviceManager extends ServiceMap.Service<
       const devices = new Map<string, DeviceInfo>();
       const sessions = new Map<string, DeviceSession>();
 
-      const listDevices = Effect.gen(function* () {
-        yield* Effect.logDebug("Listing available mobile devices");
-        return Array.from(devices.values());
-      }).pipe(Effect.withSpan("DeviceManager.listDevices"));
+      const listDevices = () =>
+        Effect.gen(function* () {
+          yield* Effect.logDebug("Listing available mobile devices");
+          return Array.from(devices.values());
+        }).pipe(Effect.withSpan("DeviceManager.listDevices"));
 
       const connect = (capabilities: DeviceCapabilities) =>
         Effect.gen(function* () {
@@ -72,7 +70,9 @@ export class DeviceManager extends ServiceMap.Service<
             });
           }
 
-          const sessionId = yield* appium.createSession(capabilities);
+          const sessionId = yield* appium.createSession(
+            capabilities as unknown as Record<string, unknown>,
+          );
 
           const session = new DeviceSession({
             deviceId,
@@ -92,6 +92,11 @@ export class DeviceManager extends ServiceMap.Service<
 
           return session;
         }).pipe(
+          Effect.catchTag("DeviceNotFoundError", (err) =>
+            new MobileError({
+              message: `Device not found: ${err.deviceId}`,
+            }).asEffect(),
+          ),
           Effect.catchTag("AppiumConnectionError", (err) =>
             new MobileError({
               message: `Failed to connect device: ${err.message}`,
@@ -110,22 +115,21 @@ export class DeviceManager extends ServiceMap.Service<
             });
           }
 
-          yield* appium.deleteSession(sessionId);
+          yield* appium.deleteSession(sessionId).pipe(
+            Effect.catchTag("AppiumConnectionError", (err) =>
+              new MobileError({
+                message: `Failed to disconnect device: ${err.message}`,
+                cause: err,
+              }).asEffect(),
+            ),
+          );
           sessions.delete(sessionId);
 
           yield* Effect.logInfo("Device session disconnected", {
             deviceId: session.deviceId,
             sessionId,
           });
-        }).pipe(
-          Effect.catchTag("AppiumConnectionError", (err) =>
-            new MobileError({
-              message: `Failed to disconnect device: ${err.message}`,
-              cause: err,
-            }).asEffect(),
-          ),
-          Effect.withSpan("DeviceManager.disconnect"),
-        );
+        }).pipe(Effect.withSpan("DeviceManager.disconnect"));
 
       const getDevice = (deviceId: string) =>
         Effect.gen(function* () {
@@ -137,7 +141,14 @@ export class DeviceManager extends ServiceMap.Service<
             });
           }
           return device;
-        }).pipe(Effect.withSpan("DeviceManager.getDevice"));
+        }).pipe(
+          Effect.catchTag("DeviceNotFoundError", (err) =>
+            new MobileError({
+              message: `Device not found: ${err.deviceId}`,
+            }).asEffect(),
+          ),
+          Effect.withSpan("DeviceManager.getDevice"),
+        );
 
       const activeSessions = Effect.sync(() => Array.from(sessions.values()));
 

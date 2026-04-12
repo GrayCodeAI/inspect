@@ -16,10 +16,9 @@ export interface PwaReporterService {
   readonly formatHtml: (report: AuditReport) => Effect.Effect<string>;
 }
 
-export class PwaReporter extends ServiceMap.Service<
-  PwaReporter,
-  PwaReporterService
->()("@inspect/PwaReporter") {
+export class PwaReporter extends ServiceMap.Service<PwaReporter, PwaReporterService>()(
+  "@inspect/PwaReporter",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

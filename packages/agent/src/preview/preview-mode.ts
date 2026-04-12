@@ -104,9 +104,7 @@ export class PreviewModeService extends ServiceMap.Service<
           yield* Effect.logInfo("Preview mode disabled");
         });
 
-      const requestApproval = (
-        action: Omit<PreviewAction, "id" | "timestamp" | "status">,
-      ) =>
+      const requestApproval = (action: Omit<PreviewAction, "id" | "timestamp" | "status">) =>
         Effect.gen(function* () {
           const enabled = yield* isEnabled();
           if (!enabled) {
@@ -207,7 +205,7 @@ export class PreviewModeService extends ServiceMap.Service<
                   description: current.action.description,
                   params: current.action.params,
                   timestamp: current.action.timestamp,
-                  status: modification ? "modified" as const : "approved" as const,
+                  status: modification ? ("modified" as const) : ("approved" as const),
                 }),
                 response: Option.some(approval),
               });

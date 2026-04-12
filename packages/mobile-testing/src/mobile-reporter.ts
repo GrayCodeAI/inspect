@@ -8,11 +8,7 @@ export class MobileTestResult extends Schema.Class<MobileTestResult>("MobileTest
   testId: Schema.String,
   deviceName: Schema.String,
   platform: Schema.Literals(["iOS", "Android"] as const),
-  status: Schema.Literals(["pass", "fail", "error"]) as Schema.Schema<
-    "pass" | "fail" | "error",
-    "pass" | "fail" | "error",
-    never
-  >,
+  status: Schema.Literals(["pass", "fail", "error"] as const),
   duration: Schema.Number,
   screenshotPath: Schema.optional(Schema.String),
   error: Schema.optional(Schema.String),
@@ -36,10 +32,9 @@ export interface MobileReporterService {
   readonly getResults: (testId: string) => Effect.Effect<MobileTestResult[]>;
 }
 
-export class MobileReporter extends ServiceMap.Service<
-  MobileReporter,
-  MobileReporterService
->()("@inspect/MobileReporter") {
+export class MobileReporter extends ServiceMap.Service<MobileReporter, MobileReporterService>()(
+  "@inspect/MobileReporter",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

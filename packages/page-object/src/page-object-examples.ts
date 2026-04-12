@@ -46,15 +46,15 @@ export class LoginPage extends PageObject {
     }).pipe(Effect.withSpan("LoginPage.navigate"));
   }
 
-  click(elementName: string) {
+  click(_elementName: string) {
     return Effect.sync(() => {
-      const element = this.getElement(elementName);
+      const element = this.getElement(_elementName);
       if (!element) {
-        throw new Error(`Element not found: ${elementName}`);
+        throw new Error(`Element not found: ${_elementName}`);
       }
       return new PageActionResult({
         success: true,
-        elementName,
+        elementName: _elementName,
         action: "click",
         duration: 0,
       });
@@ -78,19 +78,21 @@ export class LoginPage extends PageObject {
   }
 
   login(form: LoginForm) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     return Effect.gen(function* () {
-      yield* this.fill("usernameInput", form.username);
-      yield* this.fill("passwordInput", form.password);
+      yield* self.fill("usernameInput", form.username);
+      yield* self.fill("passwordInput", form.password);
 
       if (form.rememberMe) {
-        yield* this.click("rememberCheckbox");
+        yield* self.click("rememberCheckbox");
       }
 
-      yield* this.click("loginButton");
+      yield* self.click("loginButton");
 
-      const isVisible = yield* this.isVisible("errorMessage");
+      const isVisible = yield* self.isVisible("errorMessage");
       if (isVisible) {
-        const errorText = yield* this.getText("errorMessage");
+        const errorText = yield* self.getText("errorMessage");
         return new LoginResult({
           success: false,
           error: errorText,
@@ -101,13 +103,11 @@ export class LoginPage extends PageObject {
         success: true,
         redirectUrl: "/dashboard",
       });
-    }.bind(this)).pipe(Effect.withSpan("LoginPage.login"));
+    }).pipe(Effect.withSpan("LoginPage.login"));
   }
 
   getText(elementName: string) {
-    return Effect.sync(() => `[text:${elementName}]`).pipe(
-      Effect.withSpan("LoginPage.getText"),
-    );
+    return Effect.sync(() => `[text:${elementName}]`).pipe(Effect.withSpan("LoginPage.getText"));
   }
 
   isVisible(elementName: string) {
@@ -199,8 +199,10 @@ export class DashboardPage extends PageObject {
   }
 
   logout() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     return Effect.gen(function* () {
-      yield* this.click("logoutBtn");
+      yield* self.click("logoutBtn");
       return new PageActionResult({
         success: true,
         elementName: "logoutBtn",
@@ -208,7 +210,7 @@ export class DashboardPage extends PageObject {
         duration: 0,
         value: "/login",
       });
-    }.bind(this)).pipe(Effect.withSpan("DashboardPage.logout"));
+    }).pipe(Effect.withSpan("DashboardPage.logout"));
   }
 
   getText(elementName: string) {
@@ -217,7 +219,7 @@ export class DashboardPage extends PageObject {
     );
   }
 
-  isVisible(elementName: string) {
+  isVisible(_elementName: string) {
     return Effect.sync(() => true).pipe(Effect.withSpan("DashboardPage.isVisible"));
   }
 }

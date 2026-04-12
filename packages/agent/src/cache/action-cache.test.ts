@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { ActionCache, DEFAULT_CACHE_CONFIG, type ElementSignature } from "./action-cache.js";
+import { ActionCache, type ElementSignature } from "./action-cache.js";
 
 describe("ActionCache", () => {
   let cache: ActionCache;

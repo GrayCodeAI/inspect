@@ -18,9 +18,7 @@ export class ShellExecutionError extends Schema.ErrorClass<ShellExecutionError>(
   }
 }
 
-export class SafetyCheckError extends Schema.ErrorClass<SafetyCheckError>(
-  "SafetyCheckError",
-)({
+export class SafetyCheckError extends Schema.ErrorClass<SafetyCheckError>("SafetyCheckError")({
   _tag: Schema.tag("SafetyCheckError"),
   command: Schema.String,
   violation: Schema.String,

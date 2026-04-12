@@ -84,11 +84,11 @@ export class BloomFilter {
 
   get estimatedFalsePositiveRate(): number {
     const bitSize = this.bits.length * 8;
-    let setBits = 0;
+    let _setBits = 0;
     for (const byte of this.bits) {
       for (let i = 0; i < 8; i++) {
         if ((byte & (1 << i)) !== 0) {
-          setBits++;
+          _setBits++;
         }
       }
     }

@@ -102,18 +102,13 @@ export class CoverageThreshold extends ServiceMap.Service<CoverageThreshold>()(
         }).pipe(Effect.withSpan("CoverageThreshold.enforceThresholds"));
 
       const calculateStatementCoverage = (summary: CoverageSummary): number => {
-        const totalStatements = summary.files.reduce(
-          (sum, file) => sum + file.functions.total,
-          0,
-        );
+        const totalStatements = summary.files.reduce((sum, file) => sum + file.functions.total, 0);
         const coveredStatements = summary.files.reduce(
           (sum, file) => sum + file.functions.covered,
           0,
         );
 
-        return totalStatements === 0
-          ? 100
-          : (coveredStatements / totalStatements) * 100;
+        return totalStatements === 0 ? 100 : (coveredStatements / totalStatements) * 100;
       };
 
       return {

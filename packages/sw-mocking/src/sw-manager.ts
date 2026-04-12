@@ -23,10 +23,9 @@ export interface SwManagerService {
   readonly isActive: (id: string) => Effect.Effect<boolean>;
 }
 
-export class SwManager extends ServiceMap.Service<
-  SwManager,
-  SwManagerService
->()("@inspect/SwManager") {
+export class SwManager extends ServiceMap.Service<SwManager, SwManagerService>()(
+  "@inspect/SwManager",
+) {
   static layer = Layer.effect(
     this,
     Effect.gen(function* () {

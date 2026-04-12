@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { NLParser, createNLParser, parseInstruction, getSupportedPatterns } from "./parser.js";
-import { DEFAULT_PARSER_CONFIG } from "./types.js";
 
 describe("NLParser", () => {
   let parser: NLParser;

@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import chalk from "chalk";
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 
 export interface RecordNLOptions {
   url: string;
@@ -66,7 +66,7 @@ function getActionType(interaction: Record<string, unknown>): string {
 /**
  * Format event data for NL generation
  */
-function formatEventForLLM(interaction: Record<string, unknown>, screenshot?: Buffer): string {
+function formatEventForLLM(interaction: Record<string, unknown>, _screenshot?: Buffer): string {
   const type = getActionType(interaction);
   const data = interaction.data as Record<string, unknown> | undefined;
 

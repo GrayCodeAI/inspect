@@ -143,18 +143,14 @@ export function createCookieDataFactory(): Factory<CookieData> {
  *
  * @param defaults Function returning default object values given a sequence number
  */
-export function createGenericFactory<T extends object>(
-  defaults: (seq: number) => T,
-): Factory<T> {
+export function createGenericFactory<T extends object>(defaults: (seq: number) => T): Factory<T> {
   return {
     build: (overrides: Partial<T> = {}): T => {
       const seq = nextSequence();
       return { ...defaults(seq), ...overrides };
     },
     buildList: (count: number, overrides?: Partial<T>): T[] => {
-      return Array.from({ length: count }, () =>
-        createGenericFactory(defaults).build(overrides),
-      );
+      return Array.from({ length: count }, () => createGenericFactory(defaults).build(overrides));
     },
   };
 }
