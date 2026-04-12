@@ -263,7 +263,12 @@ export class NLParser {
     for (const [pattern] of indexPatterns) {
       textContent = textContent.replace(pattern, "");
     }
-    textContent = textContent.replace(/\b(the|a|an|on|in|to|of)\b/gi, "").trim();
+    // Remove action words and articles
+    textContent = textContent.replace(
+      /\b(click|tap|press|type|enter|fill|set|select|choose|pick|check|uncheck|wait|scroll|hover|focus|open|go|navigate|visit|verify|assert|expect|drag|drop|move|upload|download|attach|switch|close|refresh|reload|hit|input|on|the|a|an|to|of|in|with|from|into)\b/gi,
+      "",
+    );
+    textContent = textContent.trim().replace(/\s+/g, " ");
 
     if (textContent) {
       descriptor.text = textContent;

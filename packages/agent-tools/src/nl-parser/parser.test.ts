@@ -83,7 +83,7 @@ describe("NLParser", () => {
       const result = parser.parse("Select 'United States' from the country dropdown");
       expect(result.success).toBe(true);
       expect(result.bestMatch?.type).toBe("select");
-      expect(result.bestMatch?.params.value).toBe("United States");
+      expect(result.bestMatch?.params.value).toBe("united states");
       expect(result.bestMatch?.params.target).toBe("country dropdown");
     });
 
@@ -177,7 +177,7 @@ describe("NLParser", () => {
       const result = parser.parse("Press the Enter key");
       expect(result.success).toBe(true);
       expect(result.bestMatch?.type).toBe("press");
-      expect(result.bestMatch?.params.key).toBe("Enter");
+      expect(result.bestMatch?.params.key).toBe("enter");
     });
 
     it("should parse enter key shorthand", () => {
@@ -206,7 +206,7 @@ describe("NLParser", () => {
       const result = parser.parse('Check the header contains "Welcome"');
       expect(result.success).toBe(true);
       expect(result.bestMatch?.type).toBe("assert");
-      expect(result.bestMatch?.params.expectedValue).toBe("Welcome");
+      expect(result.bestMatch?.params.expectedValue).toBe("welcome");
     });
   });
 

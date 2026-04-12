@@ -81,12 +81,18 @@ export const clickPatterns: GrammarPattern[] = [
       "click (?:on )?the (.+)",
       "click (.+)",
       "tap (?:on )?(.+)",
-      "press (.+)",
-      "select (.+)",
+      "press (?:the )?(.+?) button",
+      "press (?:the )?(.+?) tab",
       "click",
     ],
     [extractTarget],
-    ["Click the login button", "Click on submit", "Tap on the menu", "Press enter button", "Click"],
+    [
+      "Click the login button",
+      "Click on submit",
+      "Tap on the menu",
+      "Press the submit button",
+      "Click",
+    ],
     100,
   ),
 
@@ -136,8 +142,6 @@ export const typePatterns: GrammarPattern[] = [
       "type ['\"]?([^'\"]+)['\"]? (?:in|into) (?:the )?(.+)",
       "enter ['\"]?([^'\"]+)['\"]? (?:in|into) (?:the )?(.+)",
       "input ['\"]?([^'\"]+)['\"]? (?:in|into) (?:the )?(.+)",
-      "fill (?:the )?(.+?) with ['\"]?([^'\"]+)['\"]?",
-      "set (?:the )?(.+?) to ['\"]?([^'\"]+)['\"]?",
     ],
     [
       (match) => ({
@@ -148,8 +152,27 @@ export const typePatterns: GrammarPattern[] = [
     [
       'Type "hello" in the search box',
       "Enter username in the login field",
-      "Fill the email field with test@example.com",
+      "Input 'password' into the password field",
     ],
+    100,
+  ),
+
+  createPattern(
+    "fill_field",
+    "type",
+    ["fill (?:the )?(.+?) with ['\"]?([^'\"]+)['\"]?", "fill (?:the )?(.+)"],
+    [
+      (match) =>
+        match[2]
+          ? {
+              target: match[1]?.trim().replace(/^the\s+/i, ""),
+              value: match[2]?.trim(),
+            }
+          : {
+              target: match[1]?.trim().replace(/^the\s+/i, ""),
+            },
+    ],
+    ["Fill the email field with test@example.com", "Fill the search box"],
     100,
   ),
 
@@ -241,6 +264,10 @@ export const navigationPatterns: GrammarPattern[] = [
       "browse to (https?://[^\\s'\"]+)",
       "go to ['\"]?(https?://[^'\"]+)['\"]?",
       "navigate to ['\"]?(https?://[^'\"]+)['\"]?",
+      "go to (.+)",
+      "navigate to (.+)",
+      "open (.+)",
+      "visit (.+)",
     ],
     [extractUrl],
     ["Go to https://example.com", "Navigate to the login page", "Open google.com"],
@@ -350,13 +377,18 @@ export const waitPatterns: GrammarPattern[] = [
     "wait",
     [
       "wait for (?:the )?(.+?)(?: to (appear|disappear|be visible|be hidden))?$",
-      "wait until (?:the )?(.+?)(?: is (visible|hidden|ready|loaded))?",
+      "wait until (?:the )?(.+?)(?: is (visible|hidden|ready|loaded))?$",
     ],
     [
-      (match) => ({
-        target: match[1]?.trim(),
-        timeout: 30000,
-      }),
+      (match) => {
+        const baseTarget = match[1]?.trim() ?? "";
+        const suffix = match[2]?.trim();
+        const fullTarget = suffix ? `${baseTarget} to ${suffix}` : baseTarget;
+        return {
+          target: fullTarget,
+          timeout: 30000,
+        };
+      },
     ],
     ["Wait for the modal to appear", "Wait until the page is loaded"],
     85,
@@ -369,9 +401,27 @@ export const waitPatterns: GrammarPattern[] = [
 
 export const keyboardPatterns: GrammarPattern[] = [
   createPattern(
+    "enter_key",
+    "press",
+    ["press enter", "hit enter", "press the enter key", "type enter"],
+    [() => ({ key: "Enter" })],
+    ["Press enter", "Hit Enter"],
+    110,
+  ),
+
+  createPattern(
+    "escape_key",
+    "press",
+    ["press escape", "hit escape", "press esc", "click escape", "press the escape key"],
+    [() => ({ key: "Escape" })],
+    ["Press escape", "Hit Esc"],
+    110,
+  ),
+
+  createPattern(
     "press_key",
     "press",
-    ["press (?:the )?(.+?) key", "hit (?:the )?(.+?) key", "press (.+)"],
+    ["press (?:the )?(.+?) key", "hit (?:the )?(.+?) key"],
     [extractKey],
     ["Press Enter key", "Hit the Escape key", "Press Tab"],
     90,
@@ -384,24 +434,6 @@ export const keyboardPatterns: GrammarPattern[] = [
     [(match) => ({ key: `${match[1]}+${match[2]}` })],
     ["Press Ctrl+S", "Press Shift and Tab together", "Hold Alt and press F4"],
     85,
-  ),
-
-  createPattern(
-    "enter_key",
-    "press",
-    ["press enter", "hit enter", "click enter", "type enter"],
-    [() => ({ key: "Enter" })],
-    ["Press enter", "Hit Enter"],
-    95,
-  ),
-
-  createPattern(
-    "escape_key",
-    "press",
-    ["press escape", "hit escape", "press esc", "click escape"],
-    [() => ({ key: "Escape" })],
-    ["Press escape", "Hit Esc"],
-    95,
   ),
 ];
 
@@ -457,9 +489,9 @@ export const assertPatterns: GrammarPattern[] = [
     "assert_text",
     "assert",
     [
-      "verify (?:the )?(.+?) (?:contains|has) ['\"]?(.+?)['\"]?",
-      "check (?:the )?(.+?) (?:contains|has) ['\"]?(.+?)['\"]?",
-      "assert (?:the )?(.+?) (?:contains|has) ['\"]?(.+?)['\"]?",
+      "verify (?:the )?(.+?) (?:contains|has) ['\"]?([^'\"]+)['\"]?",
+      "check (?:the )?(.+?) (?:contains|has) ['\"]?([^'\"]+)['\"]?",
+      "assert (?:the )?(.+?) (?:contains|has) ['\"]?([^'\"]+)['\"]?",
     ],
     [
       (match) => ({
@@ -469,7 +501,7 @@ export const assertPatterns: GrammarPattern[] = [
       }),
     ],
     ["Verify the header contains Welcome", "Check the page has Error message"],
-    85,
+    110,
   ),
 
   createPattern(
