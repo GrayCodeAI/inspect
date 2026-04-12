@@ -6,8 +6,8 @@ const buildConfig = {
   entryPoints: ["src/background.ts", "src/content.ts", "src/popup.ts"],
   bundle: true,
   outdir: "dist/src",
-  format: "esm" as const,
-  target: "chrome120" as const,
+  format: "esm",
+  target: "chrome120",
   minify: !isWatch,
   sourcemap: isWatch ? "inline" : false,
 };

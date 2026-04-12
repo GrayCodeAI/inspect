@@ -24,17 +24,17 @@ const createPattern = (
 
 /** Extract target element from match groups */
 const extractTarget = (match: RegExpMatchArray): Partial<ActionParams> => ({
-  target: match[1]?.trim(),
+  target: match[1]?.trim().replace(/^the\s+/i, ""),
 });
 
 /** Extract target and value */
-const _extractTargetAndValue = (match: RegExpMatchArray): Partial<ActionParams> => ({
-  target: match[1]?.trim(),
+const extractTargetAndValue = (match: RegExpMatchArray): Partial<ActionParams> => ({
+  target: match[1]?.trim().replace(/^the\s+/i, ""),
   value: match[2]?.trim(),
 });
 
 /** Extract numeric value */
-const _extractNumeric = (match: RegExpMatchArray): Partial<ActionParams> => {
+const extractNumeric = (match: RegExpMatchArray): Partial<ActionParams> => {
   const num = parseInt(match[1], 10);
   return { numericValue: isNaN(num) ? undefined : num };
 };
@@ -77,9 +77,16 @@ export const clickPatterns: GrammarPattern[] = [
   createPattern(
     "click_basic",
     "click",
-    ["click (?:on )?the (.+)", "click (.+)", "tap (?:on )?(.+)", "press (.+)", "select (.+)"],
+    [
+      "click (?:on )?the (.+)",
+      "click (.+)",
+      "tap (?:on )?(.+)",
+      "press (.+)",
+      "select (.+)",
+      "click",
+    ],
     [extractTarget],
-    ["Click the login button", "Click on submit", "Tap on the menu", "Press enter button"],
+    ["Click the login button", "Click on submit", "Tap on the menu", "Press enter button", "Click"],
     100,
   ),
 
@@ -126,13 +133,18 @@ export const typePatterns: GrammarPattern[] = [
     "type_basic",
     "type",
     [
-      "type ['\"]?(.+?)['\"]? (?:in|into) (?:the )?(.+)",
-      "enter ['\"]?(.+?)['\"]? (?:in|into) (?:the )?(.+)",
-      "input ['\"]?(.+?)['\"]? (?:in|into) (?:the )?(.+)",
-      "fill (?:the )?(.+?) with ['\"]?(.+?)['\"]?",
-      "set (?:the )?(.+?) to ['\"]?(.+?)['\"]?",
+      "type ['\"]?([^'\"]+)['\"]? (?:in|into) (?:the )?(.+)",
+      "enter ['\"]?([^'\"]+)['\"]? (?:in|into) (?:the )?(.+)",
+      "input ['\"]?([^'\"]+)['\"]? (?:in|into) (?:the )?(.+)",
+      "fill (?:the )?(.+?) with ['\"]?([^'\"]+)['\"]?",
+      "set (?:the )?(.+?) to ['\"]?([^'\"]+)['\"]?",
     ],
-    [(match) => ({ target: match[2]?.trim(), value: match[1]?.trim() })],
+    [
+      (match) => ({
+        target: match[2]?.trim().replace(/^the\s+/i, ""),
+        value: match[1]?.trim(),
+      }),
+    ],
     [
       'Type "hello" in the search box',
       "Enter username in the login field",
@@ -176,18 +188,22 @@ export const selectPatterns: GrammarPattern[] = [
     "select_option",
     "select",
     [
-      "select ['\"]?(.+?)['\"]? (?:from )?(?:the )?(.+?)(?: dropdown)?",
-      "choose ['\"]?(.+?)['\"]? (?:from )?(?:the )?(.+?)(?: dropdown)?",
-      "pick ['\"]?(.+?)['\"]? (?:from )?(?:the )?(.+?)(?: dropdown)?",
-      "select (?:the )?(.+?) option (?:from )?(?:the )?(.+?)(?: dropdown)?",
+      "select ['\"]?([^'\"]+)['\"]? from (?:the )?(.+)(?: dropdown)?$",
+      "choose ['\"]?([^'\"]+)['\"]? from (?:the )?(.+)(?: dropdown)?$",
+      "pick ['\"]?([^'\"]+)['\"]? from (?:the )?(.+)(?: dropdown)?$",
     ],
-    [(match) => ({ target: match[2]?.trim(), value: match[1]?.trim() })],
+    [
+      (match) => ({
+        target: match[2]?.trim().replace(/^the\s+/i, ""),
+        value: match[1]?.trim(),
+      }),
+    ],
     [
       "Select United States from the country dropdown",
       "Choose option 2 from the menu",
       "Pick 'Large' from the size dropdown",
     ],
-    95,
+    105,
   ),
 
   createPattern(
@@ -218,11 +234,13 @@ export const navigationPatterns: GrammarPattern[] = [
     "navigate_to",
     "navigate",
     [
-      "go to ['\"]?(.+?)['\"]?",
-      "navigate to ['\"]?(.+?)['\"]?",
-      "open ['\"]?(.+?)['\"]?",
-      "visit ['\"]?(.+?)['\"]?",
-      "browse to ['\"]?(.+?)['\"]?",
+      "go to (https?://[^\\s'\"]+)",
+      "navigate to (https?://[^\\s'\"]+)",
+      "open (https?://[^\\s'\"]+)",
+      "visit (https?://[^\\s'\"]+)",
+      "browse to (https?://[^\\s'\"]+)",
+      "go to ['\"]?(https?://[^'\"]+)['\"]?",
+      "navigate to ['\"]?(https?://[^'\"]+)['\"]?",
     ],
     [extractUrl],
     ["Go to https://example.com", "Navigate to the login page", "Open google.com"],
@@ -314,7 +332,15 @@ export const waitPatterns: GrammarPattern[] = [
       "pause (?:for )?(\\d+) seconds?",
       "sleep (?:for )?(\\d+) seconds?",
     ],
-    [extractTimeout],
+    [
+      (match) => {
+        const num = parseInt(match[1], 10);
+        return {
+          timeout: isNaN(num) ? undefined : num * 1000,
+          numericValue: isNaN(num) ? undefined : num,
+        };
+      },
+    ],
     ["Wait 3 seconds", "Wait for 500 ms", "Pause for 2 seconds"],
     90,
   ),

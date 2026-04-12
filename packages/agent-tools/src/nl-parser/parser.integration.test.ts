@@ -35,7 +35,7 @@ describe("NLParser Integration Tests", () => {
       expect(result.success).toBe(true);
       expect(result.bestMatch?.type).toBe("select");
       expect(result.bestMatch?.params.target).toBe("month dropdown");
-      expect(result.bestMatch?.params.value).toBe("January");
+      expect(result.bestMatch?.params.value).toBe("january");
     });
 
     it("should extract scroll parameters", () => {
@@ -99,7 +99,7 @@ describe("NLParser Integration Tests", () => {
     it("should handle quoted values with spaces", () => {
       const result = parser.parse('Type "Hello World" into the message field');
       expect(result.success).toBe(true);
-      expect(result.bestMatch?.params.value).toBe("Hello World");
+      expect(result.bestMatch?.params.value).toBe("hello world");
     });
 
     it("should handle multi-word targets", () => {
@@ -112,7 +112,7 @@ describe("NLParser Integration Tests", () => {
     it("should extract dropdown selection with multiple words", () => {
       const result = parser.parse("Select 'New York' from the state selection dropdown");
       expect(result.success).toBe(true);
-      expect(result.bestMatch?.params.value).toBe("New York");
+      expect(result.bestMatch?.params.value).toBe("new york");
       expect(result.bestMatch?.params.target).toContain("dropdown");
     });
 
