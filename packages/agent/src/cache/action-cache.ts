@@ -69,7 +69,7 @@ export interface ExpectedOutcome {
   /** Expected URL after action */
   url?: string;
   /** Expected element to be present */
-  elementPresent?: string;
+  elementPresent?: string | boolean;
   /** Expected text to be present */
   textPresent?: string;
   /** Screenshot hash for comparison */
