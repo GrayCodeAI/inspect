@@ -19,13 +19,17 @@ type Config struct {
 	MaxDepth        int
 	Concurrency     int
 	Timeout         time.Duration
+	PageTimeout     time.Duration
 	RateLimit       int
+	RetryAttempts   int
+	RetryDelay      time.Duration
 	UserAgent       string
 	FollowRedirects int
 	RespectRobots   bool
 	Exclude         []string
 	AuthHeader      string
 	AuthValue       string
+	CookieJar       http.CookieJar
 }
 
 // Page represents a single crawled page with its metadata.
@@ -80,6 +84,16 @@ type Crawler struct {
 
 // New creates a configured Crawler.
 func New(cfg Config) *Crawler {
+	if cfg.PageTimeout == 0 {
+		cfg.PageTimeout = 15 * time.Second
+	}
+	if cfg.RetryAttempts == 0 {
+		cfg.RetryAttempts = 2
+	}
+	if cfg.RetryDelay == 0 {
+		cfg.RetryDelay = 500 * time.Millisecond
+	}
+
 	transport := &http.Transport{
 		MaxIdleConns:        cfg.Concurrency * 2,
 		MaxIdleConnsPerHost: cfg.Concurrency,
@@ -93,6 +107,7 @@ func New(cfg Config) *Crawler {
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   cfg.Timeout,
+		Jar:       cfg.CookieJar,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= cfg.FollowRedirects {
 				return http.ErrUseLastResponse
@@ -126,9 +141,18 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 
 	baseHost := parsed.Host
 
+	origin := parsed.Scheme + "://" + parsed.Host
+
 	if c.cfg.RespectRobots {
-		c.robots.Fetch(ctx, c.client, parsed.Scheme+"://"+parsed.Host)
+		c.robots.Fetch(ctx, c.client, origin)
 	}
+
+	// Seed with sitemap URLs if available
+	sitemapURLs := c.robots.Sitemaps(origin)
+	if len(sitemapURLs) == 0 {
+		sitemapURLs = []string{origin + "/sitemap.xml"}
+	}
+	sitemapPages := FetchSitemapURLs(ctx, c.client, sitemapURLs)
 
 	type work struct {
 		url   string
@@ -153,6 +177,18 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 	var active sync.WaitGroup
 	active.Add(1)
 	queue <- work{url: startURL, depth: 0, parent: ""}
+
+	// Seed from sitemap
+	for _, sitemapPage := range sitemapPages {
+		if c.tryMarkSeen(sitemapPage) {
+			active.Add(1)
+			select {
+			case queue <- work{url: sitemapPage, depth: 1, parent: "sitemap"}:
+			default:
+				active.Done()
+			}
+		}
+	}
 
 	// Close queue when all work is done
 	go func() {
@@ -224,11 +260,47 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 		ParentURL: parent,
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+	var lastErr error
+	for attempt := 0; attempt <= c.cfg.RetryAttempts; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				page.Error = ctx.Err()
+				page.Duration = time.Since(start)
+				return page
+			case <-time.After(c.cfg.RetryDelay * time.Duration(attempt)):
+			}
+		}
+
+		err := c.doFetch(ctx, page, targetURL)
+		if err != nil {
+			lastErr = err
+			if !isRetryable(page.StatusCode) {
+				break
+			}
+			continue
+		}
+		if !isRetryable(page.StatusCode) {
+			break
+		}
+	}
+
+	if page.StatusCode == 0 && lastErr != nil {
+		page.Error = lastErr
+	}
+
+	page.Duration = time.Since(start)
+	return page
+}
+
+func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) error {
+	pageCtx, cancel := context.WithTimeout(ctx, c.cfg.PageTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(pageCtx, http.MethodGet, targetURL, nil)
 	if err != nil {
 		page.Error = err
-		page.Duration = time.Since(start)
-		return page
+		return err
 	}
 
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
@@ -239,32 +311,34 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 	resp, err := c.client.Do(req)
 	if err != nil {
 		page.Error = err
-		page.Duration = time.Since(start)
-		return page
+		return err
 	}
 	defer resp.Body.Close()
 
 	page.StatusCode = resp.StatusCode
 	page.Headers = resp.Header
+	page.Error = nil
 
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "text/html") {
-		page.Duration = time.Since(start)
-		return page
+		return nil
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
 	if err != nil {
 		page.Error = err
-		page.Duration = time.Since(start)
-		return page
+		return err
 	}
 	page.Body = body
 
 	page.Links = extractLinks(targetURL, body)
 	page.Forms = extractForms(body)
-	page.Duration = time.Since(start)
-	return page
+	return nil
+}
+
+func isRetryable(statusCode int) bool {
+	return statusCode == 429 || statusCode == 500 || statusCode == 502 ||
+		statusCode == 503 || statusCode == 504 || statusCode == 0
 }
 
 func (c *Crawler) markSeen(u string) {

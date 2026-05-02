@@ -2,6 +2,7 @@ package inspect
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -27,12 +28,19 @@ func NewScanner(opts ...Option) *Scanner {
 // Scan crawls the target URL and runs all configured checks against the
 // discovered pages. Returns a complete Report with findings and stats.
 func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
+	if s.cfg.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.cfg.timeout)
+		defer cancel()
+	}
+
 	start := time.Now()
 
 	crawlCfg := crawler.Config{
 		MaxDepth:        s.cfg.depth,
 		Concurrency:     s.cfg.concurrency,
 		Timeout:         s.cfg.timeout,
+		PageTimeout:     s.cfg.pageTimeout,
 		RateLimit:       s.cfg.rateLimit,
 		UserAgent:       s.cfg.userAgent,
 		FollowRedirects: s.cfg.followRedirects,
@@ -40,12 +48,21 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 		Exclude:         s.cfg.exclude,
 		AuthHeader:      s.cfg.authHeader,
 		AuthValue:       s.cfg.authValue,
+		CookieJar:       s.cfg.cookieJar,
+	}
+
+	if s.cfg.logger != nil {
+		s.cfg.logger.Info("inspect: starting crawl", "target", target, "depth", s.cfg.depth)
 	}
 
 	c := crawler.New(crawlCfg)
 	pages, err := c.Crawl(ctx, target)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("inspect: crawl failed: %w", err)
+	}
+
+	if s.cfg.logger != nil {
+		s.cfg.logger.Info("inspect: crawl complete", "pages", len(pages))
 	}
 
 	registry := check.DefaultRegistry()
