@@ -1,6 +1,7 @@
 package check
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -10,12 +11,30 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/inspect/internal/crawler"
+	"golang.org/x/net/html"
 )
 
 // LinksCheck detects broken links, redirect chains, and dead anchors.
-type LinksCheck struct{}
+type LinksCheck struct {
+	// AcceptedStatusCodes is the set of HTTP status codes considered acceptable.
+	// If empty, defaults to 200-399.
+	AcceptedStatusCodes []int
+}
 
 func (l *LinksCheck) Name() string { return "links" }
+
+func (l *LinksCheck) isAcceptedStatus(code int) bool {
+	if len(l.AcceptedStatusCodes) > 0 {
+		for _, c := range l.AcceptedStatusCodes {
+			if c == code {
+				return true
+			}
+		}
+		return false
+	}
+	// Default: 200-399
+	return code >= 200 && code < 400
+}
 
 func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 	var findings []Finding
@@ -23,6 +42,16 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 	pagesByURL := make(map[string]*crawler.Page)
 	for _, p := range pages {
 		pagesByURL[normalizeForLookup(p.URL)] = p
+	}
+
+	// Build a map of page URL -> set of element IDs for fragment validation
+	pageIDs := make(map[string]map[string]bool)
+	for _, p := range pages {
+		if p.Error != nil || len(p.Body) == 0 {
+			continue
+		}
+		ids := extractElementIDs(p.Body)
+		pageIDs[normalizeForLookup(p.URL)] = ids
 	}
 
 	var mu sync.Mutex
@@ -34,7 +63,7 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 			continue
 		}
 
-		if page.StatusCode >= 400 {
+		if !l.isAcceptedStatus(page.StatusCode) {
 			findings = append(findings, Finding{
 				Severity: severityForStatus(page.StatusCode),
 				URL:      page.URL,
@@ -57,6 +86,23 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 				continue
 			}
 
+			// Fragment validation: check that the target page has an element with the fragment ID
+			if fragment := extractFragment(link.Href); fragment != "" {
+				targetNorm := normalizeForLookup(resolved)
+				if ids, ok := pageIDs[targetNorm]; ok {
+					if !ids[fragment] {
+						findings = append(findings, Finding{
+							Severity: SeverityMedium,
+							URL:      page.URL,
+							Element:  fmt.Sprintf(`<a href="%s">`, truncateHref(link.Href, 80)),
+							Message:  fmt.Sprintf("Fragment #%s not found on target page", fragment),
+							Fix:      "Add an element with id=\"" + fragment + "\" on the target page, or fix the link",
+							Evidence: fmt.Sprintf("Target: %s", resolved),
+						})
+					}
+				}
+			}
+
 			if _, known := pagesByURL[normalizeForLookup(resolved)]; known {
 				continue
 			}
@@ -68,7 +114,7 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 					sem <- struct{}{}
 					defer func() { <-sem }()
 
-					f := checkExternalLink(ctx, pageURL, href, resolved)
+					f := l.checkExternalLink(ctx, pageURL, href, resolved)
 					if f != nil {
 						mu.Lock()
 						findings = append(findings, *f)
@@ -102,7 +148,47 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 	return findings
 }
 
-func checkExternalLink(ctx context.Context, pageURL, href, resolved string) *Finding {
+// extractElementIDs parses HTML and returns all id attribute values.
+func extractElementIDs(body []byte) map[string]bool {
+	doc, err := html.Parse(bytes.NewReader(body))
+	if err != nil {
+		return nil
+	}
+	ids := make(map[string]bool)
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			for _, attr := range n.Attr {
+				if attr.Key == "id" && attr.Val != "" {
+					ids[attr.Val] = true
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(doc)
+	return ids
+}
+
+// extractFragment returns the fragment part of a URL (without #).
+func extractFragment(href string) string {
+	parsed, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	return parsed.Fragment
+}
+
+func truncateHref(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "..."
+}
+
+func (l *LinksCheck) checkExternalLink(ctx context.Context, pageURL, href, resolved string) *Finding {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -132,7 +218,7 @@ func checkExternalLink(ctx context.Context, pageURL, href, resolved string) *Fin
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
+	if !l.isAcceptedStatus(resp.StatusCode) {
 		return &Finding{
 			Severity: severityForStatus(resp.StatusCode),
 			URL:      pageURL,

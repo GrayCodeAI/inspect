@@ -53,6 +53,8 @@ type Link struct {
 	Rel      string
 	External bool
 	Anchor   bool
+	Resource bool // true for non-anchor resource URLs (img, script, iframe, etc.)
+	Tag      string // source element tag (e.g., "img", "script", "iframe")
 }
 
 // Form represents an HTML form found on a page.
