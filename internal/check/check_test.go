@@ -164,6 +164,112 @@ func TestPerfCheck_LargeBody(t *testing.T) {
 	}
 }
 
+func TestAIReadyCheck_MissingFeatures(t *testing.T) {
+	page := makePage("https://example.com", 200, map[string]string{"Content-Type": "text/html"},
+		`<html><head><title>Test</title></head><body><p>No semantic structure</p></body></html>`)
+
+	chk := &AIReadyCheck{}
+	findings := chk.Run(context.Background(), []*crawler.Page{page})
+
+	if len(findings) == 0 {
+		t.Fatal("expected AI-ready findings for page missing features")
+	}
+
+	foundMessages := make(map[string]bool)
+	for _, f := range findings {
+		foundMessages[f.Message] = true
+	}
+
+	// Should find missing llms.txt, sitemap, markdown alternate, structured data, semantic HTML issues
+	hasLLMsTxt := false
+	hasSitemap := false
+	hasMarkdown := false
+	hasStructured := false
+	hasMain := false
+	for _, f := range findings {
+		switch {
+		case contains(f.Message, "llms.txt"):
+			hasLLMsTxt = true
+		case contains(f.Message, "sitemap"):
+			hasSitemap = true
+		case contains(f.Message, "markdown alternate"):
+			hasMarkdown = true
+		case contains(f.Message, "structured data"):
+			hasStructured = true
+		case contains(f.Message, "<main>"):
+			hasMain = true
+		}
+	}
+
+	if !hasLLMsTxt {
+		t.Error("expected finding about missing llms.txt")
+	}
+	if !hasSitemap {
+		t.Error("expected finding about missing sitemap")
+	}
+	if !hasMarkdown {
+		t.Error("expected finding about missing markdown alternate")
+	}
+	if !hasStructured {
+		t.Error("expected finding about missing structured data")
+	}
+	if !hasMain {
+		t.Error("expected finding about missing <main> landmark")
+	}
+}
+
+func TestAIReadyCheck_WellStructuredPage(t *testing.T) {
+	page := makePage("https://example.com", 200, map[string]string{"Content-Type": "text/html"},
+		`<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Test</title>
+	<link rel="alternate" type="text/markdown" href="/page.md">
+	<script type="application/ld+json">{"@context":"https://schema.org"}</script>
+</head>
+<body>
+	<nav><a href="/">Home</a></nav>
+	<main><h1>Welcome</h1><p>Content</p></main>
+</body>
+</html>`)
+
+	// Also provide a llms.txt and sitemap page
+	llmsTxt := makePage("https://example.com/llms.txt", 200,
+		map[string]string{"Content-Type": "text/plain"}, "Site description")
+	sitemap := makePage("https://example.com/sitemap.xml", 200,
+		map[string]string{"Content-Type": "application/xml"}, "<urlset></urlset>")
+
+	chk := &AIReadyCheck{}
+	findings := chk.Run(context.Background(), []*crawler.Page{page, llmsTxt, sitemap})
+
+	// Should have no findings for this well-structured page
+	for _, f := range findings {
+		if f.Severity > SeverityInfo {
+			t.Errorf("unexpected finding above info severity: %s", f.Message)
+		}
+	}
+}
+
+func TestAIReadyCheck_Name(t *testing.T) {
+	chk := &AIReadyCheck{}
+	if chk.Name() != "aiready" {
+		t.Errorf("expected name 'aiready', got %q", chk.Name())
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && searchSubstring(s, substr)
+}
+
+func searchSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
 func TestRegistry_Filter(t *testing.T) {
 	r := DefaultRegistry()
 
@@ -173,7 +279,7 @@ func TestRegistry_Filter(t *testing.T) {
 	}
 
 	all := r.All()
-	if len(all) != 7 {
-		t.Errorf("expected 7 checks, got %d", len(all))
+	if len(all) != 8 {
+		t.Errorf("expected 8 checks, got %d", len(all))
 	}
 }
