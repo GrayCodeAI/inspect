@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -217,6 +218,32 @@ func (l *LinksCheck) checkExternalLink(ctx context.Context, pageURL, href, resol
 		}
 	}
 	defer resp.Body.Close()
+
+	// If the server rejects HEAD (405 or 403), retry with GET as a fallback.
+	// Some servers block HEAD requests but respond normally to GET.
+	if resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusForbidden {
+		getReq, err := http.NewRequestWithContext(ctx, http.MethodGet, resolved, nil)
+		if err == nil {
+			getReq.Header.Set("User-Agent", "inspect/1.0 (link checker)")
+			getResp, err := client.Do(getReq)
+			if err == nil {
+				// Read at most 1 byte -- we only need the status code.
+				io.CopyN(io.Discard, getResp.Body, 1)
+				getResp.Body.Close()
+				// Use the GET response status instead.
+				if l.isAcceptedStatus(getResp.StatusCode) {
+					return nil
+				}
+				return &Finding{
+					Severity: severityForStatus(getResp.StatusCode),
+					URL:      pageURL,
+					Element:  fmt.Sprintf(`<a href="%s">`, href),
+					Message:  fmt.Sprintf("External link returns HTTP %d: %s", getResp.StatusCode, resolved),
+					Fix:      "Remove or update the broken link",
+				}
+			}
+		}
+	}
 
 	if !l.isAcceptedStatus(resp.StatusCode) {
 		return &Finding{

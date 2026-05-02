@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -24,6 +23,7 @@ func (s *SecurityCheck) Run(ctx context.Context, pages []*crawler.Page) []Findin
 		}
 
 		findings = append(findings, s.checkHeaders(page)...)
+		findings = append(findings, checkCSPQuality(page)...)
 		findings = append(findings, s.checkMixedContent(page)...)
 		findings = append(findings, s.checkExposedSecrets(page)...)
 		findings = append(findings, s.checkSetCookie(page)...)
@@ -93,6 +93,104 @@ func (s *SecurityCheck) checkHeaders(page *crawler.Page) []Finding {
 	return findings
 }
 
+// checkCSPQuality parses the Content-Security-Policy header value and flags
+// weak or overly permissive directives.
+func checkCSPQuality(page *crawler.Page) []Finding {
+	csp := page.Headers.Get("Content-Security-Policy")
+	if csp == "" {
+		return nil // missing header is already reported by checkHeaders
+	}
+
+	var findings []Finding
+
+	// Parse CSP into directive map: directive-name -> list of source values
+	directives := make(map[string][]string)
+	for _, part := range strings.Split(csp, ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		tokens := strings.Fields(part)
+		if len(tokens) == 0 {
+			continue
+		}
+		name := strings.ToLower(tokens[0])
+		directives[name] = tokens[1:]
+	}
+
+	// Check script-src (or fall back to default-src) for unsafe values
+	scriptSources := directives["script-src"]
+	if scriptSources == nil {
+		scriptSources = directives["default-src"]
+	}
+
+	for _, src := range scriptSources {
+		lower := strings.ToLower(src)
+		if lower == "'unsafe-inline'" {
+			findings = append(findings, Finding{
+				Severity: SeverityHigh,
+				URL:      page.URL,
+				Message:  "CSP allows 'unsafe-inline' in script-src",
+				Fix:      "Remove 'unsafe-inline' from script-src and use nonces or hashes instead",
+				Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+			})
+		}
+		if lower == "'unsafe-eval'" {
+			findings = append(findings, Finding{
+				Severity: SeverityHigh,
+				URL:      page.URL,
+				Message:  "CSP allows 'unsafe-eval' in script-src",
+				Fix:      "Remove 'unsafe-eval' and refactor code to avoid eval()",
+				Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+			})
+		}
+	}
+
+	// Check for wildcard * in default-src or script-src
+	for _, directive := range []string{"default-src", "script-src"} {
+		for _, src := range directives[directive] {
+			if src == "*" {
+				findings = append(findings, Finding{
+					Severity: SeverityHigh,
+					URL:      page.URL,
+					Message:  fmt.Sprintf("CSP contains wildcard '*' in %s", directive),
+					Fix:      fmt.Sprintf("Replace '*' in %s with specific trusted origins", directive),
+					Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+				})
+			}
+		}
+	}
+
+	// Check for missing frame-ancestors
+	if _, ok := directives["frame-ancestors"]; !ok {
+		findings = append(findings, Finding{
+			Severity: SeverityMedium,
+			URL:      page.URL,
+			Message:  "CSP missing frame-ancestors directive",
+			Fix:      "Add frame-ancestors 'self' (or 'none') to prevent clickjacking via CSP",
+			Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+		})
+	}
+
+	// Check for overly broad scheme sources like https: without specific domains
+	for directive, sources := range directives {
+		for _, src := range sources {
+			lower := strings.ToLower(src)
+			if lower == "https:" || lower == "http:" || lower == "data:" {
+				findings = append(findings, Finding{
+					Severity: SeverityLow,
+					URL:      page.URL,
+					Message:  fmt.Sprintf("CSP directive %s uses overly broad source %q", directive, src),
+					Fix:      fmt.Sprintf("Replace %q in %s with specific domain origins", src, directive),
+					Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+				})
+			}
+		}
+	}
+
+	return findings
+}
+
 func (s *SecurityCheck) checkMixedContent(page *crawler.Page) []Finding {
 	if !strings.HasPrefix(page.URL, "https://") {
 		return nil
@@ -147,24 +245,14 @@ func (s *SecurityCheck) checkExposedSecrets(page *crawler.Page) []Finding {
 
 	var findings []Finding
 	body := page.Body
+	seen := make(map[int]bool) // track which pattern indices already matched to dedup
 
-	if bytes.Contains(body, []byte("<!--")) {
-		for _, pat := range secretPatterns {
-			if loc := pat.Find(body); loc != nil {
-				findings = append(findings, Finding{
-					Severity: SeverityCritical,
-					URL:      page.URL,
-					Message:  "Potential secret or credential exposed in page source",
-					Fix:      "Remove hardcoded secrets and use environment variables or a secrets manager",
-					Evidence: truncate(string(loc), 80),
-				})
-				break
-			}
+	for i, pat := range secretPatterns {
+		if seen[i] {
+			continue
 		}
-	}
-
-	for _, pat := range secretPatterns[3:] {
 		if loc := pat.Find(body); loc != nil {
+			seen[i] = true
 			findings = append(findings, Finding{
 				Severity: SeverityCritical,
 				URL:      page.URL,
@@ -172,7 +260,6 @@ func (s *SecurityCheck) checkExposedSecrets(page *crawler.Page) []Finding {
 				Fix:      "Remove hardcoded secrets; rotate any exposed credentials immediately",
 				Evidence: truncate(string(loc), 80),
 			})
-			break
 		}
 	}
 

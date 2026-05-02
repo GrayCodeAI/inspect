@@ -1453,8 +1453,14 @@ func TestPerfCheck_ImageMissingDimensions(t *testing.T) {
 }
 
 func TestPerfCheck_ImageMissingLazy(t *testing.T) {
+	// Place 3 above-fold images first, then the 4th image should be flagged for missing lazy loading
 	page := makePage("https://example.com", 200, map[string]string{"Content-Type": "text/html"},
-		`<html><head><title>T</title></head><body><img src="/photo.jpg" width="100" height="100"></body></html>`)
+		`<html><head><title>T</title></head><body>`+
+			`<img src="/hero1.jpg" width="100" height="100" loading="eager">`+
+			`<img src="/hero2.jpg" width="100" height="100" loading="eager">`+
+			`<img src="/hero3.jpg" width="100" height="100" loading="eager">`+
+			`<img src="/photo.jpg" width="100" height="100">`+
+			`</body></html>`)
 
 	chk := &PerfCheck{}
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
