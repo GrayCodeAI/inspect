@@ -173,7 +173,7 @@ func TestRegistry_Filter(t *testing.T) {
 	}
 
 	all := r.All()
-	if len(all) != 6 {
-		t.Errorf("expected 6 checks, got %d", len(all))
+	if len(all) != 7 {
+		t.Errorf("expected 7 checks, got %d", len(all))
 	}
 }

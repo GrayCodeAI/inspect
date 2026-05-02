@@ -17,27 +17,61 @@ func extractLinks(pageURL string, body []byte) []Link {
 	var links []Link
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "a" {
-			link := Link{}
-			for _, attr := range n.Attr {
-				switch attr.Key {
-				case "href":
-					link.Href = attr.Val
-				case "rel":
-					link.Rel = attr.Val
+		if n.Type == html.ElementNode {
+			switch n.Data {
+			case "a":
+				link := Link{Tag: "a"}
+				for _, attr := range n.Attr {
+					switch attr.Key {
+					case "href":
+						link.Href = attr.Val
+					case "rel":
+						link.Rel = attr.Val
+					}
 				}
-			}
-			if n.FirstChild != nil {
-				link.Text = extractText(n)
-			}
+				if n.FirstChild != nil {
+					link.Text = extractText(n)
+				}
+				if link.Href != "" {
+					if strings.HasPrefix(link.Href, "#") {
+						link.Anchor = true
+					} else {
+						link.External = isExternal(pageURL, link.Href)
+					}
+					links = append(links, link)
+				}
 
-			if link.Href != "" {
-				if strings.HasPrefix(link.Href, "#") {
-					link.Anchor = true
-				} else {
-					link.External = isExternal(pageURL, link.Href)
+			case "img", "source":
+				// Extract src attribute
+				src := getNodeAttr(n, "src")
+				if src != "" && n.Data == "img" {
+					links = append(links, makeResourceLink(pageURL, src, n.Data))
 				}
-				links = append(links, link)
+				// Extract srcset attribute
+				srcset := getNodeAttr(n, "srcset")
+				if srcset != "" {
+					for _, u := range parseSrcset(srcset) {
+						links = append(links, makeResourceLink(pageURL, u, n.Data))
+					}
+				}
+
+			case "iframe", "frame":
+				src := getNodeAttr(n, "src")
+				if src != "" {
+					links = append(links, makeResourceLink(pageURL, src, n.Data))
+				}
+
+			case "script":
+				src := getNodeAttr(n, "src")
+				if src != "" {
+					links = append(links, makeResourceLink(pageURL, src, n.Data))
+				}
+
+			case "track":
+				src := getNodeAttr(n, "src")
+				if src != "" {
+					links = append(links, makeResourceLink(pageURL, src, n.Data))
+				}
 			}
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -46,6 +80,49 @@ func extractLinks(pageURL string, body []byte) []Link {
 	}
 	walk(doc)
 	return links
+}
+
+// makeResourceLink creates a resource Link from a URL and tag name.
+func makeResourceLink(pageURL, href, tag string) Link {
+	link := Link{
+		Href:     href,
+		Resource: true,
+		Tag:      tag,
+	}
+	if strings.HasPrefix(href, "#") {
+		link.Anchor = true
+	} else {
+		link.External = isExternal(pageURL, href)
+	}
+	return link
+}
+
+// parseSrcset parses the srcset attribute value and returns URLs.
+// srcset format: "url1 1x, url2 2x" or "url1 300w, url2 600w"
+func parseSrcset(srcset string) []string {
+	var urls []string
+	for _, candidate := range strings.Split(srcset, ",") {
+		candidate = strings.TrimSpace(candidate)
+		if candidate == "" {
+			continue
+		}
+		// Each candidate is "URL [descriptor]"
+		parts := strings.Fields(candidate)
+		if len(parts) >= 1 && parts[0] != "" {
+			urls = append(urls, parts[0])
+		}
+	}
+	return urls
+}
+
+// getNodeAttr returns the value of an attribute on an HTML node.
+func getNodeAttr(n *html.Node, key string) string {
+	for _, attr := range n.Attr {
+		if attr.Key == key {
+			return attr.Val
+		}
+	}
+	return ""
 }
 
 func extractForms(body []byte) []Form {

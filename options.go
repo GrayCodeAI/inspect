@@ -16,21 +16,22 @@ type optFunc func(*config)
 func (f optFunc) apply(c *config) { f(c) }
 
 type config struct {
-	depth           int
-	checks          []string
-	exclude         []string
-	concurrency     int
-	timeout         time.Duration
-	pageTimeout     time.Duration
-	rateLimit       int
-	authHeader      string
-	authValue       string
-	failOn          Severity
-	userAgent       string
-	followRedirects int
-	respectRobots   bool
-	logger          *slog.Logger
-	cookieJar       http.CookieJar
+	depth               int
+	checks              []string
+	exclude             []string
+	concurrency         int
+	timeout             time.Duration
+	pageTimeout         time.Duration
+	rateLimit           int
+	authHeader          string
+	authValue           string
+	failOn              Severity
+	userAgent           string
+	followRedirects     int
+	respectRobots       bool
+	logger              *slog.Logger
+	cookieJar           http.CookieJar
+	acceptedStatusCodes []int
 }
 
 func defaultConfig() *config {
@@ -159,4 +160,10 @@ func WithLogger(l *slog.Logger) Option {
 
 func WithCookieJar(jar http.CookieJar) Option {
 	return optFunc(func(c *config) { c.cookieJar = jar })
+}
+
+// WithAcceptedStatusCodes sets the HTTP status codes considered acceptable by the link checker.
+// By default (when no codes are specified), status codes 200-399 are accepted.
+func WithAcceptedStatusCodes(codes ...int) Option {
+	return optFunc(func(c *config) { c.acceptedStatusCodes = codes })
 }

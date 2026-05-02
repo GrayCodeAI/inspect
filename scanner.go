@@ -66,6 +66,10 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 	}
 
 	registry := check.DefaultRegistry()
+	// Apply accepted status codes to the links checker
+	if len(s.cfg.acceptedStatusCodes) > 0 {
+		registry.Register(&check.LinksCheck{AcceptedStatusCodes: s.cfg.acceptedStatusCodes})
+	}
 	for _, custom := range getCustomInternalChecks() {
 		registry.Register(custom)
 	}

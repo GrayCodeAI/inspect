@@ -26,6 +26,7 @@ func (s *SecurityCheck) Run(ctx context.Context, pages []*crawler.Page) []Findin
 		findings = append(findings, s.checkHeaders(page)...)
 		findings = append(findings, s.checkMixedContent(page)...)
 		findings = append(findings, s.checkExposedSecrets(page)...)
+		findings = append(findings, s.checkSetCookie(page)...)
 	}
 
 	return findings
@@ -176,6 +177,116 @@ func (s *SecurityCheck) checkExposedSecrets(page *crawler.Page) []Finding {
 	}
 
 	return findings
+}
+
+// sessionCookieNames contains common session cookie name patterns.
+var sessionCookieNames = []string{
+	"session", "sess", "sid", "jsessionid", "phpsessid",
+	"asp.net_sessionid", "connect.sid", "token", "auth",
+}
+
+func (s *SecurityCheck) checkSetCookie(page *crawler.Page) []Finding {
+	var findings []Finding
+
+	cookies := page.Headers.Values("Set-Cookie")
+	if len(cookies) == 0 {
+		return nil
+	}
+
+	isHTTPS := strings.HasPrefix(page.URL, "https://")
+
+	for _, cookie := range cookies {
+		parts := strings.Split(cookie, ";")
+		if len(parts) == 0 {
+			continue
+		}
+
+		// Extract cookie name from "name=value"
+		nameValue := strings.TrimSpace(parts[0])
+		eqIdx := strings.IndexByte(nameValue, '=')
+		cookieName := nameValue
+		if eqIdx >= 0 {
+			cookieName = nameValue[:eqIdx]
+		}
+		cookieName = strings.TrimSpace(cookieName)
+
+		// Parse flags from remaining parts
+		hasSecure := false
+		hasHttpOnly := false
+		hasSameSite := false
+		sameSiteValue := ""
+
+		for _, part := range parts[1:] {
+			part = strings.TrimSpace(strings.ToLower(part))
+			switch {
+			case part == "secure":
+				hasSecure = true
+			case part == "httponly":
+				hasHttpOnly = true
+			case strings.HasPrefix(part, "samesite"):
+				hasSameSite = true
+				if eqPos := strings.IndexByte(part, '='); eqPos >= 0 {
+					sameSiteValue = strings.TrimSpace(part[eqPos+1:])
+				}
+			}
+		}
+
+		evidence := fmt.Sprintf("Set-Cookie: %s", truncate(cookie, 80))
+
+		// Check missing Secure flag on HTTPS pages
+		if isHTTPS && !hasSecure {
+			findings = append(findings, Finding{
+				Severity: SeverityHigh,
+				URL:      page.URL,
+				Message:  fmt.Sprintf("Cookie %q missing Secure flag on HTTPS page", cookieName),
+				Fix:      "Add the Secure flag to ensure the cookie is only sent over HTTPS",
+				Evidence: evidence,
+			})
+		}
+
+		// Check missing HttpOnly on session cookies
+		isSessionCookie := isSessionCookieName(cookieName)
+		if isSessionCookie && !hasHttpOnly {
+			findings = append(findings, Finding{
+				Severity: SeverityHigh,
+				URL:      page.URL,
+				Message:  fmt.Sprintf("Session cookie %q missing HttpOnly flag", cookieName),
+				Fix:      "Add the HttpOnly flag to prevent JavaScript access to session cookies",
+				Evidence: evidence,
+			})
+		}
+
+		// Check missing or incorrect SameSite
+		if !hasSameSite {
+			findings = append(findings, Finding{
+				Severity: SeverityMedium,
+				URL:      page.URL,
+				Message:  fmt.Sprintf("Cookie %q missing SameSite attribute", cookieName),
+				Fix:      "Add SameSite=Lax or SameSite=Strict to protect against CSRF",
+				Evidence: evidence,
+			})
+		} else if sameSiteValue == "none" && !hasSecure {
+			findings = append(findings, Finding{
+				Severity: SeverityHigh,
+				URL:      page.URL,
+				Message:  fmt.Sprintf("Cookie %q has SameSite=None without Secure flag", cookieName),
+				Fix:      "Cookies with SameSite=None must also have the Secure flag",
+				Evidence: evidence,
+			})
+		}
+	}
+
+	return findings
+}
+
+func isSessionCookieName(name string) bool {
+	lower := strings.ToLower(name)
+	for _, pattern := range sessionCookieNames {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 var versionRegex = regexp.MustCompile(`\d+\.\d+`)
