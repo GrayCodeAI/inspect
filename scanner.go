@@ -66,6 +66,9 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 	}
 
 	registry := check.DefaultRegistry()
+	for _, custom := range getCustomInternalChecks() {
+		registry.Register(custom)
+	}
 	enabledChecks := registry.Filter(s.cfg.checks)
 
 	var (

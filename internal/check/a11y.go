@@ -26,6 +26,9 @@ func (a *A11yCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 		findings = append(findings, a.checkPage(page)...)
 	}
 
+	// Run advanced ARIA/landmark checks
+	findings = append(findings, RunAdvancedA11y(ctx, pages)...)
+
 	return findings
 }
 
