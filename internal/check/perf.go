@@ -57,6 +57,7 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 	}
 
 	var nodeCount int
+	imgIndex := 0
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		if n.Type == html.ElementNode {
@@ -103,7 +104,9 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 						})
 					}
 				}
-				if !hasAttr(n, "loading") && !isAboveFold(n) {
+				aboveFold := isAboveFold(n, imgIndex)
+				imgIndex++
+				if !hasAttr(n, "loading") && !aboveFold {
 					src := getAttr(n, "src")
 					if src != "" {
 						findings = append(findings, Finding{
@@ -162,7 +165,40 @@ func isInHead(n *html.Node) bool {
 	return false
 }
 
-func isAboveFold(n *html.Node) bool {
+// isAboveFold uses heuristics to determine whether an image is likely above the fold.
+// It considers image index (first 3), parent context (inside <header>), and
+// explicit attributes (fetchpriority="high", loading="eager").
+func isAboveFold(n *html.Node, imgIndex int) bool {
+	// First 3 images on the page are considered above-fold
+	if imgIndex < 3 {
+		return true
+	}
+
+	// Images with fetchpriority="high" are above-fold
+	if getAttr(n, "fetchpriority") == "high" {
+		return true
+	}
+
+	// Images with loading="eager" are above-fold
+	if getAttr(n, "loading") == "eager" {
+		return true
+	}
+
+	// Images inside <header> are above-fold
+	if isInsideHeader(n) {
+		return true
+	}
+
+	return false
+}
+
+// isInsideHeader checks whether a node is a descendant of a <header> element.
+func isInsideHeader(n *html.Node) bool {
+	for p := n.Parent; p != nil; p = p.Parent {
+		if p.Type == html.ElementNode && p.Data == "header" {
+			return true
+		}
+	}
 	return false
 }
 
