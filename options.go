@@ -32,6 +32,7 @@ type config struct {
 	logger              *slog.Logger
 	cookieJar           http.CookieJar
 	acceptedStatusCodes []int
+	browser             BrowserEngine
 }
 
 func defaultConfig() *config {
@@ -166,4 +167,13 @@ func WithCookieJar(jar http.CookieJar) Option {
 // By default (when no codes are specified), status codes 200-399 are accepted.
 func WithAcceptedStatusCodes(codes ...int) Option {
 	return optFunc(func(c *config) { c.acceptedStatusCodes = codes })
+}
+
+// WithBrowser sets a BrowserEngine for browser-rendered page analysis.
+// When set, the scanner uses the engine to render pages with full JavaScript
+// execution instead of relying solely on raw HTTP fetches for HTML analysis.
+// The browser sub-module (github.com/GrayCodeAI/inspect/browser) provides
+// a rod-based implementation.
+func WithBrowser(engine BrowserEngine) Option {
+	return optFunc(func(c *config) { c.browser = engine })
 }
