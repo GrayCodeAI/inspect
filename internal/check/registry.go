@@ -49,6 +49,7 @@ func DefaultRegistry() *Registry {
 	r.Register(&PerfCheck{})
 	r.Register(&SEOCheck{})
 	r.Register(&SRICheck{})
+	r.Register(&AIReadyCheck{})
 	return r
 }
 
