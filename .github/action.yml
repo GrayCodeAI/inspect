@@ -1,0 +1,79 @@
+name: 'Inspect Site Audit'
+description: 'Crawl and audit a website for broken links, security issues, accessibility violations, SEO problems, and performance concerns'
+author: 'GrayCode AI'
+
+branding:
+  icon: 'search'
+  color: 'blue'
+
+inputs:
+  url:
+    description: 'Target URL to audit'
+    required: true
+  checks:
+    description: 'Comma-separated checks to run (links,security,forms,a11y,perf,seo)'
+    required: false
+    default: 'links,security,forms,a11y,perf,seo'
+  depth:
+    description: 'Maximum crawl depth (0 = unlimited)'
+    required: false
+    default: '5'
+  fail-on:
+    description: 'Minimum severity to fail the action (info,low,medium,high,critical)'
+    required: false
+    default: 'high'
+  concurrency:
+    description: 'Number of concurrent crawl workers'
+    required: false
+    default: '10'
+  format:
+    description: 'Output format (terminal,json,junit)'
+    required: false
+    default: 'terminal'
+  timeout:
+    description: 'Overall scan timeout (e.g., 5m, 10m)'
+    required: false
+    default: '5m'
+
+outputs:
+  findings:
+    description: 'Total number of findings'
+  max-severity:
+    description: 'Highest severity found'
+  failed:
+    description: 'Whether the scan failed based on fail-on threshold'
+  report:
+    description: 'Path to the generated report file'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Install inspect
+      shell: bash
+      run: go install github.com/GrayCodeAI/inspect/cmd/inspect-ci@latest
+
+    - name: Run audit
+      id: audit
+      shell: bash
+      run: |
+        inspect-ci \
+          --url "${{ inputs.url }}" \
+          --checks "${{ inputs.checks }}" \
+          --depth "${{ inputs.depth }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --concurrency "${{ inputs.concurrency }}" \
+          --format "${{ inputs.format }}" \
+          --timeout "${{ inputs.timeout }}" \
+          --output-file "${{ runner.temp }}/inspect-report.xml"
+
+    - name: Upload report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: inspect-report
+        path: ${{ runner.temp }}/inspect-report.xml
