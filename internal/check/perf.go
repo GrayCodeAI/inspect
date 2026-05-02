@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/GrayCodeAI/inspect/internal/crawler"
 	"golang.org/x/net/html"
@@ -180,5 +179,3 @@ func formatBytes(b int) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
-// Ensure strings import is used.
-var _ = strings.Contains

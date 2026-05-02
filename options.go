@@ -1,6 +1,10 @@
 package inspect
 
-import "time"
+import (
+	"log/slog"
+	"net/http"
+	"time"
+)
 
 // Option configures a scan operation.
 type Option interface {
@@ -17,6 +21,7 @@ type config struct {
 	exclude         []string
 	concurrency     int
 	timeout         time.Duration
+	pageTimeout     time.Duration
 	rateLimit       int
 	authHeader      string
 	authValue       string
@@ -24,6 +29,8 @@ type config struct {
 	userAgent       string
 	followRedirects int
 	respectRobots   bool
+	logger          *slog.Logger
+	cookieJar       http.CookieJar
 }
 
 func defaultConfig() *config {
@@ -31,7 +38,8 @@ func defaultConfig() *config {
 		depth:           5,
 		checks:          []string{"links", "security", "forms", "a11y", "perf", "seo"},
 		concurrency:     10,
-		timeout:         30 * time.Second,
+		timeout:         60 * time.Second,
+		pageTimeout:     15 * time.Second,
 		rateLimit:       20,
 		userAgent:       "inspect/1.0",
 		followRedirects: 5,
@@ -139,4 +147,16 @@ func WithFollowRedirects(max int) Option {
 
 func WithRespectRobots(enabled bool) Option {
 	return optFunc(func(c *config) { c.respectRobots = enabled })
+}
+
+func WithPageTimeout(d time.Duration) Option {
+	return optFunc(func(c *config) { c.pageTimeout = d })
+}
+
+func WithLogger(l *slog.Logger) Option {
+	return optFunc(func(c *config) { c.logger = l })
+}
+
+func WithCookieJar(jar http.CookieJar) Option {
+	return optFunc(func(c *config) { c.cookieJar = jar })
 }
