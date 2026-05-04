@@ -83,18 +83,43 @@ func ClearCustomChecks() {
 }
 
 // ruleCheckAdapter adapts a RuleCheck into the internal check.Checker interface.
+// Regexes are pre-compiled at construction time for performance.
 type ruleCheckAdapter struct {
-	rule RuleCheck
+	rule         RuleCheck
+	urlRegex     *regexp.Regexp
+	headerRegexs map[string]*regexp.Regexp
+	bodyRegexs   []*regexp.Regexp
+	bodyMissing  []*regexp.Regexp
+}
+
+func newRuleCheckAdapter(rule RuleCheck) *ruleCheckAdapter {
+	a := &ruleCheckAdapter{rule: rule}
+	if rule.URLMatch != "" {
+		a.urlRegex, _ = regexp.Compile(rule.URLMatch)
+	}
+	a.headerRegexs = make(map[string]*regexp.Regexp, len(rule.HeaderMatch))
+	for header, pattern := range rule.HeaderMatch {
+		if re, err := regexp.Compile(pattern); err == nil {
+			a.headerRegexs[header] = re
+		}
+	}
+	for _, pattern := range rule.BodyMatch {
+		if re, err := regexp.Compile(pattern); err == nil {
+			a.bodyRegexs = append(a.bodyRegexs, re)
+		}
+	}
+	for _, pattern := range rule.BodyMissing {
+		if re, err := regexp.Compile(pattern); err == nil {
+			a.bodyMissing = append(a.bodyMissing, re)
+		}
+	}
+	return a
 }
 
 func (r *ruleCheckAdapter) Name() string { return r.rule.RuleName }
 
 func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []check.Finding {
 	var findings []check.Finding
-	var urlRegex *regexp.Regexp
-	if r.rule.URLMatch != "" {
-		urlRegex, _ = regexp.Compile(r.rule.URLMatch)
-	}
 
 	for _, page := range pages {
 		if page.Error != nil {
@@ -103,7 +128,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		if len(r.rule.StatusCodes) > 0 && !intIn(page.StatusCode, r.rule.StatusCodes) {
 			continue
 		}
-		if urlRegex != nil && !urlRegex.MatchString(page.URL) {
+		if r.urlRegex != nil && !r.urlRegex.MatchString(page.URL) {
 			continue
 		}
 
@@ -120,13 +145,9 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		}
 
 		// Header match checks (regex match = bad)
-		for header, pattern := range r.rule.HeaderMatch {
+		for header, re := range r.headerRegexs {
 			val := page.Headers.Get(header)
 			if val == "" {
-				continue
-			}
-			re, err := regexp.Compile(pattern)
-			if err != nil {
 				continue
 			}
 			if re.MatchString(val) {
@@ -140,13 +161,10 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 			}
 		}
 
-		// Body match checks (regex match = bad)
 		body := string(page.Body)
-		for _, pattern := range r.rule.BodyMatch {
-			re, err := regexp.Compile(pattern)
-			if err != nil {
-				continue
-			}
+
+		// Body match checks (regex match = bad)
+		for _, re := range r.bodyRegexs {
 			if loc := re.FindString(body); loc != "" {
 				findings = append(findings, check.Finding{
 					Severity: check.Severity(r.rule.RuleSeverity),
@@ -160,11 +178,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		}
 
 		// Body missing checks (pattern should be present but isn't)
-		for _, pattern := range r.rule.BodyMissing {
-			re, err := regexp.Compile(pattern)
-			if err != nil {
-				continue
-			}
+		for _, re := range r.bodyMissing {
 			if !re.MatchString(body) {
 				findings = append(findings, check.Finding{
 					Severity: check.Severity(r.rule.RuleSeverity),
@@ -232,7 +246,7 @@ func getCustomInternalChecks() []check.Checker {
 		result = append(result, &customCheckAdapter{checker: c})
 	}
 	for _, r := range customRules {
-		result = append(result, &ruleCheckAdapter{rule: r})
+		result = append(result, newRuleCheckAdapter(r))
 	}
 	return result
 }
