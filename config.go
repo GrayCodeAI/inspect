@@ -87,13 +87,10 @@ func parseInspectTOML(content string) (*FileConfig, error) {
 			continue
 		}
 
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
+		key, value, ok := parseInspectKeyValue(line)
+		if !ok {
 			continue
 		}
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-		value = strings.Trim(value, `"'`)
 
 		switch key {
 		case "depth":
@@ -130,6 +127,25 @@ func parseInspectTOML(content string) (*FileConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+// parseInspectKeyValue splits a TOML line into key and value, handling quoted
+// values that may contain '=' signs.
+func parseInspectKeyValue(line string) (key, value string, ok bool) {
+	idx := strings.Index(line, "=")
+	if idx < 0 {
+		return "", "", false
+	}
+	key = strings.TrimSpace(line[:idx])
+	value = strings.TrimSpace(line[idx+1:])
+	// Strip matching outer quotes
+	if len(value) >= 2 {
+		if (value[0] == '"' && value[len(value)-1] == '"') ||
+			(value[0] == '\'' && value[len(value)-1] == '\'') {
+			value = value[1 : len(value)-1]
+		}
+	}
+	return key, value, key != ""
 }
 
 func applyFileConfig(fc *FileConfig) []Option {
