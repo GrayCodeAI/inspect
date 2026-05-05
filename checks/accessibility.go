@@ -14,9 +14,11 @@ type AccessibilityCheck struct{}
 func (c *AccessibilityCheck) Name() string { return "accessibility" }
 
 var (
-	imgWithoutAlt   = regexp.MustCompile(`(?i)<img\b(?![^>]*\balt\s*=)[^>]*>`)
+	imgTag          = regexp.MustCompile(`(?i)<img\b[^>]*>`)
+	imgHasAlt       = regexp.MustCompile(`(?i)\balt\s*=`)
 	imgEmptyAlt     = regexp.MustCompile(`(?i)<img[^>]+alt=["']\s*["'][^>]*src=["']([^"']+)["']`)
-	inputNoLabel    = regexp.MustCompile(`(?i)<input\b(?![^>]*\b(?:aria-label|aria-labelledby|title)\s*=)[^>]*type=["'](?:text|email|password|tel|number|search|url)["'][^>]*>`)
+	inputTag        = regexp.MustCompile(`(?i)<input\b[^>]*type=["'](?:text|email|password|tel|number|search|url)["'][^>]*>`)
+	inputHasLabel   = regexp.MustCompile(`(?i)\b(?:aria-label|aria-labelledby|title)\s*=`)
 	headingPattern  = regexp.MustCompile(`(?i)<h([1-6])\b`)
 	buttonNoText    = regexp.MustCompile(`(?i)<button\b[^>]*>\s*</button>`)
 	linkNoText      = regexp.MustCompile(`(?i)<a\b[^>]*href=[^>]*>\s*</a>`)
@@ -27,8 +29,10 @@ func (c *AccessibilityCheck) Run(resp *Response) []inspect.Finding {
 	body := string(resp.Body)
 
 	// Images without alt attribute
-	matches := imgWithoutAlt.FindAllString(body, -1)
-	for _, match := range matches {
+	for _, match := range imgTag.FindAllString(body, -1) {
+		if imgHasAlt.MatchString(match) {
+			continue
+		}
 		src := extractAttr(match, "src")
 		findings = append(findings, inspect.Finding{
 			Check:    c.Name(),
@@ -110,7 +114,10 @@ func (c *AccessibilityCheck) Run(resp *Response) []inspect.Finding {
 	}
 
 	// Form inputs without labels
-	for _, match := range inputNoLabel.FindAllString(body, -1) {
+	for _, match := range inputTag.FindAllString(body, -1) {
+		if inputHasLabel.MatchString(match) {
+			continue
+		}
 		findings = append(findings, inspect.Finding{
 			Check:    c.Name(),
 			Severity: inspect.SeverityMedium,
