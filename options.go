@@ -33,6 +33,7 @@ type config struct {
 	cookieJar           http.CookieJar
 	acceptedStatusCodes []int
 	browser             BrowserEngine
+	blockPrivateIPs     bool
 }
 
 func defaultConfig() *config {
@@ -176,4 +177,10 @@ func WithAcceptedStatusCodes(codes ...int) Option {
 // a rod-based implementation.
 func WithBrowser(engine BrowserEngine) Option {
 	return optFunc(func(c *config) { c.browser = engine })
+}
+
+// WithBlockPrivateIPs enables SSRF protection that blocks requests to private IP ranges.
+// By default, private IPs are allowed since inspect is typically used to scan your own servers.
+func WithBlockPrivateIPs() Option {
+	return optFunc(func(c *config) { c.blockPrivateIPs = true })
 }

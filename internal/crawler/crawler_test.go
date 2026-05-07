@@ -31,6 +31,7 @@ func TestCrawl_Basic(t *testing.T) {
 		RateLimit:       100,
 		UserAgent:       "test-bot",
 		FollowRedirects: 3,
+		AllowPrivateIPs: true,
 	})
 
 	pages, err := c.Crawl(context.Background(), srv.URL)
@@ -65,12 +66,13 @@ func TestCrawl_DepthLimit(t *testing.T) {
 	defer srv.Close()
 
 	c := New(Config{
-		MaxDepth:    2,
-		Concurrency: 1,
-		Timeout:     10 * time.Second,
-		PageTimeout: 5 * time.Second,
-		RateLimit:   100,
-		UserAgent:   "test-bot",
+		MaxDepth:        2,
+		Concurrency:     1,
+		Timeout:         10 * time.Second,
+		PageTimeout:     5 * time.Second,
+		RateLimit:       100,
+		UserAgent:       "test-bot",
+		AllowPrivateIPs: true,
 	})
 
 	pages, err := c.Crawl(context.Background(), srv.URL)
@@ -99,7 +101,7 @@ func TestCrawl_ExternalLinksNotFollowed(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	c := New(Config{MaxDepth: 3, Concurrency: 1, Timeout: 10 * time.Second, PageTimeout: 5 * time.Second, RateLimit: 100, UserAgent: "test"})
+	c := New(Config{MaxDepth: 3, Concurrency: 1, Timeout: 10 * time.Second, PageTimeout: 5 * time.Second, RateLimit: 100, UserAgent: "test", AllowPrivateIPs: true})
 	pages, err := c.Crawl(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("Crawl failed: %v", err)
@@ -139,7 +141,7 @@ func TestCrawl_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
-	c := New(Config{MaxDepth: 3, Concurrency: 2, Timeout: 10 * time.Second, PageTimeout: 5 * time.Second, RateLimit: 100, UserAgent: "test"})
+	c := New(Config{MaxDepth: 3, Concurrency: 2, Timeout: 10 * time.Second, PageTimeout: 5 * time.Second, RateLimit: 100, UserAgent: "test", AllowPrivateIPs: true})
 	_, err := c.Crawl(ctx, srv.URL)
 	// Should not hang — should return within timeout
 	if err != nil {
@@ -170,15 +172,16 @@ func TestCrawl_Retry(t *testing.T) {
 	defer srv.Close()
 
 	c := New(Config{
-		MaxDepth:      1,
-		Concurrency:   1,
-		Timeout:       10 * time.Second,
-		PageTimeout:   5 * time.Second,
-		RateLimit:     100,
-		RetryAttempts: 3,
-		RetryDelay:    10 * time.Millisecond,
-		UserAgent:     "test",
-		RespectRobots: true,
+		MaxDepth:        1,
+		Concurrency:     1,
+		Timeout:         10 * time.Second,
+		PageTimeout:     5 * time.Second,
+		RateLimit:       100,
+		RetryAttempts:   3,
+		RetryDelay:      10 * time.Millisecond,
+		UserAgent:       "test",
+		RespectRobots:   true,
+		AllowPrivateIPs: true,
 	})
 
 	pages, err := c.Crawl(context.Background(), srv.URL)

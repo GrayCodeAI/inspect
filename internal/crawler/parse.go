@@ -8,10 +8,42 @@ import (
 	"golang.org/x/net/html"
 )
 
+// ParseResult holds links/forms extraction results along with any parse error.
+type ParseResult struct {
+	Links    []Link
+	Forms    []Form
+	ParseErr error // non-nil if HTML parsing encountered an error (partial results still returned)
+}
+
+// ParseHTML extracts links and forms, returning partial results even on parse error.
+func ParseHTML(pageURL string, body []byte) ParseResult {
+	var linkErr, formErr error
+	links := extractLinksWithErr(pageURL, body, &linkErr)
+	forms := extractFormsWithErr(body, &formErr)
+	var parseErr error
+	if linkErr != nil {
+		parseErr = linkErr
+	} else if formErr != nil {
+		parseErr = formErr
+	}
+	return ParseResult{Links: links, Forms: forms, ParseErr: parseErr}
+}
+
 func extractLinks(pageURL string, body []byte) []Link {
+	return extractLinksWithErr(pageURL, body, nil)
+}
+
+// extractLinksWithErr extracts links and reports any parse error via errOut.
+func extractLinksWithErr(pageURL string, body []byte, errOut *error) []Link {
 	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
-		return nil
+		if errOut != nil {
+			*errOut = err
+		}
+		// Still attempt extraction from whatever was parsed
+		if doc == nil {
+			return nil
+		}
 	}
 
 	var links []Link
@@ -126,9 +158,19 @@ func getNodeAttr(n *html.Node, key string) string {
 }
 
 func extractForms(body []byte) []Form {
+	return extractFormsWithErr(body, nil)
+}
+
+// extractFormsWithErr extracts forms and reports any parse error via errOut.
+func extractFormsWithErr(body []byte, errOut *error) []Form {
 	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
-		return nil
+		if errOut != nil {
+			*errOut = err
+		}
+		if doc == nil {
+			return nil
+		}
 	}
 
 	var forms []Form
