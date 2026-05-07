@@ -49,6 +49,7 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 		AuthHeader:      s.cfg.authHeader,
 		AuthValue:       s.cfg.authValue,
 		CookieJar:       s.cfg.cookieJar,
+		AllowPrivateIPs: !s.cfg.blockPrivateIPs,
 	}
 
 	if s.cfg.logger != nil {
@@ -81,25 +82,56 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 		durations   = make(map[string]time.Duration)
 	)
 
+	const perCheckTimeout = 30 * time.Second
+
 	var wg sync.WaitGroup
 	for _, chk := range enabledChecks {
 		wg.Add(1)
 		go func(chk check.Checker) {
 			defer wg.Done()
 			checkStart := time.Now()
-			findings := chk.Run(ctx, pages)
+
+			checkCtx, checkCancel := context.WithTimeout(ctx, perCheckTimeout)
+			defer checkCancel()
+
+			type checkResult struct {
+				findings []check.Finding
+			}
+			done := make(chan checkResult, 1)
+			go func() {
+				done <- checkResult{findings: chk.Run(checkCtx, pages)}
+			}()
+
+			var findings []check.Finding
+			var timedOut bool
+			select {
+			case res := <-done:
+				findings = res.findings
+			case <-checkCtx.Done():
+				timedOut = true
+			}
 			elapsed := time.Since(checkStart)
 
-			converted := make([]Finding, len(findings))
-			for i, f := range findings {
-				converted[i] = Finding{
+			var converted []Finding
+			if timedOut {
+				converted = []Finding{{
 					Check:    chk.Name(),
-					Severity: Severity(f.Severity),
-					URL:      f.URL,
-					Element:  f.Element,
-					Message:  f.Message,
-					Fix:      f.Fix,
-					Evidence: f.Evidence,
+					Severity: SeverityLow,
+					URL:      target,
+					Message:  fmt.Sprintf("check %q timed out after %s", chk.Name(), perCheckTimeout),
+				}}
+			} else {
+				converted = make([]Finding, len(findings))
+				for i, f := range findings {
+					converted[i] = Finding{
+						Check:    chk.Name(),
+						Severity: Severity(f.Severity),
+						URL:      f.URL,
+						Element:  f.Element,
+						Message:  f.Message,
+						Fix:      f.Fix,
+						Evidence: f.Evidence,
+					}
 				}
 			}
 

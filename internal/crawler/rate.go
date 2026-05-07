@@ -24,6 +24,13 @@ func newRateLimiter(reqPerSec int) *rateLimiter {
 
 // Wait blocks until the next request is permitted or ctx is cancelled.
 func (r *rateLimiter) Wait(ctx context.Context) {
+	// Check context before acquiring lock to avoid blocking on a cancelled context.
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+
 	r.mu.Lock()
 	now := time.Now()
 	if elapsed := now.Sub(r.last); elapsed < r.interval {
@@ -31,6 +38,7 @@ func (r *rateLimiter) Wait(ctx context.Context) {
 		r.last = now.Add(wait)
 		r.mu.Unlock()
 
+		// Use select on both ctx.Done() and time.After simultaneously
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():

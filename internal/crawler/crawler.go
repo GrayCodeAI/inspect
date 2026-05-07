@@ -30,20 +30,22 @@ type Config struct {
 	AuthHeader      string
 	AuthValue       string
 	CookieJar       http.CookieJar
+	AllowPrivateIPs bool // When true, skip SSRF protection for private IPs
 }
 
 // Page represents a single crawled page with its metadata.
 type Page struct {
-	URL        string
-	StatusCode int
-	Headers    http.Header
-	Body       []byte
-	Links      []Link
-	Forms      []Form
-	Depth      int
-	ParentURL  string
-	Duration   time.Duration
-	Error      error
+	URL          string
+	StatusCode   int
+	Headers      http.Header
+	Body         []byte
+	Links        []Link
+	Forms        []Form
+	Depth        int
+	ParentURL    string
+	Duration     time.Duration
+	Error        error
+	AuthRequired bool // true when server returned 401/403
 }
 
 // Link represents a hyperlink found on a page.
@@ -147,6 +149,10 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 
 	if c.cfg.RespectRobots {
 		c.robots.Fetch(ctx, c.client, origin)
+		// Apply Crawl-Delay from robots.txt if it's slower than current rate limit
+		if delay := c.robots.CrawlDelay(origin); delay > 0 && delay > c.limiter.interval {
+			c.limiter.interval = delay
+		}
 	}
 
 	// Seed with sitemap URLs if available
@@ -296,46 +302,179 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 }
 
 func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) error {
+	// SSRF protection: validate URL scheme and resolved IP
+	if err := c.validateURL(targetURL); err != nil {
+		page.Error = err
+		return err
+	}
+
 	pageCtx, cancel := context.WithTimeout(ctx, c.cfg.PageTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(pageCtx, http.MethodGet, targetURL, nil)
-	if err != nil {
-		page.Error = err
-		return err
-	}
+	// Manual redirect handling with loop detection
+	const maxRedirects = 10
+	visited := make(map[string]bool)
+	currentURL := targetURL
 
-	req.Header.Set("User-Agent", c.cfg.UserAgent)
-	if c.cfg.AuthHeader != "" {
-		req.Header.Set(c.cfg.AuthHeader, c.cfg.AuthValue)
-	}
+	for redirectCount := 0; ; redirectCount++ {
+		if redirectCount > maxRedirects {
+			err := fmt.Errorf("too many redirects (max %d)", maxRedirects)
+			page.Error = err
+			return err
+		}
+		if visited[currentURL] {
+			err := fmt.Errorf("redirect loop detected at %s", currentURL)
+			page.Error = err
+			return err
+		}
+		visited[currentURL] = true
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		page.Error = err
-		return err
-	}
-	defer resp.Body.Close()
+		req, err := http.NewRequestWithContext(pageCtx, http.MethodGet, currentURL, nil)
+		if err != nil {
+			page.Error = err
+			return err
+		}
 
-	page.StatusCode = resp.StatusCode
-	page.Headers = resp.Header
-	page.Error = nil
+		req.Header.Set("User-Agent", c.cfg.UserAgent)
+		if c.cfg.AuthHeader != "" {
+			req.Header.Set(c.cfg.AuthHeader, c.cfg.AuthValue)
+		}
 
-	contentType := resp.Header.Get("Content-Type")
-	if !strings.Contains(contentType, "text/html") {
+		// Use a client that does not follow redirects automatically
+		resp, err := c.noRedirectClient().Do(req)
+		if err != nil {
+			page.Error = err
+			return err
+		}
+
+		// Handle auth-required responses as findings rather than errors
+		if resp.StatusCode == 401 || resp.StatusCode == 403 {
+			resp.Body.Close()
+			page.StatusCode = resp.StatusCode
+			page.Headers = resp.Header
+			page.Error = nil
+			page.AuthRequired = true
+			return nil
+		}
+
+		// Handle redirects manually
+		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+			resp.Body.Close()
+			loc := resp.Header.Get("Location")
+			if loc == "" {
+				page.StatusCode = resp.StatusCode
+				page.Headers = resp.Header
+				return nil
+			}
+			resolved := resolveURL(currentURL, loc)
+			if resolved == "" {
+				page.StatusCode = resp.StatusCode
+				page.Headers = resp.Header
+				return nil
+			}
+			// Validate redirect target for SSRF
+			if err := c.validateURL(resolved); err != nil {
+				page.Error = err
+				return err
+			}
+			currentURL = resolved
+			continue
+		}
+
+		// Non-redirect response
+		page.StatusCode = resp.StatusCode
+		page.Headers = resp.Header
+		page.Error = nil
+
+		contentType := resp.Header.Get("Content-Type")
+		if !strings.Contains(contentType, "text/html") {
+			resp.Body.Close()
+			return nil
+		}
+
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+		resp.Body.Close()
+		if err != nil {
+			page.Error = err
+			return err
+		}
+		page.Body = body
+
+		page.Links = extractLinks(currentURL, body)
+		page.Forms = extractForms(body)
 		return nil
 	}
+}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
-	if err != nil {
-		page.Error = err
-		return err
+// noRedirectClient returns an HTTP client that does not follow redirects.
+func (c *Crawler) noRedirectClient() *http.Client {
+	return &http.Client{
+		Transport: c.client.Transport,
+		Timeout:   c.client.Timeout,
+		Jar:       c.client.Jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
-	page.Body = body
+}
 
-	page.Links = extractLinks(targetURL, body)
-	page.Forms = extractForms(body)
+// validateURL checks the URL for SSRF risks: scheme must be http/https and
+// resolved IP must not be in private ranges (unless AllowPrivateIPs is set).
+func (c *Crawler) validateURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("disallowed URL scheme %q (only http/https allowed)", parsed.Scheme)
+	}
+	if c.cfg.AllowPrivateIPs {
+		return nil
+	}
+	host := parsed.Hostname()
+	ips, err := net.LookupHost(host)
+	if err != nil {
+		// DNS resolution failure is not an SSRF issue; let the fetch handle it
+		return nil
+	}
+	for _, ipStr := range ips {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			continue
+		}
+		if isPrivateIP(ip) {
+			return fmt.Errorf("SSRF protection: resolved IP %s for host %q is in a private range", ipStr, host)
+		}
+	}
 	return nil
+}
+
+// isPrivateIP checks if an IP is in a private/loopback range.
+func isPrivateIP(ip net.IP) bool {
+	privateRanges := []struct {
+		network *net.IPNet
+	}{
+		{mustParseCIDR("10.0.0.0/8")},
+		{mustParseCIDR("172.16.0.0/12")},
+		{mustParseCIDR("192.168.0.0/16")},
+		{mustParseCIDR("127.0.0.0/8")},
+		{mustParseCIDR("::1/128")},
+		{mustParseCIDR("fc00::/7")},
+	}
+	for _, r := range privateRanges {
+		if r.network.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func mustParseCIDR(s string) *net.IPNet {
+	_, network, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(err)
+	}
+	return network
 }
 
 func isRetryable(statusCode int) bool {

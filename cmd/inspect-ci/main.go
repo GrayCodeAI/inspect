@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/GrayCodeAI/inspect"
+	reportpkg "github.com/GrayCodeAI/inspect/internal/report"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 	flag.IntVar(&depth, "depth", 5, "Maximum crawl depth")
 	flag.StringVar(&failOn, "fail-on", "high", "Minimum severity to fail")
 	flag.IntVar(&concurrency, "concurrency", 10, "Concurrent workers")
-	flag.StringVar(&format, "format", "terminal", "Output format: terminal, json, junit")
+	flag.StringVar(&format, "format", "terminal", "Output format: terminal, json, junit, sarif")
 	flag.StringVar(&timeout, "timeout", "5m", "Scan timeout")
 	flag.StringVar(&outputFile, "output-file", "", "Write report to file")
 	flag.Parse()
@@ -71,6 +72,14 @@ func main() {
 	case "json":
 		data, _ := json.MarshalIndent(report, "", "  ")
 		output = string(data)
+	case "sarif":
+		rd := toReportData(report)
+		sarif, sErr := reportpkg.FormatSARIF(rd)
+		if sErr != nil {
+			fmt.Fprintf(os.Stderr, "error: sarif format: %v\n", sErr)
+			os.Exit(1)
+		}
+		output = sarif
 	default:
 		output = formatTerminal(report)
 	}
@@ -102,6 +111,30 @@ func main() {
 	if report.Failed() {
 		os.Exit(1)
 	}
+}
+
+func toReportData(r *inspect.Report) reportpkg.ReportData {
+	var rd reportpkg.ReportData
+	rd.Target = r.Target
+	rd.CrawledURLs = r.CrawledURLs
+	rd.Duration = r.Duration
+	rd.Stats.BySeverity = make(map[string]int)
+	for sev, count := range r.Stats.BySeverity {
+		rd.Stats.BySeverity[sev.String()] = count
+	}
+	rd.Stats.ByCheck = r.Stats.ByCheck
+	for _, f := range r.Findings {
+		rd.Findings = append(rd.Findings, reportpkg.Finding{
+			Check:    f.Check,
+			Severity: reportpkg.Severity(f.Severity),
+			URL:      f.URL,
+			Element:  f.Element,
+			Message:  f.Message,
+			Fix:      f.Fix,
+			Evidence: f.Evidence,
+		})
+	}
+	return rd
 }
 
 func formatTerminal(r *inspect.Report) string {

@@ -5,8 +5,10 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // RobotsCache caches parsed robots.txt rules per host.
@@ -16,9 +18,10 @@ type RobotsCache struct {
 }
 
 type robotsRules struct {
-	disallow []string
-	allow    []string
-	sitemaps []string
+	disallow   []string
+	allow      []string
+	sitemaps   []string
+	crawlDelay time.Duration
 }
 
 // NewRobotsCache creates an empty robots.txt cache.
@@ -68,6 +71,12 @@ func (rc *RobotsCache) Fetch(ctx context.Context, client *http.Client, origin st
 			if inUserAgent && value != "" {
 				rules.allow = append(rules.allow, value)
 			}
+		case "crawl-delay":
+			if inUserAgent {
+				if secs, err := strconv.ParseFloat(value, 64); err == nil && secs > 0 {
+					rules.crawlDelay = time.Duration(secs * float64(time.Second))
+				}
+			}
 		case "sitemap":
 			rules.sitemaps = append(rules.sitemaps, value)
 		}
@@ -79,6 +88,8 @@ func (rc *RobotsCache) Fetch(ctx context.Context, client *http.Client, origin st
 }
 
 // Allowed checks if a URL is permitted by robots.txt rules.
+// Per the standard, if both Allow and Disallow match a path, the longest
+// matching rule wins. If they are the same length, Allow takes precedence.
 func (rc *RobotsCache) Allowed(rawURL, userAgent string) bool {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -95,17 +106,39 @@ func (rc *RobotsCache) Allowed(rawURL, userAgent string) bool {
 		return true
 	}
 
+	// Find longest matching Allow and Disallow rules
+	longestAllow := -1
 	for _, a := range rules.allow {
-		if strings.HasPrefix(path, a) {
-			return true
+		if strings.HasPrefix(path, a) && len(a) > longestAllow {
+			longestAllow = len(a)
 		}
 	}
+	longestDisallow := -1
 	for _, d := range rules.disallow {
-		if strings.HasPrefix(path, d) {
-			return false
+		if strings.HasPrefix(path, d) && len(d) > longestDisallow {
+			longestDisallow = len(d)
 		}
 	}
-	return true
+
+	// No matching rules: allowed
+	if longestAllow == -1 && longestDisallow == -1 {
+		return true
+	}
+	// Allow wins on tie or longer match
+	if longestAllow >= longestDisallow {
+		return true
+	}
+	return false
+}
+
+// CrawlDelay returns the crawl-delay directive for the given origin, or 0 if not set.
+func (rc *RobotsCache) CrawlDelay(origin string) time.Duration {
+	rc.mu.RLock()
+	defer rc.mu.RUnlock()
+	if rules, ok := rc.rules[origin]; ok {
+		return rules.crawlDelay
+	}
+	return 0
 }
 
 // Sitemaps returns sitemap URLs declared in robots.txt.
