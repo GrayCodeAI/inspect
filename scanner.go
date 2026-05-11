@@ -15,7 +15,6 @@ import (
 // Scan multiple times. It is safe for concurrent use.
 type Scanner struct {
 	cfg *config
-	mu  sync.Mutex
 }
 
 // NewScanner creates a configured Scanner. Apply presets and options:
