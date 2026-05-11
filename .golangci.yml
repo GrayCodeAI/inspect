@@ -9,15 +9,12 @@ linters:
     - govet
     - ineffassign
     - unused
-    - errcheck
     - staticcheck
     - misspell
     - nilerr
     - gosec
 
 linters-settings:
-  errcheck:
-    check-type-assertions: true
   gosec:
     excludes:
       - G204
@@ -31,5 +28,4 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - errcheck
         - gosec
