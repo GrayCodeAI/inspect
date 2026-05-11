@@ -38,7 +38,7 @@ func FormatMarkdown(data ReportData) string {
 	b.WriteString(fmt.Sprintf("\n**Total: %d findings**\n\n", len(data.Findings)))
 
 	// Check breakdown
-	if data.Stats.ByCheck != nil && len(data.Stats.ByCheck) > 0 {
+	if len(data.Stats.ByCheck) > 0 {
 		b.WriteString("### By Check\n\n")
 		b.WriteString("| Check | Findings |\n")
 		b.WriteString("|-------|----------|\n")
