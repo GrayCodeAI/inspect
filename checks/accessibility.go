@@ -16,7 +16,6 @@ func (c *AccessibilityCheck) Name() string { return "accessibility" }
 var (
 	imgTag          = regexp.MustCompile(`(?i)<img\b[^>]*>`)
 	imgHasAlt       = regexp.MustCompile(`(?i)\balt\s*=`)
-	imgEmptyAlt     = regexp.MustCompile(`(?i)<img[^>]+alt=["']\s*["'][^>]*src=["']([^"']+)["']`)
 	inputTag        = regexp.MustCompile(`(?i)<input\b[^>]*type=["'](?:text|email|password|tel|number|search|url)["'][^>]*>`)
 	inputHasLabel   = regexp.MustCompile(`(?i)\b(?:aria-label|aria-labelledby|title)\s*=`)
 	headingPattern  = regexp.MustCompile(`(?i)<h([1-6])\b`)
