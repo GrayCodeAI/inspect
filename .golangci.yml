@@ -1,7 +1,8 @@
-version: "2"
+run:
+  timeout: 5m
 
 linters:
-  default: none
+  disable-all: true
   enable:
     - govet
     - ineffassign
@@ -18,7 +19,7 @@ linters-settings:
   gosec:
     excludes:
       - G204
-      - G107  # HTTP request with variable URL (expected for a crawler)
+      - G107
   misspell:
     locale: US
 
