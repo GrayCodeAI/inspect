@@ -11,7 +11,7 @@ import (
 
 const sarifSchema = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json"
 const sarifVersion = "2.1.0"
-const inspectVersion = "1.0.0"
+const inspectVersion = "0.2.0"
 
 // SARIF top-level types
 
@@ -38,11 +38,11 @@ type sarifDriver struct {
 }
 
 type sarifRule struct {
-	ID               string              `json:"id"`
-	Name             string              `json:"name"`
-	ShortDescription sarifMessage        `json:"shortDescription"`
-	DefaultConfig    sarifDefaultConfig  `json:"defaultConfiguration"`
-	HelpURI          string              `json:"helpUri,omitempty"`
+	ID               string             `json:"id"`
+	Name             string             `json:"name"`
+	ShortDescription sarifMessage       `json:"shortDescription"`
+	DefaultConfig    sarifDefaultConfig `json:"defaultConfiguration"`
+	HelpURI          string             `json:"helpUri,omitempty"`
 }
 
 type sarifDefaultConfig struct {
@@ -54,10 +54,10 @@ type sarifMessage struct {
 }
 
 type sarifResult struct {
-	RuleID    string           `json:"ruleId"`
-	Level     string           `json:"level"`
-	Message   sarifMessage     `json:"message"`
-	Locations []sarifLocation  `json:"locations,omitempty"`
+	RuleID    string          `json:"ruleId"`
+	Level     string          `json:"level"`
+	Message   sarifMessage    `json:"message"`
+	Locations []sarifLocation `json:"locations,omitempty"`
 }
 
 type sarifLocation struct {
