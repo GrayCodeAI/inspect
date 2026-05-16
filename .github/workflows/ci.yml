@@ -34,6 +34,8 @@ concurrency:
 env:
   GO_VERSION: "1.26.1"
   GOPROXY: "https://proxy.golang.org,direct"
+  GONOSUMCHECK: "github.com/GrayCodeAI/hawk/sarif"
+  GONOSUMDB: "github.com/GrayCodeAI/hawk/sarif"
 
 jobs:
   # -------------------------------------------------------------------------
