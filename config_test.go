@@ -35,7 +35,7 @@ auth_header = "Authorization"
 auth_value = "Bearer abc123"
 accepted_status_codes = [200, 201, 204]
 `
-	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}
@@ -95,14 +95,14 @@ accepted_status_codes = [200, 201, 204]
 func TestLoadConfig_SearchesParentDirs(t *testing.T) {
 	parent := t.TempDir()
 	child := filepath.Join(parent, "sub", "dir")
-	err := os.MkdirAll(child, 0755)
+	err := os.MkdirAll(child, 0o755)
 	if err != nil {
 		t.Fatalf("failed to create child dir: %v", err)
 	}
 
 	content := `depth = 7
 `
-	err = os.WriteFile(filepath.Join(parent, ".inspect.toml"), []byte(content), 0644)
+	err = os.WriteFile(filepath.Join(parent, ".inspect.toml"), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}
@@ -132,7 +132,7 @@ depth = 4
 # Another comment
 
 `
-	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestLoadConfig_FailOnVariants(t *testing.T) {
 			dir := t.TempDir()
 			content := `fail_on = "` + tt.failOn + `"
 `
-			err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0644)
+			err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0o644)
 			if err != nil {
 				t.Fatalf("failed to write config file: %v", err)
 			}
@@ -199,7 +199,7 @@ func TestLoadConfig_EmptyValues(t *testing.T) {
 concurrency = 0
 rate_limit = 0
 `
-	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestLoadConfig_InvalidTimeout(t *testing.T) {
 	dir := t.TempDir()
 	content := `timeout = "not-a-duration"
 `
-	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, ".inspect.toml"), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}
@@ -248,7 +248,7 @@ func TestLoadConfig_InspectTomlAlternateNames(t *testing.T) {
 	dir := t.TempDir()
 	content := `depth = 9
 `
-	err := os.WriteFile(filepath.Join(dir, "inspect.toml"), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(dir, "inspect.toml"), []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}

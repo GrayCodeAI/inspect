@@ -14,13 +14,13 @@ type AccessibilityCheck struct{}
 func (c *AccessibilityCheck) Name() string { return "accessibility" }
 
 var (
-	imgTag          = regexp.MustCompile(`(?i)<img\b[^>]*>`)
-	imgHasAlt       = regexp.MustCompile(`(?i)\balt\s*=`)
-	inputTag        = regexp.MustCompile(`(?i)<input\b[^>]*type=["'](?:text|email|password|tel|number|search|url)["'][^>]*>`)
-	inputHasLabel   = regexp.MustCompile(`(?i)\b(?:aria-label|aria-labelledby|title)\s*=`)
-	headingPattern  = regexp.MustCompile(`(?i)<h([1-6])\b`)
-	buttonNoText    = regexp.MustCompile(`(?i)<button\b[^>]*>\s*</button>`)
-	linkNoText      = regexp.MustCompile(`(?i)<a\b[^>]*href=[^>]*>\s*</a>`)
+	imgTag         = regexp.MustCompile(`(?i)<img\b[^>]*>`)
+	imgHasAlt      = regexp.MustCompile(`(?i)\balt\s*=`)
+	inputTag       = regexp.MustCompile(`(?i)<input\b[^>]*type=["'](?:text|email|password|tel|number|search|url)["'][^>]*>`)
+	inputHasLabel  = regexp.MustCompile(`(?i)\b(?:aria-label|aria-labelledby|title)\s*=`)
+	headingPattern = regexp.MustCompile(`(?i)<h([1-6])\b`)
+	buttonNoText   = regexp.MustCompile(`(?i)<button\b[^>]*>\s*</button>`)
+	linkNoText     = regexp.MustCompile(`(?i)<a\b[^>]*href=[^>]*>\s*</a>`)
 )
 
 func (c *AccessibilityCheck) Run(resp *Response) []inspect.Finding {

@@ -16,10 +16,10 @@ type BrowserEngine interface {
 // BrowserOpts configures a single browser page render.
 type BrowserOpts struct {
 	Viewport   Viewport
-	WaitFor    string        // CSS selector to wait for before analysis
+	WaitFor    string // CSS selector to wait for before analysis
 	Timeout    time.Duration
-	InjectAxe  bool   // inject axe-core and return accessibility violations
-	Screenshot bool   // capture full-page screenshot
+	InjectAxe  bool // inject axe-core and return accessibility violations
+	Screenshot bool // capture full-page screenshot
 	UserAgent  string
 }
 
@@ -56,8 +56,8 @@ type AXNode struct {
 
 // AxeViolation represents an axe-core accessibility violation.
 type AxeViolation struct {
-	ID          string    // rule ID (e.g., "color-contrast")
-	Impact      string    // "critical", "serious", "moderate", "minor"
+	ID          string // rule ID (e.g., "color-contrast")
+	Impact      string // "critical", "serious", "moderate", "minor"
 	Description string
 	Help        string
 	HelpURL     string

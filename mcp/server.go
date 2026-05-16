@@ -25,7 +25,8 @@ func New(opts ...inspect.Option) *Server {
 	s := &Server{
 		scanner: inspect.NewScanner(opts...),
 	}
-	s.server = mcpserver.NewMCPServer("inspect", "0.2.0",
+	s.server = mcpserver.NewMCPServer(
+		"inspect", "0.2.0",
 		mcpserver.WithToolCapabilities(true),
 	)
 	s.registerTools()
@@ -39,12 +40,14 @@ func (s *Server) ServeStdio() error {
 }
 
 func (s *Server) registerTools() {
-	s.server.AddTool(mcplib.NewTool("inspect_scan",
+	s.server.AddTool(mcplib.NewTool(
+		"inspect_scan",
 		mcplib.WithDescription("Scan a website for broken links, security issues, and accessibility problems"),
 		mcplib.WithString("url", mcplib.Required(), mcplib.Description("Target URL to scan")),
 	), s.handleScan)
 
-	s.server.AddTool(mcplib.NewTool("inspect_scan_dir",
+	s.server.AddTool(mcplib.NewTool(
+		"inspect_scan_dir",
 		mcplib.WithDescription("Scan a local directory of HTML files"),
 		mcplib.WithString("path", mcplib.Required(), mcplib.Description("Local directory path")),
 	), s.handleScanDir)
