@@ -9,12 +9,12 @@ import (
 // JUnit XML types following the standard schema.
 
 type JUnitTestSuites struct {
-	XMLName xml.Name         `xml:"testsuites"`
-	Name    string           `xml:"name,attr"`
-	Tests   int              `xml:"tests,attr"`
-	Failures int             `xml:"failures,attr"`
-	Time    string           `xml:"time,attr"`
-	Suites  []JUnitTestSuite `xml:"testsuite"`
+	XMLName  xml.Name         `xml:"testsuites"`
+	Name     string           `xml:"name,attr"`
+	Tests    int              `xml:"tests,attr"`
+	Failures int              `xml:"failures,attr"`
+	Time     string           `xml:"time,attr"`
+	Suites   []JUnitTestSuite `xml:"testsuite"`
 }
 
 type JUnitTestSuite struct {
@@ -45,8 +45,8 @@ type JUnitFailure struct {
 // Pages with no findings for a check get a passing test case.
 func FormatJUnit(data ReportData) (string, error) {
 	suites := JUnitTestSuites{
-		Name:  fmt.Sprintf("inspect: %s", data.Target),
-		Time:  fmt.Sprintf("%.3f", data.Duration.Seconds()),
+		Name: fmt.Sprintf("inspect: %s", data.Target),
+		Time: fmt.Sprintf("%.3f", data.Duration.Seconds()),
 	}
 
 	// Group findings by check

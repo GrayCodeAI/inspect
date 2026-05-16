@@ -284,4 +284,3 @@ func TestRegisterRule_StatusCodes(t *testing.T) {
 		}
 	}
 }
-
