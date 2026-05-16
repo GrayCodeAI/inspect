@@ -7,6 +7,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.1](https://github.com/GrayCodeAI/inspect/compare/v0.2.0...v0.2.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* gofumpt formatting + go mod tidy ([b45ec85](https://github.com/GrayCodeAI/inspect/commit/b45ec8579c14a3c39848e3c8b02512d23c7f3216))
+* remove sarif replace directive, use v0.2.0 ([58e0ff3](https://github.com/GrayCodeAI/inspect/commit/58e0ff3300dc4453e6c542d5c05d30083ba13473))
+* update go.sum for sarif v0.2.0 ([728f464](https://github.com/GrayCodeAI/inspect/commit/728f4644057065657f9fecc70b5b7e0a787fbada))
+* upgrade Go from 1.26.1 to 1.26.3 to patch stdlib vulnerabilities ([6150b12](https://github.com/GrayCodeAI/inspect/commit/6150b120b4106fd4c16a46e3fd8e452c9f83a946))
+
 ## [Unreleased]
 
 ### Changed
