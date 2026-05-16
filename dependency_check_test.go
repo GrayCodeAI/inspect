@@ -20,7 +20,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 )
 `
-	if err := os.WriteFile(gomod, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(gomod, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -71,7 +71,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 )
 `
-	if err := os.WriteFile(gomod, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(gomod, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -93,7 +93,7 @@ go 1.21
 
 require golang.org/x/net v0.7.0
 `
-	if err := os.WriteFile(gomod, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(gomod, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -134,7 +134,7 @@ func TestScanPackageJSON_VulnerablePackages(t *testing.T) {
   }
 }
 `
-	if err := os.WriteFile(pkgJSON, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(pkgJSON, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -177,7 +177,7 @@ func TestScanPackageJSON_SafeVersions(t *testing.T) {
   }
 }
 `
-	if err := os.WriteFile(pkgJSON, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(pkgJSON, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -193,7 +193,7 @@ func TestScanPackageJSON_InvalidJSON(t *testing.T) {
 	dir := t.TempDir()
 	pkgJSON := filepath.Join(dir, "package.json")
 
-	if err := os.WriteFile(pkgJSON, []byte("not json"), 0644); err != nil {
+	if err := os.WriteFile(pkgJSON, []byte("not json"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -220,7 +220,7 @@ pillow==9.5.0
 urllib3==1.26.10
 pyyaml==5.3
 `
-	if err := os.WriteFile(reqFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(reqFile, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -265,7 +265,7 @@ func TestScanRequirements_SafeVersions(t *testing.T) {
 flask==3.0.0
 requests==2.31.0
 `
-	if err := os.WriteFile(reqFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(reqFile, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -284,7 +284,7 @@ func TestScanRequirements_WithExtrasAndMarkers(t *testing.T) {
 	content := `requests[security]==2.28.0; python_version >= "3.6"
 urllib3==1.26.10
 `
-	if err := os.WriteFile(reqFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(reqFile, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

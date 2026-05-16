@@ -55,7 +55,7 @@ type Link struct {
 	Rel      string
 	External bool
 	Anchor   bool
-	Resource bool // true for non-anchor resource URLs (img, script, iframe, etc.)
+	Resource bool   // true for non-anchor resource URLs (img, script, iframe, etc.)
 	Tag      string // source element tag (e.g., "img", "script", "iframe")
 }
 
@@ -78,11 +78,11 @@ type FormInput struct {
 
 // Crawler performs concurrent crawling with rate limiting.
 type Crawler struct {
-	cfg    Config
-	client *http.Client
-	seen   map[string]bool
-	mu     sync.Mutex
-	robots *RobotsCache
+	cfg     Config
+	client  *http.Client
+	seen    map[string]bool
+	mu      sync.Mutex
+	robots  *RobotsCache
 	limiter *rateLimiter
 }
 
@@ -163,8 +163,8 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 	sitemapPages := FetchSitemapURLs(ctx, c.client, sitemapURLs)
 
 	type work struct {
-		url   string
-		depth int
+		url    string
+		depth  int
 		parent string
 	}
 

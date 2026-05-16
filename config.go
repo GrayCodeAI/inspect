@@ -10,18 +10,18 @@ import (
 
 // FileConfig represents the contents of an .inspect.toml configuration file.
 type FileConfig struct {
-	Depth       int      `json:"depth"`
-	Checks      []string `json:"checks"`
-	Exclude     []string `json:"exclude"`
-	FailOn      string   `json:"fail_on"`
-	Concurrency int      `json:"concurrency"`
-	RateLimit   int      `json:"rate_limit"`
-	Timeout     string   `json:"timeout"`
-	PageTimeout string   `json:"page_timeout"`
-	UserAgent   string   `json:"user_agent"`
-	AuthHeader  string   `json:"auth_header"`
-	AuthValue   string   `json:"auth_value"`
-	AcceptedStatusCodes []int `json:"accepted_status_codes"`
+	Depth               int      `json:"depth"`
+	Checks              []string `json:"checks"`
+	Exclude             []string `json:"exclude"`
+	FailOn              string   `json:"fail_on"`
+	Concurrency         int      `json:"concurrency"`
+	RateLimit           int      `json:"rate_limit"`
+	Timeout             string   `json:"timeout"`
+	PageTimeout         string   `json:"page_timeout"`
+	UserAgent           string   `json:"user_agent"`
+	AuthHeader          string   `json:"auth_header"`
+	AuthValue           string   `json:"auth_value"`
+	AcceptedStatusCodes []int    `json:"accepted_status_codes"`
 }
 
 // LoadConfig reads .inspect.toml or .inspect.yaml from the given directory
