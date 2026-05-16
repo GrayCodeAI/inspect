@@ -13,7 +13,6 @@ import (
 	"github.com/GrayCodeAI/inspect"
 )
 
-
 // Server wraps the inspect library as an MCP server, exposing website
 // auditing capabilities to any MCP-compatible agent.
 type Server struct {
@@ -26,7 +25,7 @@ func New(opts ...inspect.Option) *Server {
 	s := &Server{
 		scanner: inspect.NewScanner(opts...),
 	}
-	s.server = mcpserver.NewMCPServer("inspect", "0.1.0",
+	s.server = mcpserver.NewMCPServer("inspect", "0.2.0",
 		mcpserver.WithToolCapabilities(true),
 	)
 	s.registerTools()
@@ -99,4 +98,3 @@ func strArg(req mcplib.CallToolRequest, key string) string {
 	}
 	return ""
 }
-
