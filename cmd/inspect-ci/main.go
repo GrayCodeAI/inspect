@@ -88,14 +88,14 @@ func main() {
 
 	// Write to file if requested
 	if outputFile != "" {
-		if err := os.WriteFile(outputFile, []byte(output), 0644); err != nil {
+		if err := os.WriteFile(outputFile, []byte(output), 0o644); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: failed to write report: %v\n", err)
 		}
 	}
 
 	// GitHub Actions output
 	if ghOutput := os.Getenv("GITHUB_OUTPUT"); ghOutput != "" {
-		f, err := os.OpenFile(ghOutput, os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(ghOutput, os.O_APPEND|os.O_WRONLY, 0o644)
 		if err == nil {
 			fmt.Fprintf(f, "findings=%d\n", report.Stats.FindingsTotal)
 			fmt.Fprintf(f, "max-severity=%s\n", report.MaxSeverity())

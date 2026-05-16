@@ -36,11 +36,11 @@ type Finding struct {
 
 // Stats provides scan metrics, broken down by severity and check type.
 type Stats struct {
-	PagesScanned     int                       `json:"pages_scanned"`
-	FindingsTotal    int                       `json:"findings_total"`
-	BySeverity       map[Severity]int          `json:"by_severity"`
-	ByCheck          map[string]int            `json:"by_check"`
-	DurationPerCheck map[string]time.Duration  `json:"duration_per_check"`
+	PagesScanned     int                      `json:"pages_scanned"`
+	FindingsTotal    int                      `json:"findings_total"`
+	BySeverity       map[Severity]int         `json:"by_severity"`
+	ByCheck          map[string]int           `json:"by_check"`
+	DurationPerCheck map[string]time.Duration `json:"duration_per_check"`
 }
 
 // Report is the complete result of a scan operation.

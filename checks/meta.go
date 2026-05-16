@@ -14,11 +14,11 @@ type MetaTagsCheck struct{}
 func (c *MetaTagsCheck) Name() string { return "meta-tags" }
 
 var (
-	titlePattern       = regexp.MustCompile(`(?i)<title[^>]*>(.*?)</title>`)
-	metaDescPattern    = regexp.MustCompile(`(?i)<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']`)
+	titlePattern        = regexp.MustCompile(`(?i)<title[^>]*>(.*?)</title>`)
+	metaDescPattern     = regexp.MustCompile(`(?i)<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']`)
 	metaViewportPattern = regexp.MustCompile(`(?i)<meta[^>]+name=["']viewport["']`)
-	charsetPattern     = regexp.MustCompile(`(?i)<meta[^>]+charset=["']?([^"'\s>]+)`)
-	langPattern        = regexp.MustCompile(`(?i)<html[^>]+lang=["']([^"']+)["']`)
+	charsetPattern      = regexp.MustCompile(`(?i)<meta[^>]+charset=["']?([^"'\s>]+)`)
+	langPattern         = regexp.MustCompile(`(?i)<html[^>]+lang=["']([^"']+)["']`)
 )
 
 func (c *MetaTagsCheck) Run(resp *Response) []inspect.Finding {
