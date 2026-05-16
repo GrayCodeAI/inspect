@@ -1,0 +1,108 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly.
+title: "bug: <one-line summary>"
+labels: ["bug", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in as much
+        of the form as you can — the more we know, the faster we can fix it.
+
+        Before submitting:
+        - Search [existing issues](https://github.com/GrayCodeAI/inspect/issues) to avoid duplicates.
+        - If this is a security issue, please **do not** file a public issue. See `SECURITY.md`.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: When I scan <URL or directory>, I expected X but got Y.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: How are you using inspect?
+      options:
+        - "Library API (`inspect.Scan`, `inspect.NewScanner`, etc.)"
+        - "MCP (`inspect_scan`, `inspect_scan_dir` tools)"
+        - "GitHub Action (`.github/action.yml`)"
+        - "SARIF output"
+        - "Browser-based checks (`browser/` sub-module)"
+        - "CVE / dependency database"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Minimal Go snippet, MCP call, or scan target that reliably
+        reproduces the problem. **Use a synthetic test site or a public
+        URL — never include credentials or private URLs.**
+      render: go
+      placeholder: |
+        report, err := inspect.Scan(ctx, "https://example.com", inspect.Standard)
+        // ^ wrong finding / missed finding / panic / SSRF / etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: false-positive
+    attributes:
+      label: If this is a false positive / false negative
+      description: |
+        Paste the relevant finding (or the missing one), and explain why
+        you think the verdict is wrong. Include the snippet of the page
+        / response that triggered (or should have triggered) it.
+
+  - type: input
+    id: inspect-version
+    attributes:
+      label: inspect version
+      description: Output of `inspect version` or the git SHA you built from.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      description: Output of `go version`.
+      placeholder: "go version go1.26.1 darwin/arm64"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: |
+        Paste relevant output. **Redact any secrets, internal URLs, or
+        identifying info first.**
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I redacted any secrets, internal URLs, or PII from logs and reproductions.
+          required: true

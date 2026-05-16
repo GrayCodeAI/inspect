@@ -1,54 +1,114 @@
 # Contributing to inspect
 
-## Setup
+Thanks for your interest! This guide covers the conventions used across the
+hawk-eco. The eco-wide standards (versioning, release tooling, repo layout)
+are defined in <https://github.com/GrayCodeAI/hawk/blob/main/VERSIONING.md>.
 
-```bash
-git clone https://github.com/GrayCodeAI/inspect.git
-cd inspect
-make test
+## Quick start
+
+1. Fork the repo and create a feature branch off `main`:
+   ```bash
+   git checkout -b feat/short-description
+   ```
+2. Make your changes in small, focused commits.
+3. Run the full local check before pushing:
+   ```bash
+   make ci
+   ```
+4. Open a pull request. CI will re-run the same checks plus security
+   scanning, race-detector tests, and (where applicable) integration tests.
+
+## Build & test
+
+This repo uses the standardised hawk-eco Makefile targets. Run `make help`
+for the full list. The most common targets:
+
+| Target              | What it does                                     |
+| ------------------- | ------------------------------------------------ |
+| `make build`        | Build the binary / verify the library compiles  |
+| `make test`         | Run unit tests                                   |
+| `make test-race`    | Run unit tests with the race detector            |
+| `make cover`        | Generate a coverage report                       |
+| `make lint`         | Run the linter (`golangci-lint` / `ruff`)        |
+| `make fmt`          | Format source files                              |
+| `make vet`          | Run `go vet` / `mypy`                            |
+| `make security`     | Run `govulncheck` / `pip-audit`                  |
+| `make ci`           | Run everything CI runs (the gate before pushing) |
+
+## Commit message convention
+
+We use [Conventional Commits](https://www.conventionalcommits.org/). This
+isn't cosmetic — release-please reads commit messages to bump the `VERSION`
+file and generate the CHANGELOG, so getting them right matters.
+
+```
+<type>(<optional scope>): <short summary>
+
+<optional body>
+
+<optional footer(s)>
 ```
 
-## Requirements
+**Types:**
 
-- Go 1.26+
-- For browser checks: Chrome/Chromium (rod auto-downloads)
+- `feat:` — a new feature (triggers a minor version bump)
+- `fix:` — a bug fix (triggers a patch version bump)
+- `perf:` — performance improvement
+- `refactor:` — code restructure with no behaviour change
+- `docs:` — documentation only
+- `test:` — adding or fixing tests
+- `build:` — build system or dependencies
+- `ci:` — CI configuration
+- `chore:` — anything else (no release effect)
+- `revert:` — reverts a previous commit
 
-## Development
+**Breaking changes:** add `!` after the type/scope or include `BREAKING
+CHANGE:` in the footer. This triggers a major version bump.
 
-```bash
-make test        # Run tests
-make test-race   # With race detector
-make cover       # Coverage report
-make lint        # Static analysis
-make bench       # Benchmarks
+Examples:
+
+```
+feat(client): add streaming retry with exponential backoff
+fix: handle empty response body in chat handler
+refactor!: rename ClientV1 to Client (BREAKING CHANGE)
 ```
 
-## Adding a New Check
+## Pull request checklist
 
-### Custom check (Go code)
+Before requesting review:
 
-1. Create a file in `internal/check/`
-2. Implement the `Checker` interface
-3. Register in `internal/check/registry.go`
-4. Add tests
+- [ ] `make ci` passes locally.
+- [ ] New behaviour has tests; bug fixes have a regression test.
+- [ ] `CHANGELOG.md` entries are **not** edited manually — release-please
+      generates them from your commit messages.
+- [ ] The `VERSION` file is **not** edited manually — release-please bumps
+      it on release.
+- [ ] Public API changes have updated doc comments.
+- [ ] No secrets, API keys, or PII in code, comments, tests, or fixtures.
 
-### Declarative rule (no Go code)
+## Code review etiquette
 
-1. Add a `RuleCheck` struct in `internal/check/rules.go`
-2. Specify: HeaderMatch/HeaderMissing/BodyMatch/BodyMissing
-3. Add tests
+- Reviewers focus on correctness, design, and tests; formatting is
+  enforced by tooling, not humans.
+- Authors respond to every comment (resolved, addressed, or politely
+  declined with rationale) — no silent dismissals.
+- Squash-merge by default; the PR title becomes the commit (so it must
+  be a valid Conventional Commit message).
+- One approving review from a CODEOWNERS-listed reviewer is required.
 
-## Guidelines
+## Reporting bugs
 
-- All tests must pass with `-race` flag
-- Use `t.Parallel()` in tests
-- SSRF protection must remain enabled by default
-- Rate limiting must be respected (don't remove defaults)
-- Add tests for new checks
+Open an issue using the bug-report template. Include the `inspect`
+version (`inspect --version` for binaries, `inspect.Version` for
+libraries — see this repo's `VERSION` file), reproduction steps, expected
+behaviour, and actual behaviour.
 
-## Pull Requests
+## Reporting security issues
 
-1. Open an issue first for significant changes
-2. Run `make all` before submitting
-3. Include test coverage
-4. Update CHANGELOG.md
+**Do not open a public issue.** See [SECURITY.md](./SECURITY.md) for
+private reporting channels.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under
+the same license as this repo (see [LICENSE](./LICENSE)).
