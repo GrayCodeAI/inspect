@@ -1,0 +1,29 @@
+# CODEOWNERS for inspect (web scanner library)
+* @GrayCodeAI/maintainers
+
+# Scanner core
+/inspect.go         @GrayCodeAI/scanner-team
+/scanner.go         @GrayCodeAI/scanner-team
+/check.go           @GrayCodeAI/scanner-team
+/checks/            @GrayCodeAI/scanner-team
+/internal/check/    @GrayCodeAI/scanner-team
+/internal/crawler/  @GrayCodeAI/scanner-team
+
+# Security / dependency checks
+/dependency_check.go @GrayCodeAI/security-team
+/api_security.go     @GrayCodeAI/security-team
+
+# Output formats
+/internal/report/   @GrayCodeAI/scanner-team
+/report.go          @GrayCodeAI/scanner-team
+
+# Versioning
+/VERSION            @GrayCodeAI/maintainers
+/version.go         @GrayCodeAI/maintainers
+
+# CI / release
+/.github/           @GrayCodeAI/devops-team
+/Makefile           @GrayCodeAI/devops-team
+
+# Documentation
+*.md                @GrayCodeAI/docs-team
