@@ -1,44 +1,19 @@
 package inspect
 
-import "strings"
+import "github.com/GrayCodeAI/hawk/shared/types"
 
 // Severity represents the impact level of a finding.
-type Severity int
+// Aliased from shared types for cross-module compatibility.
+type Severity = types.Severity
 
+// Severity constants re-exported for convenience.
 const (
-	SeverityInfo Severity = iota
-	SeverityLow
-	SeverityMedium
-	SeverityHigh
-	SeverityCritical
+	SeverityInfo     Severity = types.SeverityInfo
+	SeverityLow      Severity = types.SeverityLow
+	SeverityMedium   Severity = types.SeverityMedium
+	SeverityHigh     Severity = types.SeverityHigh
+	SeverityCritical Severity = types.SeverityCritical
 )
 
-var severityNames = [...]string{"info", "low", "medium", "high", "critical"}
-
-func (s Severity) String() string {
-	if int(s) < len(severityNames) {
-		return severityNames[s]
-	}
-	return "unknown"
-}
-
 // ParseSeverity converts a string to a Severity.
-func ParseSeverity(s string) Severity {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "critical":
-		return SeverityCritical
-	case "high":
-		return SeverityHigh
-	case "medium":
-		return SeverityMedium
-	case "low":
-		return SeverityLow
-	default:
-		return SeverityInfo
-	}
-}
-
-// AtLeast returns true if s >= threshold.
-func (s Severity) AtLeast(threshold Severity) bool {
-	return s >= threshold
-}
+var ParseSeverity = types.ParseSeverity
