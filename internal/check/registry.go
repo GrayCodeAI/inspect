@@ -12,10 +12,10 @@ import (
 type Severity = types.Severity
 
 const (
-	SeverityInfo Severity = types.SeverityInfo
-	SeverityLow  Severity = types.SeverityLow
-	SeverityMedium Severity = types.SeverityMedium
-	SeverityHigh   Severity = types.SeverityHigh
+	SeverityInfo     Severity = types.SeverityInfo
+	SeverityLow      Severity = types.SeverityLow
+	SeverityMedium   Severity = types.SeverityMedium
+	SeverityHigh     Severity = types.SeverityHigh
 	SeverityCritical Severity = types.SeverityCritical
 )
 
