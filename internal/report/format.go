@@ -21,9 +21,7 @@ const (
 	SeverityCritical Severity = types.SeverityCritical
 )
 
-var (
-	severityColors = [...]string{"\033[36m", "\033[34m", "\033[33m", "\033[31m", "\033[35;1m"}
-)
+var severityColors = [...]string{"\033[36m", "\033[34m", "\033[33m", "\033[31m", "\033[35;1m"}
 
 // SeverityString returns the string representation with ANSI color codes.
 func SeverityString(s Severity) string {
