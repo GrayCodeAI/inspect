@@ -6,29 +6,46 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/GrayCodeAI/hawk/shared/types"
 )
 
 // Severity mirrors the public type.
-type Severity int
+type Severity = types.Severity
 
 const (
-	SeverityInfo Severity = iota
-	SeverityLow
-	SeverityMedium
-	SeverityHigh
-	SeverityCritical
+	SeverityInfo     Severity = types.SeverityInfo
+	SeverityLow      Severity = types.SeverityLow
+	SeverityMedium   Severity = types.SeverityMedium
+	SeverityHigh     Severity = types.SeverityHigh
+	SeverityCritical Severity = types.SeverityCritical
 )
 
 var (
-	severityNames  = [...]string{"INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"}
 	severityColors = [...]string{"\033[36m", "\033[34m", "\033[33m", "\033[31m", "\033[35;1m"}
 )
 
-func (s Severity) String() string {
-	if int(s) < len(severityNames) {
-		return severityNames[s]
+// SeverityString returns the string representation with ANSI color codes.
+func SeverityString(s Severity) string {
+	var str string
+	switch s {
+	case SeverityInfo:
+		str = "INFO"
+	case SeverityLow:
+		str = "LOW"
+	case SeverityMedium:
+		str = "MEDIUM"
+	case SeverityHigh:
+		str = "HIGH"
+	case SeverityCritical:
+		str = "CRITICAL"
+	default:
+		str = "UNKNOWN"
 	}
-	return "UNKNOWN"
+	if int(s) < len(severityColors) {
+		return severityColors[s] + str + "\033[0m"
+	}
+	return str
 }
 
 // Finding for report rendering.

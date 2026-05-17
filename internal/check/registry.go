@@ -4,18 +4,19 @@ package check
 import (
 	"context"
 
+	"github.com/GrayCodeAI/hawk/shared/types"
 	"github.com/GrayCodeAI/inspect/internal/crawler"
 )
 
 // Severity mirrors the public Severity type for internal use.
-type Severity int
+type Severity = types.Severity
 
 const (
-	SeverityInfo Severity = iota
-	SeverityLow
-	SeverityMedium
-	SeverityHigh
-	SeverityCritical
+	SeverityInfo Severity = types.SeverityInfo
+	SeverityLow  Severity = types.SeverityLow
+	SeverityMedium Severity = types.SeverityMedium
+	SeverityHigh   Severity = types.SeverityHigh
+	SeverityCritical Severity = types.SeverityCritical
 )
 
 // Finding is an internal finding produced by a check.
