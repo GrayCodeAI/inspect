@@ -7,6 +7,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.0](https://github.com/GrayCodeAI/inspect/compare/v0.2.0...v0.3.0) (2026-05-18)
+
+
+### Features
+
+* add severity levels and improve check registry ([ec8f89a](https://github.com/GrayCodeAI/inspect/commit/ec8f89a748d0dabd79a99e89b840a77da1a9b531))
+
+
+### Bug Fixes
+
+* add local hawk replace for shared/types dependency ([82873db](https://github.com/GrayCodeAI/inspect/commit/82873dbb3c02ccceaf098f00e686816e0b6471ba))
+* clone hawk in CI for shared/types dependency ([4e8fdfd](https://github.com/GrayCodeAI/inspect/commit/4e8fdfd92dfb09f62f4e3a4ee9972e1105ab03e8))
+* gofumpt formatting + go mod tidy ([b45ec85](https://github.com/GrayCodeAI/inspect/commit/b45ec8579c14a3c39848e3c8b02512d23c7f3216))
+* remove sarif replace directive, use v0.2.0 ([58e0ff3](https://github.com/GrayCodeAI/inspect/commit/58e0ff3300dc4453e6c542d5c05d30083ba13473))
+* repair malformed CI workflow YAML ([a0d1d1d](https://github.com/GrayCodeAI/inspect/commit/a0d1d1d11c8184b47f834084263dc71b557e6113))
+* update go.sum for sarif v0.2.0 ([728f464](https://github.com/GrayCodeAI/inspect/commit/728f4644057065657f9fecc70b5b7e0a787fbada))
+* upgrade Go from 1.26.1 to 1.26.3 to patch stdlib vulnerabilities ([6150b12](https://github.com/GrayCodeAI/inspect/commit/6150b120b4106fd4c16a46e3fd8e452c9f83a946))
+
+
+### Refactoring
+
+* remove sarif dependency and simplify version ([e74c8b1](https://github.com/GrayCodeAI/inspect/commit/e74c8b1ba6ea9ffbc3c492aef92b97ef6b2ca666))
+
 ## [Unreleased]
 
 ### Changed
