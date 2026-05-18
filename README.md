@@ -105,7 +105,6 @@ exclude = ["/admin/*", "/api/*"]
 
 - Terminal (colored, human-readable)
 - JSON
-- SARIF (static analysis interchange)
 - JUnit XML (CI integration)
 - HTML report
 - Markdown
@@ -119,7 +118,7 @@ exclude = ["/admin/*", "/api/*"]
   with:
     url: https://staging.example.com
     fail-on: high
-    format: sarif
+    format: junit
 ```
 
 ### CLI
