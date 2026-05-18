@@ -7,9 +7,9 @@ import (
 )
 
 // CIOutput formats findings for CI/CD pipeline consumption.
-// Supports: GitHub Actions annotations, GitLab CI, SARIF, plain text.
+// Supports: GitHub Actions annotations, GitLab CI, plain text, JSON.
 type CIOutput struct {
-	Format string // "github", "gitlab", "sarif", "text", "json"
+	Format string // "github", "gitlab", "text", "json"
 }
 
 // FormatFindings converts findings to CI-friendly output.
