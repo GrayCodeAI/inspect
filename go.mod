@@ -14,6 +14,3 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 )
-
-// Local development — hawk has unpublished shared/types package.
-replace github.com/GrayCodeAI/hawk => ../hawk
