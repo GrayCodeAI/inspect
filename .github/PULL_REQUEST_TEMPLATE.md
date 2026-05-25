@@ -88,4 +88,4 @@ $ make lint
 - [ ] SSRF protection (if touched) — private-IP blocking, redirect
       filtering, scheme allowlists — is preserved
 - [ ] No secrets, real-customer URLs, or PII in test fixtures
-- [ ] No `Co-authored-by:` trailers (this is solo-developer work)
+- [ ] No `Co-authored-by:` trailers (this is individual-developer work)
