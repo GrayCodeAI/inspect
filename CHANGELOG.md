@@ -41,7 +41,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `.github/ISSUE_TEMPLATE/feature_request.yml` — `kind` selector
   covering 8 functional areas (security checks / accessibility /
   SEO / performance / browser / output formats / config / tooling)
-  and solo-dev fit checks.
+  and developer fit checks.
 - `.github/ISSUE_TEMPLATE/config.yml` — routes security to
   advisories, questions to discussions, blocks blank issues.
 
