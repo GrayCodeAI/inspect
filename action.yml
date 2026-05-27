@@ -1,0 +1,73 @@
+name: "Inspect Web Audit"
+description: "Run inspect security and accessibility audits against a URL, with SARIF output for the GitHub Security tab."
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  url:
+    description: "Target URL to audit"
+    required: true
+  checks:
+    description: "Comma-separated list of checks to run (links, security, forms, a11y, perf, seo)"
+    required: false
+    default: "links,security,forms,a11y,perf,seo"
+  depth:
+    description: "Maximum crawl depth"
+    required: false
+    default: "5"
+  format:
+    description: "Output format: text, json, or sarif"
+    required: false
+    default: "sarif"
+  fail-on:
+    description: "Minimum severity to fail the action: info, low, medium, high, critical"
+    required: false
+    default: "high"
+
+outputs:
+  findings:
+    description: "Total number of findings"
+  max-severity:
+    description: "Highest severity found"
+  failed:
+    description: "Whether the scan failed the threshold (true/false)"
+  sarif:
+    description: "Path to the SARIF results file"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "stable"
+
+    - name: Build inspect-action
+      shell: bash
+      run: go build -o inspect-action ./cmd/inspect-action/
+      working-directory: ${{ github.action_path }}
+
+    - name: Run inspect audit
+      id: audit
+      shell: bash
+      run: |
+        "${{ github.action_path }}/inspect-action" \
+          --format "${{ inputs.format }}" \
+          --checks "${{ inputs.checks }}" \
+          --depth "${{ inputs.depth }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          "${{ inputs.url }}"
+      continue-on-error: true
+
+    - name: Upload SARIF
+      if: ${{ always() && inputs.format == 'sarif' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: results.sarif
+
+    - name: Fail if threshold exceeded
+      if: ${{ steps.audit.outcome == 'failure' }}
+      shell: bash
+      run: exit 1
