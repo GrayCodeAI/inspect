@@ -299,10 +299,10 @@ func TestAPISecurityChecker_Timeout(t *testing.T) {
 func TestCheckJWTWeakness_SensitiveDataCreditCard(t *testing.T) {
 	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256"}`))
 	payloadData := map[string]interface{}{
-		"sub":        "1234",
-		"exp":        float64(9999999999),
-		"iss":        "auth",
-		"cc_number":  "4111111111111111",
+		"sub":       "1234",
+		"exp":       float64(9999999999),
+		"iss":       "auth",
+		"cc_number": "4111111111111111",
 	}
 	payloadBytes, _ := json.Marshal(payloadData)
 	payload := base64.RawURLEncoding.EncodeToString(payloadBytes)

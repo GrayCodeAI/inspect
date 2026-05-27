@@ -12,18 +12,18 @@ import (
 
 // SBOMDocument represents a CycloneDX 1.5 Software Bill of Materials.
 type SBOMDocument struct {
-	BOMFormat    string        `json:"bomFormat"`
-	SpecVersion  string        `json:"specVersion"`
-	SerialNumber string        `json:"serialNumber,omitempty"`
-	Version      int           `json:"version"`
-	Metadata     SBOMMetadata  `json:"metadata"`
+	BOMFormat    string          `json:"bomFormat"`
+	SpecVersion  string          `json:"specVersion"`
+	SerialNumber string          `json:"serialNumber,omitempty"`
+	Version      int             `json:"version"`
+	Metadata     SBOMMetadata    `json:"metadata"`
 	Components   []SBOMComponent `json:"components"`
 }
 
 // SBOMMetadata contains metadata about the SBOM.
 type SBOMMetadata struct {
-	Timestamp string      `json:"timestamp"`
-	Tools     []SBOMTool  `json:"tools,omitempty"`
+	Timestamp string         `json:"timestamp"`
+	Tools     []SBOMTool     `json:"tools,omitempty"`
 	Component *SBOMComponent `json:"component,omitempty"`
 }
 
@@ -36,11 +36,11 @@ type SBOMTool struct {
 
 // SBOMComponent represents a software component/dependency.
 type SBOMComponent struct {
-	Type       string `json:"type"`
-	Name       string `json:"name"`
-	Version    string `json:"version"`
-	PURL       string `json:"purl,omitempty"`
-	Scope      string `json:"scope,omitempty"`
+	Type    string `json:"type"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	PURL    string `json:"purl,omitempty"`
+	Scope   string `json:"scope,omitempty"`
 }
 
 // GenerateSBOM produces a CycloneDX 1.5 SBOM from project dependency files.
