@@ -292,7 +292,7 @@ func TestRateLimiter_ThrottlesHighRate(t *testing.T) {
 }
 
 func TestRateLimiter_ContextCancellation(t *testing.T) {
-	rl := newRateLimiter(1) // 1 req/sec = very slow
+	rl := newRateLimiter(1)       // 1 req/sec = very slow
 	rl.Wait(context.Background()) // first request goes through immediately
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -296,7 +296,7 @@ func TestRegistry_FilterWithEmptyString(t *testing.T) {
 // --- captureChecker is a test helper that captures the pages slice ---
 
 type captureChecker struct {
-	name string
+	name  string
 	runFn func(ctx context.Context, pages []*crawler.Page) []Finding
 }
 
