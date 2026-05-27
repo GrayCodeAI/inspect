@@ -42,7 +42,7 @@ type sarifRelationship struct {
 }
 
 type sarifDescriptorReference struct {
-	ID            string                `json:"id"`
+	ID            string                   `json:"id"`
 	ToolComponent *sarifComponentReference `json:"toolComponent,omitempty"`
 }
 
@@ -51,10 +51,10 @@ type sarifComponentReference struct {
 }
 
 type sarifResult struct {
-	RuleID    string           `json:"ruleId"`
-	Level     string           `json:"level"`
-	Message   sarifMessage     `json:"message"`
-	Locations []sarifLocation  `json:"locations"`
+	RuleID    string          `json:"ruleId"`
+	Level     string          `json:"level"`
+	Message   sarifMessage    `json:"message"`
+	Locations []sarifLocation `json:"locations"`
 }
 
 type sarifMessage struct {
@@ -98,8 +98,8 @@ func GenerateSARIF(findings []Finding, version string) string {
 		}
 		ruleSet[checkID] = true
 		rule := sarifRule{
-			ID:   checkID,
-			Name: checkID,
+			ID:               checkID,
+			Name:             checkID,
 			ShortDescription: sarifMessage{Text: fmt.Sprintf("%s check", checkID)},
 		}
 		rules = append(rules, rule)
