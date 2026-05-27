@@ -1,6 +1,6 @@
 module github.com/GrayCodeAI/inspect/browser
 
-go 1.25.0
+go 1.26.3
 
 require (
 	github.com/GrayCodeAI/inspect v0.1.0
