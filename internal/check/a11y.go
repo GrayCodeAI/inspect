@@ -33,7 +33,7 @@ func (a *A11yCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 }
 
 func (a *A11yCheck) checkPage(page *crawler.Page) []Finding {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}
@@ -227,4 +227,15 @@ func truncateStr(s string, max int) string {
 		return s
 	}
 	return s[:max] + "..."
+}
+
+// getPageDoc returns the pre-parsed HTML document from the page if available,
+// otherwise parses the page body. This avoids redundant HTML parsing across
+// multiple checks running on the same page.
+func getPageDoc(page *crawler.Page) (*html.Node, error) {
+	if page.Doc != nil {
+		return page.Doc, nil
+	}
+	doc, err := html.Parse(bytes.NewReader(page.Body))
+	return doc, err
 }

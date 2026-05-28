@@ -6,12 +6,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 // Config controls crawler behavior.
@@ -31,6 +34,8 @@ type Config struct {
 	AuthValue       string
 	CookieJar       http.CookieJar
 	AllowPrivateIPs bool // When true, skip SSRF protection for private IPs
+	Logger          *slog.Logger
+	MaxPages        int // Maximum number of pages to crawl; 0 means no limit
 }
 
 // Page represents a single crawled page with its metadata.
@@ -45,7 +50,8 @@ type Page struct {
 	ParentURL    string
 	Duration     time.Duration
 	Error        error
-	AuthRequired bool // true when server returned 401/403
+	AuthRequired bool       // true when server returned 401/403
+	Doc          *html.Node // parsed HTML tree, populated once during fetch
 }
 
 // Link represents a hyperlink found on a page.
@@ -98,14 +104,33 @@ func New(cfg Config) *Crawler {
 		cfg.RetryDelay = 500 * time.Millisecond
 	}
 
+	baseDialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
 	transport := &http.Transport{
 		MaxIdleConns:        cfg.Concurrency * 2,
 		MaxIdleConnsPerHost: cfg.Concurrency,
 		IdleConnTimeout:     90 * time.Second,
-		DialContext: (&net.Dialer{
-			Timeout:   10 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			if !cfg.AllowPrivateIPs {
+				host, _, err := net.SplitHostPort(addr)
+				if err != nil {
+					return nil, err
+				}
+				ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+				if err != nil {
+					return nil, err
+				}
+				for _, ip := range ips {
+					if isPrivateIP(ip.IP) {
+						return nil, fmt.Errorf("SSRF protection: blocked connection to private IP %s", ip.IP)
+					}
+				}
+			}
+			return baseDialer.DialContext(ctx, network, addr)
+		},
 	}
 
 	client := &http.Client{
@@ -150,7 +175,7 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 	if c.cfg.RespectRobots {
 		c.robots.Fetch(ctx, c.client, origin)
 		// Apply Crawl-Delay from robots.txt if it's slower than current rate limit
-		if delay := c.robots.CrawlDelay(origin); delay > 0 && delay > c.limiter.interval {
+		if delay := c.robots.CrawlDelay(origin, c.cfg.UserAgent); delay > 0 && delay > c.limiter.interval {
 			c.limiter.interval = delay
 		}
 	}
@@ -169,10 +194,12 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 	}
 
 	var (
-		pages   []*Page
-		pagesMu sync.Mutex
-		queue   = make(chan work, 10000)
-		wg      sync.WaitGroup
+		pages       []*Page
+		pagesMu     sync.Mutex
+		queue       = make(chan work, 10000)
+		wg          sync.WaitGroup
+		pagesCrawled int
+		maxPages     = c.cfg.MaxPages
 	)
 
 	c.markSeen(startURL)
@@ -193,6 +220,9 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 			select {
 			case queue <- work{url: sitemapPage, depth: 1, parent: "sitemap"}:
 			default:
+				if c.cfg.Logger != nil {
+					c.cfg.Logger.Warn("crawler: URL dropped due to queue overflow", "url", sitemapPage)
+				}
 				active.Done()
 			}
 		}
@@ -217,14 +247,21 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 				page := c.fetch(ctx, w.url, w.depth, w.parent)
 				pagesMu.Lock()
 				pages = append(pages, page)
+				pagesCrawled++
+				atLimit := maxPages > 0 && pagesCrawled >= maxPages
 				pagesMu.Unlock()
+
+				if atLimit {
+					active.Done()
+					continue
+				}
 
 				if page.Error == nil && (c.cfg.MaxDepth == 0 || w.depth < c.cfg.MaxDepth) {
 					for _, link := range page.Links {
 						if link.External || link.Anchor {
 							continue
 						}
-						resolved := resolveURL(w.url, link.Href)
+						resolved := ResolveURL(w.url, link.Href)
 						if resolved == "" {
 							continue
 						}
@@ -243,6 +280,9 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 							select {
 							case queue <- work{url: resolved, depth: w.depth + 1, parent: w.url}:
 							default:
+								if c.cfg.Logger != nil {
+									c.cfg.Logger.Warn("crawler: URL dropped due to queue overflow", "url", resolved)
+								}
 								active.Done()
 							}
 						}
@@ -315,6 +355,11 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 	const maxRedirects = 10
 	visited := make(map[string]bool)
 	currentURL := targetURL
+	originalParsed, _ := url.Parse(targetURL)
+	originalHost := ""
+	if originalParsed != nil {
+		originalHost = originalParsed.Host
+	}
 
 	for redirectCount := 0; ; redirectCount++ {
 		if redirectCount > maxRedirects {
@@ -337,7 +382,12 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 
 		req.Header.Set("User-Agent", c.cfg.UserAgent)
 		if c.cfg.AuthHeader != "" {
-			req.Header.Set(c.cfg.AuthHeader, c.cfg.AuthValue)
+			// Only send auth header when the target host matches the original
+			// host to prevent credential leakage on cross-host redirects.
+			reqParsed, _ := url.Parse(currentURL)
+			if reqParsed != nil && reqParsed.Host == originalHost {
+				req.Header.Set(c.cfg.AuthHeader, c.cfg.AuthValue)
+			}
 		}
 
 		// Use a client that does not follow redirects automatically
@@ -366,7 +416,7 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 				page.Headers = resp.Header
 				return nil
 			}
-			resolved := resolveURL(currentURL, loc)
+			resolved := ResolveURL(currentURL, loc)
 			if resolved == "" {
 				page.StatusCode = resp.StatusCode
 				page.Headers = resp.Header
@@ -400,8 +450,10 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 		}
 		page.Body = body
 
-		page.Links = extractLinks(currentURL, body)
-		page.Forms = extractForms(body)
+		doc, links, forms, _ := ParseHTMLDoc(currentURL, body)
+		page.Doc = doc
+		page.Links = links
+		page.Forms = forms
 		return nil
 	}
 }
@@ -518,17 +570,3 @@ func normalizeURL(u string) string {
 	return parsed.String()
 }
 
-func resolveURL(base, href string) string {
-	if href == "" || strings.HasPrefix(href, "#") || strings.HasPrefix(href, "mailto:") || strings.HasPrefix(href, "javascript:") {
-		return ""
-	}
-	baseParsed, err := url.Parse(base)
-	if err != nil {
-		return ""
-	}
-	hrefParsed, err := url.Parse(href)
-	if err != nil {
-		return ""
-	}
-	return baseParsed.ResolveReference(hrefParsed).String()
-}

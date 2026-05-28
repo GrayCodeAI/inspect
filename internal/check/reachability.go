@@ -1,12 +1,10 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -49,7 +47,7 @@ func (r *ReachabilityCheck) Run(ctx context.Context, pages []*crawler.Page) []Fi
 	seen := make(map[string]bool)
 	var uniqueRefs []resourceRef
 	for _, ref := range refs {
-		resolved := resolveURL(ref.PageURL, ref.URL)
+		resolved := crawler.ResolveURL(ref.PageURL, ref.URL)
 		if resolved == "" || seen[resolved] {
 			continue
 		}
@@ -171,8 +169,9 @@ func severityForResourceStatus(code int) Severity {
 }
 
 // extractResourceRefs parses HTML and extracts all resource references.
+// Uses the pre-parsed doc from the page when available.
 func extractResourceRefs(page *crawler.Page) []resourceRef {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}
@@ -269,20 +268,6 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 	return refs
 }
 
-func resolveURL(base, href string) string {
-	if href == "" {
-		return ""
-	}
-	baseParsed, err := url.Parse(base)
-	if err != nil {
-		return ""
-	}
-	hrefParsed, err := url.Parse(href)
-	if err != nil {
-		return ""
-	}
-	return baseParsed.ResolveReference(hrefParsed).String()
-}
 
 func truncateResRef(s string, max int) string {
 	if len(s) <= max {
