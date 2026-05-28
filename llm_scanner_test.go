@@ -601,15 +601,15 @@ func TestConfig_NewScannerHasBuiltinChecks(t *testing.T) {
 	}
 
 	expectedIDs := map[string]bool{
-		"sql-injection":      false,
-		"command-injection":  false,
-		"path-traversal":     false,
-		"weak-crypto":        false,
-		"hardcoded-creds":    false,
+		"sql-injection":       false,
+		"command-injection":   false,
+		"path-traversal":      false,
+		"weak-crypto":         false,
+		"hardcoded-creds":     false,
 		"missing-error-check": false,
-		"prompt-injection":   false,
-		"jailbreak":          false,
-		"data-exfiltration":  false,
+		"prompt-injection":    false,
+		"jailbreak":           false,
+		"data-exfiltration":   false,
 	}
 	for _, c := range s.checks {
 		if _, ok := expectedIDs[c.ID]; ok {

@@ -268,7 +268,6 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 	return refs
 }
 
-
 func truncateResRef(s string, max int) string {
 	if len(s) <= max {
 		return s

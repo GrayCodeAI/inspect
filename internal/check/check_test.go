@@ -259,7 +259,6 @@ func TestAIReadyCheck_Name(t *testing.T) {
 	}
 }
 
-
 func TestRegistry_Filter(t *testing.T) {
 	r := DefaultRegistry()
 

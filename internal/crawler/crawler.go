@@ -194,10 +194,10 @@ func (c *Crawler) Crawl(ctx context.Context, startURL string) ([]*Page, error) {
 	}
 
 	var (
-		pages       []*Page
-		pagesMu     sync.Mutex
-		queue       = make(chan work, 10000)
-		wg          sync.WaitGroup
+		pages        []*Page
+		pagesMu      sync.Mutex
+		queue        = make(chan work, 10000)
+		wg           sync.WaitGroup
 		pagesCrawled int
 		maxPages     = c.cfg.MaxPages
 	)
@@ -569,4 +569,3 @@ func normalizeURL(u string) string {
 	parsed.RawQuery = parsed.Query().Encode()
 	return parsed.String()
 }
-
