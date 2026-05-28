@@ -230,7 +230,7 @@ func TestNormalizeURL(t *testing.T) {
 	}
 }
 
-// --- resolveURL tests ---
+// --- ResolveURL tests ---
 
 func TestResolveURL_Absolute(t *testing.T) {
 	tests := []struct {
@@ -249,28 +249,28 @@ func TestResolveURL_Absolute(t *testing.T) {
 		{"https://example.com/page", "javascript:alert(1)", ""},
 		// Empty href returns empty
 		{"https://example.com/page", "", ""},
-		// data: URI resolves (resolveURL doesn't filter these, only link extraction does)
+		// data: URI resolves (ResolveURL doesn't filter these, only link extraction does)
 		{"https://example.com/page", "data:text/html,<h1>hi</h1>", "data:text/html,<h1>hi</h1>"},
 		// Protocol-relative
 		{"https://example.com/page", "//cdn.example.com/lib.js", "https://cdn.example.com/lib.js"},
 	}
 	for _, tt := range tests {
-		got := resolveURL(tt.base, tt.href)
+		got := ResolveURL(tt.base, tt.href)
 		if got != tt.expected {
-			t.Errorf("resolveURL(%q, %q) = %q, want %q", tt.base, tt.href, got, tt.expected)
+			t.Errorf("ResolveURL(%q, %q) = %q, want %q", tt.base, tt.href, got, tt.expected)
 		}
 	}
 }
 
 func TestResolveURL_InvalidBase(t *testing.T) {
 	// url.Parse succeeds for most strings in Go, but let's test edge cases
-	got := resolveURL("://bad", "/path")
+	got := ResolveURL("://bad", "/path")
 	// url.Parse("://bad") produces a relative reference, resolveReference still works
 	_ = got
 }
 
 func TestResolveURL_QueryPreservation(t *testing.T) {
-	got := resolveURL("https://example.com/page?k=v", "#anchor")
+	got := ResolveURL("https://example.com/page?k=v", "#anchor")
 	if got != "" {
 		t.Errorf("expected empty for fragment-only, got %q", got)
 	}
@@ -394,13 +394,13 @@ Crawl-delay: 2
 	rc := NewRobotsCache()
 	rc.Fetch(context.Background(), srv.Client(), srv.URL)
 
-	delay := rc.CrawlDelay(srv.URL)
+	delay := rc.CrawlDelay(srv.URL, "test")
 	if delay != 2*time.Second {
 		t.Errorf("expected crawl delay 2s, got %v", delay)
 	}
 
 	// Non-fetched origin should return 0
-	if rc.CrawlDelay("https://other.com") != 0 {
+	if rc.CrawlDelay("https://other.com", "test") != 0 {
 		t.Error("expected 0 for non-fetched origin")
 	}
 }
@@ -482,6 +482,202 @@ Disallow: /nope/
 
 	if rc.Allowed(srv.URL+"/nope/page", "test") {
 		t.Error("should disallow /nope/ despite comments")
+	}
+}
+
+func TestRobotsCache_BotSpecificSections(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Googlebot
+Disallow: /secret/
+
+User-agent: *
+Disallow: /blocked/
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	// Googlebot should follow its own rules
+	if rc.Allowed(srv.URL+"/secret/page", "Googlebot") {
+		t.Error("Googlebot should disallow /secret/")
+	}
+	if rc.Allowed(srv.URL+"/blocked/page", "Googlebot") {
+		t.Error("Googlebot should also disallow /blocked/ (wildcard fallback)")
+	}
+
+	// Other bots should follow wildcard rules
+	if !rc.Allowed(srv.URL+"/secret/page", "test") {
+		t.Error("test bot should allow /secret/ (no bot-specific rule)")
+	}
+	if rc.Allowed(srv.URL+"/blocked/page", "test") {
+		t.Error("test bot should disallow /blocked/ (wildcard)")
+	}
+}
+
+func TestRobotsCache_CaseInsensitiveUserAgent(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Googlebot
+Disallow: /secret/
+
+User-agent: *
+Disallow: /blocked/
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	// Case-insensitive matching
+	if rc.Allowed(srv.URL+"/secret/page", "googlebot") {
+		t.Error("googlebot (lowercase) should match Googlebot rules")
+	}
+	if rc.Allowed(srv.URL+"/secret/page", "GOOGLEBOT") {
+		t.Error("GOOGLEBOT (uppercase) should match Googlebot rules")
+	}
+	if rc.Allowed(srv.URL+"/secret/page", "GoogleBot") {
+		t.Error("GoogleBot (mixed case) should match Googlebot rules")
+	}
+}
+
+func TestRobotsCache_BotSpecificCrawlDelay(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Googlebot
+Crawl-delay: 5
+
+User-agent: *
+Crawl-delay: 1
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	// Bot-specific crawl delay
+	if delay := rc.CrawlDelay(srv.URL, "Googlebot"); delay != 5*time.Second {
+		t.Errorf("expected crawl delay 5s for Googlebot, got %v", delay)
+	}
+
+	// Wildcard crawl delay
+	if delay := rc.CrawlDelay(srv.URL, "test"); delay != 1*time.Second {
+		t.Errorf("expected crawl delay 1s for test, got %v", delay)
+	}
+}
+
+func TestRobotsCache_CrawlDelay_CaseInsensitive(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Baiduspider
+Crawl-delay: 3
+
+User-agent: *
+Crawl-delay: 1
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	if delay := rc.CrawlDelay(srv.URL, "baiduspider"); delay != 3*time.Second {
+		t.Errorf("expected crawl delay 3s for baiduspider, got %v", delay)
+	}
+	if delay := rc.CrawlDelay(srv.URL, "BAIDUSPIDER"); delay != 3*time.Second {
+		t.Errorf("expected crawl delay 3s for BAIDUSPIDER, got %v", delay)
+	}
+}
+
+func TestRobotsCache_BotSpecificNoWildcard(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Googlebot
+Disallow: /secret/
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	// Googlebot should be blocked
+	if rc.Allowed(srv.URL+"/secret/page", "Googlebot") {
+		t.Error("Googlebot should disallow /secret/")
+	}
+
+	// Other bots should be allowed (no wildcard section)
+	if !rc.Allowed(srv.URL+"/secret/page", "test") {
+		t.Error("test bot should allow /secret/ (no wildcard or bot-specific rule)")
+	}
+}
+
+func TestRobotsCache_BlankLineSeparators(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Googlebot
+Disallow: /a/
+
+User-agent: Bingbot
+Disallow: /b/
+
+User-agent: *
+Disallow: /c/
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	if rc.Allowed(srv.URL+"/a/page", "Googlebot") {
+		t.Error("Googlebot should disallow /a/")
+	}
+	if !rc.Allowed(srv.URL+"/a/page", "Bingbot") {
+		t.Error("Bingbot should allow /a/")
+	}
+
+	if rc.Allowed(srv.URL+"/b/page", "Bingbot") {
+		t.Error("Bingbot should disallow /b/")
+	}
+	if !rc.Allowed(srv.URL+"/b/page", "Googlebot") {
+		t.Error("Googlebot should allow /b/")
+	}
+
+	if rc.Allowed(srv.URL+"/c/page", "test") {
+		t.Error("test bot should disallow /c/ (wildcard)")
+	}
+}
+
+func TestRobotsCache_MultipleUserAgentsPerSection(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, `User-agent: Googlebot
+User-agent: Bingbot
+Disallow: /shared/
+
+User-agent: *
+Disallow: /blocked/
+`)
+	}))
+	defer srv.Close()
+
+	rc := NewRobotsCache()
+	rc.Fetch(context.Background(), srv.Client(), srv.URL)
+
+	// Both bots in the same section should share rules
+	if rc.Allowed(srv.URL+"/shared/page", "Googlebot") {
+		t.Error("Googlebot should disallow /shared/")
+	}
+	if rc.Allowed(srv.URL+"/shared/page", "Bingbot") {
+		t.Error("Bingbot should disallow /shared/")
+	}
+	if !rc.Allowed(srv.URL+"/shared/page", "test") {
+		t.Error("test bot should allow /shared/")
 	}
 }
 

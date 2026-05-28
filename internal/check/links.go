@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -51,7 +50,7 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 		if p.Error != nil || len(p.Body) == 0 {
 			continue
 		}
-		ids := extractElementIDs(p.Body)
+		ids := extractElementIDs(p)
 		pageIDs[normalizeForLookup(p.URL)] = ids
 	}
 
@@ -82,7 +81,7 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 				continue
 			}
 
-			resolved := resolveLink(page.URL, link.Href)
+			resolved := crawler.ResolveURL(page.URL, link.Href)
 			if resolved == "" {
 				continue
 			}
@@ -150,8 +149,9 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 }
 
 // extractElementIDs parses HTML and returns all id attribute values.
-func extractElementIDs(body []byte) map[string]bool {
-	doc, err := html.Parse(bytes.NewReader(body))
+// Uses the pre-parsed doc from the page when available.
+func extractElementIDs(page *crawler.Page) map[string]bool {
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}
@@ -274,26 +274,12 @@ func detectRedirectChain(pages []*crawler.Page, startURL string, lookup map[stri
 		if location == "" {
 			break
 		}
-		current = resolveLink(current, location)
+		current = crawler.ResolveURL(current, location)
 		count++
 	}
 	return count
 }
 
-func resolveLink(base, href string) string {
-	if href == "" {
-		return ""
-	}
-	baseParsed, err := url.Parse(base)
-	if err != nil {
-		return ""
-	}
-	hrefParsed, err := url.Parse(href)
-	if err != nil {
-		return ""
-	}
-	return baseParsed.ResolveReference(hrefParsed).String()
-}
 
 func normalizeForLookup(u string) string {
 	parsed, err := url.Parse(u)

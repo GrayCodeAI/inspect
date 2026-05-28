@@ -17,20 +17,24 @@ type ParseResult struct {
 
 // ParseHTML extracts links and forms, returning partial results even on parse error.
 func ParseHTML(pageURL string, body []byte) ParseResult {
-	var linkErr, formErr error
-	links := extractLinksWithErr(pageURL, body, &linkErr)
-	forms := extractFormsWithErr(body, &formErr)
-	var parseErr error
-	if linkErr != nil {
-		parseErr = linkErr
-	} else if formErr != nil {
-		parseErr = formErr
-	}
-	return ParseResult{Links: links, Forms: forms, ParseErr: parseErr}
+	doc, err := html.Parse(bytes.NewReader(body))
+	links := extractLinksFromDoc(pageURL, doc)
+	forms := extractFormsFromDoc(doc)
+	return ParseResult{Links: links, Forms: forms, ParseErr: err}
+}
+
+// ParseHTMLDoc parses the body once and returns the doc along with links/forms.
+// Use this when you need to keep the parsed doc for later use by checks.
+func ParseHTMLDoc(pageURL string, body []byte) (*html.Node, []Link, []Form, error) {
+	doc, err := html.Parse(bytes.NewReader(body))
+	links := extractLinksFromDoc(pageURL, doc)
+	forms := extractFormsFromDoc(doc)
+	return doc, links, forms, err
 }
 
 func extractLinks(pageURL string, body []byte) []Link {
-	return extractLinksWithErr(pageURL, body, nil)
+	doc, _ := html.Parse(bytes.NewReader(body))
+	return extractLinksFromDoc(pageURL, doc)
 }
 
 // extractLinksWithErr extracts links and reports any parse error via errOut.
@@ -44,6 +48,14 @@ func extractLinksWithErr(pageURL string, body []byte, errOut *error) []Link {
 		if doc == nil {
 			return nil
 		}
+	}
+	return extractLinksFromDoc(pageURL, doc)
+}
+
+// extractLinksFromDoc extracts links from a pre-parsed HTML document.
+func extractLinksFromDoc(pageURL string, doc *html.Node) []Link {
+	if doc == nil {
+		return nil
 	}
 
 	var links []Link
@@ -158,7 +170,8 @@ func getNodeAttr(n *html.Node, key string) string {
 }
 
 func extractForms(body []byte) []Form {
-	return extractFormsWithErr(body, nil)
+	doc, _ := html.Parse(bytes.NewReader(body))
+	return extractFormsFromDoc(doc)
 }
 
 // extractFormsWithErr extracts forms and reports any parse error via errOut.
@@ -171,6 +184,14 @@ func extractFormsWithErr(body []byte, errOut *error) []Form {
 		if doc == nil {
 			return nil
 		}
+	}
+	return extractFormsFromDoc(doc)
+}
+
+// extractFormsFromDoc extracts forms from a pre-parsed HTML document.
+func extractFormsFromDoc(doc *html.Node) []Form {
+	if doc == nil {
+		return nil
 	}
 
 	var forms []Form

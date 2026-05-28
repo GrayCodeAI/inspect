@@ -2,13 +2,159 @@ package inspect
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/GrayCodeAI/inspect/internal/check"
 	"github.com/GrayCodeAI/inspect/internal/crawler"
 )
+
+// Regex timeout constants for ReDoS protection.
+const (
+	regexCompileTimeout = 1 * time.Second
+	regexMatchTimeout   = 100 * time.Millisecond
+)
+
+// checkRegexComplexity rejects patterns likely to cause ReDoS. Returns an error
+// if the pattern contains nested quantifiers (e.g. (a+)+, (a*)*) or excessive
+// group nesting.
+func checkRegexComplexity(pattern string) error {
+	const maxDepth = 5
+
+	type groupInfo struct {
+		hasQuantifier bool
+	}
+	var groupStack []groupInfo
+	inQuantifierAfterGroup := false
+
+	for i := 0; i < len(pattern); i++ {
+		ch := pattern[i]
+		switch ch {
+		case '(':
+			if len(groupStack) >= maxDepth {
+				return fmt.Errorf("regex group nesting depth exceeds maximum %d", maxDepth)
+			}
+			groupStack = append(groupStack, groupInfo{})
+			inQuantifierAfterGroup = false
+		case ')':
+			if len(groupStack) == 0 {
+				inQuantifierAfterGroup = false
+				continue
+			}
+			g := groupStack[len(groupStack)-1]
+			groupStack = groupStack[:len(groupStack)-1]
+			// After closing a group, mark that a quantifier after this ')'
+			// would be a nested quantifier if the group itself contained one.
+			inQuantifierAfterGroup = g.hasQuantifier
+		case '*', '+':
+			// These are quantifiers.
+			if len(groupStack) > 0 {
+				groupStack[len(groupStack)-1].hasQuantifier = true
+			}
+			if inQuantifierAfterGroup {
+				return fmt.Errorf("nested quantifier detected near position %d: quantifier after group containing a quantifier (pattern may cause ReDoS)", i)
+			}
+		case '?':
+			// '?' after '(' or '|' is a group modifier, not a quantifier.
+			// '?' after another quantifier (e.g. '+?') is a non-greedy modifier.
+			if i > 0 {
+				prev := pattern[i-1]
+				if prev != '(' && prev != '|' && prev != '*' && prev != '+' && prev != '?' {
+					// This '?' is a quantifier (0-or-1).
+					if len(groupStack) > 0 {
+						groupStack[len(groupStack)-1].hasQuantifier = true
+					}
+					if inQuantifierAfterGroup {
+						return fmt.Errorf("nested quantifier detected near position %d: quantifier after group containing a quantifier (pattern may cause ReDoS)", i)
+					}
+				}
+			}
+			inQuantifierAfterGroup = false
+		case '{':
+			// '{' starts a counted repetition like {n}, {n,}, {n,m}.
+			// This is a quantifier.
+			if len(groupStack) > 0 {
+				groupStack[len(groupStack)-1].hasQuantifier = true
+			}
+			if inQuantifierAfterGroup {
+				return fmt.Errorf("nested quantifier detected near position %d: quantifier after group containing a quantifier (pattern may cause ReDoS)", i)
+			}
+		default:
+			inQuantifierAfterGroup = false
+		}
+	}
+	return nil
+}
+
+// compileWithTimeout compiles a regex pattern with a timeout to protect against
+// pathological compilation times. Returns nil and an error if the pattern is
+// rejected by the complexity check or if compilation times out.
+func compileWithTimeout(pattern string) (*regexp.Regexp, error) {
+	if err := checkRegexComplexity(pattern); err != nil {
+		return nil, err
+	}
+
+	type result struct {
+		re  *regexp.Regexp
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		re, err := regexp.Compile(pattern)
+		done <- result{re, err}
+	}()
+
+	select {
+	case res := <-done:
+		return res.re, res.err
+	case <-time.After(regexCompileTimeout):
+		return nil, fmt.Errorf("regex compilation timed out after %s", regexCompileTimeout)
+	}
+}
+
+// matchWithTimeout runs re.MatchString(s) with a timeout. Returns false if
+// the match does not complete in time, protecting against ReDoS at runtime.
+func matchWithTimeout(re *regexp.Regexp, s string) bool {
+	type result struct {
+		matched bool
+	}
+	done := make(chan result, 1)
+	go func() {
+		done <- result{matched: re.MatchString(s)}
+	}()
+
+	select {
+	case res := <-done:
+		return res.matched
+	case <-time.After(regexMatchTimeout):
+		slog.Warn("regex match timed out, skipping", "pattern", re.String(), "timeout", regexMatchTimeout)
+		return false
+	}
+}
+
+// findWithTimeout runs re.FindString(s) with a timeout. Returns "" if
+// the match does not complete in time.
+func findWithTimeout(re *regexp.Regexp, s string) string {
+	type result struct {
+		match string
+	}
+	done := make(chan result, 1)
+	go func() {
+		done <- result{match: re.FindString(s)}
+	}()
+
+	select {
+	case res := <-done:
+		return res.match
+	case <-time.After(regexMatchTimeout):
+		slog.Warn("regex find timed out, skipping", "pattern", re.String(), "timeout", regexMatchTimeout)
+		return ""
+	}
+}
 
 // Checker is the public interface for custom checks. Implement this to add
 // your own audit logic and register it with RegisterCheck.
@@ -95,23 +241,36 @@ type ruleCheckAdapter struct {
 func newRuleCheckAdapter(rule RuleCheck) *ruleCheckAdapter {
 	a := &ruleCheckAdapter{rule: rule}
 	if rule.URLMatch != "" {
-		a.urlRegex, _ = regexp.Compile(rule.URLMatch)
+		re, err := compileWithTimeout(rule.URLMatch)
+		if err != nil {
+			slog.Error("rule regex compilation failed (ReDoS protection)", "rule", rule.RuleName, "field", "URLMatch", "pattern", rule.URLMatch, "error", err)
+		}
+		a.urlRegex = re
 	}
 	a.headerRegexs = make(map[string]*regexp.Regexp, len(rule.HeaderMatch))
 	for header, pattern := range rule.HeaderMatch {
-		if re, err := regexp.Compile(pattern); err == nil {
-			a.headerRegexs[header] = re
+		re, err := compileWithTimeout(pattern)
+		if err != nil {
+			slog.Error("rule regex compilation failed (ReDoS protection)", "rule", rule.RuleName, "field", "HeaderMatch", "header", header, "pattern", pattern, "error", err)
+			continue
 		}
+		a.headerRegexs[header] = re
 	}
 	for _, pattern := range rule.BodyMatch {
-		if re, err := regexp.Compile(pattern); err == nil {
-			a.bodyRegexs = append(a.bodyRegexs, re)
+		re, err := compileWithTimeout(pattern)
+		if err != nil {
+			slog.Error("rule regex compilation failed (ReDoS protection)", "rule", rule.RuleName, "field", "BodyMatch", "pattern", pattern, "error", err)
+			continue
 		}
+		a.bodyRegexs = append(a.bodyRegexs, re)
 	}
 	for _, pattern := range rule.BodyMissing {
-		if re, err := regexp.Compile(pattern); err == nil {
-			a.bodyMissing = append(a.bodyMissing, re)
+		re, err := compileWithTimeout(pattern)
+		if err != nil {
+			slog.Error("rule regex compilation failed (ReDoS protection)", "rule", rule.RuleName, "field", "BodyMissing", "pattern", pattern, "error", err)
+			continue
 		}
+		a.bodyMissing = append(a.bodyMissing, re)
 	}
 	return a
 }
@@ -128,7 +287,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		if len(r.rule.StatusCodes) > 0 && !intIn(page.StatusCode, r.rule.StatusCodes) {
 			continue
 		}
-		if r.urlRegex != nil && !r.urlRegex.MatchString(page.URL) {
+		if r.urlRegex != nil && !matchWithTimeout(r.urlRegex, page.URL) {
 			continue
 		}
 
@@ -150,7 +309,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 			if val == "" {
 				continue
 			}
-			if re.MatchString(val) {
+			if matchWithTimeout(re, val) {
 				findings = append(findings, check.Finding{
 					Severity: check.Severity(r.rule.RuleSeverity),
 					URL:      page.URL,
@@ -165,7 +324,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 
 		// Body match checks (regex match = bad)
 		for _, re := range r.bodyRegexs {
-			if loc := re.FindString(body); loc != "" {
+			if loc := findWithTimeout(re, body); loc != "" {
 				findings = append(findings, check.Finding{
 					Severity: check.Severity(r.rule.RuleSeverity),
 					URL:      page.URL,
@@ -179,7 +338,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 
 		// Body missing checks (pattern should be present but isn't)
 		for _, re := range r.bodyMissing {
-			if !re.MatchString(body) {
+			if !matchWithTimeout(re, body) {
 				findings = append(findings, check.Finding{
 					Severity: check.Severity(r.rule.RuleSeverity),
 					URL:      page.URL,
@@ -237,18 +396,26 @@ func (a *customCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []c
 	return internal
 }
 
-func getCustomInternalChecks() []check.Checker {
-	customChecksMu.RLock()
-	defer customChecksMu.RUnlock()
-
+// getCustomInternalChecks converts public Checker and RuleCheck slices into
+// internal check.Checker adapters. This accepts explicit slices so that
+// per-Scanner custom checks can be passed in without relying on global state.
+func getCustomInternalChecks(checks []Checker, rules []RuleCheck) []check.Checker {
 	var result []check.Checker
-	for _, c := range customChecks {
+	for _, c := range checks {
 		result = append(result, &customCheckAdapter{checker: c})
 	}
-	for _, r := range customRules {
+	for _, r := range rules {
 		result = append(result, newRuleCheckAdapter(r))
 	}
 	return result
+}
+
+// getGlobalCustomInternalChecks returns checks registered via the global
+// RegisterCheck/RegisterRule functions. Kept for backward compatibility.
+func getGlobalCustomInternalChecks() []check.Checker {
+	customChecksMu.RLock()
+	defer customChecksMu.RUnlock()
+	return getCustomInternalChecks(customChecks, customRules)
 }
 
 func intIn(n int, list []int) bool {
@@ -262,8 +429,9 @@ func intIn(n int, list []int) bool {
 
 func truncateEvidence(s string, max int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) <= max {
+	runes := []rune(s)
+	if len(runes) <= max {
 		return s
 	}
-	return s[:max] + "..."
+	return string(runes[:max]) + "..."
 }

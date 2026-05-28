@@ -34,6 +34,9 @@ type config struct {
 	acceptedStatusCodes []int
 	browser             BrowserEngine
 	blockPrivateIPs     bool
+	maxPages            int
+	customChecks        []Checker
+	customRules         []RuleCheck
 }
 
 func defaultConfig() *config {
@@ -48,6 +51,8 @@ func defaultConfig() *config {
 		followRedirects: 5,
 		respectRobots:   true,
 		failOn:          SeverityCritical,
+		blockPrivateIPs: true,
+		maxPages:        10000,
 	}
 }
 
@@ -180,7 +185,32 @@ func WithBrowser(engine BrowserEngine) Option {
 }
 
 // WithBlockPrivateIPs enables SSRF protection that blocks requests to private IP ranges.
-// By default, private IPs are allowed since inspect is typically used to scan your own servers.
+// Enabled by default to prevent SSRF attacks. Call WithAllowPrivateIPs() to disable
+// when intentionally scanning internal infrastructure.
 func WithBlockPrivateIPs() Option {
 	return optFunc(func(c *config) { c.blockPrivateIPs = true })
+}
+
+// WithAllowPrivateIPs disables SSRF protection for private IP ranges.
+// Use this only when intentionally scanning internal infrastructure.
+func WithAllowPrivateIPs() Option {
+	return optFunc(func(c *config) { c.blockPrivateIPs = false })
+}
+
+// WithMaxPages sets the maximum number of pages to crawl. Defaults to 10000.
+// Set to 0 for no limit.
+func WithMaxPages(n int) Option {
+	return optFunc(func(c *config) { c.maxPages = n })
+}
+
+// WithCustomChecks registers custom checks that run alongside built-in checks.
+// Unlike the global RegisterCheck, these are scoped to the Scanner instance.
+func WithCustomChecks(checks ...Checker) Option {
+	return optFunc(func(c *config) { c.customChecks = append(c.customChecks, checks...) })
+}
+
+// WithCustomRules registers declarative rule-based checks scoped to this Scanner.
+// Unlike the global RegisterRule, these are scoped to the Scanner instance.
+func WithCustomRules(rules ...RuleCheck) Option {
+	return optFunc(func(c *config) { c.customRules = append(c.customRules, rules...) })
 }

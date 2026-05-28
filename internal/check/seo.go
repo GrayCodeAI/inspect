@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -59,7 +58,7 @@ type pageMeta struct {
 }
 
 func (s *SEOCheck) extractMeta(page *crawler.Page) pageMeta {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return pageMeta{}
 	}

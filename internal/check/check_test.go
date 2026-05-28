@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/GrayCodeAI/inspect/internal/crawler"
@@ -189,15 +190,15 @@ func TestAIReadyCheck_MissingFeatures(t *testing.T) {
 	hasMain := false
 	for _, f := range findings {
 		switch {
-		case contains(f.Message, "llms.txt"):
+		case strings.Contains(f.Message, "llms.txt"):
 			hasLLMsTxt = true
-		case contains(f.Message, "sitemap"):
+		case strings.Contains(f.Message, "sitemap"):
 			hasSitemap = true
-		case contains(f.Message, "markdown alternate"):
+		case strings.Contains(f.Message, "markdown alternate"):
 			hasMarkdown = true
-		case contains(f.Message, "structured data"):
+		case strings.Contains(f.Message, "structured data"):
 			hasStructured = true
-		case contains(f.Message, "<main>"):
+		case strings.Contains(f.Message, "<main>"):
 			hasMain = true
 		}
 	}
@@ -258,18 +259,6 @@ func TestAIReadyCheck_Name(t *testing.T) {
 	}
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchSubstring(s, substr)
-}
-
-func searchSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 
 func TestRegistry_Filter(t *testing.T) {
 	r := DefaultRegistry()
@@ -305,7 +294,7 @@ func TestSRICheck_CrossOriginScriptMissingIntegrity(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing integrity attribute") {
+		if strings.Contains(f.Message, "missing integrity attribute") {
 			found = true
 			if f.Severity != SeverityMedium {
 				t.Errorf("expected medium severity, got %v", f.Severity)
@@ -327,7 +316,7 @@ func TestSRICheck_CrossOriginScriptWithValidIntegrity(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "missing integrity") {
+		if strings.Contains(f.Message, "missing integrity") {
 			t.Errorf("should not flag script with valid integrity: %s", f.Message)
 		}
 	}
@@ -344,7 +333,7 @@ func TestSRICheck_WeakHash(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "weak hash") {
+		if strings.Contains(f.Message, "weak hash") {
 			found = true
 			if f.Severity != SeverityLow {
 				t.Errorf("expected low severity for weak hash, got %v", f.Severity)
@@ -367,7 +356,7 @@ func TestSRICheck_IntegrityWithoutCrossorigin(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing crossorigin") {
+		if strings.Contains(f.Message, "missing crossorigin") {
 			found = true
 		}
 	}
@@ -387,7 +376,7 @@ func TestSRICheck_SameOriginScriptIgnored(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "integrity") || contains(f.Message, "SRI") {
+		if strings.Contains(f.Message, "integrity") || strings.Contains(f.Message, "SRI") {
 			t.Errorf("should not flag same-origin scripts: %s", f.Message)
 		}
 	}
@@ -404,7 +393,7 @@ func TestSRICheck_CrossOriginStylesheet(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Cross-origin link missing integrity") {
+		if strings.Contains(f.Message, "Cross-origin link missing integrity") {
 			found = true
 		}
 	}
@@ -424,7 +413,7 @@ func TestSRICheck_ProtocolRelativeURL(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing integrity") {
+		if strings.Contains(f.Message, "missing integrity") {
 			found = true
 		}
 	}
@@ -531,7 +520,7 @@ func TestAIReadyCheck_WithLLMsTxt(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page, llmsTxt})
 
 	for _, f := range findings {
-		if contains(f.Message, "llms.txt") {
+		if strings.Contains(f.Message, "llms.txt") {
 			t.Error("should not flag llms.txt when it exists and returns 200")
 		}
 	}
@@ -548,7 +537,7 @@ func TestAIReadyCheck_LLMsTxtError(t *testing.T) {
 
 	foundLLMs := false
 	for _, f := range findings {
-		if contains(f.Message, "llms.txt") {
+		if strings.Contains(f.Message, "llms.txt") {
 			foundLLMs = true
 		}
 	}
@@ -567,7 +556,7 @@ func TestAIReadyCheck_WithJSONLD(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "structured data") {
+		if strings.Contains(f.Message, "structured data") {
 			t.Error("should not flag structured data when JSON-LD is present")
 		}
 	}
@@ -583,7 +572,7 @@ func TestAIReadyCheck_WithMicrodata(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "structured data") {
+		if strings.Contains(f.Message, "structured data") {
 			t.Error("should not flag structured data when microdata is present")
 		}
 	}
@@ -598,7 +587,7 @@ func TestAIReadyCheck_SemanticHTMLComplete(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "<main>") || contains(f.Message, "<nav>") || contains(f.Message, "<h1>") {
+		if strings.Contains(f.Message, "<main>") || strings.Contains(f.Message, "<nav>") || strings.Contains(f.Message, "<h1>") {
 			t.Errorf("should not flag semantic elements when all present: %s", f.Message)
 		}
 	}
@@ -614,7 +603,7 @@ func TestAIReadyCheck_MultipleH1(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Multiple <h1>") {
+		if strings.Contains(f.Message, "Multiple <h1>") {
 			found = true
 		}
 	}
@@ -633,7 +622,7 @@ func TestAIReadyCheck_HeadingGap(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Heading hierarchy gap") {
+		if strings.Contains(f.Message, "Heading hierarchy gap") {
 			found = true
 		}
 	}
@@ -652,7 +641,7 @@ func TestAIReadyCheck_SitemapAccessible(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page, sitemap})
 
 	for _, f := range findings {
-		if contains(f.Message, "sitemap") && contains(f.Message, "No accessible") {
+		if strings.Contains(f.Message, "sitemap") && strings.Contains(f.Message, "No accessible") {
 			t.Error("should not flag missing sitemap when it's accessible")
 		}
 	}
@@ -669,7 +658,7 @@ func TestAIReadyCheck_SitemapBadStatus(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "sitemap.xml returned status 500") {
+		if strings.Contains(f.Message, "sitemap.xml returned status 500") {
 			found = true
 		}
 	}
@@ -688,7 +677,7 @@ func TestAIReadyCheck_MarkdownAlternate(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "markdown alternate") {
+		if strings.Contains(f.Message, "markdown alternate") {
 			t.Error("should not flag missing markdown alternate when present")
 		}
 	}
@@ -703,7 +692,7 @@ func TestAIReadyCheck_NonHTMLContentType(t *testing.T) {
 
 	// Non-HTML pages should not produce per-page findings like markdown alternate
 	for _, f := range findings {
-		if contains(f.Message, "markdown alternate") || contains(f.Message, "structured data") {
+		if strings.Contains(f.Message, "markdown alternate") || strings.Contains(f.Message, "structured data") {
 			t.Errorf("should not check per-page features on non-HTML content: %s", f.Message)
 		}
 	}
@@ -719,7 +708,7 @@ func TestCheckARIA_InvalidRole(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Invalid ARIA role") && contains(f.Message, "banana") {
+		if strings.Contains(f.Message, "Invalid ARIA role") && strings.Contains(f.Message, "banana") {
 			found = true
 			if f.Severity != SeverityMedium {
 				t.Errorf("expected medium severity for invalid role, got %v", f.Severity)
@@ -738,7 +727,7 @@ func TestCheckARIA_ValidRole(t *testing.T) {
 	findings := checkARIA(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "Invalid ARIA role") {
+		if strings.Contains(f.Message, "Invalid ARIA role") {
 			t.Errorf("should not flag valid ARIA role: %s", f.Message)
 		}
 	}
@@ -752,7 +741,7 @@ func TestCheckARIA_PositiveTabindex(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Positive tabindex") {
+		if strings.Contains(f.Message, "Positive tabindex") {
 			found = true
 			if f.Severity != SeverityMedium {
 				t.Errorf("expected medium severity, got %v", f.Severity)
@@ -771,7 +760,7 @@ func TestCheckARIA_ZeroTabindex(t *testing.T) {
 	findings := checkARIA(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "Positive tabindex") {
+		if strings.Contains(f.Message, "Positive tabindex") {
 			t.Error("tabindex=0 should not be flagged")
 		}
 	}
@@ -784,7 +773,7 @@ func TestCheckARIA_NegativeTabindex(t *testing.T) {
 	findings := checkARIA(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "Positive tabindex") {
+		if strings.Contains(f.Message, "Positive tabindex") {
 			t.Error("tabindex=-1 should not be flagged as positive tabindex")
 		}
 	}
@@ -798,7 +787,7 @@ func TestCheckARIA_AriaHiddenOnFocusable(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Focusable element is aria-hidden") {
+		if strings.Contains(f.Message, "Focusable element is aria-hidden") {
 			found = true
 			if f.Severity != SeverityHigh {
 				t.Errorf("expected high severity, got %v", f.Severity)
@@ -817,7 +806,7 @@ func TestCheckARIA_AriaHiddenOnNonFocusable(t *testing.T) {
 	findings := checkARIA(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "Focusable element is aria-hidden") {
+		if strings.Contains(f.Message, "Focusable element is aria-hidden") {
 			t.Error("should not flag aria-hidden on non-focusable element")
 		}
 	}
@@ -831,7 +820,7 @@ func TestCheckARIA_InteractiveElementRemovedFromTabOrder(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Interactive element removed from tab order") {
+		if strings.Contains(f.Message, "Interactive element removed from tab order") {
 			found = true
 		}
 	}
@@ -848,7 +837,7 @@ func TestCheckARIA_RoleRequiringNameWithoutName(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "has no accessible name") {
+		if strings.Contains(f.Message, "has no accessible name") {
 			found = true
 			if f.Severity != SeverityHigh {
 				t.Errorf("expected high severity, got %v", f.Severity)
@@ -867,7 +856,7 @@ func TestCheckARIA_RoleRequiringNameWithAriaLabel(t *testing.T) {
 	findings := checkARIA(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "has no accessible name") {
+		if strings.Contains(f.Message, "has no accessible name") {
 			t.Error("should not flag element with aria-label")
 		}
 	}
@@ -894,7 +883,7 @@ func TestCheckLandmarks_AllPresent(t *testing.T) {
 	findings := checkLandmarks(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "missing") {
+		if strings.Contains(f.Message, "missing") {
 			t.Errorf("should not flag missing landmark when all present: %s", f.Message)
 		}
 	}
@@ -908,7 +897,7 @@ func TestCheckLandmarks_MissingNav(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing <nav>") {
+		if strings.Contains(f.Message, "missing <nav>") {
 			found = true
 		}
 	}
@@ -925,7 +914,7 @@ func TestCheckLandmarks_MissingHeader(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing <header>") {
+		if strings.Contains(f.Message, "missing <header>") {
 			found = true
 		}
 	}
@@ -942,7 +931,7 @@ func TestCheckLandmarks_MissingFooter(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing <footer>") {
+		if strings.Contains(f.Message, "missing <footer>") {
 			found = true
 		}
 	}
@@ -964,7 +953,7 @@ func TestCheckLandmarks_MultipleMain(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "has 2 <main> landmarks") {
+		if strings.Contains(f.Message, "has 2 <main> landmarks") {
 			found = true
 			if f.Severity != SeverityMedium {
 				t.Errorf("expected medium severity, got %v", f.Severity)
@@ -990,7 +979,7 @@ func TestCheckLandmarks_MultipleNavs(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "2 navigation landmarks") {
+		if strings.Contains(f.Message, "2 navigation landmarks") {
 			found = true
 		}
 	}
@@ -1011,8 +1000,8 @@ func TestCheckLandmarks_RoleBasedLandmarks(t *testing.T) {
 	findings := checkLandmarks(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "missing <header>") || contains(f.Message, "missing <nav>") ||
-			contains(f.Message, "missing <footer>") {
+		if strings.Contains(f.Message, "missing <header>") || strings.Contains(f.Message, "missing <nav>") ||
+			strings.Contains(f.Message, "missing <footer>") {
 			t.Errorf("should not flag missing landmark when role-based equivalent is present: %s", f.Message)
 		}
 	}
@@ -1044,13 +1033,13 @@ func TestRunAdvancedA11y(t *testing.T) {
 	hasTabindex := false
 	hasAriaHidden := false
 	for _, f := range findings {
-		if contains(f.Message, "Invalid ARIA role") {
+		if strings.Contains(f.Message, "Invalid ARIA role") {
 			hasInvalidRole = true
 		}
-		if contains(f.Message, "Positive tabindex") {
+		if strings.Contains(f.Message, "Positive tabindex") {
 			hasTabindex = true
 		}
-		if contains(f.Message, "aria-hidden") {
+		if strings.Contains(f.Message, "aria-hidden") {
 			hasAriaHidden = true
 		}
 	}
@@ -1090,7 +1079,7 @@ func TestHasAccessibleName(t *testing.T) {
 	findings := checkARIA(page)
 
 	for _, f := range findings {
-		if contains(f.Message, "has no accessible name") {
+		if strings.Contains(f.Message, "has no accessible name") {
 			t.Errorf("all buttons have accessible names, but got: %s", f.Message)
 		}
 	}
@@ -1109,7 +1098,7 @@ func TestIsInteractive(t *testing.T) {
 
 	interactiveCount := 0
 	for _, f := range findings {
-		if contains(f.Message, "Interactive element removed from tab order") {
+		if strings.Contains(f.Message, "Interactive element removed from tab order") {
 			interactiveCount++
 		}
 	}
@@ -1130,7 +1119,7 @@ func TestIsFocusable(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Focusable element is aria-hidden") {
+		if strings.Contains(f.Message, "Focusable element is aria-hidden") {
 			found = true
 		}
 	}
@@ -1221,7 +1210,7 @@ func TestLinksCheck_BrokenInternalPage(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "HTTP 404") {
+		if strings.Contains(f.Message, "HTTP 404") {
 			found = true
 			if f.Severity != SeverityHigh {
 				t.Errorf("expected high severity for 404, got %v", f.Severity)
@@ -1242,7 +1231,7 @@ func TestLinksCheck_ServerError(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "HTTP 500") {
+		if strings.Contains(f.Message, "HTTP 500") {
 			found = true
 			if f.Severity != SeverityCritical {
 				t.Errorf("expected critical severity for 500, got %v", f.Severity)
@@ -1272,7 +1261,7 @@ func TestLinksCheck_FragmentValidation(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Fragment #missing not found") {
+		if strings.Contains(f.Message, "Fragment #missing not found") {
 			found = true
 		}
 	}
@@ -1297,8 +1286,11 @@ func TestSeverityForStatus(t *testing.T) {
 }
 
 func TestExtractElementIDs(t *testing.T) {
-	body := []byte(`<html><body><div id="main"><p id="intro">Hello</p><span>No id</span></div></body></html>`)
-	ids := extractElementIDs(body)
+	page := &crawler.Page{
+		URL:  "https://example.com",
+		Body: []byte(`<html><body><div id="main"><p id="intro">Hello</p><span>No id</span></div></body></html>`),
+	}
+	ids := extractElementIDs(page)
 	if !ids["main"] {
 		t.Error("should find id=main")
 	}
@@ -1342,7 +1334,7 @@ func TestPerfCheck_MissingCompression(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "not compressed") {
+		if strings.Contains(f.Message, "not compressed") {
 			found = true
 		}
 	}
@@ -1362,7 +1354,7 @@ func TestPerfCheck_WithCompression(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "not compressed") {
+		if strings.Contains(f.Message, "not compressed") {
 			t.Error("should not flag compression when Content-Encoding is set")
 		}
 	}
@@ -1378,7 +1370,7 @@ func TestPerfCheck_MissingCacheControl(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Missing Cache-Control") {
+		if strings.Contains(f.Message, "Missing Cache-Control") {
 			found = true
 		}
 	}
@@ -1396,7 +1388,7 @@ func TestPerfCheck_RenderBlockingScript(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Render-blocking script") {
+		if strings.Contains(f.Message, "Render-blocking script") {
 			found = true
 		}
 	}
@@ -1414,7 +1406,7 @@ func TestPerfCheck_AsyncScriptOK(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "Render-blocking script") {
+		if strings.Contains(f.Message, "Render-blocking script") {
 			t.Error("should not flag async script")
 		}
 	}
@@ -1429,7 +1421,7 @@ func TestPerfCheck_DeferScriptOK(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "Render-blocking script") {
+		if strings.Contains(f.Message, "Render-blocking script") {
 			t.Error("should not flag deferred script")
 		}
 	}
@@ -1444,7 +1436,7 @@ func TestPerfCheck_ImageMissingDimensions(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing width/height") {
+		if strings.Contains(f.Message, "missing width/height") {
 			found = true
 		}
 	}
@@ -1468,7 +1460,7 @@ func TestPerfCheck_ImageMissingLazy(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, `loading="lazy"`) {
+		if strings.Contains(f.Message, `loading="lazy"`) {
 			found = true
 		}
 	}
@@ -1486,7 +1478,7 @@ func TestPerfCheck_RenderBlockingStylesheet(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Render-blocking stylesheet") {
+		if strings.Contains(f.Message, "Render-blocking stylesheet") {
 			found = true
 		}
 	}
@@ -1601,7 +1593,7 @@ func TestSEOCheck_TitleTooLong(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Title too long") {
+		if strings.Contains(f.Message, "Title too long") {
 			found = true
 		}
 	}
@@ -1628,7 +1620,7 @@ func TestSEOCheck_DescriptionTooLong(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Meta description too long") {
+		if strings.Contains(f.Message, "Meta description too long") {
 			found = true
 		}
 	}
@@ -1648,7 +1640,7 @@ func TestSEOCheck_DuplicateTitle(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Duplicate title") {
+		if strings.Contains(f.Message, "Duplicate title") {
 			found = true
 		}
 	}
@@ -1689,7 +1681,7 @@ func TestFormsCheck_MissingAction(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "no action attribute") {
+		if strings.Contains(f.Message, "no action attribute") {
 			found = true
 		}
 	}
@@ -1709,7 +1701,7 @@ func TestFormsCheck_HTTPSPageHTTPAction(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "submits form to HTTP endpoint") {
+		if strings.Contains(f.Message, "submits form to HTTP endpoint") {
 			found = true
 		}
 	}
@@ -1736,7 +1728,7 @@ func TestFormsCheck_AutocompleteIssue(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "autocomplete") {
+		if strings.Contains(f.Message, "autocomplete") {
 			found = true
 		}
 	}
@@ -1756,7 +1748,7 @@ func TestFormsCheck_FormWithID(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Element, "form#login-form") {
+		if strings.Contains(f.Element, "form#login-form") {
 			found = true
 		}
 	}
@@ -1816,7 +1808,7 @@ func TestSecurityCheck_MixedContent(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Mixed content") {
+		if strings.Contains(f.Message, "Mixed content") {
 			found = true
 			if f.Severity != SeverityHigh {
 				t.Errorf("expected high severity for mixed content, got %v", f.Severity)
@@ -1839,7 +1831,7 @@ func TestSecurityCheck_ServerVersionExposed(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Server header exposes version") {
+		if strings.Contains(f.Message, "Server header exposes version") {
 			found = true
 		}
 	}
@@ -1859,7 +1851,7 @@ func TestSecurityCheck_XPoweredBy(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "X-Powered-By header exposes technology") {
+		if strings.Contains(f.Message, "X-Powered-By header exposes technology") {
 			found = true
 		}
 	}
@@ -1879,7 +1871,7 @@ func TestSecurityCheck_CookieMissingSecure(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing Secure flag") {
+		if strings.Contains(f.Message, "missing Secure flag") {
 			found = true
 		}
 	}
@@ -1899,7 +1891,7 @@ func TestSecurityCheck_SessionCookieMissingHttpOnly(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing HttpOnly flag") {
+		if strings.Contains(f.Message, "missing HttpOnly flag") {
 			found = true
 		}
 	}
@@ -1919,7 +1911,7 @@ func TestSecurityCheck_CookieMissingSameSite(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing SameSite") {
+		if strings.Contains(f.Message, "missing SameSite") {
 			found = true
 		}
 	}
@@ -1939,7 +1931,7 @@ func TestSecurityCheck_SameSiteNoneWithoutSecure(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "SameSite=None without Secure") {
+		if strings.Contains(f.Message, "SameSite=None without Secure") {
 			found = true
 		}
 	}
@@ -1958,7 +1950,7 @@ func TestSecurityCheck_HTTPPage(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "HTTP instead of HTTPS") {
+		if strings.Contains(f.Message, "HTTP instead of HTTPS") {
 			found = true
 		}
 	}
@@ -2234,7 +2226,7 @@ func TestLinksCheck_RelativeURLs(t *testing.T) {
 
 	// All pages are reachable so no broken-link findings expected
 	for _, f := range findings {
-		if contains(f.Message, "HTTP 404") || contains(f.Message, "HTTP 500") {
+		if strings.Contains(f.Message, "HTTP 404") || strings.Contains(f.Message, "HTTP 500") {
 			t.Errorf("unexpected broken link finding: %s", f.Message)
 		}
 	}
@@ -2306,7 +2298,7 @@ func TestSecurityCheck_CSPUnsafeInline(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "unsafe-inline") {
+		if strings.Contains(f.Message, "unsafe-inline") {
 			found = true
 		}
 	}
@@ -2331,7 +2323,7 @@ func TestSecurityCheck_CSPUnsafeEval(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "unsafe-eval") {
+		if strings.Contains(f.Message, "unsafe-eval") {
 			found = true
 		}
 	}
@@ -2356,7 +2348,7 @@ func TestSecurityCheck_CSPWildcard(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "wildcard") {
+		if strings.Contains(f.Message, "wildcard") {
 			found = true
 		}
 	}
@@ -2381,7 +2373,7 @@ func TestSecurityCheck_CSPMissingFrameAncestors(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "frame-ancestors") {
+		if strings.Contains(f.Message, "frame-ancestors") {
 			found = true
 		}
 	}
@@ -2406,7 +2398,7 @@ func TestSecurityCheck_ExposedSecrets(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "secret") || contains(f.Message, "credential") {
+		if strings.Contains(f.Message, "secret") || strings.Contains(f.Message, "credential") {
 			found = true
 			if f.Severity != SeverityCritical {
 				t.Errorf("expected critical severity for exposed secrets, got %v", f.Severity)
@@ -2440,7 +2432,7 @@ func TestA11yCheck_MissingLabels(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "label") {
+		if strings.Contains(f.Message, "label") {
 			found = true
 		}
 	}
@@ -2460,7 +2452,7 @@ func TestA11yCheck_LabelWithFor(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "label") && contains(f.Element, "email") {
+		if strings.Contains(f.Message, "label") && strings.Contains(f.Element, "email") {
 			t.Errorf("should not flag input with associated label: %s", f.Message)
 		}
 	}
@@ -2475,7 +2467,7 @@ func TestA11yCheck_MissingLang(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "lang") {
+		if strings.Contains(f.Message, "lang") {
 			found = true
 		}
 	}
@@ -2495,7 +2487,7 @@ func TestA11yCheck_EmptyLinkText(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "no accessible text") {
+		if strings.Contains(f.Message, "no accessible text") {
 			found = true
 		}
 	}
@@ -2560,7 +2552,7 @@ func TestPerfCheck_LargeImages(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing width/height") {
+		if strings.Contains(f.Message, "missing width/height") {
 			found = true
 		}
 	}
@@ -2582,7 +2574,7 @@ func TestSEOCheck_MissingTitle(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "missing <title>") || contains(f.Message, "missing <title> tag") || contains(f.Message, "Page missing <title>") {
+		if strings.Contains(f.Message, "missing <title>") || strings.Contains(f.Message, "missing <title> tag") || strings.Contains(f.Message, "Page missing <title>") {
 			found = true
 		}
 	}
@@ -2600,7 +2592,7 @@ func TestSEOCheck_MissingDescription(t *testing.T) {
 
 	found := false
 	for _, f := range findings {
-		if contains(f.Message, "Missing meta description") {
+		if strings.Contains(f.Message, "Missing meta description") {
 			found = true
 		}
 	}
@@ -2650,7 +2642,7 @@ func TestFormsCheck_ValidForm(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "CSRF") || contains(f.Message, "no action") {
+		if strings.Contains(f.Message, "CSRF") || strings.Contains(f.Message, "no action") {
 			t.Errorf("unexpected finding for valid form: %s", f.Message)
 		}
 	}
@@ -2690,7 +2682,7 @@ func TestAIReadyCheck_ErrorPage(t *testing.T) {
 
 	// Error pages are skipped for per-page checks, but llms.txt/sitemap findings may still appear
 	for _, f := range findings {
-		if contains(f.Message, "markdown alternate") || contains(f.Message, "structured data") {
+		if strings.Contains(f.Message, "markdown alternate") || strings.Contains(f.Message, "structured data") {
 			t.Errorf("should skip error page for per-page checks: %s", f.Message)
 		}
 	}
@@ -2740,7 +2732,7 @@ func TestReachabilityCheck_DataURI(t *testing.T) {
 	findings := chk.Run(context.Background(), []*crawler.Page{page})
 
 	for _, f := range findings {
-		if contains(f.Message, "data:") {
+		if strings.Contains(f.Message, "data:") {
 			t.Error("should not check reachability of data: URIs")
 		}
 	}

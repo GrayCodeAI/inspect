@@ -46,7 +46,7 @@ func TestRegisterCheck_CustomChecker(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("my-custom-check"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("my-custom-check"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestClearCustomChecks(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("to-be-cleared"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("to-be-cleared"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestRegisterRule_HeaderMissing(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("custom-header-check"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("custom-header-check"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestRegisterRule_BodyMatch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("no-todo-comments"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("no-todo-comments"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestRegisterRule_BodyMissing(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("requires-analytics"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("requires-analytics"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestRegisterRule_HeaderMatch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("no-server-version"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("no-server-version"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestRegisterRule_URLMatch(t *testing.T) {
 	defer srv.Close()
 
 	// The scan URL does not contain /api/, so the rule should not fire
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("api-check"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("api-check"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestRegisterRule_StatusCodes(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("redirect-check"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("redirect-check"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
