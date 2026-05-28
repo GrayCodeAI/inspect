@@ -301,3 +301,15 @@ func severityForStatus(code int) Severity {
 		return SeverityLow
 	}
 }
+
+// resolveLink resolves a relative href against a base URL and returns the absolute URL.
+// Returns an empty string for empty href, fragment-only, mailto:, or javascript: references.
+func resolveLink(base, href string) string {
+	return crawler.ResolveURL(base, href)
+}
+
+// resolveURL resolves a relative href against a base URL and returns the absolute URL.
+// Returns an empty string for empty href, fragment-only, mailto:, or javascript: references.
+func resolveURL(base, href string) string {
+	return crawler.ResolveURL(base, href)
+}
