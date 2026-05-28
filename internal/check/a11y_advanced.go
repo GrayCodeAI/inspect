@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strconv"
@@ -51,7 +50,7 @@ func checkARIA(page *crawler.Page) []Finding {
 	if len(page.Body) == 0 {
 		return nil
 	}
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}
@@ -140,7 +139,7 @@ func checkLandmarks(page *crawler.Page) []Finding {
 	if len(page.Body) == 0 {
 		return nil
 	}
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}

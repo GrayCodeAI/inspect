@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -111,7 +110,7 @@ func (a *AIReadyCheck) checkSitemapAccessible(pages []*crawler.Page) []Finding {
 // which signals that a markdown version of the page is available, making
 // content more accessible to AI agents.
 func (a *AIReadyCheck) checkMarkdownAlternate(page *crawler.Page) []Finding {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}
@@ -154,7 +153,7 @@ func (a *AIReadyCheck) checkMarkdownAlternate(page *crawler.Page) []Finding {
 // checkStructuredData looks for JSON-LD scripts and microdata attributes
 // that help AI agents understand the page's content semantically.
 func (a *AIReadyCheck) checkStructuredData(page *crawler.Page) []Finding {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}
@@ -198,7 +197,7 @@ func (a *AIReadyCheck) checkStructuredData(page *crawler.Page) []Finding {
 // AI agents can reliably parse: heading hierarchy, landmark elements, and
 // meaningful structure.
 func (a *AIReadyCheck) checkSemanticHTML(page *crawler.Page) []Finding {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}

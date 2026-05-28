@@ -369,7 +369,7 @@ func (s *SecurityCheck) checkSetCookie(page *crawler.Page) []Finding {
 func isSessionCookieName(name string) bool {
 	lower := strings.ToLower(name)
 	for _, pattern := range sessionCookieNames {
-		if strings.Contains(lower, pattern) {
+		if lower == pattern {
 			return true
 		}
 	}

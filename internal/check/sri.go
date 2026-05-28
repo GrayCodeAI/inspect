@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -30,7 +29,7 @@ func (s *SRICheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 }
 
 func (s *SRICheck) checkPage(page *crawler.Page) []Finding {
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return nil
 	}

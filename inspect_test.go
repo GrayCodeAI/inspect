@@ -47,7 +47,7 @@ func TestScan_BasicSite(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.Quick)
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.Quick, inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestScan_SecurityHeaders(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("security"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("security"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestScan_FormCSRF(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("forms"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("forms"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestScan_Accessibility(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("a11y"), inspect.WithDepth(1))
+	report, err := inspect.Scan(context.Background(), srv.URL, inspect.WithChecks("a11y"), inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestScan_Presets(t *testing.T) {
 
 	presets := []inspect.Option{inspect.Quick, inspect.Standard, inspect.Deep, inspect.SecurityOnly, inspect.CI}
 	for _, preset := range presets {
-		_, err := inspect.Scan(context.Background(), srv.URL, preset, inspect.WithDepth(1))
+		_, err := inspect.Scan(context.Background(), srv.URL, preset, inspect.WithDepth(1), inspect.WithAllowPrivateIPs())
 		if err != nil {
 			t.Errorf("preset scan failed: %v", err)
 		}

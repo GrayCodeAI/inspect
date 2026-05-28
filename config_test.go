@@ -394,8 +394,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.authValue != "" {
 		t.Errorf("default authValue should be empty, got %q", cfg.authValue)
 	}
-	if cfg.blockPrivateIPs {
-		t.Error("default blockPrivateIPs should be false")
+	if !cfg.blockPrivateIPs {
+		t.Error("default blockPrivateIPs should be true")
 	}
 }
 

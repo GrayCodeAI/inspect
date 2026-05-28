@@ -49,6 +49,8 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 		AuthValue:       s.cfg.authValue,
 		CookieJar:       s.cfg.cookieJar,
 		AllowPrivateIPs: !s.cfg.blockPrivateIPs,
+		Logger:          s.cfg.logger,
+		MaxPages:        s.cfg.maxPages,
 	}
 
 	if s.cfg.logger != nil {
@@ -70,7 +72,10 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 	if len(s.cfg.acceptedStatusCodes) > 0 {
 		registry.Register(&check.LinksCheck{AcceptedStatusCodes: s.cfg.acceptedStatusCodes})
 	}
-	for _, custom := range getCustomInternalChecks() {
+	for _, custom := range getCustomInternalChecks(s.cfg.customChecks, s.cfg.customRules) {
+		registry.Register(custom)
+	}
+	for _, custom := range getGlobalCustomInternalChecks() {
 		registry.Register(custom)
 	}
 	enabledChecks := registry.Filter(s.cfg.checks)

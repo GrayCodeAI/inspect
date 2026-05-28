@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strconv"
@@ -51,7 +50,7 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 		})
 	}
 
-	doc, err := html.Parse(bytes.NewReader(page.Body))
+	doc, err := getPageDoc(page)
 	if err != nil {
 		return findings
 	}
