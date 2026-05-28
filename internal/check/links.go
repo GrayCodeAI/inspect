@@ -280,7 +280,6 @@ func detectRedirectChain(pages []*crawler.Page, startURL string, lookup map[stri
 	return count
 }
 
-
 func normalizeForLookup(u string) string {
 	parsed, err := url.Parse(u)
 	if err != nil {
