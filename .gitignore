@@ -1,2 +1,40 @@
+# Binaries
+/inspect
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+go.work
+go.work.sum
+.gocache/
+.gomodcache/
+
 # CodeGraph local index
 .codegraph/
+
+# AI/IDE tool configs
+.cursor/
+.openclaude/
+.commandcode/
+.antigravitycli/
+.pi/
