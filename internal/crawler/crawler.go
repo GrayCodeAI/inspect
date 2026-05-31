@@ -36,6 +36,11 @@ type Config struct {
 	AllowPrivateIPs bool // When true, skip SSRF protection for private IPs
 	Logger          *slog.Logger
 	MaxPages        int // Maximum number of pages to crawl; 0 means no limit
+
+	// CircuitBreaker, when non-nil, gates requests per host. If a host has
+	// accumulated too many consecutive failures the breaker opens and the
+	// crawler skips further requests to that host until the cooldown expires.
+	CircuitBreaker *CircuitBreakerRegistry
 }
 
 // Page represents a single crawled page with its metadata.
@@ -308,6 +313,16 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 		ParentURL: parent,
 	}
 
+	// Check circuit breaker before attempting any request.
+	if c.cfg.CircuitBreaker != nil {
+		host := extractHost(targetURL)
+		if host != "" && !c.cfg.CircuitBreaker.AllowRequest(host) {
+			page.Error = fmt.Errorf("circuit breaker open for host %s", host)
+			page.Duration = time.Since(start)
+			return page
+		}
+	}
+
 	var lastErr error
 	for attempt := 0; attempt <= c.cfg.RetryAttempts; attempt++ {
 		if attempt > 0 {
@@ -335,6 +350,18 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 
 	if page.StatusCode == 0 && lastErr != nil {
 		page.Error = lastErr
+	}
+
+	// Record success or failure with the circuit breaker.
+	if c.cfg.CircuitBreaker != nil {
+		host := extractHost(targetURL)
+		if host != "" {
+			if page.Error != nil || page.StatusCode >= 500 {
+				c.cfg.CircuitBreaker.RecordFailure(host)
+			} else {
+				c.cfg.CircuitBreaker.RecordSuccess(host)
+			}
+		}
 	}
 
 	page.Duration = time.Since(start)

@@ -37,6 +37,9 @@ type config struct {
 	maxPages            int
 	customChecks        []Checker
 	customRules         []RuleCheck
+	circuitBreakerOn    bool
+	circuitBreakerThreshold int
+	circuitBreakerCooldown  time.Duration
 }
 
 func defaultConfig() *config {
@@ -213,4 +216,20 @@ func WithCustomChecks(checks ...Checker) Option {
 // Unlike the global RegisterRule, these are scoped to the Scanner instance.
 func WithCustomRules(rules ...RuleCheck) Option {
 	return optFunc(func(c *config) { c.customRules = append(c.customRules, rules...) })
+}
+
+// WithCircuitBreaker enables a per-host circuit breaker that stops sending
+// requests to a host after threshold consecutive failures. The breaker
+// half-opens after cooldown to allow a single probe request.
+// Pass enabled=false to explicitly disable even if previously enabled.
+func WithCircuitBreaker(enabled bool, threshold int, cooldown time.Duration) Option {
+	return optFunc(func(c *config) {
+		c.circuitBreakerOn = enabled
+		if threshold > 0 {
+			c.circuitBreakerThreshold = threshold
+		}
+		if cooldown > 0 {
+			c.circuitBreakerCooldown = cooldown
+		}
+	})
 }

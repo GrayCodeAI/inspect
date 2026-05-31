@@ -19,6 +19,15 @@ type LinksCheck struct {
 	// AcceptedStatusCodes is the set of HTTP status codes considered acceptable.
 	// If empty, defaults to 200-399.
 	AcceptedStatusCodes []int
+
+	// Soft404Detection enables detection of pages that return HTTP 200 for
+	// non-existent URLs (soft 404s). When enabled, 200 OK external links are
+	// probed to determine if the server is returning real content.
+	Soft404Detection bool
+
+	// soft404Detector holds the cached per-host fingerprints used for
+	// soft 404 detection. Created lazily when Soft404Detection is enabled.
+	soft404Detector *Soft404Detector
 }
 
 func (l *LinksCheck) Name() string { return "links" }
@@ -114,7 +123,11 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 					sem <- struct{}{}
 					defer func() { <-sem }()
 
-					f := l.checkExternalLink(ctx, pageURL, href, resolved)
+					var det *Soft404Detector
+					if l.Soft404Detection && l.soft404Detector != nil {
+						det = l.soft404Detector
+					}
+					f := l.checkExternalLinkWithDetector(ctx, pageURL, href, resolved, det)
 					if f != nil {
 						mu.Lock()
 						findings = append(findings, *f)

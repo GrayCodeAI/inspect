@@ -53,6 +53,18 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 		MaxPages:        s.cfg.maxPages,
 	}
 
+	if s.cfg.circuitBreakerOn {
+		threshold := s.cfg.circuitBreakerThreshold
+		if threshold <= 0 {
+			threshold = 5
+		}
+		cooldown := s.cfg.circuitBreakerCooldown
+		if cooldown <= 0 {
+			cooldown = 30 * time.Second
+		}
+		crawlCfg.CircuitBreaker = crawler.NewCircuitBreakerRegistry(threshold, cooldown)
+	}
+
 	if s.cfg.logger != nil {
 		s.cfg.logger.Info("inspect: starting crawl", "target", target, "depth", s.cfg.depth)
 	}
