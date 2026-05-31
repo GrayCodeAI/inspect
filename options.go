@@ -16,28 +16,28 @@ type optFunc func(*config)
 func (f optFunc) apply(c *config) { f(c) }
 
 type config struct {
-	depth               int
-	checks              []string
-	exclude             []string
-	concurrency         int
-	timeout             time.Duration
-	pageTimeout         time.Duration
-	rateLimit           int
-	authHeader          string
-	authValue           string
-	failOn              Severity
-	userAgent           string
-	followRedirects     int
-	respectRobots       bool
-	logger              *slog.Logger
-	cookieJar           http.CookieJar
-	acceptedStatusCodes []int
-	browser             BrowserEngine
-	blockPrivateIPs     bool
-	maxPages            int
-	customChecks        []Checker
-	customRules         []RuleCheck
-	circuitBreakerOn    bool
+	depth                   int
+	checks                  []string
+	exclude                 []string
+	concurrency             int
+	timeout                 time.Duration
+	pageTimeout             time.Duration
+	rateLimit               int
+	authHeader              string
+	authValue               string
+	failOn                  Severity
+	userAgent               string
+	followRedirects         int
+	respectRobots           bool
+	logger                  *slog.Logger
+	cookieJar               http.CookieJar
+	acceptedStatusCodes     []int
+	browser                 BrowserEngine
+	blockPrivateIPs         bool
+	maxPages                int
+	customChecks            []Checker
+	customRules             []RuleCheck
+	circuitBreakerOn        bool
 	circuitBreakerThreshold int
 	circuitBreakerCooldown  time.Duration
 }
