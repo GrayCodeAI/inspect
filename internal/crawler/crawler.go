@@ -41,6 +41,20 @@ type Config struct {
 	// accumulated too many consecutive failures the breaker opens and the
 	// crawler skips further requests to that host until the cooldown expires.
 	CircuitBreaker *CircuitBreakerRegistry
+
+	// Fetcher, when non-nil, overrides the default HTTP page retrieval. It is
+	// used to plug in a headless-browser fetcher that renders JavaScript. SSRF
+	// validation, rate limiting, retries, and the circuit breaker still run in
+	// front of the fetcher.
+	Fetcher Fetcher
+}
+
+// Fetcher retrieves a single page's content, populating the provided Page
+// (StatusCode, Headers, Body, Links, Forms, Doc). The default implementation is
+// the crawler's built-in HTTP fetch; a headless-browser implementation can be
+// supplied via Config.Fetcher to analyze JavaScript-rendered pages.
+type Fetcher interface {
+	Fetch(ctx context.Context, page *Page, targetURL string) error
 }
 
 // Page represents a single crawled page with its metadata.
@@ -335,7 +349,7 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 			}
 		}
 
-		err := c.doFetch(ctx, page, targetURL)
+		err := c.runFetch(ctx, page, targetURL)
 		if err != nil {
 			lastErr = err
 			if !isRetryable(page.StatusCode) {
@@ -368,13 +382,27 @@ func (c *Crawler) fetch(ctx context.Context, targetURL string, depth int, parent
 	return page
 }
 
-func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) error {
-	// SSRF protection: validate URL scheme and resolved IP
+// runFetch performs SSRF validation, then delegates to the configured Fetcher
+// (e.g. headless browser) or the built-in HTTP fetch.
+func (c *Crawler) runFetch(ctx context.Context, page *Page, targetURL string) error {
+	// SSRF protection: validate URL scheme and resolved IP for both paths.
 	if err := c.validateURL(targetURL); err != nil {
 		page.Error = err
 		return err
 	}
+	if c.cfg.Fetcher != nil {
+		pageCtx, cancel := context.WithTimeout(ctx, c.cfg.PageTimeout)
+		defer cancel()
+		if err := c.cfg.Fetcher.Fetch(pageCtx, page, targetURL); err != nil {
+			page.Error = err
+			return err
+		}
+		return nil
+	}
+	return c.doFetch(ctx, page, targetURL)
+}
 
+func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) error {
 	pageCtx, cancel := context.WithTimeout(ctx, c.cfg.PageTimeout)
 	defer cancel()
 
