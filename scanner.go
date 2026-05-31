@@ -65,6 +65,12 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 		crawlCfg.CircuitBreaker = crawler.NewCircuitBreakerRegistry(threshold, cooldown)
 	}
 
+	// Route page retrieval through a headless browser when one is configured,
+	// so JavaScript-rendered content is analyzed instead of raw HTTP responses.
+	if s.cfg.browser != nil {
+		crawlCfg.Fetcher = newBrowserFetcher(s.cfg.browser, s.cfg.userAgent, s.cfg.pageTimeout)
+	}
+
 	if s.cfg.logger != nil {
 		s.cfg.logger.Info("inspect: starting crawl", "target", target, "depth", s.cfg.depth)
 	}
