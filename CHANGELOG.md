@@ -23,6 +23,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     — that's a different field that identifies the SARIF format,
     not the tool.
 
+### Added
+- Soft 404 / false positive detection
+- Per-host error circuit breaker with auto-throttle
+- Gzipped archive format for scan results
+- Findings storage bridge for external persistence
+
 ### Added — Production hygiene (top-50 OSS parity)
 - `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1.
 - `.gitattributes` — LF normalization, binary detection, GitHub
