@@ -30,11 +30,11 @@ type FindingEntry struct {
 // FindingsStore buffers scan findings and flushes them to a FindingSink
 // in batches for efficiency.
 type FindingsStore struct {
-	sink       FindingSink
-	buffer     []FindingEntry
-	mu         sync.Mutex
-	batchSize  int
-	autoFlush  bool
+	sink      FindingSink
+	buffer    []FindingEntry
+	mu        sync.Mutex
+	batchSize int
+	autoFlush bool
 }
 
 // FindingsStoreOption configures a FindingsStore.
