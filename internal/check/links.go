@@ -202,7 +202,7 @@ func truncateHref(s string, max int) string {
 	return s[:max] + "..."
 }
 
-func (l *LinksCheck) checkExternalLink(ctx context.Context, pageURL, href, resolved string) *Finding {
+func (l *LinksCheck) checkExternalLinkWithDetector(ctx context.Context, pageURL, href, resolved string, _ *Soft404Detector) *Finding {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {

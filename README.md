@@ -139,3 +139,34 @@ make cover       # Coverage report
 ## License
 
 MIT
+
+## New Features (Wave 1-4)
+
+### Soft 404 Detection
+Inspect detects "soft 404s" — pages that return HTTP 200 but actually contain error messages or empty content. This reduces false positives in link checking and accessibility audits.
+
+### Per-Host Circuit Breaker
+When a host starts returning errors, inspect automatically throttles requests to that host to prevent cascading failures. The circuit breaker:
+- Opens after N consecutive errors (default: 5)
+- Resets after a cooldown period (default: 30s)
+- Tracks per-host health metrics
+
+### Scan Result Archive Format
+Inspect can export scan results as a gzipped JSON archive (.inspect.gz) containing:
+- Full scan metadata (host, duration, URL counts)
+- Per-URL results (status code, content type, body hash, headers)
+- Summary statistics (status code distribution, error rate)
+
+Archives can be read back with ReadArchive() for analysis or comparison.
+
+### Findings Storage Bridge
+Scan findings can be persisted to an external store (yaad-compatible) for tracking security posture over time. Supports batch writes and auto-flush.
+
+## Ecosystem
+Inspect is part of the hawk-eco platform:
+- **hawk** — CLI/REPL that orchestrates all tools
+- **sight** — code review and security analysis
+- **eyrie** — LLM provider layer
+- **yaad** — memory/recall engine
+- **tok** — token counting and cost estimation
+- **trace** — session capture and replay
