@@ -1,6 +1,6 @@
 FROM golang:1.26.3-alpine AS builder
 
-RUN apk add --no-cache git ca-certificates chromium
+RUN apk add --no-cache git ca-certificates chromium tzdata
 
 WORKDIR /build
 COPY go.mod go.sum ./
