@@ -1,5 +1,6 @@
 # Binaries
 /inspect
+basic
 *.exe
 *.dll
 *.so
