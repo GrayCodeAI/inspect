@@ -1,0 +1,81 @@
+openapi: "3.1.0"
+info:
+  title: inspect — Security Auditor Tool Reference
+  description: |
+    inspect is a website security, accessibility, and SEO auditor.
+    It operates as a CLI tool, GitHub Action, and MCP server (stdio).
+
+    This document describes the MCP tool surface as a machine-readable reference.
+    inspect does NOT expose an HTTP server — all communication is via stdio MCP
+    or direct Go library calls.
+  version: "0.1.0"
+  license:
+    name: MIT
+    url: https://github.com/GrayCodeAI/inspect/blob/main/LICENSE
+  contact:
+    url: https://github.com/GrayCodeAI/inspect
+
+# No servers section — inspect has no HTTP API.
+# MCP tools are documented below using x-mcp-tool extensions.
+
+tags:
+  - name: scan
+    description: Website scanning tools
+  - name: report
+    description: Report generation
+
+x-mcp-server:
+  transport: stdio
+  binary: inspect-ci
+  start_command: ["inspect-ci", "mcp"]
+
+x-mcp-tools:
+  inspect_scan:
+    description: Crawl a URL and run security, accessibility, SEO, and performance checks
+    inputSchema:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          description: Target URL to scan (must be http:// or https://)
+        checks:
+          type: array
+          items:
+            type: string
+            enum: [security, links, forms, a11y, performance, seo]
+          description: Checks to run (default: all)
+        depth:
+          type: integer
+          default: 3
+          description: Maximum crawl depth
+        concurrency:
+          type: integer
+          default: 5
+          description: Number of concurrent crawlers
+        format:
+          type: string
+          enum: [text, json, sarif, html, markdown, junit]
+          default: json
+        fail_on:
+          type: string
+          enum: [info, low, medium, high, critical]
+          description: Minimum severity that counts as a failure
+
+  inspect_scan_dir:
+    description: Scan a local directory of HTML files
+    inputSchema:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+          description: Absolute path to the HTML directory
+        checks:
+          type: array
+          items:
+            type: string
+        format:
+          type: string
+          enum: [text, json, sarif, html, markdown]
+          default: json
