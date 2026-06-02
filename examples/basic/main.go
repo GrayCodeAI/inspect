@@ -14,7 +14,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Scanned %d pages\n", len(report.Pages))
+	fmt.Printf("Scanned %d pages\n", report.CrawledURLs)
 	fmt.Printf("Found %d findings:\n", len(report.Findings))
 
 	for _, f := range report.Findings {
