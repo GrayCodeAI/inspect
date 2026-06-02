@@ -16,7 +16,7 @@ func main() {
 
 	fmt.Printf("Scanned %d pages\n", len(report.Pages))
 	fmt.Printf("Found %d findings:\n", len(report.Findings))
-	
+
 	for _, f := range report.Findings {
 		fmt.Printf("[%s] %s: %s\n", f.Severity, f.URL, f.Message)
 	}
