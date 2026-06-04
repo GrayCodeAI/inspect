@@ -75,7 +75,7 @@ body:
     attributes:
       label: inspect version
       description: Output of `inspect version` or the git SHA you built from.
-      placeholder: "0.2.0"
+      placeholder: "0.1.0"
     validations:
       required: true
 

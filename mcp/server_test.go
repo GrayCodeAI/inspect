@@ -151,8 +151,8 @@ func TestProtocol_Initialize(t *testing.T) {
 	if result.Result.ServerInfo.Name != "inspect" {
 		t.Errorf("server name: want inspect, got %s", result.Result.ServerInfo.Name)
 	}
-	if result.Result.ServerInfo.Version != "0.2.0" {
-		t.Errorf("server version: want 0.2.0, got %s", result.Result.ServerInfo.Version)
+	if result.Result.ServerInfo.Version != "0.1.0" {
+		t.Errorf("server version: want 0.1.0, got %s", result.Result.ServerInfo.Version)
 	}
 }
 

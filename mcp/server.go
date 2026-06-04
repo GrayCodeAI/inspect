@@ -26,7 +26,7 @@ func New(opts ...inspect.Option) *Server {
 		scanner: inspect.NewScanner(opts...),
 	}
 	s.server = mcpserver.NewMCPServer(
-		"inspect", "0.2.0",
+		"inspect", "0.1.0",
 		mcpserver.WithToolCapabilities(true),
 	)
 	s.registerTools()
