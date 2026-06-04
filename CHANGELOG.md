@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Changed
-- **Version re-baselined to `0.2.0`** in
+- **Version re-baselined to `0.1.0`** in
   `internal/report/sarif.go` (`const inspectVersion`, used as
   `tool.driver.version` in SARIF output) and `mcp/server.go`
   (advertised MCP server version). Aligns inspect with the rest of
@@ -18,7 +18,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `sight`).
   - Note: the previous values were inconsistent (`inspectVersion`
     was `"1.0.0"` while the MCP server advertised `"0.1.0"`); both
-    now agree on `"0.2.0"`.
+    now agree on `"0.1.0"`.
   - The SARIF spec version (`sarifVersion = "2.1.0"`) is unchanged
     — that's a different field that identifies the SARIF format,
     not the tool.
@@ -73,7 +73,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [0.2.0] — 2026-04-30
+## [0.1.0] — 2026-04-30
 
 ### Added
 - Directory scanning (ScanDir)
