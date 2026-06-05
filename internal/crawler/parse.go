@@ -37,21 +37,6 @@ func extractLinks(pageURL string, body []byte) []Link {
 	return extractLinksFromDoc(pageURL, doc)
 }
 
-// extractLinksWithErr extracts links and reports any parse error via errOut.
-func extractLinksWithErr(pageURL string, body []byte, errOut *error) []Link {
-	doc, err := html.Parse(bytes.NewReader(body))
-	if err != nil {
-		if errOut != nil {
-			*errOut = err
-		}
-		// Still attempt extraction from whatever was parsed
-		if doc == nil {
-			return nil
-		}
-	}
-	return extractLinksFromDoc(pageURL, doc)
-}
-
 // extractLinksFromDoc extracts links from a pre-parsed HTML document.
 func extractLinksFromDoc(pageURL string, doc *html.Node) []Link {
 	if doc == nil {
@@ -171,20 +156,6 @@ func getNodeAttr(n *html.Node, key string) string {
 
 func extractForms(body []byte) []Form {
 	doc, _ := html.Parse(bytes.NewReader(body))
-	return extractFormsFromDoc(doc)
-}
-
-// extractFormsWithErr extracts forms and reports any parse error via errOut.
-func extractFormsWithErr(body []byte, errOut *error) []Form {
-	doc, err := html.Parse(bytes.NewReader(body))
-	if err != nil {
-		if errOut != nil {
-			*errOut = err
-		}
-		if doc == nil {
-			return nil
-		}
-	}
 	return extractFormsFromDoc(doc)
 }
 
