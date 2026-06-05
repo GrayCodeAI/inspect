@@ -1,6 +1,6 @@
 module github.com/GrayCodeAI/inspect
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/GrayCodeAI/hawk v0.3.0
