@@ -8,3 +8,4 @@ basic
 # Local state
 .claude/
 .codegraph/
+coverage.out
