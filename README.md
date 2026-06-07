@@ -59,6 +59,10 @@ ignore:
   - testdata/
 ```
 
+## Contributing
+
+Contributions are welcome — please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
 ## License
 
 MIT - see [LICENSE](LICENSE) for details.
