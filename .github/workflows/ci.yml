@@ -115,7 +115,7 @@ jobs:
       - name: Coverage threshold
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | grep -oE '[0-9]+\.[0-9]+' || echo "0")
-          THRESHOLD=30
+          THRESHOLD=70
           if [ "$(echo "$COVERAGE < $THRESHOLD" | bc -l)" -eq 1 ]; then
             echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
             exit 1
