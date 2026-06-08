@@ -36,8 +36,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `.editorconfig` — UTF-8, LF, final newline, trim trailing whitespace,
   tabs for Go + Makefile, 2-space indent for YAML/JSON/TOML, no-trim
   for Markdown.
-- `.github/dependabot.yml` — weekly `gomod` (root + `browser/`
-  sub-module) + `github-actions` updates.
 - `.github/PULL_REQUEST_TEMPLATE.md` — Summary / Changes / Scan-
   quality impact / SARIF compatibility / SSRF & egress safety /
   Testing / Checklist.
