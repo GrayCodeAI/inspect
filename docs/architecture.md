@@ -2,7 +2,7 @@
 
 # 🔍 inspect Architecture
 
-**Website Security, Accessibility & SEO Auditor**
+**Live Website Accessibility, TLS & Security-Header Auditor**
 
 [![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
 [![Protocol](https://img.shields.io/badge/Protocol-MCP-purple)]()
@@ -13,46 +13,52 @@
 
 ## 🎯 Overview
 
-inspect is a website security auditing and crawling library for Go. It crawls sites concurrently, runs **security**, **accessibility**, **SEO**, and **performance** checks, and generates findings with severity levels and **CWE references**.
+inspect is a website auditing **library** for Go. It crawls live sites
+concurrently, runs **accessibility**, **TLS**, **cookie**, **security-header**,
+**mixed-content**, and **meta** checks against the discovered pages, and returns
+findings with severity levels. Results can be emitted as SARIF for the GitHub
+Security tab.
 
-> 💡 Three modes: **Go library**, **CLI binary** (`inspect-ci`), and **GitHub Action**.
+> 💡 inspect ships **no CLI binary**. It is consumed two ways: as a **Go library**
+> (imported by hawk and other programs) and as an **MCP server** (stdio transport)
+> that exposes auditing tools to any MCP-compatible agent.
 
 ---
 
-## 🧱 Components
+## 🧱 Package Layout
 
 ```
 inspect/
-├── api/openapi.yaml          📜 MCP tool surface reference
-├── cmd/
-│   ├── inspect-ci/main.go    🖥️ CLI binary entry point
-│   └── inspect-action/main.go ⚡ GitHub Action entry point
 ├── inspect.go                📤 Public API: Scan(), Finding, Report, Stats
-├── check.go                  🛡️ Checker interface, RuleCheck, RegisterCheck()
-├── scanner.go                🔄 Crawler orchestration, check execution
-├── options.go                ⚙️ config, With* functions, presets
-├── config.go                 📋 .inspect.toml loading
-├── sarif.go                  📊 SARIF output formatter
-├── ci_output.go              🖥️ CI-friendly terminal output
-├── llm_scanner.go            🤖 AI-powered scanning
-├── api_security.go           🔒 API endpoint security checks
-├── dependency_check.go       📦 Dependency vulnerability checks
-├── sbom.go                   📋 SBOM generation
-├── browser.go                🌐 Browser automation entry
-├── browser/                  🖥️ Rod-based browser crawling
-├── checks/
-│   ├── security.go           🔒 CSP, HSTS, CORS headers
-│   ├── accessibility.go      ♿ ARIA violations
-│   ├── tls.go                🔐 Certificate checks
-│   ├── cookies.go            🍪 Cookie security flags
-│   ├── headers.go            📋 Missing security headers
-│   └── mixed_content.go      ⚠️ Mixed content detection
+├── scanner.go                🔄 Scanner: crawl orchestration + check execution
+├── options.go                ⚙️ config, With* options, presets (Quick/Standard/Deep/…)
+├── check.go                  🛡️ Checker interface, RuleCheck, RegisterCheck/RegisterRule
+├── config.go                 📋 .inspect config loading
+├── severity.go               🎚️ Severity (aliased from hawk/shared/types)
+├── sarif.go                  📊 GenerateSARIF — SARIF 2.1.0 output
+├── browser.go                🌐 BrowserEngine interface + page-data types (no rod import)
+├── browser_fetcher.go        🔌 Adapts a BrowserEngine into the crawler's fetcher
+├── checks/                   ✅ Built-in checks run against crawled responses
+│   ├── headers.go            📋 Missing security headers (CSP, HSTS, …)
+│   ├── cookies.go            🍪 Cookie Secure/HttpOnly/SameSite flags
+│   ├── tls.go                🔐 Certificate validity & expiry
+│   ├── mixed_content.go      ⚠️ Insecure resources on HTTPS pages
+│   ├── meta.go               🏷️ Meta-tag / SEO checks
+│   └── accessibility.go      ♿ Accessibility / ARIA checks
+├── browser/                  🖥️ Optional rod-based engine (headless Chromium)
+│   ├── rod.go                🚀 New() — launches Chromium, renders pages
+│   ├── axe.go                ♿ axe-core injection & violation collection
+│   ├── contrast.go           🎨 Color-contrast analysis
+│   └── options.go            ⚙️ Engine options (separate Go module)
 ├── mcp/                      🔌 MCP server (stdio transport)
+│   └── server.go             📡 inspect_scan & inspect_scan_dir tools
+├── api/openapi.yaml          📜 MCP tool surface reference
+├── examples/                 📚 Runnable code samples
 └── internal/
-    ├── crawler/              🕷️ URL parsing, sitemap, robots.txt
-    ├── check/                🔄 Internal check runner
+    ├── crawler/              🕷️ Concurrent crawl, robots.txt, sitemap, rate limit, circuit breaker, dir server
+    ├── check/                🔄 Internal check registry & runners (links, forms, a11y, perf, reachability)
     ├── html/                 📄 HTML parsing utilities
-    └── report/               📊 Output format implementations
+    └── report/               📊 Output formatters (text, JSON, JUnit, markdown)
 ```
 
 ---
@@ -66,17 +72,21 @@ report, err := inspect.Scan(ctx, "https://example.com",
     inspect.WithDepth(3),
 )
 
-// 🔄 Reusable scanner
+// 🔄 Reusable scanner (safe for concurrent use)
 scanner := inspect.NewScanner(inspect.WithConcurrency(10))
 report, err := scanner.Scan(ctx, "https://example.com")
+
+// 📁 Audit local build output before deploy
+report, err := scanner.ScanDir(ctx, "./public")
 
 // 🛡️ Custom Go check
 inspect.RegisterCheck(myCheck)
 
 // 📋 Declarative rule (no Go code)
 inspect.RegisterRule(inspect.RuleCheck{
-    Name: "x-frame-options", Severity: inspect.High,
-    Check: inspect.HeaderMissing{Header: "X-Frame-Options"},
+    RuleName:      "x-frame-options",
+    RuleSeverity:  inspect.SeverityHigh,
+    HeaderMissing: []string{"X-Frame-Options"},
 })
 ```
 
@@ -84,57 +94,84 @@ inspect.RegisterRule(inspect.RuleCheck{
 
 ## ⚡ Presets
 
-| Preset | Checks | Speed |
-|--------|--------|:-----:|
-| 🏃 `Quick` | links, security headers | Fast |
-| 📊 `Standard` | links, security, forms, a11y | Medium |
-| 🔬 `Deep` | all checks, depth 10 | Slow |
-| 🔒 `SecurityOnly` | security, TLS, cookies, headers | Fast |
-| 🤖 `CI` | all checks, fail on Medium+ | Medium |
+| Preset | Crawl | Checks |
+|--------|-------|--------|
+| 🏃 `Quick` | depth 2, concurrency 5 | links |
+| 📊 `Standard` | depth 5, concurrency 10 | links, security, forms, a11y, perf, seo |
+| 🔬 `Deep` | no depth limit, concurrency 20 | all |
+| 🔒 `SecurityOnly` | default crawl | security |
+| 🤖 `CI` | depth 5, concurrency 10 | all, fail on high |
 
 ---
 
 ## 🔌 MCP Server
 
-```bash
-inspect-ci mcp    # 📡 stdio transport (add to agent MCP config)
+Embed the server in a program to expose auditing over stdio:
+
+```go
+import (
+    "github.com/GrayCodeAI/inspect"
+    inspectmcp "github.com/GrayCodeAI/inspect/mcp"
+)
+
+srv := inspectmcp.New(inspect.Standard)
+_ = srv.ServeStdio()
 ```
 
-**Tools:** `inspect_scan` — crawl URL and run checks · `inspect_scan_dir` — scan local HTML directory
+**Tools:** `inspect_scan` — crawl a URL and run checks · `inspect_scan_dir` — serve and scan a local HTML directory.
 
 ---
 
-## 🐙 GitHub Action
+## 🌐 Browser-Rendered Analysis
 
-```yaml
-- uses: GrayCodeAI/inspect@v0.4.0
-  with:
-    url: https://example.com
-    checks: security,a11y
-    fail-on: high
+The core `inspect` package never imports rod. To analyze JavaScript-rendered
+pages and run axe-core / contrast checks, supply a `BrowserEngine` from the
+`browser` sub-module (a separate Go module so the rod/Chromium dependency stays
+opt-in):
+
+```go
+import "github.com/GrayCodeAI/inspect/browser"
+
+engine, _ := browser.New()
+defer engine.Close()
+
+report, _ := inspect.Scan(ctx, "https://example.com",
+    inspect.Standard,
+    inspect.WithBrowser(engine),
+)
 ```
+
+`browser_fetcher.go` adapts the engine into the crawler's fetcher so rendered
+HTML is analyzed instead of the raw HTTP response.
 
 ---
 
 ## 🔎 Findings
 
-Each finding includes:
+Each finding (`inspect.Finding`) includes:
 
 | Field | Description |
 |-------|-------------|
-| `Check` | Which check produced this finding |
+| `Check` | Which check produced the finding |
 | `Severity` | 🟢 Info · 🟡 Low · 🟠 Medium · 🔴 High · 🟥 Critical |
 | `URL` | Page where the issue was found |
+| `Element` | Offending element (optional) |
 | `Message` | Human-readable description |
-| `Evidence` | Snippet of the problematic content |
-| `CWE` | CWE reference (required for security findings) |
-| `Confidence` | 0.0–1.0 score |
+| `Fix` | Suggested remediation (optional) |
+| `Evidence` | Snippet of the problematic content (optional) |
+
+A `Report` aggregates findings plus `Stats` (pages scanned, counts by severity
+and check, per-check durations) and a `FailOn` threshold; `Report.Failed()` and
+`Report.MaxSeverity()` summarize the run. `GenerateSARIF` converts findings to
+SARIF 2.1.0.
 
 ---
 
-## 🛡️ ReDoS Protection
+## 🛡️ Crawler Safeguards
 
-All user-supplied regex patterns go through:
-- `compileWithTimeout()` — **1s** compilation limit
-- `matchWithTimeout()` — **100ms** match limit
-- `checkRegexComplexity()` — rejects nested quantifiers before compilation
+- **SSRF protection** — requests to private IP ranges are blocked by default
+  (`WithAllowPrivateIPs` opts out for internal infrastructure)
+- **Rate limiting** — per-host request rate caps
+- **Circuit breaker** — stops hitting a host after repeated failures, half-opens after cooldown
+- **robots.txt** — respected by default
+- **Redirect & page timeouts** — bounded redirect chains and per-page deadlines
