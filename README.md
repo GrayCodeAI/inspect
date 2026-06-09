@@ -15,8 +15,9 @@
 ## What is inspect
 
 inspect is a Go library that crawls live **websites** and audits the pages it
-finds — accessibility, TLS, cookies, security headers, mixed content, and meta
-tags. It is part of the [hawk](https://github.com/GrayCodeAI/hawk) ecosystem:
+finds — broken links, security headers, forms, accessibility, performance, SEO,
+TLS, cookies, mixed content, subresource integrity, AI-readiness, and
+reachability. It is part of the [hawk](https://github.com/GrayCodeAI/hawk) ecosystem:
 hawk wires inspect into its own commands, and inspect also ships an MCP server
 so any MCP-compatible agent can run audits.
 
@@ -62,13 +63,24 @@ r2, _ := scanner.Scan(ctx, "https://site-b.com")
 
 ## Features
 
-- **Accessibility** — meta/ARIA checks; optional axe-core and color-contrast
-  analysis through the `browser` sub-module (headless Chromium via rod)
-- **TLS** — certificate validity and expiry checks
-- **Cookies** — `Secure`, `HttpOnly`, and `SameSite` flag auditing
-- **Security headers** — detects missing CSP, HSTS, and related headers
-- **Mixed content** — flags insecure resources served on HTTPS pages
-- **Meta tags** — SEO and metadata checks
+inspect ships nine built-in checks (registered in `check.DefaultRegistry`). The
+six marked **(default)** run in the `Standard`, `Deep`, and `CI` presets; the
+remaining three are opt-in via `WithChecks`.
+
+- **Links** *(default)* — crawls and reports broken/unreachable links
+- **Security headers** *(default)* — detects missing CSP, HSTS, and related
+  headers; also audits TLS certificate validity/expiry, cookie `Secure` /
+  `HttpOnly` / `SameSite` flags, and mixed content on HTTPS pages
+- **Forms** *(default)* — form validation checks (CSRF, action URLs)
+- **Accessibility (`a11y`)** *(default)* — meta/ARIA checks; optional axe-core
+  and color-contrast analysis through the `browser` sub-module (headless
+  Chromium via rod)
+- **Performance (`perf`)** *(default)* — resource sizes and render-blocking
+  resources
+- **SEO** *(default)* — meta tags, structured data, and metadata checks
+- **SRI** — Subresource Integrity validation
+- **AI-ready (`aiready`)** — checks for agent/LLM-friendly metadata
+- **Reachability** — host/URL reachability checks
 - **Concurrent crawler** — depth limits, rate limiting, robots.txt, redirect
   following, and SSRF protection (private IPs blocked by default)
 - **SARIF output** — `inspect.GenerateSARIF` emits SARIF 2.1.0 for the GitHub
@@ -79,13 +91,16 @@ r2, _ := scanner.Scan(ctx, "https://site-b.com")
 
 ## Presets
 
+The default checks are: `links`, `security`, `forms`, `a11y`, `perf`, `seo`.
+Add the opt-in checks (`sri`, `aiready`, `reachability`) with `WithChecks`.
+
 | Preset | Behavior |
 |---|---|
-| `Quick` | Shallow crawl (depth 2), links only |
-| `Standard` | Balanced crawl (depth 5), all checks |
-| `Deep` | Exhaustive crawl (no depth limit), all checks |
+| `Quick` | Shallow crawl (depth 2), `links` only |
+| `Standard` | Balanced crawl (depth 5), the six default checks |
+| `Deep` | Exhaustive crawl (no depth limit), the six default checks |
 | `SecurityOnly` | Security-related checks only |
-| `CI` | Standard checks, fail on high severity |
+| `CI` | Default checks, fail on high severity |
 
 ## MCP Server
 
