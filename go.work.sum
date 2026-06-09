@@ -1,9 +1,9 @@
 al.essio.dev/pkg/shellescape v1.5.1/go.mod h1:6sIqp7X2P6mThCQ7twERpZTuigpr6KbZWtls1U8I890=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/GrayCodeAI/eyrie v0.2.0/go.mod h1:7usV5x9L8imlOGGLVuhX4SIWUpr6iWBk3bAdjqCnuCI=
-github.com/GrayCodeAI/sight v0.2.0/go.mod h1:Nmq6CEf3fXhrrJzPhGRRldEnKtqWHvuWMG+OHjRv2wo=
-github.com/GrayCodeAI/tok v0.3.0/go.mod h1:dd9hG5ULboJEGUCq756Y2uVUd/UDSk6bDIabN0j2BcI=
-github.com/GrayCodeAI/yaad v0.2.0/go.mod h1:qZICcMOxaz9OuigBzrK6y5uD9ANGuPygS/fEN67gUH4=
+github.com/GrayCodeAI/eyrie v0.1.0/go.mod h1:g/hyB7+YCSYSkw5zJfZrWxLJyCoy2psR8QOsXN4ZzsI=
+github.com/GrayCodeAI/sight v0.1.0/go.mod h1:hcEdCWt07/igu5HeCxB052OkQ5WOQ/f/WkEO1z1fcOM=
+github.com/GrayCodeAI/tok v0.1.0/go.mod h1:oqA7HXbXuyrZ3+uJC+TKJWmYYPlyShaXGDQpftEJ9OE=
+github.com/GrayCodeAI/yaad v0.1.0/go.mod h1:fwJ+AwEqvnoGiDA51iQ1NO696xI9j7WkkYg4UuwrmQM=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/aymanbagabas/go-udiff v0.4.1/go.mod h1:0L9PGwj20lrtmEMeyw4WKJ/TMyDtvAoK9bf2u/mNo3w=
