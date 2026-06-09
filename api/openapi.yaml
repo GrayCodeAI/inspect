@@ -1,9 +1,10 @@
 openapi: "3.1.0"
 info:
-  title: inspect — Security Auditor Tool Reference
+  title: inspect — Website Security & Accessibility Auditor Tool Reference
   description: |
-    inspect is a website security, accessibility, and SEO auditor.
-    It operates as a CLI tool, GitHub Action, and MCP server (stdio).
+    inspect is a website security and accessibility auditor.
+    It is a Go library with an embeddable MCP server (stdio); the host program
+    embeds it directly and ships no standalone binary.
 
     This document describes the MCP tool surface as a machine-readable reference.
     inspect does NOT expose an HTTP server — all communication is via stdio MCP
@@ -16,6 +17,10 @@ info:
     url: https://github.com/GrayCodeAI/inspect
 
 # No servers section — inspect has no HTTP API.
+# inspect ships no standalone binary. The MCP server is embedded by the host
+# program, which constructs it from the library and starts a stdio transport:
+#   srv := mcp.New(opts...)  // opts are inspect.Option values
+#   srv.ServeStdio()         // stdio transport
 # MCP tools are documented below using x-mcp-tool extensions.
 
 tags:
@@ -26,12 +31,13 @@ tags:
 
 x-mcp-server:
   transport: stdio
-  binary: inspect-ci
-  start_command: ["inspect-ci", "mcp"]
+  package: github.com/GrayCodeAI/inspect/mcp
+  constructor: mcp.New(opts...)  # opts are inspect.Option values
+  serve_stdio: mcp.Server.ServeStdio()
 
 x-mcp-tools:
   inspect_scan:
-    description: Crawl a URL and run security, accessibility, SEO, and performance checks
+    description: Crawl a URL and run website security and accessibility checks
     inputSchema:
       type: object
       required: [url]
@@ -43,7 +49,7 @@ x-mcp-tools:
           type: array
           items:
             type: string
-            enum: [security, links, forms, a11y, performance, seo]
+            enum: [links, security, forms, a11y, perf, seo, sri, aiready, reachability]
           description: Checks to run (default: all)
         depth:
           type: integer

@@ -31,7 +31,6 @@ body:
       options:
         - "Library API (`inspect.Scan`, `inspect.NewScanner`, etc.)"
         - "MCP (`inspect_scan`, `inspect_scan_dir` tools)"
-        - "GitHub Action (`.github/action.yml`)"
         - "SARIF output"
         - "Browser-based checks (`browser/` sub-module)"
         - "CVE / dependency database"
