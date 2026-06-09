@@ -4,7 +4,7 @@ Website security auditing and crawling library for Go. Crawls sites concurrently
 
 ## Design Principles
 
-- **Library + CLI** — importable library with optional `inspect-ci` binary
+- **Library** — importable Go library + embeddable MCP server (no CLI binary)
 - **No LLM dependency** — pure static analysis on crawled pages
 - **Extensible** — custom checks (Go code) + declarative rules (no code required)
 
@@ -25,7 +25,6 @@ gofumpt -w .                     # Format
 - `rule.go` — Declarative rule engine (YAML-based)
 - `finding.go` — Findings with severity, CWE, and evidence
 - `report.go` — Report generation (JSON, SARIF, HTML)
-- `cmd/inspect-ci/` — Optional CI binary for pipeline integration
 
 ## Conventions
 

@@ -55,7 +55,7 @@ jobs:
         run: git clone --depth=1 https://github.com/GrayCodeAI/hawk.git ../hawk
       - name: gofumpt diff
         run: |
-          go install mvdan.cc/gofumpt@latest
+          go install mvdan.cc/gofumpt@v0.10.0
           out=$(gofumpt -l .)
           if [ -n "$out" ]; then
             echo "::error::gofumpt would reformat the following files:"

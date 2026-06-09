@@ -30,7 +30,7 @@ body:
         - "Browser-based / dynamic check (`browser/`)"
         - "Output format (JSON, SARIF, JUnit, HTML, terminal)"
         - "Configuration (`.inspect.toml`, options)"
-        - "MCP server / GitHub Action / tooling"
+        - "MCP server / tooling"
     validations:
       required: true
 

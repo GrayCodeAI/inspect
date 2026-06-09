@@ -76,7 +76,7 @@ var Quick Option = optFunc(func(c *config) {
 	c.concurrency = 5
 })
 
-// Standard performs a balanced crawl with all checks enabled.
+// Standard performs a balanced crawl with the six default checks enabled.
 var Standard Option = optFunc(func(c *config) {
 	c.depth = 5
 	c.checks = []string{"links", "security", "forms", "a11y", "perf", "seo"}

@@ -40,8 +40,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   quality impact / SARIF compatibility / SSRF & egress safety /
   Testing / Checklist.
 - `.github/ISSUE_TEMPLATE/bug_report.yml` — surface dropdown
-  (library API / MCP / SARIF / GitHub Action / browser checks /
-  CVE database) and false-positive textarea.
+  (library API / MCP / SARIF / browser checks / CVE database) and
+  false-positive textarea.
 - `.github/ISSUE_TEMPLATE/feature_request.yml` — `kind` selector
   covering 8 functional areas (security checks / accessibility /
   SEO / performance / browser / output formats / config / tooling)
