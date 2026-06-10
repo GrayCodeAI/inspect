@@ -1,6 +1,9 @@
 go 1.26.4
 
-use .
+use (
+	.
+	./browser
+)
 
 // Local development overrides for unpublished modules.
 // go.work is gitignored — each developer creates their own.

@@ -143,13 +143,15 @@ jobs:
         run: git clone --depth=1 https://github.com/GrayCodeAI/hawk.git ../hawk
       - name: govulncheck
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
           govulncheck ./...
       - name: gosec (advisory)
-        continue-on-error: true
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -exclude=G104,G301,G302,G304,G306 ./...
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+          # Exclude browser/ (separate module with its own go.mod — rod dependency
+          # is not available to the root module's gosec pass).
+          gosec -exclude=G104,G301,G302,G304,G306 -exclude-dir=browser ./...
+          (cd browser && gosec -exclude=G104,G301,G302,G304,G306 ./...)
 
   # -------------------------------------------------------------------------
   # Dead code detection.
