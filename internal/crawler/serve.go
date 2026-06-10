@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 )
 
 // ServeDir starts a temporary HTTP file server for the given directory.
@@ -16,7 +17,8 @@ func ServeDir(ctx context.Context, dir string) (*http.Server, string, error) {
 	}
 
 	srv := &http.Server{
-		Handler: http.FileServer(http.Dir(dir)),
+		Handler:           http.FileServer(http.Dir(dir)),
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	go srv.Serve(listener)
