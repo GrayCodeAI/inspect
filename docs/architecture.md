@@ -34,7 +34,7 @@ inspect/
 ├── options.go                ⚙️ config, With* options, presets (Quick/Standard/Deep/…)
 ├── check.go                  🛡️ Checker interface, RuleCheck, RegisterCheck/RegisterRule
 ├── config.go                 📋 .inspect config loading
-├── severity.go               🎚️ Severity (aliased from hawk/shared/types)
+├── severity.go               🎚️ Severity (aliased from hawk-core-contracts/types)
 ├── sarif.go                  📊 GenerateSARIF — SARIF 2.1.0 output
 ├── browser.go                🌐 BrowserEngine interface + page-data types (no rod import)
 ├── browser_fetcher.go        🔌 Adapts a BrowserEngine into the crawler's fetcher

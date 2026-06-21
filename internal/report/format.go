@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GrayCodeAI/hawk/shared/types"
+	"github.com/GrayCodeAI/hawk-core-contracts/types"
 )
 
 // Severity mirrors the public type.

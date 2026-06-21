@@ -4,7 +4,7 @@ package check
 import (
 	"context"
 
-	"github.com/GrayCodeAI/hawk/shared/types"
+	"github.com/GrayCodeAI/hawk-core-contracts/types"
 	"github.com/GrayCodeAI/inspect/internal/crawler"
 )
 

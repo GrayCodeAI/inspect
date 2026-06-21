@@ -53,6 +53,8 @@ jobs:
           cache: true
       - name: Clone hawk for shared/types
         run: git clone --depth=1 https://github.com/GrayCodeAI/hawk.git ../hawk
+      - name: Boundary guard
+        run: bash ./scripts/check-ecosystem-boundaries.sh
       - name: gofumpt diff
         run: |
           go install mvdan.cc/gofumpt@v0.10.0
@@ -79,6 +81,8 @@ jobs:
           cache: true
       - name: Clone hawk for shared/types
         run: git clone --depth=1 https://github.com/GrayCodeAI/hawk.git ../hawk
+      - name: Boundary guard
+        run: bash ./scripts/check-ecosystem-boundaries.sh
       - uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v7.0.0
         with:
           version: v2.1.0
@@ -100,6 +104,8 @@ jobs:
           cache: true
       - name: Clone hawk for shared/types
         run: git clone --depth=1 https://github.com/GrayCodeAI/hawk.git ../hawk
+      - name: Boundary guard
+        run: bash ./scripts/check-ecosystem-boundaries.sh
       - name: Tidy check
         run: |
           go mod tidy
