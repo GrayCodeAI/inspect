@@ -40,7 +40,7 @@ func SeverityString(s Severity) string {
 	default:
 		str = "UNKNOWN"
 	}
-	if int(s) < len(severityColors) {
+	if int(s) >= 0 && int(s) < len(severityColors) {
 		return severityColors[s] + str + "\033[0m"
 	}
 	return str
@@ -96,7 +96,10 @@ func FormatTerminal(data ReportData) string {
 		if len(items) == 0 {
 			continue
 		}
-		color := severityColors[sev]
+		color := ""
+		if int(sev) >= 0 && int(sev) < len(severityColors) {
+			color = severityColors[sev]
+		}
 		b.WriteString(fmt.Sprintf("  %s%s (%d)%s\n\n", color, sev.String(), len(items), reset))
 
 		for _, f := range items {
