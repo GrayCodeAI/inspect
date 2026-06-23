@@ -46,7 +46,7 @@ gofumpt -w .                     # Format
 - **Types are domain nouns**: `Finding`, `Report`, `Stats`, `Page`, `PageLink`, `Checker`, `RuleCheck`
 - **Option functions use `With` prefix**: `WithChecks()`, `WithDepth()`, `WithConcurrency()`, `WithAllowPrivateIPs()`
 - **Preset options are bare vars**: `Quick`, `Standard`, `Deep`, `SecurityOnly`, `CI` — exported `var Option` values
-- **Severity is a type alias**: `type Severity = types.Severity` from `hawk/shared/types` — shared across hawk-eco
+- **Severity is a type alias**: `type Severity = types.Severity` from `hawk-core-contracts/types` — shared across hawk-eco
 - **Internal adapters use `Adapter` suffix**: `ruleCheckAdapter`, `customCheckAdapter` — bridge public to internal interfaces
 - **Check names are lowercase strings**: `"security"`, `"links"`, `"forms"`, `"a11y"`, `"performance"` — used in `WithChecks()`
 - **Error handling**: `Scan()` returns `(*Report, error)` — validation errors for empty URL, nil errors for success
@@ -94,7 +94,7 @@ gofumpt -w .                     # Format
 | Scanner implementation | `scanner.go` (crawler orchestration, check execution) |
 | Configuration & presets | `options.go` (`config` struct, `With*` functions, presets) |
 | Config file loading | `config.go` (`.inspect.toml` parsing, `LoadConfig()`) |
-| Severity type alias | `severity.go` (re-exports from `hawk/shared/types`) |
+| Severity type alias | `severity.go` (re-exports from `hawk-core-contracts/types`) |
 | SARIF output | `sarif.go` |
 | CI output formatting | `ci_output.go` |
 | Built-in checks | `checks/` directory |

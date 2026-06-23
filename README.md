@@ -31,6 +31,14 @@ handling, and SSRF protection), runs each check against the discovered pages,
 and returns findings with severity levels. Results can be emitted as SARIF for
 the GitHub Security tab.
 
+## Ecosystem Boundaries
+
+Inspect is a Hawk support engine. Keep the dependency edge one-way:
+
+- use `hawk-core-contracts` for any cross-repo shared contracts
+- do not import `hawk/internal/*`
+- do not import removed legacy path `hawk/shared/types`; use `hawk-core-contracts/types`
+
 ## Quick Start
 
 ```go

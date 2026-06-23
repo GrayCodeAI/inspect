@@ -8,7 +8,12 @@ basic
 # Local state
 .claude/
 .codegraph/
+.gocache/
 coverage.out
+
+# Go workspace (local dev only — each developer creates their own)
+go.work
+go.work.sum
 
 # macOS
 .DS_Store
