@@ -1,6 +1,6 @@
 package inspect
 
-import "github.com/GrayCodeAI/hawk/shared/types"
+import "github.com/GrayCodeAI/hawk-core-contracts/types"
 
 // Severity represents the impact level of a finding.
 // Aliased from shared types for cross-module compatibility.
