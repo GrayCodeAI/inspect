@@ -35,9 +35,10 @@ the GitHub Security tab.
 
 Inspect is a Hawk support engine. Keep the dependency edge one-way:
 
-- use `hawk-core-contracts` for any cross-repo shared contracts
+- use `hawk-core-contracts` for any cross-repo shared contracts (severity/finding vocabulary)
 - do not import `hawk/internal/*`
 - do not import removed legacy path `hawk/shared/types`; use `hawk-core-contracts/types`
+- do not import other engines (`eyrie`, `yaad`, `tok`, `trace`, `sight`) — engines are peers, not dependencies
 
 ## Quick Start
 
