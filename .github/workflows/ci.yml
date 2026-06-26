@@ -109,7 +109,7 @@ jobs:
             exit 1
           fi
       - name: Test
-        run: go test ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic -timeout=180s
+        run: go test ./... -race -count=1 -shuffle=on -coverprofile=coverage.out -covermode=atomic -timeout=180s
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
       - name: Coverage threshold
