@@ -1,0 +1,22 @@
+# CODEOWNERS for inspect (verification engine)
+* @GrayCodeAI/maintainers
+
+# Engine core
+/internal/       @GrayCodeAI/core-team
+/checks/         @GrayCodeAI/core-team
+/rules/          @GrayCodeAI/core-team
+/browser/        @GrayCodeAI/core-team
+
+# API surface
+/api/            @GrayCodeAI/core-team
+/mcp/            @GrayCodeAI/core-team
+
+# CI / release / build tooling
+/.github/        @GrayCodeAI/devops-team
+/Makefile        @GrayCodeAI/devops-team
+/lefthook.yml    @GrayCodeAI/devops-team
+/scripts/        @GrayCodeAI/devops-team
+
+# Documentation
+*.md             @GrayCodeAI/docs-team
+/docs/           @GrayCodeAI/docs-team
