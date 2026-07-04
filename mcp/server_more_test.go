@@ -130,7 +130,7 @@ func TestErrorHandling_WrongArgumentType(t *testing.T) {
 	if result == nil {
 		t.Fatal("expected result")
 	}
-	// The int won't match the string type assertion, so strArg returns "".
+	// The int won't match the string type assertion, so mcpkit.StrArg returns "".
 	if !result.IsError {
 		t.Fatal("expected error result when url is not a string")
 	}
@@ -424,62 +424,7 @@ func TestTimeout_WithTimeoutOption(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. strArg helper
-// ---------------------------------------------------------------------------
-
-func TestStrArg(t *testing.T) {
-	tests := []struct {
-		name string
-		args map[string]any
-		key  string
-		want string
-	}{
-		{
-			name: "present string",
-			args: map[string]any{"url": "http://example.com"},
-			key:  "url",
-			want: "http://example.com",
-		},
-		{
-			name: "missing key",
-			args: map[string]any{},
-			key:  "url",
-			want: "",
-		},
-		{
-			name: "nil arguments",
-			args: nil,
-			key:  "url",
-			want: "",
-		},
-		{
-			name: "wrong type",
-			args: map[string]any{"url": 42},
-			key:  "url",
-			want: "",
-		},
-		{
-			name: "empty string",
-			args: map[string]any{"url": ""},
-			key:  "url",
-			want: "",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			req := mcplib.CallToolRequest{}
-			req.Params.Arguments = tc.args
-			got := strArg(req, tc.key)
-			if got != tc.want {
-				t.Errorf("strArg(%q) = %q, want %q", tc.key, got, tc.want)
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------------------------
-// 8. Server construction
+// 7. Server construction
 // ---------------------------------------------------------------------------
 
 func TestNew_ReturnsServer(t *testing.T) {
@@ -487,7 +432,7 @@ func TestNew_ReturnsServer(t *testing.T) {
 	if s == nil {
 		t.Fatal("New() returned nil")
 	}
-	if s.server == nil {
+	if s.kit == nil || s.kit.MCP() == nil {
 		t.Fatal("internal MCPServer is nil")
 	}
 	if s.scanner == nil {
@@ -618,7 +563,7 @@ func TestRegisterTools_InspectScanSchema(t *testing.T) {
 	s := New(inspect.Quick, inspect.WithAllowPrivateIPs())
 
 	// Access the underlying MCPServer to verify tool registration.
-	mcpSrv := s.server
+	mcpSrv := s.kit.MCP()
 	if mcpSrv == nil {
 		t.Fatal("internal MCPServer is nil")
 	}
