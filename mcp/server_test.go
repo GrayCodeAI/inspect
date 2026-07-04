@@ -93,7 +93,7 @@ func initAndSession(t *testing.T, ts *httptest.Server) string {
 func newTestHTTPServer(t *testing.T, opts ...inspect.Option) (*httptest.Server, *Server) {
 	t.Helper()
 	s := New(opts...)
-	ts := mcpserver.NewTestStreamableHTTPServer(s.server, mcpserver.WithStateful(true))
+	ts := mcpserver.NewTestStreamableHTTPServer(s.kit.MCP(), mcpserver.WithStateful(true))
 	t.Cleanup(ts.Close)
 	return ts, s
 }
@@ -149,8 +149,8 @@ func TestProtocol_Initialize(t *testing.T) {
 	if result.Result.ServerInfo.Name != "inspect" {
 		t.Errorf("server name: want inspect, got %s", result.Result.ServerInfo.Name)
 	}
-	if result.Result.ServerInfo.Version != "0.1.0" {
-		t.Errorf("server version: want 0.1.0, got %s", result.Result.ServerInfo.Version)
+	if result.Result.ServerInfo.Version != inspect.Version {
+		t.Errorf("server version: want %s, got %s", inspect.Version, result.Result.ServerInfo.Version)
 	}
 }
 
