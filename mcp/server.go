@@ -39,6 +39,13 @@ func (s *Server) ServeStdio() error {
 	return stdio.Listen(context.Background(), os.Stdin, os.Stdout)
 }
 
+// ServeHTTP starts the MCP server on a streamable HTTP endpoint. Clients
+// connect to http://<addr>/mcp.
+func (s *Server) ServeHTTP(addr string) error {
+	httpServer := mcpserver.NewStreamableHTTPServer(s.server)
+	return httpServer.Start(addr)
+}
+
 func (s *Server) registerTools() {
 	s.server.AddTool(mcplib.NewTool(
 		"inspect_scan",
