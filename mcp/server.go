@@ -2,13 +2,11 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
+	mcpkit "github.com/GrayCodeAI/hawk-mcpkit"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
-	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/GrayCodeAI/inspect"
 )
@@ -16,44 +14,39 @@ import (
 // Server wraps the inspect library as an MCP server, exposing website
 // auditing capabilities to any MCP-compatible agent.
 type Server struct {
-	server  *mcpserver.MCPServer
+	kit     *mcpkit.Server
 	scanner *inspect.Scanner
 }
 
 // New creates an inspect MCP server with the given scanner options.
 func New(opts ...inspect.Option) *Server {
 	s := &Server{
+		kit:     mcpkit.New("inspect", inspect.Version),
 		scanner: inspect.NewScanner(opts...),
 	}
-	s.server = mcpserver.NewMCPServer(
-		"inspect", "0.1.0",
-		mcpserver.WithToolCapabilities(true),
-	)
 	s.registerTools()
 	return s
 }
 
 // ServeStdio starts the MCP server on stdin/stdout.
 func (s *Server) ServeStdio() error {
-	stdio := mcpserver.NewStdioServer(s.server)
-	return stdio.Listen(context.Background(), os.Stdin, os.Stdout)
+	return s.kit.ServeStdio()
 }
 
 // ServeHTTP starts the MCP server on a streamable HTTP endpoint. Clients
 // connect to http://<addr>/mcp.
 func (s *Server) ServeHTTP(addr string) error {
-	httpServer := mcpserver.NewStreamableHTTPServer(s.server)
-	return httpServer.Start(addr)
+	return s.kit.ServeHTTP(addr)
 }
 
 func (s *Server) registerTools() {
-	s.server.AddTool(mcplib.NewTool(
+	s.kit.AddTool(mcplib.NewTool(
 		"inspect_scan",
 		mcplib.WithDescription("Scan a website for broken links, security issues, and accessibility problems"),
 		mcplib.WithString("url", mcplib.Required(), mcplib.Description("Target URL to scan")),
 	), s.handleScan)
 
-	s.server.AddTool(mcplib.NewTool(
+	s.kit.AddTool(mcplib.NewTool(
 		"inspect_scan_dir",
 		mcplib.WithDescription("Scan a local directory of HTML files"),
 		mcplib.WithString("path", mcplib.Required(), mcplib.Description("Local directory path")),
@@ -61,7 +54,7 @@ func (s *Server) registerTools() {
 }
 
 func (s *Server) handleScan(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	url := strArg(req, "url")
+	url := mcpkit.StrArg(req, "url")
 	if url == "" {
 		return mcplib.NewToolResultError("url is required"), nil
 	}
@@ -73,16 +66,11 @@ func (s *Server) handleScan(ctx context.Context, req mcplib.CallToolRequest) (*m
 	if err != nil {
 		return mcplib.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
 	}
-
-	b, err := json.MarshalIndent(report, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return mcplib.NewToolResultText(string(b)), nil
+	return mcpkit.JSONResult(report)
 }
 
 func (s *Server) handleScanDir(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	path := strArg(req, "path")
+	path := mcpkit.StrArg(req, "path")
 	if path == "" {
 		return mcplib.NewToolResultError("path is required"), nil
 	}
@@ -94,17 +82,5 @@ func (s *Server) handleScanDir(ctx context.Context, req mcplib.CallToolRequest) 
 	if err != nil {
 		return mcplib.NewToolResultError(fmt.Sprintf("scan_dir failed: %v", err)), nil
 	}
-
-	b, err := json.MarshalIndent(report, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return mcplib.NewToolResultText(string(b)), nil
-}
-
-func strArg(req mcplib.CallToolRequest, key string) string {
-	if v, ok := req.GetArguments()[key].(string); ok {
-		return v
-	}
-	return ""
+	return mcpkit.JSONResult(report)
 }
