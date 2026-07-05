@@ -1,5 +1,5 @@
 # Canonical lefthook config for hawk-eco Go repos.
-# Source of truth: .shared-templates/lefthook.yml.tmpl
+# Source of truth: https://github.com/GrayCodeAI/hawk/blob/main/.shared-templates/lefthook.yml.tmpl
 #
 # Install lefthook:
 #   brew install lefthook        (macOS)
@@ -74,6 +74,9 @@ pre-commit:
 # ---------------------------------------------------------------------------
 pre-push:
   commands:
+
+    boundaries:
+      run: bash ./scripts/check-ecosystem-boundaries.sh
 
     test:
       run: go test ./... -count=1 -timeout=60s
