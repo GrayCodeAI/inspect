@@ -565,8 +565,11 @@ func isPrivateIP(ip net.IP) bool {
 		{mustParseCIDR("172.16.0.0/12")},
 		{mustParseCIDR("192.168.0.0/16")},
 		{mustParseCIDR("127.0.0.0/8")},
+		{mustParseCIDR("169.254.0.0/16")}, // link-local, incl. cloud metadata (169.254.169.254)
+		{mustParseCIDR("100.64.0.0/10")},  // CGNAT shared address space
 		{mustParseCIDR("::1/128")},
 		{mustParseCIDR("fc00::/7")},
+		{mustParseCIDR("fe80::/10")}, // IPv6 link-local
 	}
 	for _, r := range privateRanges {
 		if r.network.Contains(ip) {
