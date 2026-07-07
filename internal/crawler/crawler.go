@@ -454,7 +454,7 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 
 		// Handle auth-required responses as findings rather than errors
 		if resp.StatusCode == 401 || resp.StatusCode == 403 {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			page.StatusCode = resp.StatusCode
 			page.Headers = resp.Header
 			page.Error = nil
@@ -464,7 +464,7 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 
 		// Handle redirects manually
 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			loc := resp.Header.Get("Location")
 			if loc == "" {
 				page.StatusCode = resp.StatusCode
@@ -493,12 +493,12 @@ func (c *Crawler) doFetch(ctx context.Context, page *Page, targetURL string) err
 
 		contentType := resp.Header.Get("Content-Type")
 		if !strings.Contains(contentType, "text/html") {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil
 		}
 
 		body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			page.Error = err
 			return err

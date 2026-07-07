@@ -241,8 +241,8 @@ func (l *LinksCheck) checkExternalLinkWithDetector(ctx context.Context, pageURL,
 			getResp, err := client.Do(getReq)
 			if err == nil {
 				// Read at most 1 byte -- we only need the status code.
-				io.CopyN(io.Discard, getResp.Body, 1)
-				getResp.Body.Close()
+				_, _ = io.CopyN(io.Discard, getResp.Body, 1)
+				_ = getResp.Body.Close()
 				// Use the GET response status instead.
 				if l.isAcceptedStatus(getResp.StatusCode) {
 					return nil

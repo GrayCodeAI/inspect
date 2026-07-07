@@ -251,7 +251,7 @@ func extractSymbolName(m []string, kind, ext string) string {
 }
 
 func readLines(path string) ([]string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- path is the source file under analysis, supplied by the scanning tool's own localization phase/CLI target; reading arbitrary project files is this tool's purpose
 	if err != nil {
 		return nil, err
 	}
