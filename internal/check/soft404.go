@@ -176,7 +176,7 @@ func (d *Soft404Detector) Detect(ctx context.Context, client *http.Client, page 
 			return false, nil
 		}
 		probeBody, err := io.ReadAll(io.LimitReader(probeResp.Body, 1*1024*1024))
-		probeResp.Body.Close()
+		_ = probeResp.Body.Close()
 		if err != nil {
 			return false, nil
 		}
@@ -213,7 +213,7 @@ func (d *Soft404Detector) Detect(ctx context.Context, client *http.Client, page 
 		return false, nil
 	}
 	pageBody, err := io.ReadAll(io.LimitReader(pageResp.Body, 1*1024*1024))
-	pageResp.Body.Close()
+	_ = pageResp.Body.Close()
 	if err != nil {
 		return false, nil
 	}

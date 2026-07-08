@@ -105,7 +105,7 @@ func ParseTemplates(data []byte) ([]RuleCheck, error) {
 
 // LoadTemplateFile reads and parses a single YAML template file.
 func LoadTemplateFile(path string) ([]RuleCheck, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is a caller-supplied template file location (this tool's own declarative check templates), not attacker-controlled input
 	if err != nil {
 		return nil, fmt.Errorf("inspect: read template %s: %w", path, err)
 	}

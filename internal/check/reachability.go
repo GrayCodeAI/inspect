@@ -126,8 +126,8 @@ func checkResourceReachable(ctx context.Context, client *http.Client, ref resour
 			getReq.Header.Set("User-Agent", "inspect/1.0 (reachability check)")
 			getResp, err := client.Do(getReq)
 			if err == nil {
-				io.CopyN(io.Discard, getResp.Body, 1)
-				getResp.Body.Close()
+				_, _ = io.CopyN(io.Discard, getResp.Body, 1)
+				_ = getResp.Body.Close()
 				if getResp.StatusCode >= 200 && getResp.StatusCode < 400 {
 					return nil
 				}

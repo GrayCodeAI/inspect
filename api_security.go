@@ -74,7 +74,7 @@ func (a *APISecurityChecker) CheckCORS(url string) []Finding {
 		if err != nil {
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		acao := resp.Header.Get("Access-Control-Allow-Origin")
 		acac := resp.Header.Get("Access-Control-Allow-Credentials")
@@ -140,7 +140,7 @@ func (a *APISecurityChecker) CheckRateLimiting(url string) []Finding {
 		if err != nil {
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		if resp.StatusCode == http.StatusTooManyRequests {
 			rateLimitHeaderFound = true
@@ -188,7 +188,7 @@ func (a *APISecurityChecker) CheckAuthHeaders(url string) []Finding {
 	if err != nil {
 		return findings
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	requiredHeaders := []struct {
 		Name     string
@@ -256,7 +256,7 @@ func (a *APISecurityChecker) CheckVerbTampering(url string) []Finding {
 			continue
 		}
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// TRACE is especially dangerous if it echoes back the request
 		if m.Method == "TRACE" && resp.StatusCode == http.StatusOK {
@@ -289,7 +289,7 @@ func (a *APISecurityChecker) CheckVerbTampering(url string) []Finding {
 	if err == nil {
 		resp, err := client.Do(req)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			allow := resp.Header.Get("Allow")
 			if allow == "" {
 				allow = resp.Header.Get("Access-Control-Allow-Methods")
@@ -370,7 +370,7 @@ func (a *APISecurityChecker) CheckErrorLeakage(url string) []Finding {
 			continue
 		}
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		bodyStr := string(body)
 

@@ -44,7 +44,7 @@ func loadConfigFile(dir string) (*FileConfig, error) {
 		return nil, nil
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path comes from findInspectConfigFile(dir), which searches for .inspect.toml/.inspect.yaml in the target project directory or its parents, not attacker-controlled input
 	if err != nil {
 		return nil, err
 	}
