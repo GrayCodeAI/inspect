@@ -1,5 +1,5 @@
 # Canonical hawk-eco Makefile for Go library repos.
-# Source of truth: .shared-templates/Makefile.library.tmpl at the eco root.
+# Source of truth: https://github.com/GrayCodeAI/hawk/blob/main/.shared-templates/Makefile.library.tmpl
 # Placeholders rendered per repo: inspect.
 
 # ---------------------------------------------------------------------------
@@ -115,5 +115,7 @@ help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: hooks
-hooks:
-	git config core.hooksPath .githooks
+hooks: ## Install git hooks via lefthook (format, lint, conventional commits, co-author strip).
+	@command -v lefthook >/dev/null 2>&1 || (echo "install: go install github.com/evilmartians/lefthook@latest" && exit 1)
+	git config --unset core.hooksPath 2>/dev/null || true
+	lefthook install
