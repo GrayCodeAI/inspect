@@ -136,7 +136,7 @@ var KnownVulnerabilities = map[string][]VulnEntry{
 func (d *DependencyChecker) ScanGoMod(path string) []Finding {
 	var findings []Finding
 
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304 -- path is the go.mod location supplied to this dependency checker (a project file to be scanned for vulnerable packages), not attacker-controlled input
 	if err != nil {
 		findings = append(findings, Finding{
 			Check:    "dependency-gomod",
@@ -190,7 +190,7 @@ func (d *DependencyChecker) ScanGoMod(path string) []Finding {
 func (d *DependencyChecker) ScanPackageJSON(path string) []Finding {
 	var findings []Finding
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is the package.json location supplied to this dependency checker (a project file to be scanned for vulnerable packages), not attacker-controlled input
 	if err != nil {
 		findings = append(findings, Finding{
 			Check:    "dependency-npm",
@@ -238,7 +238,7 @@ func (d *DependencyChecker) ScanPackageJSON(path string) []Finding {
 func (d *DependencyChecker) ScanRequirements(path string) []Finding {
 	var findings []Finding
 
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304 -- path is the requirements.txt location supplied to this dependency checker (a project file to be scanned for vulnerable packages), not attacker-controlled input
 	if err != nil {
 		findings = append(findings, Finding{
 			Check:    "dependency-python",

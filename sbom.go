@@ -101,7 +101,7 @@ func GenerateSBOMJSON(projectDir string, version string) (string, error) {
 func scanGoModForSBOM(path string) []SBOMComponent {
 	var components []SBOMComponent
 
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304 -- path is filepath.Join(projectDir, "go.mod") computed by GenerateSBOM against the project directory being scanned, not attacker-controlled input
 	if err != nil {
 		return nil
 	}
@@ -160,7 +160,7 @@ func goModLineToComponent(line string) *SBOMComponent {
 func scanPackageJSONForSBOM(path string) []SBOMComponent {
 	var components []SBOMComponent
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is filepath.Join(projectDir, "package.json") computed by GenerateSBOM against the project directory being scanned, not attacker-controlled input
 	if err != nil {
 		return nil
 	}
@@ -203,7 +203,7 @@ func scanPackageJSONForSBOM(path string) []SBOMComponent {
 func scanRequirementsForSBOM(path string) []SBOMComponent {
 	var components []SBOMComponent
 
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304 -- path is filepath.Join(projectDir, "requirements.txt") computed by GenerateSBOM against the project directory being scanned, not attacker-controlled input
 	if err != nil {
 		return nil
 	}
