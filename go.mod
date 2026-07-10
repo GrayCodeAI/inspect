@@ -1,6 +1,6 @@
 module github.com/GrayCodeAI/inspect
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/GrayCodeAI/hawk-core-contracts v0.1.2

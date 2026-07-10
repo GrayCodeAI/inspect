@@ -3,9 +3,46 @@ version: "2"
 linters:
   default: none
   enable:
+    - errcheck
     - govet
     - ineffassign
+    - staticcheck
+    - unused
     - misspell
+    - gocritic
+    - unconvert
+    - whitespace
+    - bodyclose
+    - noctx
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
+        - appendAssign
+    staticcheck:
+      checks: ["all", "-SA1019", "-ST1003"]
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gocritic
+          - noctx
+          - bodyclose
+      - path: _test\.go
+        text: "SA5011"
+        linters:
+          - staticcheck
 
 issues:
   max-issues-per-linter: 0

@@ -26,6 +26,11 @@ so any MCP-compatible agent can run audits.
 > directly to embed website auditing in your own Go program, or run the MCP
 > server to expose it to an agent.
 
+Source diff review, code conventions, and repository static analysis belong to
+`sight`. Inspect owns live HTTP/browser targets, TLS, cookies, headers,
+accessibility, and rendered-page behavior. The engines remain peers and never
+import one another.
+
 It crawls concurrently (with rate limiting, robots.txt support, redirect
 handling, and SSRF protection), runs each check against the discovered pages,
 and returns findings with severity levels. Results can be emitted as SARIF for
