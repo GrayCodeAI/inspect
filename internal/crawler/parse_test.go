@@ -288,8 +288,9 @@ func TestExtractLinks_TrackElement(t *testing.T) {
 func TestExtractLinks_EmptyBody(t *testing.T) {
 	links := extractLinks("https://example.com", []byte(""))
 	// html.Parse handles empty input gracefully
-	if links == nil {
-		// This is fine; empty body produces no links
+	// Empty body produces no links (nil slice is fine).
+	if len(links) != 0 {
+		t.Fatalf("expected no links, got %d", len(links))
 	}
 }
 

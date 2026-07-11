@@ -54,7 +54,7 @@ func (a *A11yCheck) checkPage(page *crawler.Page) []Finding {
 					findings = append(findings, Finding{
 						Severity: SeverityHigh,
 						URL:      page.URL,
-						Element:  fmt.Sprintf(`<img src="%s">`, truncateStr(src, 60)),
+						Element:  fmt.Sprintf(`<img src=%q>`, truncateStr(src, 60)),
 						Message:  "Image missing alt attribute",
 						Fix:      "Add descriptive alt text or alt=\"\" for decorative images",
 					})
@@ -67,7 +67,7 @@ func (a *A11yCheck) checkPage(page *crawler.Page) []Finding {
 						findings = append(findings, Finding{
 							Severity: SeverityMedium,
 							URL:      page.URL,
-							Element:  fmt.Sprintf(`<a href="%s">`, truncateStr(href, 60)),
+							Element:  fmt.Sprintf(`<a href=%q>`, truncateStr(href, 60)),
 							Message:  "Link has no accessible text",
 							Fix:      "Add visible text, aria-label, or aria-labelledby to the link",
 						})
@@ -94,7 +94,7 @@ func (a *A11yCheck) checkPage(page *crawler.Page) []Finding {
 						findings = append(findings, Finding{
 							Severity: SeverityMedium,
 							URL:      page.URL,
-							Element:  fmt.Sprintf(`<input name="%s">`, name),
+							Element:  fmt.Sprintf(`<input name=%q>`, name),
 							Message:  "Form input has no associated label",
 							Fix:      "Add a <label for=\"...\"> or aria-label attribute",
 						})

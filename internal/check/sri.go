@@ -68,9 +68,9 @@ func (s *SRICheck) checkSRI(pageURL string, n *html.Node, tag, src string) []Fin
 	integrity := getAttr(n, "integrity")
 	crossorigin := getAttr(n, "crossorigin")
 
-	element := fmt.Sprintf(`<%s src="%s">`, tag, truncateStr(src, 60))
+	element := fmt.Sprintf(`<%s src=%q>`, tag, truncateStr(src, 60))
 	if tag == "link" {
-		element = fmt.Sprintf(`<link href="%s">`, truncateStr(src, 60))
+		element = fmt.Sprintf(`<link href=%q>`, truncateStr(src, 60))
 	}
 
 	if integrity == "" {

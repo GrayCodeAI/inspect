@@ -295,7 +295,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		for _, h := range r.rule.HeaderMissing {
 			if page.Headers.Get(h) == "" {
 				findings = append(findings, check.Finding{
-					Severity: check.Severity(r.rule.RuleSeverity),
+					Severity: r.rule.RuleSeverity,
 					URL:      page.URL,
 					Message:  r.rule.Description + ": missing header " + h,
 					Fix:      r.rule.FixSuggestion,
@@ -311,7 +311,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 			}
 			if matchWithTimeout(re, val) {
 				findings = append(findings, check.Finding{
-					Severity: check.Severity(r.rule.RuleSeverity),
+					Severity: r.rule.RuleSeverity,
 					URL:      page.URL,
 					Message:  r.rule.Description,
 					Evidence: header + ": " + val,
@@ -326,7 +326,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		for _, re := range r.bodyRegexs {
 			if loc := findWithTimeout(re, body); loc != "" {
 				findings = append(findings, check.Finding{
-					Severity: check.Severity(r.rule.RuleSeverity),
+					Severity: r.rule.RuleSeverity,
 					URL:      page.URL,
 					Message:  r.rule.Description,
 					Evidence: truncateEvidence(loc, 100),
@@ -340,7 +340,7 @@ func (r *ruleCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []che
 		for _, re := range r.bodyMissing {
 			if !matchWithTimeout(re, body) {
 				findings = append(findings, check.Finding{
-					Severity: check.Severity(r.rule.RuleSeverity),
+					Severity: r.rule.RuleSeverity,
 					URL:      page.URL,
 					Message:  r.rule.Description + ": expected pattern not found",
 					Fix:      r.rule.FixSuggestion,
@@ -385,7 +385,7 @@ func (a *customCheckAdapter) Run(ctx context.Context, pages []*crawler.Page) []c
 	internal := make([]check.Finding, len(findings))
 	for i, f := range findings {
 		internal[i] = check.Finding{
-			Severity: check.Severity(f.Severity),
+			Severity: f.Severity,
 			URL:      f.URL,
 			Element:  f.Element,
 			Message:  f.Message,

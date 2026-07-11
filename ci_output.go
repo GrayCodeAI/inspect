@@ -31,9 +31,10 @@ func (ci *CIOutput) formatGitHub(findings []Finding) string {
 	var sb strings.Builder
 	for _, f := range findings {
 		level := "warning"
-		if f.Severity == SeverityCritical || f.Severity == SeverityHigh {
+		switch f.Severity {
+		case SeverityCritical, SeverityHigh:
 			level = "error"
-		} else if f.Severity == SeverityInfo {
+		case SeverityInfo:
 			level = "notice"
 		}
 		sb.WriteString(fmt.Sprintf("::%s file=%s,line=%d::%s\n", level, f.URL, 0, f.Message))

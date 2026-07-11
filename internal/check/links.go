@@ -103,7 +103,7 @@ func (l *LinksCheck) Run(ctx context.Context, pages []*crawler.Page) []Finding {
 						findings = append(findings, Finding{
 							Severity: SeverityMedium,
 							URL:      page.URL,
-							Element:  fmt.Sprintf(`<a href="%s">`, truncateHref(link.Href, 80)),
+							Element:  fmt.Sprintf(`<a href=%q>`, truncateHref(link.Href, 80)),
 							Message:  fmt.Sprintf("Fragment #%s not found on target page", fragment),
 							Fix:      "Add an element with id=\"" + fragment + "\" on the target page, or fix the link",
 							Evidence: fmt.Sprintf("Target: %s", resolved),
@@ -224,7 +224,7 @@ func (l *LinksCheck) checkExternalLinkWithDetector(ctx context.Context, pageURL,
 		return &Finding{
 			Severity: SeverityHigh,
 			URL:      pageURL,
-			Element:  fmt.Sprintf(`<a href="%s">`, href),
+			Element:  fmt.Sprintf(`<a href=%q>`, href),
 			Message:  fmt.Sprintf("External link unreachable: %s", resolved),
 			Fix:      "Remove or update the broken link",
 			Evidence: err.Error(),
@@ -250,7 +250,7 @@ func (l *LinksCheck) checkExternalLinkWithDetector(ctx context.Context, pageURL,
 				return &Finding{
 					Severity: severityForStatus(getResp.StatusCode),
 					URL:      pageURL,
-					Element:  fmt.Sprintf(`<a href="%s">`, href),
+					Element:  fmt.Sprintf(`<a href=%q>`, href),
 					Message:  fmt.Sprintf("External link returns HTTP %d: %s", getResp.StatusCode, resolved),
 					Fix:      "Remove or update the broken link",
 				}
@@ -262,7 +262,7 @@ func (l *LinksCheck) checkExternalLinkWithDetector(ctx context.Context, pageURL,
 		return &Finding{
 			Severity: severityForStatus(resp.StatusCode),
 			URL:      pageURL,
-			Element:  fmt.Sprintf(`<a href="%s">`, href),
+			Element:  fmt.Sprintf(`<a href=%q>`, href),
 			Message:  fmt.Sprintf("External link returns HTTP %d: %s", resp.StatusCode, resolved),
 			Fix:      "Remove or update the broken link",
 		}

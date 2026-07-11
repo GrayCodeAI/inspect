@@ -186,7 +186,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 				if src := getAttr(n, "src"); src != "" {
 					refs = append(refs, resourceRef{
 						URL:      src,
-						Element:  fmt.Sprintf(`<img src="%s">`, truncateResRef(src, 80)),
+						Element:  fmt.Sprintf(`<img src=%q>`, truncateResRef(src, 80)),
 						PageURL:  page.URL,
 						Resource: "image",
 					})
@@ -195,7 +195,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 				if src := getAttr(n, "src"); src != "" {
 					refs = append(refs, resourceRef{
 						URL:      src,
-						Element:  fmt.Sprintf(`<script src="%s">`, truncateResRef(src, 80)),
+						Element:  fmt.Sprintf(`<script src=%q>`, truncateResRef(src, 80)),
 						PageURL:  page.URL,
 						Resource: "script",
 					})
@@ -206,7 +206,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 					if href := getAttr(n, "href"); href != "" {
 						refs = append(refs, resourceRef{
 							URL:      href,
-							Element:  fmt.Sprintf(`<link rel="stylesheet" href="%s">`, truncateResRef(href, 80)),
+							Element:  fmt.Sprintf(`<link rel="stylesheet" href=%q>`, truncateResRef(href, 80)),
 							PageURL:  page.URL,
 							Resource: "stylesheet",
 						})
@@ -216,7 +216,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 					if href := getAttr(n, "href"); href != "" {
 						refs = append(refs, resourceRef{
 							URL:      href,
-							Element:  fmt.Sprintf(`<link rel="%s" href="%s">`, rel, truncateResRef(href, 80)),
+							Element:  fmt.Sprintf(`<link rel=%q href=%q>`, rel, truncateResRef(href, 80)),
 							PageURL:  page.URL,
 							Resource: "preload",
 						})
@@ -226,7 +226,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 				if src := getAttr(n, "src"); src != "" {
 					refs = append(refs, resourceRef{
 						URL:      src,
-						Element:  fmt.Sprintf(`<video src="%s">`, truncateResRef(src, 80)),
+						Element:  fmt.Sprintf(`<video src=%q>`, truncateResRef(src, 80)),
 						PageURL:  page.URL,
 						Resource: "media",
 					})
@@ -235,7 +235,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 				if src := getAttr(n, "src"); src != "" {
 					refs = append(refs, resourceRef{
 						URL:      src,
-						Element:  fmt.Sprintf(`<audio src="%s">`, truncateResRef(src, 80)),
+						Element:  fmt.Sprintf(`<audio src=%q>`, truncateResRef(src, 80)),
 						PageURL:  page.URL,
 						Resource: "media",
 					})
@@ -244,7 +244,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 				if src := getAttr(n, "src"); src != "" {
 					refs = append(refs, resourceRef{
 						URL:      src,
-						Element:  fmt.Sprintf(`<source src="%s">`, truncateResRef(src, 80)),
+						Element:  fmt.Sprintf(`<source src=%q>`, truncateResRef(src, 80)),
 						PageURL:  page.URL,
 						Resource: "media",
 					})
@@ -253,7 +253,7 @@ func extractResourceRefs(page *crawler.Page) []resourceRef {
 				if src := getAttr(n, "src"); src != "" {
 					refs = append(refs, resourceRef{
 						URL:      src,
-						Element:  fmt.Sprintf(`<iframe src="%s">`, truncateResRef(src, 80)),
+						Element:  fmt.Sprintf(`<iframe src=%q>`, truncateResRef(src, 80)),
 						PageURL:  page.URL,
 						Resource: "iframe",
 					})

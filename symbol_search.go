@@ -88,7 +88,7 @@ func GetSymbolBody(filePath, fqn string) (SymbolResult, error) {
 	}
 	fqnLower := strings.ToLower(fqn)
 	for _, r := range results {
-		if strings.ToLower(r.Symbol) == fqnLower || strings.HasSuffix(strings.ToLower(r.Symbol), "."+fqnLower) {
+		if strings.EqualFold(r.Symbol, fqnLower) || strings.HasSuffix(strings.ToLower(r.Symbol), "."+fqnLower) {
 			r.Body = extractBody(lines, r.StartLine-1, r.EndLine-1)
 			return r, nil
 		}
@@ -160,11 +160,13 @@ func leadingSpaces(s string) int {
 	for _, c := range s {
 		if c == ' ' {
 			n++
-		} else if c == '\t' {
-			n += 4
-		} else {
-			break
+			continue
 		}
+		if c == '\t' {
+			n += 4
+			continue
+		}
+		break
 	}
 	return n
 }
@@ -241,7 +243,7 @@ var javaSymPatterns = []symPattern{
 }
 
 func extractSymbolName(m []string, kind, ext string) string {
-	if kind == "method" && strings.ToLower(ext) == ".go" && len(m) >= 3 {
+	if kind == "method" && strings.EqualFold(ext, ".go") && len(m) >= 3 {
 		return m[1] + "." + m[2]
 	}
 	if len(m) >= 2 {
