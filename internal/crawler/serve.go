@@ -21,7 +21,7 @@ func ServeDir(ctx context.Context, dir string) (*http.Server, string, error) {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	go srv.Serve(listener)
+	go func() { _ = srv.Serve(listener) }()
 
 	return srv, listener.Addr().String(), nil
 }

@@ -70,7 +70,7 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 						findings = append(findings, Finding{
 							Severity: SeverityMedium,
 							URL:      page.URL,
-							Element:  fmt.Sprintf(`<script src="%s">`, truncateStr(src, 60)),
+							Element:  fmt.Sprintf(`<script src=%q>`, truncateStr(src, 60)),
 							Message:  "Render-blocking script in <head> without async or defer",
 							Fix:      "Add async or defer attribute, or move to end of <body>",
 						})
@@ -83,7 +83,7 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 					findings = append(findings, Finding{
 						Severity: SeverityLow,
 						URL:      page.URL,
-						Element:  fmt.Sprintf(`<link href="%s">`, truncateStr(href, 60)),
+						Element:  fmt.Sprintf(`<link href=%q>`, truncateStr(href, 60)),
 						Message:  "Render-blocking stylesheet without media query",
 						Fix:      "Add media attribute for non-critical CSS or load asynchronously",
 					})
@@ -97,7 +97,7 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 						findings = append(findings, Finding{
 							Severity: SeverityLow,
 							URL:      page.URL,
-							Element:  fmt.Sprintf(`<img src="%s">`, truncateStr(src, 60)),
+							Element:  fmt.Sprintf(`<img src=%q>`, truncateStr(src, 60)),
 							Message:  "Image missing width/height attributes (causes layout shift)",
 							Fix:      "Add explicit width and height attributes to prevent CLS",
 						})
@@ -111,7 +111,7 @@ func (p *PerfCheck) checkPage(page *crawler.Page) []Finding {
 						findings = append(findings, Finding{
 							Severity: SeverityLow,
 							URL:      page.URL,
-							Element:  fmt.Sprintf(`<img src="%s">`, truncateStr(src, 60)),
+							Element:  fmt.Sprintf(`<img src=%q>`, truncateStr(src, 60)),
 							Message:  "Image missing loading=\"lazy\" attribute",
 							Fix:      "Add loading=\"lazy\" for below-fold images",
 						})

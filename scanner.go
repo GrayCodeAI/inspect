@@ -147,7 +147,7 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 				for i, f := range findings {
 					converted[i] = Finding{
 						Check:    chk.Name(),
-						Severity: Severity(f.Severity),
+						Severity: f.Severity,
 						URL:      f.URL,
 						Element:  f.Element,
 						Message:  f.Message,

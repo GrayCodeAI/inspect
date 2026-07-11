@@ -1,6 +1,7 @@
 package inspect
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -40,8 +41,8 @@ func (a *APISecurityChecker) httpClient() *http.Client {
 }
 
 // newRequest creates a request with the configured headers.
-func (a *APISecurityChecker) newRequest(method, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, body)
+func (a *APISecurityChecker) newRequest(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func (a *APISecurityChecker) CheckCORS(url string) []Finding {
 	}
 
 	for _, origin := range testOrigins {
-		req, err := a.newRequest("GET", url, nil)
+		req, err := a.newRequest(context.Background(), "GET", url, nil)
 		if err != nil {
 			continue
 		}
@@ -131,7 +132,7 @@ func (a *APISecurityChecker) CheckRateLimiting(url string) []Finding {
 	var rateLimitHeaderFound bool
 
 	for i := 0; i < requestCount; i++ {
-		req, err := a.newRequest("GET", url, nil)
+		req, err := a.newRequest(context.Background(), "GET", url, nil)
 		if err != nil {
 			continue
 		}
@@ -179,7 +180,7 @@ func (a *APISecurityChecker) CheckAuthHeaders(url string) []Finding {
 	var findings []Finding
 	client := a.httpClient()
 
-	req, err := a.newRequest("GET", url, nil)
+	req, err := a.newRequest(context.Background(), "GET", url, nil)
 	if err != nil {
 		return findings
 	}
@@ -246,7 +247,7 @@ func (a *APISecurityChecker) CheckVerbTampering(url string) []Finding {
 	}
 
 	for _, m := range dangerousMethods {
-		req, err := a.newRequest(m.Method, url, nil)
+		req, err := a.newRequest(context.Background(), m.Method, url, nil)
 		if err != nil {
 			continue
 		}
@@ -285,7 +286,7 @@ func (a *APISecurityChecker) CheckVerbTampering(url string) []Finding {
 	}
 
 	// Check OPTIONS to see what methods are advertised
-	req, err := a.newRequest("OPTIONS", url, nil)
+	req, err := a.newRequest(context.Background(), "OPTIONS", url, nil)
 	if err == nil {
 		resp, err := client.Do(req)
 		if err == nil {
@@ -357,7 +358,7 @@ func (a *APISecurityChecker) CheckErrorLeakage(url string) []Finding {
 			bodyReader = strings.NewReader(mr.Body)
 		}
 
-		req, err := a.newRequest(mr.Method, mr.Path, bodyReader)
+		req, err := a.newRequest(context.Background(), mr.Method, mr.Path, bodyReader)
 		if err != nil {
 			continue
 		}

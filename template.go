@@ -85,7 +85,7 @@ func ParseTemplates(data []byte) ([]RuleCheck, error) {
 
 	templates := tf.Templates
 	// If the file used the single-template form, the inline fields are populated.
-	if len(templates) == 0 && tf.Template.Name != "" {
+	if len(templates) == 0 && tf.Name != "" {
 		templates = []Template{tf.Template}
 	}
 	if len(templates) == 0 {
