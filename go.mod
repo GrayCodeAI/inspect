@@ -3,8 +3,8 @@ module github.com/GrayCodeAI/inspect
 go 1.26.5
 
 require (
-	github.com/GrayCodeAI/hawk-core-contracts v0.1.2
-	github.com/GrayCodeAI/hawk-mcpkit v0.1.0
+	github.com/GrayCodeAI/hawk-core-contracts v0.1.4
+	github.com/GrayCodeAI/hawk-mcpkit v0.1.4
 	github.com/mark3labs/mcp-go v0.49.0
 	golang.org/x/net v0.55.0
 	golang.org/x/time v0.15.0
