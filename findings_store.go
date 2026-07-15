@@ -121,34 +121,6 @@ func (s *FindingsStore) Size() int {
 	return len(s.buffer)
 }
 
-// ConvertArchiveToEntries converts the results in an Archive into
-// FindingEntry records suitable for the store.
-func ConvertArchiveToEntries(archive *Archive) []FindingEntry {
-	if archive == nil {
-		return nil
-	}
-	entries := make([]FindingEntry, 0, len(archive.Results))
-	for _, r := range archive.Results {
-		passed := r.StatusCode >= 200 && r.StatusCode < 400 && r.Error == ""
-		msg := fmt.Sprintf("HTTP %d", r.StatusCode)
-		if r.Error != "" {
-			msg = r.Error
-		}
-		entries = append(entries, FindingEntry{
-			ScanID:    archive.ScanID,
-			URL:       r.URL,
-			CheckName: "archive-entry",
-			Passed:    passed,
-			Severity:  severityFromStatusCode(r.StatusCode, r.Error),
-			Message:   msg,
-			Details:   r.BodySnippet,
-			Tags:      r.Tags,
-			ScannedAt: r.ScannedAt,
-		})
-	}
-	return entries
-}
-
 // ConvertScanResult converts a slice of Finding records from a scan into
 // FindingEntry records for the store.
 func ConvertScanResult(url string, findings []Finding) []FindingEntry {
