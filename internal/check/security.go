@@ -132,7 +132,7 @@ func checkCSPQuality(page *crawler.Page) []Finding {
 				URL:      page.URL,
 				Message:  "CSP allows 'unsafe-inline' in script-src",
 				Fix:      "Remove 'unsafe-inline' from script-src and use nonces or hashes instead",
-				Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+				Evidence: fmt.Sprintf("Content-Security-Policy: %s", Truncate(csp, 120)),
 			})
 		}
 		if lower == "'unsafe-eval'" {
@@ -141,7 +141,7 @@ func checkCSPQuality(page *crawler.Page) []Finding {
 				URL:      page.URL,
 				Message:  "CSP allows 'unsafe-eval' in script-src",
 				Fix:      "Remove 'unsafe-eval' and refactor code to avoid eval()",
-				Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+				Evidence: fmt.Sprintf("Content-Security-Policy: %s", Truncate(csp, 120)),
 			})
 		}
 	}
@@ -155,7 +155,7 @@ func checkCSPQuality(page *crawler.Page) []Finding {
 					URL:      page.URL,
 					Message:  fmt.Sprintf("CSP contains wildcard '*' in %s", directive),
 					Fix:      fmt.Sprintf("Replace '*' in %s with specific trusted origins", directive),
-					Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+					Evidence: fmt.Sprintf("Content-Security-Policy: %s", Truncate(csp, 120)),
 				})
 			}
 		}
@@ -168,7 +168,7 @@ func checkCSPQuality(page *crawler.Page) []Finding {
 			URL:      page.URL,
 			Message:  "CSP missing frame-ancestors directive",
 			Fix:      "Add frame-ancestors 'self' (or 'none') to prevent clickjacking via CSP",
-			Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+			Evidence: fmt.Sprintf("Content-Security-Policy: %s", Truncate(csp, 120)),
 		})
 	}
 
@@ -182,7 +182,7 @@ func checkCSPQuality(page *crawler.Page) []Finding {
 					URL:      page.URL,
 					Message:  fmt.Sprintf("CSP directive %s uses overly broad source %q", directive, src),
 					Fix:      fmt.Sprintf("Replace %q in %s with specific domain origins", src, directive),
-					Evidence: fmt.Sprintf("Content-Security-Policy: %s", truncate(csp, 120)),
+					Evidence: fmt.Sprintf("Content-Security-Policy: %s", Truncate(csp, 120)),
 				})
 			}
 		}
@@ -258,7 +258,7 @@ func (s *SecurityCheck) checkExposedSecrets(page *crawler.Page) []Finding {
 				URL:      page.URL,
 				Message:  "Potential secret or credential exposed in page source",
 				Fix:      "Remove hardcoded secrets; rotate any exposed credentials immediately",
-				Evidence: truncate(string(loc), 80),
+				Evidence: Truncate(string(loc), 80),
 			})
 		}
 	}
@@ -318,7 +318,7 @@ func (s *SecurityCheck) checkSetCookie(page *crawler.Page) []Finding {
 			}
 		}
 
-		evidence := fmt.Sprintf("Set-Cookie: %s", truncate(cookie, 80))
+		evidence := fmt.Sprintf("Set-Cookie: %s", Truncate(cookie, 80))
 
 		// Check missing Secure flag on HTTPS pages
 		if isHTTPS && !hasSecure {
@@ -380,11 +380,4 @@ var versionRegex = regexp.MustCompile(`\d+\.\d+`)
 
 func containsVersion(s string) bool {
 	return versionRegex.MatchString(s)
-}
-
-func truncate(s string, max int) string {
-	if len(s) <= max {
-		return s
-	}
-	return s[:max] + "..."
 }

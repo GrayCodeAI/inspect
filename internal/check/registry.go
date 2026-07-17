@@ -60,6 +60,19 @@ func (r *Registry) Register(c Checker) {
 	r.checks[c.Name()] = c
 }
 
+// Truncate truncates s to at most max UTF-8 code points, appending "..." if
+// the string was longer than max. It is safe for multi-byte characters.
+func Truncate(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) <= max {
+		return string(runes)
+	}
+	return string(runes[:max]) + "..."
+}
+
+// truncate is a package-level alias for internal use.
+func truncate(s string, max int) string { return Truncate(s, max) }
+
 // Filter returns only the checks whose names appear in the enabled list.
 func (r *Registry) Filter(enabled []string) []Checker {
 	if len(enabled) == 0 {
@@ -69,7 +82,7 @@ func (r *Registry) Filter(enabled []string) []Checker {
 	for _, name := range enabled {
 		enabledSet[name] = true
 	}
-	var result []Checker
+	result := make([]Checker, 0, len(r.checks))
 	for name, chk := range r.checks {
 		if enabledSet[name] {
 			result = append(result, chk)
