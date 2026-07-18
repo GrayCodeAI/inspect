@@ -36,7 +36,7 @@ go vet ./...                      # Static analysis
 For full hawk-eco extension guidelines, see [hawk/AGENTS.md](https://github.com/GrayCodeAI/hawk/blob/main/AGENTS.md).
 
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+## GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **inspect** (2036 symbols, 6681 relationships, 121 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
