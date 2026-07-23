@@ -3,6 +3,7 @@ package inspect
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -200,6 +201,13 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 // ScanDir scans a local directory by starting a temporary file server.
 // Useful for auditing build output before deployment.
 func (s *Scanner) ScanDir(ctx context.Context, dir string) (*Report, error) {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return nil, fmt.Errorf("inspect: cannot access directory %q: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("inspect: %q is not a directory", dir)
+	}
 	srv, addr, err := crawler.ServeDir(ctx, dir)
 	if err != nil {
 		return nil, err
