@@ -200,19 +200,18 @@ func TestProtocol_ToolsList(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	if len(result.Result.Tools) != 2 {
-		t.Fatalf("expected 2 tools, got %d", len(result.Result.Tools))
+	if len(result.Result.Tools) != 4 {
+		t.Fatalf("expected 4 tools, got %d", len(result.Result.Tools))
 	}
 
 	names := make(map[string]bool)
 	for _, tool := range result.Result.Tools {
 		names[tool.Name] = true
 	}
-	if !names["inspect_scan"] {
-		t.Error("inspect_scan tool not found in tools/list")
-	}
-	if !names["inspect_scan_dir"] {
-		t.Error("inspect_scan_dir tool not found in tools/list")
+	for _, expected := range []string{"inspect_scan", "inspect_scan_dir", "inspect_checks", "inspect_status"} {
+		if !names[expected] {
+			t.Errorf("%s tool not found in tools/list", expected)
+		}
 	}
 }
 
@@ -489,18 +488,15 @@ func TestHandleScanDir_NonexistentDir(t *testing.T) {
 	if result == nil {
 		t.Fatal("expected result")
 	}
-	// The ScanDir function starts a file server on the given directory.
-	// For a nonexistent path, the server may still start and serve 404s.
-	// The scanner reports these as findings, not as a tool error.
+	// ScanDir calls os.Stat on the path; a nonexistent directory returns an
+	// error, which handleScanDir surfaces as a tool-level error result.
+	if !result.IsError {
+		t.Fatal("expected tool-level error for nonexistent directory")
+	}
 	for _, c := range result.Content {
 		if tc, ok := c.(mcplib.TextContent); ok {
-			var report inspect.Report
-			if err := json.Unmarshal([]byte(tc.Text), &report); err != nil {
-				t.Fatalf("expected valid JSON report: %v", err)
-			}
-			// Report should exist with a target.
-			if report.Target == "" {
-				t.Error("expected non-empty target in report")
+			if tc.Text == "" {
+				t.Fatal("expected non-empty error message")
 			}
 		}
 	}
