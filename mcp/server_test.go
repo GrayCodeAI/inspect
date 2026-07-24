@@ -640,5 +640,126 @@ func TestErrorHandling_UnknownMethod(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// inspect_checks and inspect_status tools
+// ---------------------------------------------------------------------------
+
+func TestProtocol_ToolsCall_Checks(t *testing.T) {
+	ts, _ := newTestHTTPServer(t, inspect.Quick, inspect.WithAllowPrivateIPs())
+	sid := initAndSession(t, ts)
+
+	resp, err := postSessionJSON(ts.URL, sid, jsonRPCRequest(3, "tools/call", map[string]any{
+		"name":      "inspect_checks",
+		"arguments": map[string]any{},
+	}))
+	if err != nil {
+		t.Fatalf("tools/call: %v", err)
+	}
+
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var rpcResp struct {
+		Result struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &rpcResp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if rpcResp.Result.IsError {
+		t.Fatalf("expected success, got error: %s", rpcResp.Result.Content[0].Text)
+	}
+	if len(rpcResp.Result.Content) == 0 {
+		t.Fatal("expected at least one content item")
+	}
+
+	// The text content should be a JSON object with a "checks" array.
+	var payload struct {
+		Checks []struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"checks"`
+	}
+	if err := json.Unmarshal([]byte(rpcResp.Result.Content[0].Text), &payload); err != nil {
+		t.Fatalf("content is not valid JSON: %v\nraw: %s", err, rpcResp.Result.Content[0].Text)
+	}
+	if len(payload.Checks) == 0 {
+		t.Fatal("expected at least one audit check in the catalog")
+	}
+
+	// Spot-check that a known check is present.
+	found := map[string]bool{}
+	for _, c := range payload.Checks {
+		found[c.Name] = true
+	}
+	for _, want := range []string{"links", "security", "a11y"} {
+		if !found[want] {
+			t.Errorf("expected %q check in catalog, not found", want)
+		}
+	}
+}
+
+func TestProtocol_ToolsCall_Status(t *testing.T) {
+	ts, _ := newTestHTTPServer(t, inspect.Quick, inspect.WithAllowPrivateIPs())
+	sid := initAndSession(t, ts)
+
+	resp, err := postSessionJSON(ts.URL, sid, jsonRPCRequest(3, "tools/call", map[string]any{
+		"name":      "inspect_status",
+		"arguments": map[string]any{},
+	}))
+	if err != nil {
+		t.Fatalf("tools/call: %v", err)
+	}
+
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var rpcResp struct {
+		Result struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &rpcResp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if rpcResp.Result.IsError {
+		t.Fatalf("expected success, got error: %s", rpcResp.Result.Content[0].Text)
+	}
+	if len(rpcResp.Result.Content) == 0 {
+		t.Fatal("expected at least one content item")
+	}
+
+	var payload struct {
+		Name    string   `json:"name"`
+		Version string   `json:"version"`
+		Tools   []string `json:"tools"`
+	}
+	if err := json.Unmarshal([]byte(rpcResp.Result.Content[0].Text), &payload); err != nil {
+		t.Fatalf("content is not valid JSON: %v\nraw: %s", err, rpcResp.Result.Content[0].Text)
+	}
+	if payload.Name != "inspect" {
+		t.Errorf("name: want inspect, got %q", payload.Name)
+	}
+	if payload.Version != inspect.Version {
+		t.Errorf("version: want %s, got %s", inspect.Version, payload.Version)
+	}
+	if len(payload.Tools) == 0 {
+		t.Error("expected at least one tool in status output")
+	}
+}
+
 // Note: additional tests for the mcp package live in server_more_test.go
 // (split out for file size/clarity). Shared test helpers remain in this file.
