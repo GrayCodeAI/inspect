@@ -31,9 +31,9 @@ type QualityNode struct {
 
 // QualityEdge represents a quality relationship between code elements.
 type QualityEdge struct {
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Kind   string `json:"kind"`   // "depends_on", "imports", "calls", "tests"
+	From   string  `json:"from"`
+	To     string  `json:"to"`
+	Kind   string  `json:"kind"` // "depends_on", "imports", "calls", "tests"
 	Weight float64 `json:"weight"`
 }
 
@@ -154,9 +154,9 @@ func (g *QualityGraph) ToGraphSpec() *graphcontracts.GraphSpec {
 	nodes := make([]graphcontracts.NodeSpec, 0, len(g.nodes))
 	for id, node := range g.nodes {
 		config := map[string]string{
-			"path":     node.Path,
-			"type":     node.Type,
-			"metrics":  fmt.Sprintf("%d", len(node.Metrics)),
+			"path":    node.Path,
+			"type":    node.Type,
+			"metrics": fmt.Sprintf("%d", len(node.Metrics)),
 		}
 		for _, m := range node.Metrics {
 			config["metric_"+m.Name] = fmt.Sprintf("%.2f", m.Value)
@@ -180,10 +180,10 @@ func (g *QualityGraph) ToGraphSpec() *graphcontracts.GraphSpec {
 	}
 
 	return &graphcontracts.GraphSpec{
-		ID:     "quality-graph",
-		Name:   "Code Quality Graph",
-		Nodes:  nodes,
-		Edges:  edges,
+		ID:    "quality-graph",
+		Name:  "Code Quality Graph",
+		Nodes: nodes,
+		Edges: edges,
 	}
 }
 
