@@ -200,19 +200,18 @@ func TestProtocol_ToolsList(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	if len(result.Result.Tools) != 2 {
-		t.Fatalf("expected 2 tools, got %d", len(result.Result.Tools))
+	if len(result.Result.Tools) != 4 {
+		t.Fatalf("expected 4 tools, got %d", len(result.Result.Tools))
 	}
 
 	names := make(map[string]bool)
 	for _, tool := range result.Result.Tools {
 		names[tool.Name] = true
 	}
-	if !names["inspect_scan"] {
-		t.Error("inspect_scan tool not found in tools/list")
-	}
-	if !names["inspect_scan_dir"] {
-		t.Error("inspect_scan_dir tool not found in tools/list")
+	for _, expected := range []string{"inspect_scan", "inspect_scan_dir", "inspect_checks", "inspect_status"} {
+		if !names[expected] {
+			t.Errorf("%s tool not found in tools/list", expected)
+		}
 	}
 }
 
@@ -489,18 +488,15 @@ func TestHandleScanDir_NonexistentDir(t *testing.T) {
 	if result == nil {
 		t.Fatal("expected result")
 	}
-	// The ScanDir function starts a file server on the given directory.
-	// For a nonexistent path, the server may still start and serve 404s.
-	// The scanner reports these as findings, not as a tool error.
+	// ScanDir calls os.Stat on the path; a nonexistent directory returns an
+	// error, which handleScanDir surfaces as a tool-level error result.
+	if !result.IsError {
+		t.Fatal("expected tool-level error for nonexistent directory")
+	}
 	for _, c := range result.Content {
 		if tc, ok := c.(mcplib.TextContent); ok {
-			var report inspect.Report
-			if err := json.Unmarshal([]byte(tc.Text), &report); err != nil {
-				t.Fatalf("expected valid JSON report: %v", err)
-			}
-			// Report should exist with a target.
-			if report.Target == "" {
-				t.Error("expected non-empty target in report")
+			if tc.Text == "" {
+				t.Fatal("expected non-empty error message")
 			}
 		}
 	}
@@ -641,6 +637,127 @@ func TestErrorHandling_UnknownMethod(t *testing.T) {
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			t.Errorf("expected error for unknown method, got HTTP %d", resp.StatusCode)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// inspect_checks and inspect_status tools
+// ---------------------------------------------------------------------------
+
+func TestProtocol_ToolsCall_Checks(t *testing.T) {
+	ts, _ := newTestHTTPServer(t, inspect.Quick, inspect.WithAllowPrivateIPs())
+	sid := initAndSession(t, ts)
+
+	resp, err := postSessionJSON(ts.URL, sid, jsonRPCRequest(3, "tools/call", map[string]any{
+		"name":      "inspect_checks",
+		"arguments": map[string]any{},
+	}))
+	if err != nil {
+		t.Fatalf("tools/call: %v", err)
+	}
+
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var rpcResp struct {
+		Result struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &rpcResp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if rpcResp.Result.IsError {
+		t.Fatalf("expected success, got error: %s", rpcResp.Result.Content[0].Text)
+	}
+	if len(rpcResp.Result.Content) == 0 {
+		t.Fatal("expected at least one content item")
+	}
+
+	// The text content should be a JSON object with a "checks" array.
+	var payload struct {
+		Checks []struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"checks"`
+	}
+	if err := json.Unmarshal([]byte(rpcResp.Result.Content[0].Text), &payload); err != nil {
+		t.Fatalf("content is not valid JSON: %v\nraw: %s", err, rpcResp.Result.Content[0].Text)
+	}
+	if len(payload.Checks) == 0 {
+		t.Fatal("expected at least one audit check in the catalog")
+	}
+
+	// Spot-check that a known check is present.
+	found := map[string]bool{}
+	for _, c := range payload.Checks {
+		found[c.Name] = true
+	}
+	for _, want := range []string{"links", "security", "a11y"} {
+		if !found[want] {
+			t.Errorf("expected %q check in catalog, not found", want)
+		}
+	}
+}
+
+func TestProtocol_ToolsCall_Status(t *testing.T) {
+	ts, _ := newTestHTTPServer(t, inspect.Quick, inspect.WithAllowPrivateIPs())
+	sid := initAndSession(t, ts)
+
+	resp, err := postSessionJSON(ts.URL, sid, jsonRPCRequest(3, "tools/call", map[string]any{
+		"name":      "inspect_status",
+		"arguments": map[string]any{},
+	}))
+	if err != nil {
+		t.Fatalf("tools/call: %v", err)
+	}
+
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var rpcResp struct {
+		Result struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &rpcResp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if rpcResp.Result.IsError {
+		t.Fatalf("expected success, got error: %s", rpcResp.Result.Content[0].Text)
+	}
+	if len(rpcResp.Result.Content) == 0 {
+		t.Fatal("expected at least one content item")
+	}
+
+	var payload struct {
+		Name    string   `json:"name"`
+		Version string   `json:"version"`
+		Tools   []string `json:"tools"`
+	}
+	if err := json.Unmarshal([]byte(rpcResp.Result.Content[0].Text), &payload); err != nil {
+		t.Fatalf("content is not valid JSON: %v\nraw: %s", err, rpcResp.Result.Content[0].Text)
+	}
+	if payload.Name != "inspect" {
+		t.Errorf("name: want inspect, got %q", payload.Name)
+	}
+	if payload.Version != inspect.Version {
+		t.Errorf("version: want %s, got %s", inspect.Version, payload.Version)
+	}
+	if len(payload.Tools) == 0 {
+		t.Error("expected at least one tool in status output")
 	}
 }
 
