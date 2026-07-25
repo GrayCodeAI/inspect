@@ -11,8 +11,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/GrayCodeAI/hawk-core-contracts => ../hawk-core-contracts
-
 require (
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
