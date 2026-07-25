@@ -3,13 +3,15 @@ module github.com/GrayCodeAI/inspect
 go 1.26.5
 
 require (
-	github.com/GrayCodeAI/hawk-core-contracts v0.1.4
+	github.com/GrayCodeAI/hawk-core-contracts v0.1.8
 	github.com/GrayCodeAI/hawk-mcpkit v0.1.4
 	github.com/mark3labs/mcp-go v0.49.0
 	golang.org/x/net v0.55.0
 	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/GrayCodeAI/hawk-core-contracts => ../hawk-core-contracts
 
 require (
 	github.com/google/jsonschema-go v0.4.2 // indirect
