@@ -51,6 +51,16 @@ func (s *Server) registerTools() {
 		mcplib.WithDescription("Scan a local directory of HTML files"),
 		mcplib.WithString("path", mcplib.Required(), mcplib.Description("Local directory path")),
 	), s.handleScanDir)
+
+	s.kit.AddTool(mcplib.NewTool(
+		"inspect_checks",
+		mcplib.WithDescription("List all available audit checks and what they detect"),
+	), s.handleChecks)
+
+	s.kit.AddTool(mcplib.NewTool(
+		"inspect_status",
+		mcplib.WithDescription("Return the inspect server version and capabilities"),
+	), s.handleStatus)
 }
 
 func (s *Server) handleScan(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
@@ -83,4 +93,27 @@ func (s *Server) handleScanDir(ctx context.Context, req mcplib.CallToolRequest) 
 		return mcplib.NewToolResultError(fmt.Sprintf("scan_dir failed: %v", err)), nil
 	}
 	return mcpkit.JSONResult(report)
+}
+
+func (s *Server) handleChecks(_ context.Context, _ mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	checks := []map[string]string{
+		{"name": "links", "description": "Broken links, redirect chains, and dead anchors"},
+		{"name": "security", "description": "Security headers (CSP, HSTS, X-Frame-Options), mixed content"},
+		{"name": "forms", "description": "Form accessibility, autocomplete, and sensitive field handling"},
+		{"name": "a11y", "description": "Accessibility: alt text, ARIA roles, contrast, heading structure"},
+		{"name": "perf", "description": "Performance: render-blocking resources, image optimization hints"},
+		{"name": "seo", "description": "SEO: meta tags, canonical URLs, structured data"},
+		{"name": "sri", "description": "Subresource Integrity hashes on external scripts and styles"},
+		{"name": "aiready", "description": "AI-readiness: robots.txt, llms.txt, structured data for crawlers"},
+		{"name": "reachability", "description": "URL reachability and HTTP status codes"},
+	}
+	return mcpkit.JSONResult(map[string]interface{}{"checks": checks})
+}
+
+func (s *Server) handleStatus(_ context.Context, _ mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	return mcpkit.JSONResult(map[string]interface{}{
+		"name":    "inspect",
+		"version": inspect.Version,
+		"tools":   []string{"inspect_scan", "inspect_scan_dir", "inspect_checks", "inspect_status"},
+	})
 }
