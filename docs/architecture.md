@@ -38,6 +38,7 @@ inspect/
 ├── sarif.go                  📊 GenerateSARIF — SARIF 2.1.0 output
 ├── browser.go                🌐 BrowserEngine interface + page-data types (no rod import)
 ├── browser_fetcher.go        🔌 Adapts a BrowserEngine into the crawler's fetcher
+├── qualitygraph/             🕸️ Privacy-safe shared quality graph projection
 ├── checks/                   ✅ Built-in checks run against crawled responses
 │   ├── headers.go            📋 Missing security headers (CSP, HSTS, …)
 │   ├── cookies.go            🍪 Cookie Secure/HttpOnly/SameSite flags
@@ -164,6 +165,11 @@ A `Report` aggregates findings plus `Stats` (pages scanned, counts by severity
 and check, per-check durations) and a `FailOn` threshold; `Report.Failed()` and
 `Report.MaxSeverity()` summarize the run. `GenerateSARIF` converts findings to
 SARIF 2.1.0.
+
+`qualitygraph.Build` is an explicit read-only projection boundary after a scan
+completes. It maps the report and a bounded set of findings to shared quality
+nodes, containment edges, and observation events. Sensitive report fields are
+hashed, and the package neither runs scans nor persists graph state.
 
 ---
 
