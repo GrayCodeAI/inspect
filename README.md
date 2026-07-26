@@ -178,6 +178,18 @@ See the [examples/](examples/) directory for runnable code samples.
 
 See [docs/architecture.md](docs/architecture.md) for the package layout and data flow.
 
+### Portable quality graph
+
+`qualitygraph.Build` projects a completed `inspect.Report` into the shared
+`hawk-core-contracts/graph` vocabulary. The projection contains a quality node
+for the report, bounded quality nodes for findings, `contains` edges, and
+immutable observation events.
+
+The projection is metadata-only: scan targets, URLs, messages, DOM elements,
+fixes, and evidence are represented by SHA-256 digests rather than copied into
+graph attributes. Inspect remains the source of truth for scans and reports;
+consumers such as Hawk may journal or compose the portable projection.
+
 ## Ecosystem
 
 inspect is part of the hawk ecosystem:

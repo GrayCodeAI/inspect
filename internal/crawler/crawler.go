@@ -556,35 +556,40 @@ func (c *Crawler) validateURL(rawURL string) error {
 	return nil
 }
 
+// privateCIDRs are the RFC 1918, loopback, link-local, and CGNAT ranges
+// used for SSRF protection. Parsed once at init time; a malformed entry
+// is a programming error caught at startup, not at scan time.
+var privateCIDRs = func() []*net.IPNet {
+	cidrs := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"127.0.0.0/8",
+		"169.254.0.0/16", // link-local, incl. cloud metadata (169.254.169.254)
+		"100.64.0.0/10",  // CGNAT shared address space
+		"::1/128",
+		"fc00::/7",
+		"fe80::/10", // IPv6 link-local
+	}
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, s := range cidrs {
+		_, network, err := net.ParseCIDR(s)
+		if err != nil {
+			panic(fmt.Sprintf("inspect/crawler: invalid private CIDR %q: %v", s, err))
+		}
+		nets = append(nets, network)
+	}
+	return nets
+}()
+
 // isPrivateIP checks if an IP is in a private/loopback range.
 func isPrivateIP(ip net.IP) bool {
-	privateRanges := []struct {
-		network *net.IPNet
-	}{
-		{mustParseCIDR("10.0.0.0/8")},
-		{mustParseCIDR("172.16.0.0/12")},
-		{mustParseCIDR("192.168.0.0/16")},
-		{mustParseCIDR("127.0.0.0/8")},
-		{mustParseCIDR("169.254.0.0/16")}, // link-local, incl. cloud metadata (169.254.169.254)
-		{mustParseCIDR("100.64.0.0/10")},  // CGNAT shared address space
-		{mustParseCIDR("::1/128")},
-		{mustParseCIDR("fc00::/7")},
-		{mustParseCIDR("fe80::/10")}, // IPv6 link-local
-	}
-	for _, r := range privateRanges {
-		if r.network.Contains(ip) {
+	for _, network := range privateCIDRs {
+		if network.Contains(ip) {
 			return true
 		}
 	}
 	return false
-}
-
-func mustParseCIDR(s string) *net.IPNet {
-	_, network, err := net.ParseCIDR(s)
-	if err != nil {
-		panic(err)
-	}
-	return network
 }
 
 func isRetryable(statusCode int) bool {
