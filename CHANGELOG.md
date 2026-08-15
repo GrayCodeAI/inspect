@@ -9,6 +9,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Removed
+- **Dead exported `RateLimiter` type** (`ratelimit.go`). It had no
+  callers — the crawler rate-limits via its own internal per-crawl
+  limiter (`internal/crawler/rate.go`) — and its `Close` panicked when
+  called twice. Removed along with its test file; the now-unused
+  `golang.org/x/time` dependency is dropped from `go.mod`. This is a
+  minor API removal of code that never worked in a real scan; the
+  crawler's actual rate limiting is unchanged.
+
 ### Fixed
 - **`FindingsStore.Flush` dropped the batch when the sink errored.** The
   buffer was swapped out before `StoreBatch`, so a failing sink silently
