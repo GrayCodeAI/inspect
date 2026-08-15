@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **`Scanner.ScanDir` was blocked by its own SSRF protection.** The
+  temporary file server behind `ScanDir` listens on `127.0.0.1`, which the
+  crawler rejects under the default configuration, so default-options
+  scans (including the MCP `inspect_scan_dir` tool) returned a silently
+  empty report. The crawler now accepts an exact `host:port` private-IP
+  allowlist (`crawler.Config.PrivateIPAllowlist`) honored at both the
+  dialer and URL-validation layers, and `ScanDir` registers its ephemeral
+  listener address for the duration of that scan only. User-supplied URLs
+  and all other private addresses remain blocked.
+
+---
+
 ## [0.1.3] - 2026-07-04
 
 ### Changed

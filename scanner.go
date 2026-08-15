@@ -28,6 +28,15 @@ func NewScanner(opts ...Option) *Scanner {
 // Scan crawls the target URL and runs all configured checks against the
 // discovered pages. Returns a complete Report with findings and stats.
 func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
+	return s.scan(ctx, target, nil)
+}
+
+// scan is the shared implementation of Scan and ScanDir. allowPrivateAddrs
+// lists exact host:port addresses exempt from the crawler's SSRF private-IP
+// blocking for this scan only; ScanDir uses it for the ephemeral local file
+// server it starts. It must only ever contain addresses the scanner itself
+// brought up, never user-supplied input.
+func (s *Scanner) scan(ctx context.Context, target string, allowPrivateAddrs []string) (*Report, error) {
 	if s.cfg.timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, s.cfg.timeout)
@@ -37,21 +46,22 @@ func (s *Scanner) Scan(ctx context.Context, target string) (*Report, error) {
 	start := time.Now()
 
 	crawlCfg := crawler.Config{
-		MaxDepth:        s.cfg.depth,
-		Concurrency:     s.cfg.concurrency,
-		Timeout:         s.cfg.timeout,
-		PageTimeout:     s.cfg.pageTimeout,
-		RateLimit:       s.cfg.rateLimit,
-		UserAgent:       s.cfg.userAgent,
-		FollowRedirects: s.cfg.followRedirects,
-		RespectRobots:   s.cfg.respectRobots,
-		Exclude:         s.cfg.exclude,
-		AuthHeader:      s.cfg.authHeader,
-		AuthValue:       s.cfg.authValue,
-		CookieJar:       s.cfg.cookieJar,
-		AllowPrivateIPs: !s.cfg.blockPrivateIPs,
-		Logger:          s.cfg.logger,
-		MaxPages:        s.cfg.maxPages,
+		MaxDepth:           s.cfg.depth,
+		Concurrency:        s.cfg.concurrency,
+		Timeout:            s.cfg.timeout,
+		PageTimeout:        s.cfg.pageTimeout,
+		RateLimit:          s.cfg.rateLimit,
+		UserAgent:          s.cfg.userAgent,
+		FollowRedirects:    s.cfg.followRedirects,
+		RespectRobots:      s.cfg.respectRobots,
+		Exclude:            s.cfg.exclude,
+		AuthHeader:         s.cfg.authHeader,
+		AuthValue:          s.cfg.authValue,
+		CookieJar:          s.cfg.cookieJar,
+		AllowPrivateIPs:    !s.cfg.blockPrivateIPs,
+		PrivateIPAllowlist: allowPrivateAddrs,
+		Logger:             s.cfg.logger,
+		MaxPages:           s.cfg.maxPages,
 	}
 
 	if s.cfg.circuitBreakerOn {
@@ -213,5 +223,9 @@ func (s *Scanner) ScanDir(ctx context.Context, dir string) (*Report, error) {
 		return nil, err
 	}
 	defer srv.Close()
-	return s.Scan(ctx, "http://"+addr)
+	// The temporary file server listens on loopback, which the crawler's
+	// SSRF protection (enabled by default) would reject. Exempt exactly
+	// this listener address for the duration of the scan so ScanDir works
+	// with default options; every other private address stays blocked.
+	return s.scan(ctx, "http://"+addr, []string{addr})
 }
