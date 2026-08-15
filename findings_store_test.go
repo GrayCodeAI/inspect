@@ -3,6 +3,7 @@ package inspect
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -311,6 +312,130 @@ func TestFlushPropagatesBatchError(t *testing.T) {
 	}
 	if !errors.Is(err, expectedErr) {
 		t.Errorf("expected wrapped error %v, got %v", expectedErr, err)
+	}
+}
+
+// TestFlushRetriesBatchAfterSinkError verifies that a batch rejected by the
+// sink is retained in the buffer and delivered by the next successful
+// Flush, instead of being dropped.
+func TestFlushRetriesBatchAfterSinkError(t *testing.T) {
+	sink := &mockFindingSink{batchErr: errors.New("sink down")}
+	store := NewFindingsStore(sink, WithAutoFlush(false))
+	ctx := context.Background()
+
+	for i := 0; i < 5; i++ {
+		if err := store.Add(ctx, FindingEntry{Message: fmt.Sprintf("entry-%d", i)}); err != nil {
+			t.Fatalf("Add failed: %v", err)
+		}
+	}
+
+	if err := store.Flush(ctx); err == nil {
+		t.Fatal("expected error from Flush with failing sink")
+	}
+	if got := store.Size(); got != 5 {
+		t.Fatalf("expected failed batch of 5 entries to be retained, got buffer size %d", got)
+	}
+
+	// Sink recovers: the next Flush must retry and deliver the same batch.
+	sink.mu.Lock()
+	sink.batchErr = nil
+	sink.mu.Unlock()
+	if err := store.Flush(ctx); err != nil {
+		t.Fatalf("Flush after sink recovery failed: %v", err)
+	}
+	if got := sink.batchCallCount(); got != 2 {
+		t.Errorf("expected 2 StoreBatch calls (failed + retry), got %d", got)
+	}
+	sink.mu.Lock()
+	retry := sink.batchCalls[len(sink.batchCalls)-1]
+	sink.mu.Unlock()
+	if len(retry) != 5 {
+		t.Fatalf("expected retry batch of 5 entries, got %d", len(retry))
+	}
+	for i, e := range retry {
+		want := fmt.Sprintf("entry-%d", i)
+		if e.Message != want {
+			t.Errorf("retry batch entry %d: want %q, got %q", i, want, e.Message)
+		}
+	}
+	if got := store.Size(); got != 0 {
+		t.Errorf("expected empty buffer after successful retry, got %d", got)
+	}
+	if got := store.Dropped(); got != 0 {
+		t.Errorf("expected no dropped entries, got %d", got)
+	}
+}
+
+// TestFlushRequeuesFailedBatchBeforeNewEntries verifies ordering: entries
+// added while a flush is failing end up behind the re-queued batch.
+func TestFlushRequeuesFailedBatchBeforeNewEntries(t *testing.T) {
+	sink := &mockFindingSink{batchErr: errors.New("sink down")}
+	store := NewFindingsStore(sink, WithAutoFlush(false))
+	ctx := context.Background()
+
+	_ = store.Add(ctx, FindingEntry{Message: "first"})
+	_ = store.Add(ctx, FindingEntry{Message: "second"})
+	if err := store.Flush(ctx); err == nil {
+		t.Fatal("expected error from Flush with failing sink")
+	}
+	_ = store.Add(ctx, FindingEntry{Message: "third"})
+
+	sink.mu.Lock()
+	sink.batchErr = nil
+	sink.mu.Unlock()
+	if err := store.Flush(ctx); err != nil {
+		t.Fatalf("Flush after sink recovery failed: %v", err)
+	}
+	sink.mu.Lock()
+	got := sink.batchCalls[len(sink.batchCalls)-1]
+	sink.mu.Unlock()
+	want := []string{"first", "second", "third"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d entries, got %d", len(want), len(got))
+	}
+	for i, e := range got {
+		if e.Message != want[i] {
+			t.Errorf("entry %d: want %q, got %q", i, want[i], e.Message)
+		}
+	}
+}
+
+// TestFlushRequeueIsBounded verifies the buffer cap when a failed batch is
+// re-queued: overflow drops the oldest entries and counts them in Dropped.
+func TestFlushRequeueIsBounded(t *testing.T) {
+	store := NewFindingsStore(&mockFindingSink{}, WithAutoFlush(false))
+
+	store.mu.Lock()
+	store.buffer = make([]FindingEntry, maxBufferEntries-1)
+	for i := range store.buffer {
+		store.buffer[i].Message = fmt.Sprintf("buffered-%d", i)
+	}
+	batch := make([]FindingEntry, 10)
+	for i := range batch {
+		batch[i].Message = fmt.Sprintf("batch-%d", i)
+	}
+	store.requeueLocked(batch)
+	size := len(store.buffer)
+	dropped := store.dropped
+	first, last := store.buffer[0].Message, store.buffer[len(store.buffer)-1].Message
+	store.mu.Unlock()
+
+	if size != maxBufferEntries {
+		t.Errorf("expected buffer capped at %d entries, got %d", maxBufferEntries, size)
+	}
+	if dropped != 9 {
+		t.Errorf("expected 9 dropped entries, got %d", dropped)
+	}
+	if got := store.Dropped(); got != 9 {
+		t.Errorf("Dropped() = %d, want 9", got)
+	}
+	// The oldest entries (the head of the failed batch) are dropped; the
+	// newest (the tail of the existing buffer) survive.
+	if first != "batch-9" {
+		t.Errorf("first buffered entry = %q, want %q", first, "batch-9")
+	}
+	if last != fmt.Sprintf("buffered-%d", maxBufferEntries-2) {
+		t.Errorf("last buffered entry = %q, want the newest buffered entry", last)
 	}
 }
 

@@ -10,6 +10,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Fixed
+- **`FindingsStore.Flush` dropped the batch when the sink errored.** The
+  buffer was swapped out before `StoreBatch`, so a failing sink silently
+  lost every buffered entry. A failed flush now re-queues its batch at
+  the front of the buffer (entries added in the meantime keep their
+  order behind it) and still returns the error, so the next `Flush`
+  retries the same entries. The buffer stays bounded: re-queued batches
+  are capped at `maxBufferEntries` (10,000); overflow drops the oldest
+  entries and is reported via the new `FindingsStore.Dropped` counter.
 - **`Scanner.ScanDir` was blocked by its own SSRF protection.** The
   temporary file server behind `ScanDir` listens on `127.0.0.1`, which the
   crawler rejects under the default configuration, so default-options
