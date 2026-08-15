@@ -42,12 +42,16 @@ func ToContractReport(r *Report) *verifycontracts.Report {
 	if r == nil {
 		return nil
 	}
-	return &verifycontracts.Report{
+	res := &verifycontracts.Report{
 		Target:      r.Target,
 		Findings:    ToContractFindings(r.Findings),
 		Stats:       toContractStats(r.Stats),
 		CrawledURLs: r.CrawledURLs,
 		Duration:    r.Duration,
-		FailOn:      r.FailOn,
 	}
+	// Set through the method so the threshold is recorded as explicitly
+	// configured; a bare field copy leaves FailOnSet false and the contract
+	// Failed() would fall back to its default threshold.
+	res.SetFailOn(r.FailOn)
+	return res
 }

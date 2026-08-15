@@ -36,6 +36,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   dialer and URL-validation layers, and `ScanDir` registers its ephemeral
   listener address for the duration of that scan only. User-supplied URLs
   and all other private addresses remain blocked.
+- **`ToContractReport` lost the configured fail threshold at the contract
+  layer.** The conversion field-copied `FailOn`, leaving the contract's
+  `FailOnSet` false, so a user-configured below-critical threshold did not
+  take effect in `verify.Report.Failed`. The converter now calls
+  `SetFailOn` so the threshold is recorded as explicitly configured.
 
 ---
 
