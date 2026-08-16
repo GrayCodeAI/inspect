@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/GrayCodeAI/hawk-core-contracts v0.1.13-0.20260815203243-0f60bf0259c0 // indirect
+	github.com/GrayCodeAI/hawk-core-contracts v0.1.13-0.20260816034142-16ebcfd5ad6e // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect

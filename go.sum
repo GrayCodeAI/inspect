@@ -1,5 +1,7 @@
 github.com/GrayCodeAI/hawk-core-contracts v0.1.13-0.20260815203243-0f60bf0259c0 h1:HD8Y2SEx1mx6A1uLCLjQ9E1hokRP5T/Kw5XmIgmqcOQ=
 github.com/GrayCodeAI/hawk-core-contracts v0.1.13-0.20260815203243-0f60bf0259c0/go.mod h1:BXbh68YrCf+s9HVqND5F8DAvl2MnE5NcOwZZZB56HGA=
+github.com/GrayCodeAI/hawk-core-contracts v0.1.13-0.20260816034142-16ebcfd5ad6e h1:cG9bLB3rWmMVU/7GwDxUIrEFbGHz7OTD5s9I4K+udr0=
+github.com/GrayCodeAI/hawk-core-contracts v0.1.13-0.20260816034142-16ebcfd5ad6e/go.mod h1:BXbh68YrCf+s9HVqND5F8DAvl2MnE5NcOwZZZB56HGA=
 github.com/GrayCodeAI/hawk-mcpkit v0.1.4 h1:tlhZXKDbI679I7c1feeY/pzErFwndD+R2CQf9sqHAVE=
 github.com/GrayCodeAI/hawk-mcpkit v0.1.4/go.mod h1:C32HPDRqiDETbVbMIbOTvguek6KImpLCffJjet7sqck=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
