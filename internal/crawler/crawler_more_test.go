@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -256,6 +257,109 @@ func TestValidateURL_SSRFProtection(t *testing.T) {
 	})
 	if err := c2.validateURL("http://127.0.0.1/admin"); err != nil {
 		t.Errorf("expected no error with AllowPrivateIPs=true, got %v", err)
+	}
+}
+
+func TestValidateURL_PrivateIPAllowlist(t *testing.T) {
+	c := New(Config{
+		AllowPrivateIPs:    false,
+		PrivateIPAllowlist: []string{"127.0.0.1:8123"},
+		UserAgent:          "test",
+	})
+
+	// Exact allowlisted host:port is exempt from the private-IP check.
+	if err := c.validateURL("http://127.0.0.1:8123/index.html"); err != nil {
+		t.Errorf("expected allowlisted address to pass, got %v", err)
+	}
+
+	// Same host, different port: not on the allowlist, must stay blocked.
+	if err := c.validateURL("http://127.0.0.1:8124/index.html"); err == nil {
+		t.Error("expected error for loopback address not in allowlist")
+	}
+
+	// Host without an explicit port never matches (allowlist entries are
+	// exact host:port values), so it must stay blocked.
+	if err := c.validateURL("http://127.0.0.1/admin"); err == nil {
+		t.Error("expected error for loopback host without port not in allowlist")
+	}
+
+	// Other private ranges remain blocked.
+	if err := c.validateURL("http://192.168.1.10:8123/"); err == nil {
+		t.Error("expected error for private range not in allowlist")
+	}
+}
+
+func TestCrawl_PrivateIPAllowlist(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<html><body><h1>local</h1></body></html>`)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	parsed, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hostPort := parsed.Host // 127.0.0.1:<ephemeral port>
+
+	// Without an allowlist entry the loopback server must be rejected by
+	// SSRF protection (validateURL layer).
+	blocked := New(Config{UserAgent: "test"})
+	pages, err := blocked.Crawl(context.Background(), srv.URL+"/")
+	if err != nil {
+		t.Fatalf("Crawl failed: %v", err)
+	}
+	if len(pages) != 1 || pages[0].Error == nil {
+		t.Fatalf("expected the crawl page to carry an error, got %+v", pages)
+	}
+	if !strings.Contains(pages[0].Error.Error(), "SSRF protection") {
+		t.Errorf("expected SSRF protection error, got %v", pages[0].Error)
+	}
+
+	// The dialer layer must enforce the same rule for requests that skip
+	// validateURL (e.g. robots.txt and sitemap fetches).
+	_, dialErr := blocked.client.Get(srv.URL + "/")
+	if dialErr == nil || !strings.Contains(dialErr.Error(), "SSRF protection") {
+		t.Errorf("expected dialer to block loopback, got %v", dialErr)
+	}
+
+	// With the server's exact host:port allowlisted for this crawl, both
+	// layers let the fetch through.
+	allowed := New(Config{
+		UserAgent:          "test",
+		PrivateIPAllowlist: []string{hostPort},
+	})
+	pages, err = allowed.Crawl(context.Background(), srv.URL+"/")
+	if err != nil {
+		t.Fatalf("Crawl failed: %v", err)
+	}
+	if len(pages) != 1 {
+		t.Fatalf("expected 1 page, got %d", len(pages))
+	}
+	if pages[0].Error != nil {
+		t.Fatalf("expected allowlisted crawl to succeed, got %v", pages[0].Error)
+	}
+	if pages[0].StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", pages[0].StatusCode)
+	}
+
+	// A different loopback port stays blocked even on the allowlisted
+	// crawler: spin up a second server and crawl it directly.
+	mux2 := http.NewServeMux()
+	mux2.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<html><body><h1>other</h1></body></html>`)
+	})
+	srv2 := httptest.NewServer(mux2)
+	defer srv2.Close()
+	pages, err = allowed.Crawl(context.Background(), srv2.URL+"/")
+	if err != nil {
+		t.Fatalf("Crawl failed: %v", err)
+	}
+	if len(pages) != 1 || pages[0].Error == nil || !strings.Contains(pages[0].Error.Error(), "SSRF protection") {
+		t.Errorf("expected second server to stay SSRF-blocked, got %+v", pages)
 	}
 }
 

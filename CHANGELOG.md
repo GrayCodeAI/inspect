@@ -7,6 +7,43 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [Unreleased]
+
+### Removed
+- **Dead exported `RateLimiter` type** (`ratelimit.go`). It had no
+  callers — the crawler rate-limits via its own internal per-crawl
+  limiter (`internal/crawler/rate.go`) — and its `Close` panicked when
+  called twice. Removed along with its test file; the now-unused
+  `golang.org/x/time` dependency is dropped from `go.mod`. This is a
+  minor API removal of code that never worked in a real scan; the
+  crawler's actual rate limiting is unchanged.
+
+### Fixed
+- **`FindingsStore.Flush` dropped the batch when the sink errored.** The
+  buffer was swapped out before `StoreBatch`, so a failing sink silently
+  lost every buffered entry. A failed flush now re-queues its batch at
+  the front of the buffer (entries added in the meantime keep their
+  order behind it) and still returns the error, so the next `Flush`
+  retries the same entries. The buffer stays bounded: re-queued batches
+  are capped at `maxBufferEntries` (10,000); overflow drops the oldest
+  entries and is reported via the new `FindingsStore.Dropped` counter.
+- **`Scanner.ScanDir` was blocked by its own SSRF protection.** The
+  temporary file server behind `ScanDir` listens on `127.0.0.1`, which the
+  crawler rejects under the default configuration, so default-options
+  scans (including the MCP `inspect_scan_dir` tool) returned a silently
+  empty report. The crawler now accepts an exact `host:port` private-IP
+  allowlist (`crawler.Config.PrivateIPAllowlist`) honored at both the
+  dialer and URL-validation layers, and `ScanDir` registers its ephemeral
+  listener address for the duration of that scan only. User-supplied URLs
+  and all other private addresses remain blocked.
+- **`ToContractReport` lost the configured fail threshold at the contract
+  layer.** The conversion field-copied `FailOn`, leaving the contract's
+  `FailOnSet` false, so a user-configured below-critical threshold did not
+  take effect in `verify.Report.Failed`. The converter now calls
+  `SetFailOn` so the threshold is recorded as explicitly configured.
+
+---
+
 ## [0.1.3] - 2026-07-04
 
 ### Changed

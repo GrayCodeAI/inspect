@@ -39,3 +39,30 @@ func TestToContractReport(t *testing.T) {
 		t.Fatalf("unexpected findings conversion: %+v", got.Findings)
 	}
 }
+
+func TestToContractReport_FailOnThresholdTakesEffect(t *testing.T) {
+	t.Parallel()
+
+	base := func(sev Severity) *Report {
+		return &Report{
+			Target: "https://example.com",
+			Findings: []Finding{
+				{Check: "security", Severity: sev, URL: "https://example.com/", Message: "m"},
+			},
+			FailOn: SeverityMedium,
+		}
+	}
+
+	low := ToContractReport(base(SeverityLow))
+	if !low.FailOnSet {
+		t.Fatal("converted report must record the threshold as explicitly set")
+	}
+	if low.Failed() {
+		t.Fatal("low finding must not fail a Medium threshold")
+	}
+
+	high := ToContractReport(base(SeverityHigh))
+	if !high.Failed() {
+		t.Fatal("high finding must fail a Medium threshold")
+	}
+}

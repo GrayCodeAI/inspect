@@ -35,7 +35,14 @@ type FindingsStore struct {
 	mu        sync.Mutex
 	batchSize int
 	autoFlush bool
+	dropped   int // entries dropped after failed flushes overflowed maxBufferEntries
 }
+
+// maxBufferEntries bounds the buffer when a failed flush re-queues its
+// batch: with a persistently failing sink the buffer would otherwise grow
+// without limit. When the bound is exceeded the oldest entries are
+// dropped (and counted via Dropped); the newest are kept.
+const maxBufferEntries = 10000
 
 // FindingsStoreOption configures a FindingsStore.
 type FindingsStoreOption func(*FindingsStore)
@@ -94,6 +101,10 @@ func (s *FindingsStore) Add(ctx context.Context, entry FindingEntry) error {
 
 // Flush sends all buffered entries to the sink and clears the buffer.
 // A nil sink causes Flush to clear the buffer without error.
+// If the sink rejects the batch, the entries are put back at the front of
+// the buffer so the next Flush retries them, and the error is returned.
+// The buffer stays bounded: once it holds maxBufferEntries entries the
+// oldest are dropped (see Dropped).
 func (s *FindingsStore) Flush(ctx context.Context) error {
 	s.mu.Lock()
 	if len(s.buffer) == 0 {
@@ -109,9 +120,29 @@ func (s *FindingsStore) Flush(ctx context.Context) error {
 	}
 
 	if err := s.sink.StoreBatch(ctx, batch); err != nil {
+		// The sink failed; keep the batch buffered (in front of any
+		// entries added while StoreBatch was running) so the next
+		// Flush retries it instead of silently dropping it.
+		s.mu.Lock()
+		s.requeueLocked(batch)
+		s.mu.Unlock()
 		return fmt.Errorf("inspect: flushing findings batch (%d entries): %w", len(batch), err)
 	}
 	return nil
+}
+
+// requeueLocked prepends a failed batch to the buffer. The combined buffer
+// is capped at maxBufferEntries; overflow drops the oldest entries and
+// counts them in s.dropped. Caller must hold s.mu.
+func (s *FindingsStore) requeueLocked(batch []FindingEntry) {
+	combined := make([]FindingEntry, 0, len(batch)+len(s.buffer))
+	combined = append(combined, batch...)
+	combined = append(combined, s.buffer...)
+	if overflow := len(combined) - maxBufferEntries; overflow > 0 {
+		s.dropped += overflow
+		combined = combined[overflow:]
+	}
+	s.buffer = combined
 }
 
 // Size returns the number of entries currently in the buffer.
@@ -119,6 +150,16 @@ func (s *FindingsStore) Size() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.buffer)
+}
+
+// Dropped returns the number of entries discarded because failed flushes
+// re-queued more entries than the buffer is allowed to hold
+// (maxBufferEntries). It reports entries lost to a persistently failing
+// sink and never resets.
+func (s *FindingsStore) Dropped() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.dropped
 }
 
 // ConvertScanResult converts a slice of Finding records from a scan into

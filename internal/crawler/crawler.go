@@ -37,6 +37,16 @@ type Config struct {
 	Logger          *slog.Logger
 	MaxPages        int // Maximum number of pages to crawl; 0 means no limit
 
+	// PrivateIPAllowlist lists exact "host:port" addresses that are exempt
+	// from SSRF private-IP blocking at both the dialer and URL-validation
+	// layers. It exists so a caller that crawls a server it controls (e.g.
+	// the temporary file server behind Scanner.ScanDir) is not blocked by
+	// its own SSRF protection. Entries must carry an explicit port, apply
+	// to that address only, and live for the lifetime of this Config (one
+	// crawl). User-supplied URLs are unaffected: every other private
+	// address is still rejected.
+	PrivateIPAllowlist []string
+
 	// CircuitBreaker, when non-nil, gates requests per host. If a host has
 	// accumulated too many consecutive failures the breaker opens and the
 	// crawler skips further requests to that host until the cooldown expires.
@@ -103,12 +113,13 @@ type FormInput struct {
 
 // Crawler performs concurrent crawling with rate limiting.
 type Crawler struct {
-	cfg     Config
-	client  *http.Client
-	seen    map[string]bool
-	mu      sync.Mutex
-	robots  *RobotsCache
-	limiter *rateLimiter
+	cfg            Config
+	client         *http.Client
+	seen           map[string]bool
+	mu             sync.Mutex
+	robots         *RobotsCache
+	limiter        *rateLimiter
+	privateAllowed map[string]struct{}
 }
 
 // New creates a configured Crawler.
@@ -128,23 +139,33 @@ func New(cfg Config) *Crawler {
 		KeepAlive: 30 * time.Second,
 	}
 
+	// Exact host:port addresses exempt from private-IP blocking (see
+	// Config.PrivateIPAllowlist). Shared by the dialer below and
+	// validateURL so both layers honor the same exemptions.
+	privateAllowed := make(map[string]struct{}, len(cfg.PrivateIPAllowlist))
+	for _, hp := range cfg.PrivateIPAllowlist {
+		privateAllowed[hp] = struct{}{}
+	}
+
 	transport := &http.Transport{
 		MaxIdleConns:        cfg.Concurrency * 2,
 		MaxIdleConnsPerHost: cfg.Concurrency,
 		IdleConnTimeout:     90 * time.Second,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			if !cfg.AllowPrivateIPs {
-				host, _, err := net.SplitHostPort(addr)
-				if err != nil {
-					return nil, err
-				}
-				ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-				if err != nil {
-					return nil, err
-				}
-				for _, ip := range ips {
-					if isPrivateIP(ip.IP) {
-						return nil, fmt.Errorf("SSRF protection: blocked connection to private IP %s", ip.IP)
+				if _, ok := privateAllowed[addr]; !ok {
+					host, _, err := net.SplitHostPort(addr)
+					if err != nil {
+						return nil, err
+					}
+					ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+					if err != nil {
+						return nil, err
+					}
+					for _, ip := range ips {
+						if isPrivateIP(ip.IP) {
+							return nil, fmt.Errorf("SSRF protection: blocked connection to private IP %s", ip.IP)
+						}
 					}
 				}
 			}
@@ -165,11 +186,12 @@ func New(cfg Config) *Crawler {
 	}
 
 	return &Crawler{
-		cfg:     cfg,
-		client:  client,
-		seen:    make(map[string]bool),
-		robots:  NewRobotsCache(),
-		limiter: newRateLimiter(cfg.RateLimit),
+		cfg:            cfg,
+		client:         client,
+		seen:           make(map[string]bool),
+		robots:         NewRobotsCache(),
+		limiter:        newRateLimiter(cfg.RateLimit),
+		privateAllowed: privateAllowed,
 	}
 }
 
@@ -526,7 +548,8 @@ func (c *Crawler) noRedirectClient() *http.Client {
 }
 
 // validateURL checks the URL for SSRF risks: scheme must be http/https and
-// resolved IP must not be in private ranges (unless AllowPrivateIPs is set).
+// resolved IP must not be in private ranges (unless AllowPrivateIPs is set
+// or the URL's host:port is on the crawl's private-IP allowlist).
 func (c *Crawler) validateURL(rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -535,7 +558,7 @@ func (c *Crawler) validateURL(rawURL string) error {
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return fmt.Errorf("disallowed URL scheme %q (only http/https allowed)", parsed.Scheme)
 	}
-	if c.cfg.AllowPrivateIPs {
+	if c.cfg.AllowPrivateIPs || c.privateAddrAllowed(parsed.Host) {
 		return nil
 	}
 	host := parsed.Hostname()
@@ -590,6 +613,18 @@ func isPrivateIP(ip net.IP) bool {
 		}
 	}
 	return false
+}
+
+// privateAddrAllowed reports whether hostport is an exact-match entry of
+// this crawl's private-IP allowlist (Config.PrivateIPAllowlist). Entries
+// are "host:port" strings for servers the caller controls; they are exempt
+// from private-IP blocking while every other address stays protected.
+func (c *Crawler) privateAddrAllowed(hostport string) bool {
+	if len(c.privateAllowed) == 0 {
+		return false
+	}
+	_, ok := c.privateAllowed[hostport]
+	return ok
 }
 
 func isRetryable(statusCode int) bool {
